@@ -175,12 +175,14 @@ Full language specification and documentation can be found in the `docs/` direct
 
 ## VS Code Extension
 
-Syntax highlighting and code snippets are available in `.vscode/extensions/thirsty-lang/`.
+Syntax highlighting and code snippets are available in `vscode-extension/`.
 
 To install:
-1. Copy the extension folder to your VS Code extensions directory
+1. Copy the `vscode-extension` folder to your VS Code extensions directory
 2. Reload VS Code
 3. Enjoy syntax highlighting for `.thirsty` files!
+
+See [vscode-extension/README.md](vscode-extension/README.md) for detailed installation instructions.
 
 ## Project Structure
 

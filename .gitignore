@@ -44,8 +44,9 @@ Cargo.lock
 *.out
 go.work
 
-# IDE
+# IDE (but not our vscode-extension)
 .vscode/
+!vscode-extension/
 .idea/
 *.swp
 *.swo
@@ -66,3 +67,9 @@ logs/
 # OS
 Thumbs.db
 .DS_Store
+
+# Thirsty-lang specific
+thirsty_packages/
+.thirsty_history
+docs/generated/
+benchmark-results.json
