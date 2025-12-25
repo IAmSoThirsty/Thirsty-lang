@@ -222,8 +222,8 @@ async function main() {
   }
 
   const code = fs.readFileSync(filename, 'utf-8');
-  const debugger = new ThirstyDebugger();
-  await debugger.debug(code);
+  const thirstyDebugger = new ThirstyDebugger();
+  await thirstyDebugger.debug(code);
 }
 
 if (require.main === module) {
