@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Thirsty-lang Quick Start Script
 # Helps users get started with Thirsty-lang quickly!
