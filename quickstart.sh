@@ -31,8 +31,9 @@ echo ""
 # Run tests
 echo "Running tests..."
 npm test
-if [ $? -ne 0 ]; then
-    echo "❌ Tests failed!"
+TEST_EXIT_CODE=$?
+if [ "$TEST_EXIT_CODE" -ne 0 ]; then
+    echo "❌ 'npm test' did not complete successfully (exit code $TEST_EXIT_CODE)."
     exit 1
 fi
 echo ""
