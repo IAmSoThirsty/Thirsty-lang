@@ -6,6 +6,3 @@
 
 # Documentation
 *.md linguist-documentation
-
-# Vendored files (example: if you want to exclude certain directories)
-# playground/* linguist-vendored
