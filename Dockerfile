@@ -1,32 +1,33 @@
 # Thirsty-lang Docker Image
-# Multi-stage build for optimal image size
+# Production-ready container for running Thirsty-lang
 
-FROM node:20-alpine AS node-base
+FROM node:20-slim
 
-# Install Python
-RUN apk add --no-cache python3 py3-pip bash
+# Install Python3
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3 python3-pip && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install Node.js dependencies
-RUN npm ci --only=production
+# Install Node.js dependencies (if any)
+RUN npm ci --only=production || true
 
 # Copy Python requirements
 COPY requirements.txt ./
-RUN pip3 install --no-cache-dir -r requirements.txt || true
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt || true
 
 # Copy source code
 COPY . .
 
 # Make scripts executable
-RUN chmod +x quickstart.sh setup_venv.sh
+RUN chmod +x quickstart.sh setup_venv.sh src/*.py 2>/dev/null || true
 
 # Create a non-root user
-RUN addgroup -g 1001 thirsty && \
-    adduser -D -u 1001 -G thirsty thirsty && \
+RUN useradd -m -u 1001 thirsty && \
     chown -R thirsty:thirsty /app
 
 USER thirsty
@@ -38,18 +39,24 @@ EXPOSE 8080
 CMD ["node", "src/thirsty-cli.js", "--help"]
 
 # --- Development Stage ---
-FROM node-base AS development
+FROM node:20-slim AS development
 
-USER root
+# Install Python and development tools
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3 python3-pip git && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install development dependencies
-COPY requirements-dev.txt ./
-RUN pip3 install --no-cache-dir -r requirements-dev.txt || true
+WORKDIR /app
 
-# Install Node.js dev dependencies
-RUN npm install
+# Copy all files
+COPY . .
 
-USER thirsty
+# Install dependencies
+RUN npm install && \
+    pip3 install --no-cache-dir --break-system-packages -r requirements-dev.txt || true
+
+# Make scripts executable
+RUN chmod +x quickstart.sh setup_venv.sh src/*.py 2>/dev/null || true
 
 # Development mode with volume mounting
 CMD ["npm", "run", "repl"]

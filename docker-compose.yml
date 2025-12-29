@@ -6,7 +6,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: node-base
     container_name: thirsty-lang
     volumes:
       - ./examples:/app/examples
