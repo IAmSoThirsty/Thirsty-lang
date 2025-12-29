@@ -21,28 +21,81 @@ Thirsty-lang is a fun, expressive programming language designed to quench your t
 - 🌳 AST generator
 - 🎯 Multiple language editions (Base, Plus, PlusPlus, ThirstOfGods)
 - 🔌 VS Code extension support
+- 🐍 **Python implementation included**
+- 🐳 **Docker and Docker Compose support**
+- 🔒 **Virtual environment setup**
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 14 or higher
-- npm or yarn
+**Choose your runtime:**
+- **Node.js** (Primary): 14 or higher
+- **Python** (Alternative): 3.8 or higher
+- **Docker** (Optional): For containerized execution
 
 ### Installation
 
+#### Node.js Setup (Primary)
 ```bash
 npm install
 ```
 
+#### Python Setup (Alternative)
+```bash
+# Automated setup
+./setup_venv.sh
+
+# Manual setup
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+#### Docker Setup (Optional)
+```bash
+# Build and run with Docker Compose
+docker-compose up
+
+# Or build Docker image directly
+docker build -t thirsty-lang .
+```
+
+See [DOCKER.md](DOCKER.md) for detailed Docker instructions and [PYTHON_SETUP.md](PYTHON_SETUP.md) for Python setup guide.
+
 ### Quick Start
 
+#### Using Node.js
 ```bash
 # Run a program
 npm start examples/hello.thirsty
 
 # Or use the unified CLI
 node src/thirsty-cli.js run examples/hello.thirsty
+```
+
+#### Using Python
+```bash
+# Activate virtual environment (if using)
+source .venv/bin/activate
+
+# Run a program
+python3 src/thirsty_interpreter.py examples/hello.thirsty
+
+# Start Python REPL
+python3 src/thirsty_repl.py
+```
+
+#### Using Docker
+```bash
+# Run a program
+docker-compose run --rm thirsty node src/cli.js examples/hello.thirsty
+
+# Start Node.js REPL
+docker-compose run --rm repl
+
+# Start Python REPL
+docker-compose run --rm python-repl
 ```
 
 ### Interactive Training Program 🎓
@@ -152,6 +205,40 @@ Manage dependencies and packages for your projects.
 ### Web Playground
 Open `playground/index.html` in your browser for an interactive web-based editor!
 
+### Docker Services
+```bash
+# See all available services
+docker-compose ps
+
+# Run specific services (see DOCKER.md for details)
+docker-compose up playground     # Web playground on port 8888
+docker-compose up training       # Interactive training
+```
+
+## Implementation Support
+
+Thirsty-lang includes two complete implementations:
+
+### Node.js Implementation (Primary)
+- **Fast and feature-complete**
+- All tools and utilities included
+- Production-ready
+- Run: `node src/cli.js <file.thirsty>`
+
+### Python Implementation (Alternative)
+- **Pure Python with standard library**
+- Educational and portable
+- Cross-platform compatible
+- Run: `python3 src/thirsty_interpreter.py <file.thirsty>`
+
+See [PYTHON_SETUP.md](PYTHON_SETUP.md) for detailed Python setup and usage.
+
+### Docker Support
+- **Multi-service architecture**
+- Development and production images
+- Pre-configured services for all tools
+- See [DOCKER.md](DOCKER.md) for complete Docker guide
+
 ## Language Editions
 
 Thirsty-lang comes in four flavors:
@@ -167,11 +254,28 @@ See [docs/EXPANSIONS.md](docs/EXPANSIONS.md) for detailed information.
 
 ## Documentation
 
-Full language specification and documentation can be found in the `docs/` directory:
+Full language specification and documentation can be found in the `docs/` directory and root:
 
-- [Language Specification](docs/SPECIFICATION.md)
-- [Expansions Guide](docs/EXPANSIONS.md)
-- [Contributing Guidelines](CONTRIBUTING.md)
+### Core Documentation
+- [README.md](README.md) - Main documentation (this file)
+- [Language Specification](docs/SPECIFICATION.md) - Complete syntax and semantics
+- [Expansions Guide](docs/EXPANSIONS.md) - Multi-tier language editions
+- [Tutorial](docs/TUTORIAL.md) - Step-by-step learning guide
+- [Quick Reference](docs/QUICK_REFERENCE.md) - Syntax cheat sheet
+- [FAQ](docs/FAQ.md) - Frequently asked questions
+- [Installation Guide](docs/INSTALLATION.md) - Setup instructions
+
+### Setup Guides
+- [PYTHON_SETUP.md](PYTHON_SETUP.md) - Python implementation setup
+- [DOCKER.md](DOCKER.md) - Docker and containerization guide
+
+### Project Information
+- [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute
+- [CHANGELOG.md](CHANGELOG.md) - Version history and changes
+- [AUTHORS.txt](AUTHORS.txt) - Contributors and authors
+- [DEPENDENCIES.txt](DEPENDENCIES.txt) - Dependency information
+- [VERSION.txt](VERSION.txt) - Current version
+- [LICENSE](LICENSE) - License terms
 
 ## VS Code Extension
 
@@ -189,30 +293,43 @@ See [vscode-extension/README.md](vscode-extension/README.md) for detailed instal
 ```
 Thirsty-lang/
 ├── src/
-│   ├── index.js           # Main interpreter
-│   ├── cli.js             # CLI runner
-│   ├── thirsty-cli.js     # Unified CLI tool
-│   ├── repl.js            # Interactive REPL
-│   ├── training.js        # Interactive training program
-│   ├── debugger.js        # Debugger
-│   ├── formatter.js       # Code formatter
-│   ├── linter.js          # Code linter
-│   ├── profiler.js        # Performance profiler
-│   ├── doc-generator.js   # Documentation generator
-│   ├── ast.js             # AST generator
-│   ├── transpiler.js      # Multi-language transpiler
-│   ├── package-manager.js # Package manager
-│   └── test/              # Test suite
-├── examples/              # Example programs
+│   ├── index.js                # Main Node.js interpreter
+│   ├── cli.js                  # CLI runner
+│   ├── thirsty-cli.js          # Unified CLI
+│   ├── repl.js                 # Interactive REPL
+│   ├── training.js             # Interactive training program
+│   ├── debugger.js             # Debugger
+│   ├── formatter.js            # Code formatter
+│   ├── linter.js               # Code linter
+│   ├── profiler.js             # Performance profiler
+│   ├── doc-generator.js        # Documentation generator
+│   ├── ast.js                  # AST generator
+│   ├── transpiler.js           # Multi-language transpiler
+│   ├── package-manager.js      # Package manager
+│   ├── thirsty_interpreter.py  # Python interpreter
+│   ├── thirsty_repl.py         # Python REPL
+│   ├── thirsty_utils.py        # Python utilities
+│   └── test/                   # Test suite
+├── examples/                   # Example programs
 │   ├── hello.thirsty
 │   ├── variables.thirsty
 │   ├── hydration.thirsty
-│   └── advanced/          # Advanced examples
-├── docs/                  # Documentation
-├── playground/            # Web playground
-├── .vscode/extensions/    # VS Code extension
-└── .github/workflows/     # CI/CD
-
+│   └── advanced/               # Advanced examples
+├── docs/                       # Documentation
+├── playground/                 # Web playground
+├── vscode-extension/           # VS Code extension
+├── tools/                      # Benchmark tools
+├── requirements.txt            # Python core dependencies
+├── requirements-dev.txt        # Python dev dependencies
+├── setup_venv.sh               # Python venv setup script
+├── Dockerfile                  # Docker container definition
+├── docker-compose.yml          # Docker multi-service setup
+├── .dockerignore               # Docker ignore file
+├── CHANGELOG.md                # Version history
+├── AUTHORS.txt                 # Contributors
+├── DEPENDENCIES.txt            # Dependency information
+├── VERSION.txt                 # Current version
+└── .github/workflows/          # CI/CD
 ```
 
 ## Contributing

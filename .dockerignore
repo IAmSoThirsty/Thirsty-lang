@@ -1,3 +1,5 @@
+# Docker ignore file for Thirsty-lang
+
 # Node.js
 node_modules/
 npm-debug.log
@@ -26,44 +28,36 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.venv/
 venv/
 env/
 ENV/
-.venv/
+.pytest_cache/
 
-# Rust
-target/
-Cargo.lock
+# Git
+.git/
+.gitignore
+.gitattributes
 
-# Go
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-*.out
-go.work
-
-# IDE (but not our vscode-extension)
+# IDE
 .vscode/
-!vscode-extension/
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
 
-# Build outputs
-*.o
-*.a
-*.out
-bin/
-obj/
+# Documentation (build artifacts)
+docs/generated/
 
 # Logs
 *.log
 logs/
+
+# Test coverage
+coverage/
+.coverage
+.nyc_output/
 
 # OS
 Thumbs.db
@@ -72,5 +66,18 @@ Thumbs.db
 # Thirsty-lang specific
 thirsty_packages/
 .thirsty_history
-docs/generated/
 benchmark-results.json
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# CI/CD
+.github/
+
+# Development files
+*.md
+!README.md
+LICENSE
+CONTRIBUTING.md
