@@ -18,7 +18,14 @@ RUN npm ci --only=production || true
 
 # Copy Python requirements
 COPY requirements.txt ./
-RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt || true
+
+# Install Python dependencies if any are specified
+# Note: requirements.txt currently has no dependencies (uses standard library only)
+RUN if [ -s requirements.txt ]; then \
+        pip3 install --no-cache-dir --break-system-packages -r requirements.txt; \
+    else \
+        echo "No Python dependencies to install (using standard library only)"; \
+    fi
 
 # Copy source code
 COPY . .
@@ -52,8 +59,14 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN npm install && \
-    pip3 install --no-cache-dir --break-system-packages -r requirements-dev.txt || true
+RUN npm install
+
+# Install Python dev dependencies if specified
+RUN if [ -s requirements-dev.txt ]; then \
+        pip3 install --no-cache-dir --break-system-packages -r requirements-dev.txt; \
+    else \
+        echo "No Python dev dependencies to install"; \
+    fi
 
 # Make scripts executable
 RUN chmod +x quickstart.sh setup_venv.sh src/*.py 2>/dev/null || true

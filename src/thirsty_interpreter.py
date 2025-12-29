@@ -45,6 +45,10 @@ class ThirstyInterpreter:
         
         return self.output
     
+    def execute_line(self, line: str):
+        """Execute a single line of Thirsty-lang code (public interface)"""
+        return self._execute_line(line)
+    
     def _execute_line(self, line: str):
         """Execute a single line of Thirsty-lang code"""
         

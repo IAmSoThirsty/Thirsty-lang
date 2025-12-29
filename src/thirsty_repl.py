@@ -58,7 +58,7 @@ class ThirstyREPL:
                 # Execute the line
                 self.history.append(line)
                 try:
-                    self.interpreter._execute_line(line)
+                    self.interpreter.execute_line(line)
                 except Exception as e:
                     print(f"Error: {str(e)}", file=sys.stderr)
             

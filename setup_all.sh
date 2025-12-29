@@ -25,10 +25,11 @@ if ! command -v node &> /dev/null; then
     exit 1
 fi
 
-NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 14 ]; then
-    echo "⚠️  Node.js version is too old (found $(node --version))"
+NODE_VERSION=$(node --version 2>/dev/null | sed 's/v//' | cut -d'.' -f1)
+if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" -lt 14 ] 2>/dev/null; then
+    echo "⚠️  Node.js version check failed or version is too old"
     echo "   Required: v14.0.0 or higher"
+    echo "   Found: $(node --version 2>&1)"
     exit 1
 fi
 
