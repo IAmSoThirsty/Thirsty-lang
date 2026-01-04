@@ -1,14 +1,19 @@
-# Thirsty-lang 💧
+# Thirsty-lang 💧🔒
 
-This is my Language for anyone and everyone who is Thirsty.
+This is my Language for anyone and everyone who is Thirsty - now with **Defensive Programming** capabilities!
 
 ## About
 
-Thirsty-lang is a fun, expressive programming language designed to quench your thirst for coding! 
+Thirsty-lang is a unique, expressive programming language designed to be **defensive and combative** against all known code threats. It combines fun water-themed syntax with enterprise-grade security features.
 
 ## Features
 
 - ✨ Simple and intuitive syntax
+- 🔒 **Defensive Programming - Built-in security against all attack vectors**
+- 🛡️ **Threat Detection - White/Grey/Black/Red box attack detection**
+- 🔄 **Code Morphing - Dynamic obfuscation and anti-analysis**
+- 🎯 **Security Keywords - shield, morph, detect, defend, sanitize, armor**
+- 🚨 **Counter-Strike Mode - Automated attacker neutralization**
 - 🎓 Interactive training program for all skill levels
 - 🔍 Built-in REPL for experimenting
 - 🐛 Full-featured debugger
@@ -24,6 +29,7 @@ Thirsty-lang is a fun, expressive programming language designed to quench your t
 - 🐍 **Python implementation included**
 - 🐳 **Docker and Docker Compose support**
 - 🔒 **Virtual environment setup**
+- 🤖 **Project-AI Integration Ready**
 
 ## Getting Started
 
@@ -122,11 +128,14 @@ npm start examples/hello.thirsty
 
 ```bash
 npm test
+
+# Run security tests
+node src/test/security-tests.js
 ```
 
 ## Language Syntax
 
-Thirsty-lang uses water-themed keywords:
+### Core Keywords (Water-Themed)
 
 - `drink` - Variable declaration
 - `pour` - Output/print statement
@@ -136,14 +145,73 @@ Thirsty-lang uses water-themed keywords:
 - `refill` - Loop statement
 - `glass` - Function declaration
 
-### Example Program
+### Security Keywords (Defensive Programming)
 
+- `shield` - Mark code blocks for protection
+- `morph` - Enable dynamic code mutation
+- `detect` - Set up threat monitoring
+- `defend` - Automatic countermeasures
+- `sanitize` - Input/output cleaning
+- `armor` - Memory protection
+
+### Example Programs
+
+#### Basic Program
 ```thirsty
 drink water = "Hello, World!"
 pour water
 ```
 
-See more examples in the `examples/` directory.
+#### Secure Program with Defensive Features
+```thirsty
+shield mySecureApp {
+  detect attacks {
+    morph on: ["injection", "overflow", "timing"]
+    defend with: "aggressive"
+  }
+  
+  drink userData = sip "Enter your name"
+  sanitize userData
+  armor userData
+  
+  pour "Hello, " + userData
+}
+```
+
+See more examples in the `examples/` and `examples/security/` directories.
+
+## Defensive Programming Features
+
+Thirsty-lang is designed to be **combative against all known code threats**:
+
+### Attack Detection
+
+- **White Box** - SQL injection, XSS, command injection, path traversal
+- **Grey Box** - Timing attacks, brute force, enumeration
+- **Black Box** - Buffer overflows, DoS, type confusion
+- **Red Team** - Reverse engineering, memory dumps, VM detection
+
+### Code Protection
+
+- **Code Morphing** - Dynamic obfuscation and polymorphism
+- **Anti-Debugging** - Debugger detection and prevention
+- **Memory Safety** - Automatic bounds checking and type safety
+- **Input Sanitization** - Comprehensive input validation
+
+### Security Modes
+
+- `passive` - Log threats only
+- `moderate` - Warn and sanitize (default)
+- `aggressive` - Block threats
+- `paranoid` - Counter-strike with honeypots and deception
+
+See [docs/SECURITY_GUIDE.md](docs/SECURITY_GUIDE.md) for comprehensive security documentation.
+
+## Project-AI Integration
+
+For superior AI-powered security measures, Thirsty-lang integrates with [Project-AI](https://github.com/IAmSoThirsty/Project-AI).
+
+See [PROJECT_AI_INTEGRATION.md](PROJECT_AI_INTEGRATION.md) for integration details.
 
 ## Available Tools
 
