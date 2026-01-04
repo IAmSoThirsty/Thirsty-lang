@@ -24,7 +24,7 @@ class ThreatDetector {
         commandInjection: /(;|\||&|`|\$\(|&&|\|\|)/g,
         pathTraversal: /(\.\.\/|\.\.\\)/g,
         codeInjection: /(eval\(|Function\(|setTimeout\(|setInterval\()/gi,
-        prototypePolultion: /(__proto__|constructor\[|prototype\[)/gi,
+        prototypePollution: /(__proto__|constructor\[|prototype\[)/gi,
         xxeInjection: /(<!DOCTYPE|<!ENTITY|SYSTEM|PUBLIC)/gi
       },
       
@@ -188,7 +188,7 @@ class ThreatDetector {
    */
   calculateSeverity(attackType) {
     const criticalAttacks = ['sqlInjection', 'commandInjection', 'codeInjection', 'bufferOverflow'];
-    const highAttacks = ['xssInjection', 'pathTraversal', 'prototypePolultion'];
+    const highAttacks = ['xssInjection', 'pathTraversal', 'prototypePollution'];
     const mediumAttacks = ['xxeInjection', 'timingAttack'];
 
     if (criticalAttacks.includes(attackType)) return 'critical';
