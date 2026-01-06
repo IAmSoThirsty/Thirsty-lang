@@ -1,26 +1,23 @@
 // Thirsty-lang Security Example: Paranoid Mode
-// Maximum security with all defensive features enabled
+// ⚠️ WARNING: All security features mentioned here are NOT IMPLEMENTED
+// This is aspirational documentation only
 
-shield paranoidMode {
-  // Ultra-secure configuration
-  detect attacks {
-    morph on: ["injection", "overflow", "timing", "xss", "sqli"]
-    defend with: "paranoid"
-  }
-  
-  // Multiple layers of protection
-  drink password = sip "Enter password"
-  sanitize password
-  armor password
-  
-  drink username = sip "Enter username"
-  sanitize username
-  armor username
-  
-  // Protected processing
-  drink credentials = username + ":" + password
-  armor credentials
-  
-  pour "Authentication data secured"
-  pour "All threats monitored and countered"
-}
+// NONE OF THIS WORKS:
+// shield paranoidMode {
+//   detect attacks { ... }
+//   morph on: [...]
+//   defend with: "paranoid"
+//   sanitize, armor, etc.
+// }
+
+// Current Thirsty-lang capabilities:
+pour "SECURITY WARNING:"
+pour "Thirsty-lang has NO actual security features"
+pour "It is an educational toy language only"
+
+drink username = "alice"
+drink password = "secret123"
+drink credentials = username + ":" + password
+
+pour "Credentials (INSECURE): " + credentials
+pour "Do not use for real authentication!"

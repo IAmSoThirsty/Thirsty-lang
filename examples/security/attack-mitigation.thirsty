@@ -1,20 +1,18 @@
 // Thirsty-lang Security Example: Attack Mitigation
-// Demonstrates protection against common attacks
+// ⚠️ WARNING: Security features are NOT IMPLEMENTED
+// This is documentation only - these features do not work
 
-shield attackMitigation {
-  // SQL Injection Protection
-  drink sqlQuery = sip "Enter search term"
-  sanitize sqlQuery
-  pour "Safe query: " + sqlQuery
-  
-  // XSS Protection
-  drink htmlContent = sip "Enter content"
-  sanitize htmlContent
-  pour "Safe HTML: " + htmlContent
-  
-  // Buffer Overflow Protection
-  drink largeInput = sip "Enter data"
-  sanitize largeInput
-  armor largeInput
-  pour "Protected data length checked"
-}
+// DOES NOT WORK:
+// shield attackMitigation {
+//   drink sqlQuery = sip "Enter search term"
+//   sanitize sqlQuery
+//   ...
+// }
+
+// What you can do with current Thirsty-lang:
+pour "Security Note: Thirsty-lang is a toy language"
+pour "Do NOT use for real security applications"
+
+drink searchTerm = "example query"
+pour "Search term: " + searchTerm
+pour "Note: No actual sanitization is performed"

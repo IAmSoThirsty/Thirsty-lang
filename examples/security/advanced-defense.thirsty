@@ -1,20 +1,17 @@
 // Thirsty-lang Security Example: Advanced Defense
-// Demonstrates morph, detect, and defend keywords
+// ⚠️ WARNING: Security keywords are NOT IMPLEMENTED
+// This syntax will cause errors if you try to run it
 
-shield advancedDefense {
-  // Configure threat detection
-  detect attacks {
-    morph on: ["injection", "overflow", "timing"]
-    defend with: "aggressive"
-  }
-  
-  // User input with full protection
-  drink userInput = sip "Enter command"
-  sanitize userInput
-  
-  // Process safely
-  drink result = "Processed: " + userInput
-  armor result
-  
-  pour result
-}
+// THE FOLLOWING DOES NOT WORK:
+// shield, morph, detect, defend, sanitize, armor
+// These are all documented but non-functional
+
+// What Thirsty-lang CAN actually do:
+pour "Advanced Defense Example"
+pour "Note: This is a toy language with no security"
+
+drink userInput = "example command"
+drink result = "Processed: " + userInput
+
+pour result
+pour "Warning: No actual security measures are in place"

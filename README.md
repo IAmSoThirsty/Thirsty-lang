@@ -6,6 +6,8 @@ A fun, water-themed programming language designed for learning and experimentati
 
 Thirsty-lang is currently an **educational toy language** with **basic functionality**. While it has extensive documentation, many advanced features are conceptual or in early development stages.
 
+**📊 For a complete breakdown of what works vs. what doesn't, see [FEATURE_STATUS.md](FEATURE_STATUS.md)**
+
 ## ✅ What Actually Works Now
 
 ### Core Language Features (Fully Functional)
