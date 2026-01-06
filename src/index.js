@@ -8,6 +8,7 @@
 class ThirstyInterpreter {
   constructor() {
     this.variables = {};
+    this.MAX_LOOP_ITERATIONS = 10000; // Safety limit for loops
   }
 
   /**
@@ -95,8 +96,15 @@ class ThirstyInterpreter {
     
     while (i < lines.length && braceCount > 0) {
       const currentLine = lines[i].trim();
-      if (currentLine.endsWith('{')) braceCount++;
-      if (currentLine === '}') {
+      // Count braces, but only in non-comment, non-string parts
+      // Simple approach: only count standalone braces on lines that start with them
+      if (currentLine.startsWith('thirsty ') && currentLine.endsWith('{')) {
+        braceCount++;
+      } else if (currentLine.startsWith('refill ') && currentLine.endsWith('{')) {
+        braceCount++;
+      } else if (currentLine === 'hydrated {') {
+        braceCount++;
+      } else if (currentLine === '}') {
         braceCount--;
         if (braceCount === 0) {
           thenBlockEnd = i;
@@ -124,8 +132,13 @@ class ThirstyInterpreter {
         let j = hydratedStart;
         while (j < lines.length && braceCount > 0) {
           const currentLine = lines[j].trim();
-          if (currentLine.endsWith('{')) braceCount++;
-          if (currentLine === '}') {
+          if (currentLine.startsWith('thirsty ') && currentLine.endsWith('{')) {
+            braceCount++;
+          } else if (currentLine.startsWith('refill ') && currentLine.endsWith('{')) {
+            braceCount++;
+          } else if (currentLine === 'hydrated {') {
+            braceCount++;
+          } else if (currentLine === '}') {
             braceCount--;
             if (braceCount === 0) {
               return j + 1;
@@ -142,8 +155,13 @@ class ThirstyInterpreter {
       let j = hydratedStart;
       while (j < lines.length && braceCount > 0) {
         const currentLine = lines[j].trim();
-        if (currentLine.endsWith('{')) braceCount++;
-        if (currentLine === '}') {
+        if (currentLine.startsWith('thirsty ') && currentLine.endsWith('{')) {
+          braceCount++;
+        } else if (currentLine.startsWith('refill ') && currentLine.endsWith('{')) {
+          braceCount++;
+        } else if (currentLine === 'hydrated {') {
+          braceCount++;
+        } else if (currentLine === '}') {
           braceCount--;
           if (braceCount === 0) {
             this.executeBlock(lines.slice(hydratedStart, j), 0);
@@ -159,33 +177,35 @@ class ThirstyInterpreter {
 
   /**
    * Evaluate a condition for if statements
+   * Note: Only handles simple binary comparisons (a op b), not complex expressions
    */
   evaluateCondition(condition) {
     condition = condition.trim();
     
-    // Comparison operators
+    // Comparison operators (check in order of specificity to avoid conflicts)
+    // e.g., check >= before >, <= before <, != before =
     if (condition.includes('==')) {
-      const parts = condition.split('==').map(p => p.trim());
+      const parts = condition.split('==', 2).map(p => p.trim());
       return this.evaluateExpression(parts[0]) == this.evaluateExpression(parts[1]);
     }
     if (condition.includes('!=')) {
-      const parts = condition.split('!=').map(p => p.trim());
+      const parts = condition.split('!=', 2).map(p => p.trim());
       return this.evaluateExpression(parts[0]) != this.evaluateExpression(parts[1]);
     }
     if (condition.includes('>=')) {
-      const parts = condition.split('>=').map(p => p.trim());
+      const parts = condition.split('>=', 2).map(p => p.trim());
       return this.evaluateExpression(parts[0]) >= this.evaluateExpression(parts[1]);
     }
     if (condition.includes('<=')) {
-      const parts = condition.split('<=').map(p => p.trim());
+      const parts = condition.split('<=', 2).map(p => p.trim());
       return this.evaluateExpression(parts[0]) <= this.evaluateExpression(parts[1]);
     }
     if (condition.includes('>')) {
-      const parts = condition.split('>').map(p => p.trim());
+      const parts = condition.split('>', 2).map(p => p.trim());
       return this.evaluateExpression(parts[0]) > this.evaluateExpression(parts[1]);
     }
     if (condition.includes('<')) {
-      const parts = condition.split('<').map(p => p.trim());
+      const parts = condition.split('<', 2).map(p => p.trim());
       return this.evaluateExpression(parts[0]) < this.evaluateExpression(parts[1]);
     }
     
@@ -213,8 +233,14 @@ class ThirstyInterpreter {
     
     while (i < lines.length && braceCount > 0) {
       const currentLine = lines[i].trim();
-      if (currentLine.endsWith('{')) braceCount++;
-      if (currentLine === '}') {
+      // Count braces only for control flow statements
+      if (currentLine.startsWith('thirsty ') && currentLine.endsWith('{')) {
+        braceCount++;
+      } else if (currentLine.startsWith('refill ') && currentLine.endsWith('{')) {
+        braceCount++;
+      } else if (currentLine === 'hydrated {') {
+        braceCount++;
+      } else if (currentLine === '}') {
         braceCount--;
         if (braceCount === 0) {
           blockEnd = i;
@@ -225,16 +251,15 @@ class ThirstyInterpreter {
     }
     
     // Execute the loop
-    const maxIterations = 10000; // Safety limit
     let iterations = 0;
     
-    while (this.evaluateCondition(condition) && iterations < maxIterations) {
+    while (this.evaluateCondition(condition) && iterations < this.MAX_LOOP_ITERATIONS) {
       this.executeBlock(lines.slice(startIndex + 1, blockEnd), 0);
       iterations++;
     }
     
-    if (iterations >= maxIterations) {
-      throw new Error('Loop exceeded maximum iterations (10000)');
+    if (iterations >= this.MAX_LOOP_ITERATIONS) {
+      throw new Error(`Loop exceeded maximum iterations (${this.MAX_LOOP_ITERATIONS})`);
     }
     
     return blockEnd + 1;
