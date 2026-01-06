@@ -15,11 +15,41 @@ class ThirstyInterpreter {
    * @param {string} code - The Thirsty-lang source code
    */
   execute(code) {
-    const lines = code.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('//'));
+    const lines = code.split('\n');
+    this.executeBlock(lines, 0);
+  }
+
+  /**
+   * Execute a block of code starting from a given index
+   * Returns the index after the block ends
+   */
+  executeBlock(lines, startIndex) {
+    let i = startIndex;
     
-    for (const line of lines) {
-      this.executeLine(line);
+    while (i < lines.length) {
+      const line = lines[i].trim();
+      
+      // Skip empty lines and comments
+      if (!line || line.startsWith('//')) {
+        i++;
+        continue;
+      }
+      
+      // Handle control flow
+      if (line.startsWith('thirsty ')) {
+        i = this.handleThirsty(lines, i);
+      } else if (line.startsWith('refill ')) {
+        i = this.handleRefill(lines, i);
+      } else if (line === '}') {
+        // End of block
+        return i + 1;
+      } else {
+        this.executeLine(line);
+        i++;
+      }
     }
+    
+    return i;
   }
 
   /**
@@ -42,6 +72,172 @@ class ThirstyInterpreter {
     else {
       throw new Error(`Unknown statement: ${line}`);
     }
+  }
+
+  /**
+   * Handle thirsty (if) statement
+   */
+  handleThirsty(lines, startIndex) {
+    const line = lines[startIndex].trim();
+    const match = line.match(/thirsty\s+(.+)\s*{/);
+    
+    if (!match) {
+      throw new Error(`Invalid thirsty statement: ${line}`);
+    }
+    
+    const condition = this.evaluateCondition(match[1]);
+    
+    // Find the matching closing brace and hydrated block if exists
+    let braceCount = 1;
+    let i = startIndex + 1;
+    let thenBlockEnd = -1;
+    let hydratedStart = -1;
+    
+    while (i < lines.length && braceCount > 0) {
+      const currentLine = lines[i].trim();
+      if (currentLine.endsWith('{')) braceCount++;
+      if (currentLine === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          thenBlockEnd = i;
+          break;
+        }
+      }
+      i++;
+    }
+    
+    // Check for hydrated (else) block
+    if (thenBlockEnd + 1 < lines.length) {
+      const nextLine = lines[thenBlockEnd + 1].trim();
+      if (nextLine === 'hydrated {') {
+        hydratedStart = thenBlockEnd + 2;
+      }
+    }
+    
+    if (condition) {
+      // Execute the then block
+      this.executeBlock(lines.slice(startIndex + 1, thenBlockEnd), 0);
+      
+      // Skip past hydrated block if it exists
+      if (hydratedStart !== -1) {
+        let braceCount = 1;
+        let j = hydratedStart;
+        while (j < lines.length && braceCount > 0) {
+          const currentLine = lines[j].trim();
+          if (currentLine.endsWith('{')) braceCount++;
+          if (currentLine === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              return j + 1;
+            }
+          }
+          j++;
+        }
+      }
+      
+      return thenBlockEnd + 1;
+    } else if (hydratedStart !== -1) {
+      // Execute the hydrated (else) block
+      let braceCount = 1;
+      let j = hydratedStart;
+      while (j < lines.length && braceCount > 0) {
+        const currentLine = lines[j].trim();
+        if (currentLine.endsWith('{')) braceCount++;
+        if (currentLine === '}') {
+          braceCount--;
+          if (braceCount === 0) {
+            this.executeBlock(lines.slice(hydratedStart, j), 0);
+            return j + 1;
+          }
+        }
+        j++;
+      }
+    }
+    
+    return thenBlockEnd + 1;
+  }
+
+  /**
+   * Evaluate a condition for if statements
+   */
+  evaluateCondition(condition) {
+    condition = condition.trim();
+    
+    // Comparison operators
+    if (condition.includes('==')) {
+      const parts = condition.split('==').map(p => p.trim());
+      return this.evaluateExpression(parts[0]) == this.evaluateExpression(parts[1]);
+    }
+    if (condition.includes('!=')) {
+      const parts = condition.split('!=').map(p => p.trim());
+      return this.evaluateExpression(parts[0]) != this.evaluateExpression(parts[1]);
+    }
+    if (condition.includes('>=')) {
+      const parts = condition.split('>=').map(p => p.trim());
+      return this.evaluateExpression(parts[0]) >= this.evaluateExpression(parts[1]);
+    }
+    if (condition.includes('<=')) {
+      const parts = condition.split('<=').map(p => p.trim());
+      return this.evaluateExpression(parts[0]) <= this.evaluateExpression(parts[1]);
+    }
+    if (condition.includes('>')) {
+      const parts = condition.split('>').map(p => p.trim());
+      return this.evaluateExpression(parts[0]) > this.evaluateExpression(parts[1]);
+    }
+    if (condition.includes('<')) {
+      const parts = condition.split('<').map(p => p.trim());
+      return this.evaluateExpression(parts[0]) < this.evaluateExpression(parts[1]);
+    }
+    
+    // Boolean expression
+    return Boolean(this.evaluateExpression(condition));
+  }
+
+  /**
+   * Handle refill (loop) statement
+   */
+  handleRefill(lines, startIndex) {
+    const line = lines[startIndex].trim();
+    const match = line.match(/refill\s+(.+)\s*{/);
+    
+    if (!match) {
+      throw new Error(`Invalid refill statement: ${line}`);
+    }
+    
+    const condition = match[1];
+    
+    // Find the matching closing brace
+    let braceCount = 1;
+    let i = startIndex + 1;
+    let blockEnd = -1;
+    
+    while (i < lines.length && braceCount > 0) {
+      const currentLine = lines[i].trim();
+      if (currentLine.endsWith('{')) braceCount++;
+      if (currentLine === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          blockEnd = i;
+          break;
+        }
+      }
+      i++;
+    }
+    
+    // Execute the loop
+    const maxIterations = 10000; // Safety limit
+    let iterations = 0;
+    
+    while (this.evaluateCondition(condition) && iterations < maxIterations) {
+      this.executeBlock(lines.slice(startIndex + 1, blockEnd), 0);
+      iterations++;
+    }
+    
+    if (iterations >= maxIterations) {
+      throw new Error('Loop exceeded maximum iterations (10000)');
+    }
+    
+    return blockEnd + 1;
   }
 
   /**
@@ -81,11 +277,54 @@ class ThirstyInterpreter {
   evaluateExpression(expr) {
     expr = expr.trim();
     
+    // String concatenation with +
+    if (expr.includes('+') && !this.isInString(expr, expr.indexOf('+'))) {
+      const parts = this.splitExpression(expr, '+');
+      let result = '';
+      for (const part of parts) {
+        const val = this.evaluateExpression(part);
+        result += String(val);
+      }
+      return result;
+    }
+    
+    // Arithmetic operations
+    if (expr.includes('-') && !this.isInString(expr, expr.indexOf('-')) && !expr.startsWith('-')) {
+      const parts = this.splitExpression(expr, '-');
+      let result = this.evaluateExpression(parts[0]);
+      for (let i = 1; i < parts.length; i++) {
+        result -= this.evaluateExpression(parts[i]);
+      }
+      return result;
+    }
+    
+    if (expr.includes('*') && !this.isInString(expr, expr.indexOf('*'))) {
+      const parts = this.splitExpression(expr, '*');
+      let result = this.evaluateExpression(parts[0]);
+      for (let i = 1; i < parts.length; i++) {
+        result *= this.evaluateExpression(parts[i]);
+      }
+      return result;
+    }
+    
+    if (expr.includes('/') && !this.isInString(expr, expr.indexOf('/'))) {
+      const parts = this.splitExpression(expr, '/');
+      let result = this.evaluateExpression(parts[0]);
+      for (let i = 1; i < parts.length; i++) {
+        result /= this.evaluateExpression(parts[i]);
+      }
+      return result;
+    }
+    
     // String literal
     if ((expr.startsWith('"') && expr.endsWith('"')) || 
         (expr.startsWith("'") && expr.endsWith("'"))) {
       return expr.slice(1, -1);
     }
+    
+    // Boolean literals
+    if (expr === 'true') return true;
+    if (expr === 'false') return false;
     
     // Number literal
     if (!isNaN(expr)) {
@@ -98,6 +337,62 @@ class ThirstyInterpreter {
     }
     
     throw new Error(`Unknown expression: ${expr}`);
+  }
+
+  /**
+   * Check if a position is inside a string literal
+   */
+  isInString(expr, pos) {
+    let inString = false;
+    let stringChar = null;
+    for (let i = 0; i < pos; i++) {
+      if ((expr[i] === '"' || expr[i] === "'") && (i === 0 || expr[i-1] !== '\\')) {
+        if (!inString) {
+          inString = true;
+          stringChar = expr[i];
+        } else if (expr[i] === stringChar) {
+          inString = false;
+          stringChar = null;
+        }
+      }
+    }
+    return inString;
+  }
+
+  /**
+   * Split expression by operator, respecting strings
+   */
+  splitExpression(expr, operator) {
+    const parts = [];
+    let current = '';
+    let inString = false;
+    let stringChar = null;
+    
+    for (let i = 0; i < expr.length; i++) {
+      const char = expr[i];
+      
+      if ((char === '"' || char === "'") && (i === 0 || expr[i-1] !== '\\')) {
+        if (!inString) {
+          inString = true;
+          stringChar = char;
+        } else if (char === stringChar) {
+          inString = false;
+          stringChar = null;
+        }
+        current += char;
+      } else if (char === operator && !inString) {
+        parts.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    if (current) {
+      parts.push(current.trim());
+    }
+    
+    return parts;
   }
 }
 
