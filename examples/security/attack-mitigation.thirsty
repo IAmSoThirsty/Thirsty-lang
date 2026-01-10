@@ -2,18 +2,18 @@
 // Demonstrates protection against common attacks
 
 shield attackMitigation {
-  // SQL Injection Protection
-  drink sqlQuery = sip "Enter search term"
+  // SQL Injection Protection (simulated input)
+  drink sqlQuery = "'; DROP TABLE users; --"
   sanitize sqlQuery
   pour "Safe query: " + sqlQuery
   
   // XSS Protection
-  drink htmlContent = sip "Enter content"
+  drink htmlContent = "<img src=x onerror=alert(1)>"
   sanitize htmlContent
   pour "Safe HTML: " + htmlContent
   
   // Buffer Overflow Protection
-  drink largeInput = sip "Enter data"
+  drink largeInput = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
   sanitize largeInput
   armor largeInput
   pour "Protected data length checked"

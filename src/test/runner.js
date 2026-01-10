@@ -224,4 +224,37 @@ runner.test('Error: Invalid expression', () => {
   runner.assertEqual(errorCaught, true, 'Should throw error for unknown expression');
 });
 
+runner.test('Security: Shield block execution', () => {
+  const interpreter = new ThirstyInterpreter();
+  const oldLog = console.log;
+  let output = '';
+  console.log = (msg) => { output = msg; };
+  
+  interpreter.execute('shield testBlock {\ndrink message = "protected"\npour message\n}');
+  console.log = oldLog;
+  
+  runner.assertEqual(output, 'protected', 'Shield block should execute normally');
+});
+
+runner.test('Security: Sanitize removes XSS', () => {
+  const interpreter = new ThirstyInterpreter();
+  interpreter.execute('drink input = "<script>alert(1)</script>"\nsanitize input');
+  
+  const sanitized = interpreter.variables.input;
+  runner.assertEqual(sanitized.includes('<script>'), false, 'Sanitize should remove script tags');
+});
+
+runner.test('Security: Armor protects variables', () => {
+  const interpreter = new ThirstyInterpreter();
+  const oldWarn = console.warn;
+  let warned = false;
+  console.warn = () => { warned = true; };
+  
+  interpreter.execute('drink secret = "value"\narmor secret\ndrink secret = "hacked"');
+  console.warn = oldWarn;
+  
+  runner.assertEqual(interpreter.variables.secret, 'value', 'Armored variable should keep original value');
+  runner.assertEqual(warned, true, 'Should warn when trying to modify armored variable');
+});
+
 runner.run();

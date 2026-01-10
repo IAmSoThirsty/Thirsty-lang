@@ -2,8 +2,8 @@
 // Demonstrates shield, sanitize, and armor keywords
 
 shield basicProtection {
-  // User input with sanitization
-  drink userName = sip "Enter your name"
+  // User input (simulated)
+  drink userName = "Alice<script>alert('xss')</script>"
   sanitize userName
   
   // Protected data
@@ -13,4 +13,8 @@ shield basicProtection {
   // Safe output
   pour "Hello, " + userName
   pour "Your data is protected!"
+  
+  // Attempt to modify armored variable (should be blocked)
+  drink secretKey = "hacked"
+  pour "Secret key: " + secretKey
 }

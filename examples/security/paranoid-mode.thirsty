@@ -3,17 +3,15 @@
 
 shield paranoidMode {
   // Ultra-secure configuration
-  detect attacks {
-    morph on: ["injection", "overflow", "timing", "xss", "sqli"]
-    defend with: "paranoid"
-  }
+  morph on: ["injection", "overflow", "timing", "xss", "sqli"]
+  defend with: "paranoid"
   
-  // Multiple layers of protection
-  drink password = sip "Enter password"
+  // Multiple layers of protection (simulated input)
+  drink password = "P@ssw0rd123!<script>"
   sanitize password
   armor password
   
-  drink username = sip "Enter username"
+  drink username = "admin'--"
   sanitize username
   armor username
   
