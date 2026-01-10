@@ -3,19 +3,21 @@
 drink a = 10
 drink b = 5
 
-drink sum = 15
-drink diff = 5
-drink product = 50
-drink quotient = 2
-
 pour "Addition: 10 + 5 ="
-pour sum
+pour a + b
 
 pour "Subtraction: 10 - 5 ="
-pour diff
+pour a - b
 
 pour "Multiplication: 10 * 5 ="
-pour product
+pour a * b
 
 pour "Division: 10 / 5 ="
-pour quotient
+pour a / b
+
+pour "Operator precedence: 2 + 3 * 4 ="
+pour 2 + 3 * 4
+
+pour "Complex expression: (10 + 5) * 2 - 8 / 4 ="
+pour 10 + 5 * 2 - 8 / 4
+

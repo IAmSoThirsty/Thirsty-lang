@@ -76,6 +76,35 @@ class ThirstyInterpreter {
   }
 
   /**
+   * Find matching closing brace for a control flow block
+   * Returns the index of the closing brace or -1 if not found
+   */
+  findMatchingBrace(lines, startIndex) {
+    let braceCount = 1;
+    let i = startIndex + 1;
+    
+    while (i < lines.length && braceCount > 0) {
+      const currentLine = lines[i].trim();
+      // Count braces only for control flow statements
+      if (currentLine.startsWith('thirsty ') && currentLine.endsWith('{')) {
+        braceCount++;
+      } else if (currentLine.startsWith('refill ') && currentLine.endsWith('{')) {
+        braceCount++;
+      } else if (currentLine === 'hydrated {') {
+        braceCount++;
+      } else if (currentLine === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          return i;
+        }
+      }
+      i++;
+    }
+    
+    return -1; // No matching brace found
+  }
+
+  /**
    * Handle thirsty (if) statement
    */
   handleThirsty(lines, startIndex) {
@@ -88,33 +117,15 @@ class ThirstyInterpreter {
     
     const condition = this.evaluateCondition(match[1]);
     
-    // Find the matching closing brace and hydrated block if exists
-    let braceCount = 1;
-    let i = startIndex + 1;
-    let thenBlockEnd = -1;
-    let hydratedStart = -1;
+    // Find the matching closing brace
+    const thenBlockEnd = this.findMatchingBrace(lines, startIndex);
     
-    while (i < lines.length && braceCount > 0) {
-      const currentLine = lines[i].trim();
-      // Count braces, but only in non-comment, non-string parts
-      // Simple approach: only count standalone braces on lines that start with them
-      if (currentLine.startsWith('thirsty ') && currentLine.endsWith('{')) {
-        braceCount++;
-      } else if (currentLine.startsWith('refill ') && currentLine.endsWith('{')) {
-        braceCount++;
-      } else if (currentLine === 'hydrated {') {
-        braceCount++;
-      } else if (currentLine === '}') {
-        braceCount--;
-        if (braceCount === 0) {
-          thenBlockEnd = i;
-          break;
-        }
-      }
-      i++;
+    if (thenBlockEnd === -1) {
+      throw new Error(`Unmatched opening brace for thirsty statement at line ${startIndex + 1}`);
     }
     
     // Check for hydrated (else) block
+    let hydratedStart = -1;
     if (thenBlockEnd + 1 < lines.length) {
       const nextLine = lines[thenBlockEnd + 1].trim();
       if (nextLine === 'hydrated {') {
@@ -128,48 +139,22 @@ class ThirstyInterpreter {
       
       // Skip past hydrated block if it exists
       if (hydratedStart !== -1) {
-        let braceCount = 1;
-        let j = hydratedStart;
-        while (j < lines.length && braceCount > 0) {
-          const currentLine = lines[j].trim();
-          if (currentLine.startsWith('thirsty ') && currentLine.endsWith('{')) {
-            braceCount++;
-          } else if (currentLine.startsWith('refill ') && currentLine.endsWith('{')) {
-            braceCount++;
-          } else if (currentLine === 'hydrated {') {
-            braceCount++;
-          } else if (currentLine === '}') {
-            braceCount--;
-            if (braceCount === 0) {
-              return j + 1;
-            }
-          }
-          j++;
+        const hydratedEnd = this.findMatchingBrace(lines, thenBlockEnd + 1);
+        if (hydratedEnd === -1) {
+          throw new Error(`Unmatched opening brace for hydrated block at line ${thenBlockEnd + 2}`);
         }
+        return hydratedEnd + 1;
       }
       
       return thenBlockEnd + 1;
     } else if (hydratedStart !== -1) {
       // Execute the hydrated (else) block
-      let braceCount = 1;
-      let j = hydratedStart;
-      while (j < lines.length && braceCount > 0) {
-        const currentLine = lines[j].trim();
-        if (currentLine.startsWith('thirsty ') && currentLine.endsWith('{')) {
-          braceCount++;
-        } else if (currentLine.startsWith('refill ') && currentLine.endsWith('{')) {
-          braceCount++;
-        } else if (currentLine === 'hydrated {') {
-          braceCount++;
-        } else if (currentLine === '}') {
-          braceCount--;
-          if (braceCount === 0) {
-            this.executeBlock(lines.slice(hydratedStart, j), 0);
-            return j + 1;
-          }
-        }
-        j++;
+      const hydratedEnd = this.findMatchingBrace(lines, thenBlockEnd + 1);
+      if (hydratedEnd === -1) {
+        throw new Error(`Unmatched opening brace for hydrated block at line ${thenBlockEnd + 2}`);
       }
+      this.executeBlock(lines.slice(hydratedStart, hydratedEnd), 0);
+      return hydratedEnd + 1;
     }
     
     return thenBlockEnd + 1;
@@ -178,6 +163,7 @@ class ThirstyInterpreter {
   /**
    * Evaluate a condition for if statements
    * Note: Only handles simple binary comparisons (a op b), not complex expressions
+   * Uses strict equality to avoid type coercion issues
    */
   evaluateCondition(condition) {
     condition = condition.trim();
@@ -186,11 +172,11 @@ class ThirstyInterpreter {
     // e.g., check >= before >, <= before <, != before =
     if (condition.includes('==')) {
       const parts = condition.split('==', 2).map(p => p.trim());
-      return this.evaluateExpression(parts[0]) == this.evaluateExpression(parts[1]);
+      return this.evaluateExpression(parts[0]) === this.evaluateExpression(parts[1]);
     }
     if (condition.includes('!=')) {
       const parts = condition.split('!=', 2).map(p => p.trim());
-      return this.evaluateExpression(parts[0]) != this.evaluateExpression(parts[1]);
+      return this.evaluateExpression(parts[0]) !== this.evaluateExpression(parts[1]);
     }
     if (condition.includes('>=')) {
       const parts = condition.split('>=', 2).map(p => p.trim());
@@ -227,27 +213,10 @@ class ThirstyInterpreter {
     const condition = match[1];
     
     // Find the matching closing brace
-    let braceCount = 1;
-    let i = startIndex + 1;
-    let blockEnd = -1;
+    const blockEnd = this.findMatchingBrace(lines, startIndex);
     
-    while (i < lines.length && braceCount > 0) {
-      const currentLine = lines[i].trim();
-      // Count braces only for control flow statements
-      if (currentLine.startsWith('thirsty ') && currentLine.endsWith('{')) {
-        braceCount++;
-      } else if (currentLine.startsWith('refill ') && currentLine.endsWith('{')) {
-        braceCount++;
-      } else if (currentLine === 'hydrated {') {
-        braceCount++;
-      } else if (currentLine === '}') {
-        braceCount--;
-        if (braceCount === 0) {
-          blockEnd = i;
-          break;
-        }
-      }
-      i++;
+    if (blockEnd === -1) {
+      throw new Error(`Unmatched opening brace for refill statement at line ${startIndex + 1}`);
     }
     
     // Execute the loop
@@ -297,48 +266,64 @@ class ThirstyInterpreter {
   }
 
   /**
-   * Evaluate an expression (variable or literal)
+   * Evaluate an expression (variable or literal) with proper operator precedence
    */
   evaluateExpression(expr) {
     expr = expr.trim();
     
-    // String concatenation with +
-    if (expr.includes('+') && !this.isInString(expr, expr.indexOf('+'))) {
-      const parts = this.splitExpression(expr, '+');
-      let result = '';
-      for (const part of parts) {
-        const val = this.evaluateExpression(part);
-        result += String(val);
+    // Handle addition and subtraction (lowest precedence)
+    // Only split if there's a + or - NOT inside a higher precedence operation
+    for (let i = expr.length - 1; i >= 0; i--) {
+      if (this.isInString(expr, i)) continue;
+      
+      if (expr[i] === '+') {
+        const left = expr.substring(0, i).trim();
+        const right = expr.substring(i + 1).trim();
+        if (left && right) {
+          const leftVal = this.evaluateExpression(left);
+          const rightVal = this.evaluateExpression(right);
+          
+          // If both are numbers, do numeric addition
+          if (typeof leftVal === 'number' && typeof rightVal === 'number') {
+            return leftVal + rightVal;
+          }
+          // Otherwise string concatenation
+          return String(leftVal) + String(rightVal);
+        }
       }
-      return result;
+      
+      if (expr[i] === '-' && i > 0 && !expr.startsWith('-')) {
+        const left = expr.substring(0, i).trim();
+        const right = expr.substring(i + 1).trim();
+        if (left && right) {
+          return this.evaluateExpression(left) - this.evaluateExpression(right);
+        }
+      }
     }
     
-    // Arithmetic operations
-    if (expr.includes('-') && !this.isInString(expr, expr.indexOf('-')) && !expr.startsWith('-')) {
-      const parts = this.splitExpression(expr, '-');
-      let result = this.evaluateExpression(parts[0]);
-      for (let i = 1; i < parts.length; i++) {
-        result -= this.evaluateExpression(parts[i]);
+    // Handle multiplication and division (higher precedence)
+    for (let i = expr.length - 1; i >= 0; i--) {
+      if (this.isInString(expr, i)) continue;
+      
+      if (expr[i] === '*') {
+        const left = expr.substring(0, i).trim();
+        const right = expr.substring(i + 1).trim();
+        if (left && right) {
+          return this.evaluateExpression(left) * this.evaluateExpression(right);
+        }
       }
-      return result;
-    }
-    
-    if (expr.includes('*') && !this.isInString(expr, expr.indexOf('*'))) {
-      const parts = this.splitExpression(expr, '*');
-      let result = this.evaluateExpression(parts[0]);
-      for (let i = 1; i < parts.length; i++) {
-        result *= this.evaluateExpression(parts[i]);
+      
+      if (expr[i] === '/') {
+        const left = expr.substring(0, i).trim();
+        const right = expr.substring(i + 1).trim();
+        if (left && right) {
+          const divisor = this.evaluateExpression(right);
+          if (divisor === 0) {
+            throw new Error(`Division by zero in expression: ${expr}`);
+          }
+          return this.evaluateExpression(left) / divisor;
+        }
       }
-      return result;
-    }
-    
-    if (expr.includes('/') && !this.isInString(expr, expr.indexOf('/'))) {
-      const parts = this.splitExpression(expr, '/');
-      let result = this.evaluateExpression(parts[0]);
-      for (let i = 1; i < parts.length; i++) {
-        result /= this.evaluateExpression(parts[i]);
-      }
-      return result;
     }
     
     // String literal
@@ -351,7 +336,7 @@ class ThirstyInterpreter {
     if (expr === 'true') return true;
     if (expr === 'false') return false;
     
-    // Number literal
+    // Number literal (including negative numbers)
     if (!isNaN(expr)) {
       return parseFloat(expr);
     }
@@ -406,18 +391,22 @@ class ThirstyInterpreter {
         }
         current += char;
       } else if (char === operator && !inString) {
-        parts.push(current.trim());
+        const trimmed = current.trim();
+        if (trimmed) { // Only add non-empty parts
+          parts.push(trimmed);
+        }
         current = '';
       } else {
         current += char;
       }
     }
     
-    if (current) {
-      parts.push(current.trim());
+    const trimmed = current.trim();
+    if (trimmed) { // Only add non-empty parts
+      parts.push(trimmed);
     }
     
-    return parts;
+    return parts.length > 0 ? parts : [''];
   }
 }
 

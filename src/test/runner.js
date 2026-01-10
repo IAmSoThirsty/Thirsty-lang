@@ -106,20 +106,34 @@ runner.test('String concatenation', () => {
   runner.assertEqual(output, 'Hello World', 'Should concatenate strings');
 });
 
-runner.test('Arithmetic operations', () => {
+runner.test('Arithmetic expression evaluation', () => {
   const interpreter = new ThirstyInterpreter();
   const oldLog = console.log;
   let outputs = [];
   console.log = (msg) => { outputs.push(msg); };
   
-  interpreter.execute('drink a = 10\ndrink b = 5\ndrink sum = 15\ndrink product = 50\npour sum\npour product');
+  interpreter.execute('pour 10 + 5\npour 10 - 5\npour 10 * 5\npour 10 / 5');
   console.log = oldLog;
   
-  runner.assertEqual(outputs[0], 15, 'Should handle addition');
-  runner.assertEqual(outputs[1], 50, 'Should handle multiplication');
+  runner.assertEqual(outputs[0], 15, 'Should evaluate addition');
+  runner.assertEqual(outputs[1], 5, 'Should evaluate subtraction');
+  runner.assertEqual(outputs[2], 50, 'Should evaluate multiplication');
+  runner.assertEqual(outputs[3], 2, 'Should evaluate division');
 });
 
-runner.test('Conditional statements (thirsty/hydrated)', () => {
+runner.test('Operator precedence', () => {
+  const interpreter = new ThirstyInterpreter();
+  const oldLog = console.log;
+  let output;
+  console.log = (msg) => { output = msg; };
+  
+  interpreter.execute('pour 2 + 3 * 4');
+  console.log = oldLog;
+  
+  runner.assertEqual(output, 14, 'Should respect operator precedence (multiply before add)');
+});
+
+runner.test('Conditional statements (thirsty)', () => {
   const interpreter = new ThirstyInterpreter();
   const oldLog = console.log;
   let output = '';
@@ -129,6 +143,18 @@ runner.test('Conditional statements (thirsty/hydrated)', () => {
   console.log = oldLog;
   
   runner.assertEqual(output, 'yes', 'Should execute if block when condition is true');
+});
+
+runner.test('Conditional with hydrated (else) block', () => {
+  const interpreter = new ThirstyInterpreter();
+  const oldLog = console.log;
+  let output = '';
+  console.log = (msg) => { output = msg; };
+  
+  interpreter.execute('drink x = 3\nthirsty x > 5 {\npour "yes"\n}\nhydrated {\npour "no"\n}');
+  console.log = oldLog;
+  
+  runner.assertEqual(output, 'no', 'Should execute else block when condition is false');
 });
 
 runner.test('Comparison operators', () => {
@@ -142,6 +168,60 @@ runner.test('Comparison operators', () => {
   
   runner.assertEqual(outputs[0], 'less', 'Should handle less than');
   runner.assertEqual(outputs[1], 'equal', 'Should handle equality');
+});
+
+runner.test('Loop (refill) functionality', () => {
+  const interpreter = new ThirstyInterpreter();
+  const oldLog = console.log;
+  let outputs = [];
+  console.log = (msg) => { outputs.push(msg); };
+  
+  interpreter.execute('drink i = 0\nrefill i < 3 {\npour i\ndrink i = i + 1\n}');
+  console.log = oldLog;
+  
+  runner.assertEqual(outputs.length, 3, 'Loop should execute 3 times');
+  runner.assertEqual(outputs[0], 0, 'First iteration');
+  runner.assertEqual(outputs[1], 1, 'Second iteration');
+  runner.assertEqual(outputs[2], 2, 'Third iteration');
+});
+
+runner.test('Error: Division by zero', () => {
+  const interpreter = new ThirstyInterpreter();
+  let errorCaught = false;
+  
+  try {
+    interpreter.execute('pour 10 / 0');
+  } catch (error) {
+    errorCaught = error.message.includes('Division by zero');
+  }
+  
+  runner.assertEqual(errorCaught, true, 'Should throw error for division by zero');
+});
+
+runner.test('Error: Unmatched braces', () => {
+  const interpreter = new ThirstyInterpreter();
+  let errorCaught = false;
+  
+  try {
+    interpreter.execute('thirsty true {\npour "test"');
+  } catch (error) {
+    errorCaught = error.message.includes('Unmatched');
+  }
+  
+  runner.assertEqual(errorCaught, true, 'Should throw error for unmatched braces');
+});
+
+runner.test('Error: Invalid expression', () => {
+  const interpreter = new ThirstyInterpreter();
+  let errorCaught = false;
+  
+  try {
+    interpreter.execute('pour unknownVariable');
+  } catch (error) {
+    errorCaught = error.message.includes('Unknown expression');
+  }
+  
+  runner.assertEqual(errorCaught, true, 'Should throw error for unknown expression');
 });
 
 runner.run();
