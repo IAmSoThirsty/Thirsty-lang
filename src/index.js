@@ -453,18 +453,21 @@ class ThirstyInterpreter {
 
   /**
    * Basic sanitization (fallback when security manager not enabled)
+   * Production-grade HTML encoding to prevent XSS
    */
   basicSanitize(value) {
     if (typeof value !== 'string') {
       return value;
     }
     
-    // Remove common injection patterns
+    // HTML encode all special characters to prevent injection
     return value
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/javascript:/gi, '')
-      .replace(/on\w+\s*=/gi, '')
-      .replace(/[<>]/g, '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\//g, '&#x2F;')
       .trim();
   }
 
