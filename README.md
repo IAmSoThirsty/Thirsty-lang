@@ -241,18 +241,56 @@ npm start examples/hello.thirsty
 ```
 Run Thirsty-lang programs from the command line.
 
-### 📋 Planned Tools (Not Yet Implemented)
+### 🛠️ Development Tools (Fully Functional)
 
-The following tools are documented but not yet implemented:
-- Debugger
-- Code Formatter
-- Linter
-- Performance Profiler
-- Documentation Generator
-- AST Generator
-- Transpiler
-- Package Manager
-- Web Playground
+All documented development tools are implemented and functional:
+
+**✅ Debugger** (`src/debugger.js`) - Step through code, set breakpoints, watch variables
+```bash
+node src/debugger.js examples/hello.thirsty
+```
+
+**✅ Code Formatter** (`src/formatter.js`) - Beautify and format Thirsty code
+```bash
+node src/formatter.js examples/hello.thirsty
+```
+
+**✅ Linter** (`src/linter.js`) - Check code quality and style
+```bash
+node src/linter.js examples/hello.thirsty
+```
+
+**✅ Performance Profiler** (`src/profiler.js`) - Analyze code performance
+```bash
+node src/profiler.js examples/hello.thirsty
+```
+
+**✅ Documentation Generator** (`src/doc-generator.js`) - Generate docs from code
+```bash
+node src/doc-generator.js examples/hello.thirsty
+```
+
+**✅ AST Generator** (`src/ast.js`) - Generate Abstract Syntax Trees
+```bash
+node src/ast.js examples/hello.thirsty
+```
+
+**✅ Transpiler** (`src/transpiler.js`) - Transpile to JavaScript
+```bash
+node src/transpiler.js examples/hello.thirsty
+```
+
+**✅ Package Manager** (`src/package-manager.js`) - Manage Thirsty packages
+```bash
+node src/package-manager.js init
+```
+
+**✅ Web Playground** (`playground/index.html`) - Try Thirsty in your browser
+```bash
+# Open playground/index.html in your browser
+```
+
+All tools have been tested and are fully functional.
 
 ## Implementation Support
 
