@@ -10,6 +10,7 @@ Version: 1.0.0
 ### What Was Done
 
 #### 1. Critical Bug Fix
+
 - **Fixed infinite loop in examples/loops.thirsty**
   - Issue: Loop was setting water to fixed values (2, 1, 0) instead of decrementing
   - Solution: Changed to `drink water = water - 1` for proper countdown
