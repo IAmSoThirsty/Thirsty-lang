@@ -1,0 +1,25 @@
+// Thirsty-lang Example: Simple Loops
+
+pour "Demonstrating loop with countdown:"
+
+drink water = 3
+
+refill water > 0 {
+  pour "Water level:"
+  pour water
+  drink water = 2
+}
+
+refill water > 0 {
+  pour "Water level:"
+  pour water
+  drink water = 1
+}
+
+refill water > 0 {
+  pour "Water level:"
+  pour water
+  drink water = 0
+}
+
+pour "Done drinking!"

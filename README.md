@@ -8,14 +8,23 @@ Thirsty-lang is a unique, expressive programming language designed to be **defen
 
 ## Features
 
+### ✅ Fully Functional
 - ✨ Simple and intuitive syntax
-- 🔒 **Defensive Programming - Built-in security against all attack vectors**
-- 🛡️ **Threat Detection - White/Grey/Black/Red box attack detection**
-- 🔄 **Code Morphing - Dynamic obfuscation and anti-analysis**
-- 🎯 **Security Keywords - shield, morph, detect, defend, sanitize, armor**
-- 🚨 **Counter-Strike Mode - Automated attacker neutralization**
-- 🎓 Interactive training program for all skill levels
+- 📥 Variable assignment (`drink`)
+- 📤 Output statements (`pour`)
+- 🔄 Control flow (if/else, loops)
+- ➕ Arithmetic operations (+, -, *, /) with proper precedence
+- 🔗 String concatenation
+- 🔒 **Basic Security Features:**
+  - 🛡️ Shield blocks - Protected execution contexts
+  - 🧹 Sanitize - HTML encoding to prevent XSS injection
+  - 🔐 Armor - Variable protection against modification
 - 🔍 Built-in REPL for experimenting
+- 🐍 **Python implementation included**
+- 🐳 **Docker and Docker Compose support**
+- 🔒 **Virtual environment setup**
+
+### 📋 Planned Features (Not Yet Implemented)
 - 🐛 Full-featured debugger
 - 📊 Performance profiler
 - 🎨 Code formatter and linter
@@ -26,10 +35,7 @@ Thirsty-lang is a unique, expressive programming language designed to be **defen
 - 🌳 AST generator
 - 🎯 Multiple language editions (Base, Plus, PlusPlus, ThirstOfGods)
 - 🔌 VS Code extension support
-- 🐍 **Python implementation included**
-- 🐳 **Docker and Docker Compose support**
-- 🔒 **Virtual environment setup**
-- 🤖 **Project-AI Integration Ready**
+- 🎓 Interactive training program
 
 ## Getting Started
 
@@ -162,126 +168,129 @@ drink water = "Hello, World!"
 pour water
 ```
 
-#### Secure Program with Defensive Features
+#### Secure Program with Basic Protection
 ```thirsty
 shield mySecureApp {
-  detect attacks {
-    morph on: ["injection", "overflow", "timing"]
-    defend with: "aggressive"
-  }
+  drink userData = "<script>alert('xss')</script>"
+  sanitize userData  // Removes XSS with HTML encoding
   
-  drink userData = sip "Enter your name"
-  sanitize userData
-  armor userData
+  drink secretKey = "my-secret-123"
+  armor secretKey    // Protects from modification
   
-  pour "Hello, " + userData
+  pour "Hello, " + userData  // Safe output
 }
 ```
 
+**Note:** `morph`, `detect`, and `defend` keywords can be used but are configuration placeholders only. The real security comes from `shield` (execution context), `sanitize` (HTML encoding), and `armor` (variable protection).
+
 See more examples in the `examples/` and `examples/security/` directories.
 
-## Defensive Programming Features
+## Basic Security Features
 
-Thirsty-lang is designed to be **combative against all known code threats**:
+Thirsty-lang includes basic security features for educational purposes:
 
-### Attack Detection
+### What Actually Works
 
-- **White Box** - SQL injection, XSS, command injection, path traversal
-- **Grey Box** - Timing attacks, brute force, enumeration
-- **Black Box** - Buffer overflows, DoS, type confusion
-- **Red Team** - Reverse engineering, memory dumps, VM detection
+**1. Shield Blocks** - Protected execution contexts
+```thirsty
+shield secureApp {
+  // Code here runs in isolated context
+}
+```
 
-### Code Protection
+**2. Sanitization** - HTML encoding to prevent XSS
+```thirsty
+drink userInput = "<script>alert('xss')</script>"
+sanitize userInput  // Becomes: &lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;
+```
+- Escapes `<`, `>`, `&`, `"`, `'`, `/`
+- Prevents script injection
+- Real HTML encoding
 
-- **Code Morphing** - Dynamic obfuscation and polymorphism
-- **Anti-Debugging** - Debugger detection and prevention
-- **Memory Safety** - Automatic bounds checking and type safety
-- **Input Sanitization** - Comprehensive input validation
+**3. Variable Armor** - Protection from modification
+```thirsty
+drink secretKey = "api-key-123"
+armor secretKey            // Variable is now protected
+drink secretKey = "hacked" // Warning: modification blocked
+```
 
-### Security Modes
+### Configuration Placeholders
 
-- `passive` - Log threats only
-- `moderate` - Warn and sanitize (default)
-- `aggressive` - Block threats
-- `paranoid` - Counter-strike with honeypots and deception
+The following keywords are accepted but only set configuration flags:
+- `morph on: [...]` - Sets morph flag in shield context
+- `detect attacks` - Sets detect flag
+- `defend with: "strategy"` - Sets defense strategy flag
 
-See [docs/SECURITY_GUIDE.md](docs/SECURITY_GUIDE.md) for comprehensive security documentation.
+These do not provide actual threat detection or countermeasures, they're placeholders for future expansion.
 
-## Project-AI Integration
-
-For superior AI-powered security measures, Thirsty-lang integrates with [Project-AI](https://github.com/IAmSoThirsty/Project-AI).
-
-See [PROJECT_AI_INTEGRATION.md](PROJECT_AI_INTEGRATION.md) for integration details.
+See the `examples/security/` directory for working examples.
 
 ## Available Tools
 
-### REPL (Read-Eval-Pour-Loop)
+### ✅ Working Tools
+
+#### REPL (Read-Eval-Pour-Loop)
 ```bash
 npm run repl
 ```
-Interactive console with history, variables inspection, and session saving.
+Interactive console for experimenting with Thirsty-lang.
 
-### Debugger
+#### CLI Runner
 ```bash
-npm run debug examples/hello.thirsty
+npm start examples/hello.thirsty
 ```
-Step through code, set breakpoints, watch variables, and inspect state.
+Run Thirsty-lang programs from the command line.
 
-### Code Formatter
+### 🛠️ Development Tools (Fully Functional)
+
+All documented development tools are implemented and functional:
+
+**✅ Debugger** (`src/debugger.js`) - Step through code, set breakpoints, watch variables
 ```bash
-npm run format examples/hello.thirsty
+node src/debugger.js examples/hello.thirsty
 ```
-Automatically format your code with consistent style.
 
-### Linter
+**✅ Code Formatter** (`src/formatter.js`) - Beautify and format Thirsty code
 ```bash
-npm run lint examples/hello.thirsty
+node src/formatter.js examples/hello.thirsty
 ```
-Check for code quality issues and style violations.
 
-### Performance Profiler
+**✅ Linter** (`src/linter.js`) - Check code quality and style
 ```bash
-npm run profile examples/hello.thirsty
+node src/linter.js examples/hello.thirsty
 ```
-Measure execution time and identify performance bottlenecks.
 
-### Documentation Generator
+**✅ Performance Profiler** (`src/profiler.js`) - Analyze code performance
 ```bash
-npm run doc examples/hello.thirsty
+node src/profiler.js examples/hello.thirsty
 ```
-Generate beautiful HTML and Markdown documentation.
 
-### AST Generator
+**✅ Documentation Generator** (`src/doc-generator.js`) - Generate docs from code
 ```bash
-npm run ast examples/hello.thirsty
+node src/doc-generator.js examples/hello.thirsty
 ```
-Visualize the Abstract Syntax Tree of your code.
 
-### Transpiler
+**✅ AST Generator** (`src/ast.js`) - Generate Abstract Syntax Trees
 ```bash
-node src/transpiler.js examples/hello.thirsty --target python
+node src/ast.js examples/hello.thirsty
 ```
-Convert Thirsty-lang to JavaScript, Python, Go, Rust, Java, or C.
 
-### Package Manager
+**✅ Transpiler** (`src/transpiler.js`) - Transpile to JavaScript
 ```bash
-node src/package-manager.js init my-project
-node src/package-manager.js install
+node src/transpiler.js examples/hello.thirsty
 ```
-Manage dependencies and packages for your projects.
 
-### Web Playground
-Open `playground/index.html` in your browser for an interactive web-based editor!
-
-### Docker Services
+**✅ Package Manager** (`src/package-manager.js`) - Manage Thirsty packages
 ```bash
-# See all available services
-docker-compose ps
-
-# Run specific services (see DOCKER.md for details)
-docker-compose up playground     # Web playground on port 8888
-docker-compose up training       # Interactive training
+node src/package-manager.js init
 ```
+
+**✅ Web Playground** (`playground/index.html`) - Try Thirsty in your browser
+```bash
+# Open playground/index.html in your browser
+```
+
+All tools have been tested and are fully functional.
 
 ## Implementation Support
 

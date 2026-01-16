@@ -2,89 +2,52 @@
 
 /**
  * Thirsty-lang Security Module
- * Defensive programming features for threat detection and mitigation
+ * Basic input sanitization for XSS prevention
  */
 
-const ThreatDetector = require('./threat-detector');
-const CodeMorpher = require('./code-morpher');
-const SecurityPolicyEngine = require('./policy-engine');
-const DefenseCompiler = require('./defense-compiler');
-
 /**
- * Security Manager - Central coordination of all security features
+ * Security Manager - Provides basic sanitization functionality
  */
 class SecurityManager {
   constructor(options = {}) {
-    this.threatDetector = new ThreatDetector(options.threat);
-    this.codeMorpher = new CodeMorpher(options.morph);
-    this.policyEngine = new SecurityPolicyEngine(options.policy);
-    this.defenseCompiler = new DefenseCompiler(options);
-    
     this.enabled = options.enabled !== false;
-    this.mode = options.mode || 'defensive'; // defensive, offensive, adaptive
+    this.mode = options.mode || 'defensive';
   }
 
   /**
-   * Secure execution wrapper
-   */
-  secureExecute(code, context = {}) {
-    if (!this.enabled) {
-      return { code, secure: false };
-    }
-
-    // Compile with security features
-    const compiled = this.defenseCompiler.compile(code, {
-      ...context,
-      mode: this.mode
-    });
-
-    return compiled;
-  }
-
-  /**
-   * Validate and sanitize input
+   * Sanitize input - HTML encoding to prevent XSS
    */
   secureInput(input, context = {}) {
-    // Detect threats
-    const threats = this.threatDetector.detectInputThreats(input, context);
-    
-    // Apply policy
-    const sanitized = this.policyEngine.applyInputPolicy(input, context);
-    
-    // Handle threats if found
-    if (threats.length > 0) {
-      threats.forEach(threat => {
-        this.policyEngine.handleThreat(threat);
-      });
+    if (!this.enabled) {
+      return input;
     }
 
-    return sanitized;
-  }
-
-  /**
-   * Get comprehensive security report
-   */
-  getSecurityReport() {
+    const sanitized = this.sanitizeHTML(String(input));
+    
     return {
-      timestamp: Date.now(),
-      mode: this.mode,
-      enabled: this.enabled,
-      threats: this.threatDetector.getThreatStats(),
-      responses: this.policyEngine.getResponseStats(),
-      morphing: this.codeMorpher.getMorphStats(),
-      compilation: this.defenseCompiler.getCompilationStats(),
-      policy: this.policyEngine.getPolicyConfig()
+      original: input,
+      sanitized,
+      modified: input !== sanitized
     };
   }
 
   /**
-   * Set security mode
+   * HTML encoding - escapes special characters to prevent injection
+   */
+  sanitizeHTML(input) {
+    return input
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\//g, '&#x2F;');
+  }
+
+  /**
+   * Set security mode (kept for compatibility)
    */
   setMode(mode) {
-    const validModes = ['defensive', 'offensive', 'adaptive'];
-    if (!validModes.includes(mode)) {
-      throw new Error(`Invalid security mode: ${mode}`);
-    }
     this.mode = mode;
     return { mode: this.mode };
   }
@@ -98,11 +61,7 @@ class SecurityManager {
   }
 }
 
-// Export all security modules
+// Export security manager
 module.exports = {
-  SecurityManager,
-  ThreatDetector,
-  CodeMorpher,
-  SecurityPolicyEngine,
-  DefenseCompiler
+  SecurityManager
 };

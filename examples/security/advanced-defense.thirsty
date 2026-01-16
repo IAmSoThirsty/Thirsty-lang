@@ -2,14 +2,12 @@
 // Demonstrates morph, detect, and defend keywords
 
 shield advancedDefense {
-  // Configure threat detection
-  detect attacks {
-    morph on: ["injection", "overflow", "timing"]
-    defend with: "aggressive"
-  }
+  // Configure threat detection and defense strategy
+  morph on: ["injection", "overflow", "timing"]
+  defend with: "aggressive"
   
-  // User input with full protection
-  drink userInput = sip "Enter command"
+  // User input with full protection (simulated)
+  drink userInput = "SELECT * FROM users"
   sanitize userInput
   
   // Process safely
