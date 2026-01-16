@@ -7,19 +7,7 @@ drink water = 3
 refill water > 0 {
   pour "Water level:"
   pour water
-  drink water = 2
-}
-
-refill water > 0 {
-  pour "Water level:"
-  pour water
-  drink water = 1
-}
-
-refill water > 0 {
-  pour "Water level:"
-  pour water
-  drink water = 0
+  drink water = water - 1
 }
 
 pour "Done drinking!"

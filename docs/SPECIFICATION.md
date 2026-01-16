@@ -49,35 +49,137 @@ pour "Hello, World!"
 pour varname
 ```
 
-### Input (Future)
+### Input
 
-The `sip` keyword will read input from the user (not yet implemented):
+The `sip` keyword reads input from the user:
 
 ```thirsty
 sip username
+```
+
+### Control Flow
+
+The `thirsty` keyword creates a conditional (if) statement:
+
+```thirsty
+drink temperature = 25
+
+thirsty temperature > 30 {
+  pour "It's hot!"
+}
+```
+
+The `hydrated` keyword provides an else clause:
+
+```thirsty
+drink age = 21
+
+thirsty age >= 18 {
+  pour "You are an adult"
+}
+hydrated {
+  pour "You are a minor"
+}
+```
+
+### Loops
+
+The `refill` keyword creates a while-style loop:
+
+```thirsty
+drink water = 3
+
+refill water > 0 {
+  pour water
+  drink water = water - 1
+}
+```
+
+### Arithmetic Operations
+
+Thirsty-lang supports standard arithmetic operators:
+
+- `+` Addition
+- `-` Subtraction
+- `*` Multiplication
+- `/` Division
+
+```thirsty
+drink result = 10 + 5 * 2  // Result: 20 (proper precedence)
+pour result
+```
+
+### Comparison Operators
+
+- `>` Greater than
+- `<` Less than
+- `>=` Greater than or equal
+- `<=` Less than or equal
+- `==` Equal to
+- `!=` Not equal to
+
+```thirsty
+drink a = 10
+drink b = 5
+
+thirsty a > b {
+  pour "a is greater"
+}
+```
+
+### String Concatenation
+
+Strings can be concatenated using the `+` operator:
+
+```thirsty
+drink greeting = "Hello, " + "World!"
+pour greeting
+```
+
+### Security Features
+
+Thirsty-lang includes defensive programming features:
+
+- `shield` - Protected code blocks
+- `sanitize` - HTML encoding to prevent XSS
+- `armor` - Variable protection against modification
+- `morph` - Dynamic code mutation (placeholder)
+- `detect` - Threat monitoring (placeholder)
+- `defend` - Automated countermeasures (placeholder)
+
+```thirsty
+shield secureApp {
+  drink userData = "<script>alert('xss')</script>"
+  sanitize userData
+  pour userData  // Outputs: &lt;script&gt;...
+}
 ```
 
 ## Reserved Keywords
 
 - `drink` - Variable declaration
 - `pour` - Output/print
-- `sip` - Input (planned)
-- `thirsty` - If statement (planned)
-- `hydrated` - Else statement (planned)
-- `refill` - Loop (planned)
+- `sip` - Input
+- `thirsty` - If statement
+- `hydrated` - Else statement
+- `refill` - Loop
+- `shield` - Protected code block
+- `sanitize` - HTML encoding
+- `armor` - Variable protection
+- `morph` - Code mutation
+- `detect` - Threat monitoring
+- `defend` - Automated countermeasures
 - `glass` - Function declaration (planned)
 
 ## Future Features
 
 The following features are planned for future releases:
 
-1. Control flow (`thirsty`/`hydrated` for if/else)
-2. Loops (`refill` keyword)
-3. Functions (`glass` keyword)
-4. Arithmetic operations
-5. String concatenation
-6. Comparison operators
-7. Boolean logic
+1. Functions (`glass` keyword)
+2. Arrays and data structures
+3. Classes and OOP
+4. Modules and imports
+5. Async/await
 
 ## Examples
 
@@ -103,15 +205,49 @@ pour liters
 ## Grammar (BNF)
 
 ```
-program     ::= statement*
-statement   ::= drink_stmt | pour_stmt | comment
-drink_stmt  ::= "drink" identifier "=" expression
-pour_stmt   ::= "pour" expression
-expression  ::= string | number | identifier
-identifier  ::= [a-zA-Z_][a-zA-Z0-9_]*
-string      ::= '"' [^"]* '"' | "'" [^']* "'"
-number      ::= [0-9]+ ("." [0-9]+)?
-comment     ::= "//" [^\n]*
+program        ::= statement*
+
+statement      ::= drink_stmt
+                 | pour_stmt
+                 | sip_stmt
+                 | thirsty_stmt
+                 | refill_stmt
+                 | shield_stmt
+                 | sanitize_stmt
+                 | armor_stmt
+                 | morph_stmt
+                 | detect_stmt
+                 | defend_stmt
+                 | comment
+
+drink_stmt     ::= "drink" identifier "=" expression
+pour_stmt      ::= "pour" expression
+sip_stmt       ::= "sip" identifier
+
+thirsty_stmt   ::= "thirsty" condition block ("hydrated" block)?
+refill_stmt    ::= "refill" condition block
+shield_stmt    ::= "shield" identifier block
+
+sanitize_stmt  ::= "sanitize" identifier
+armor_stmt     ::= "armor" identifier
+
+morph_stmt     ::= "morph" "on:" "[" string_list "]"
+detect_stmt    ::= "detect" identifier
+defend_stmt    ::= "defend" "with:" string
+
+block          ::= "{" statement* "}"
+condition      ::= expression comparison expression
+comparison     ::= ">" | "<" | ">=" | "<=" | "==" | "!="
+
+expression     ::= term (("+"|"-") term)*
+term           ::= factor (("*"|"/") factor)*
+factor         ::= number | string | identifier | "(" expression ")"
+
+identifier     ::= [a-zA-Z_][a-zA-Z0-9_]*
+string         ::= '"' [^"]* '"' | "'" [^']* "'"
+number         ::= [0-9]+ ("." [0-9]+)?
+string_list    ::= string ("," string)*
+comment        ::= "//" [^\n]*
 ```
 
 ## Error Handling
