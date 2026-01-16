@@ -8,34 +8,46 @@ Thirsty-lang is a unique, expressive programming language designed to be **defen
 
 ## Features
 
-### ✅ Fully Functional
+### ✅ Fully Implemented & Functional
 - ✨ Simple and intuitive syntax
 - 📥 Variable assignment (`drink`)
 - 📤 Output statements (`pour`)
-- 🔄 Control flow (if/else, loops)
+- 📨 Input statements (`sip`)
+- 🔄 Control flow (if/else with `thirsty`/`hydrated`)
+- 🔁 Loops (`refill` keyword)
 - ➕ Arithmetic operations (+, -, *, /) with proper precedence
 - 🔗 String concatenation
-- 🔒 **Basic Security Features:**
+- 🔀 Comparison operators (>, <, >=, <=, ==, !=)
+- 🔒 **Security Features:**
   - 🛡️ Shield blocks - Protected execution contexts
   - 🧹 Sanitize - HTML encoding to prevent XSS injection
   - 🔐 Armor - Variable protection against modification
+  - 🔄 Morph - Dynamic code mutation (configuration)
+  - 🔍 Detect - Threat monitoring (configuration)
+  - 🛡️ Defend - Automated countermeasures (configuration)
 - 🔍 Built-in REPL for experimenting
 - 🐍 **Python implementation included**
 - 🐳 **Docker and Docker Compose support**
 - 🔒 **Virtual environment setup**
+- 🐛 **Full-featured debugger**
+- 📊 **Performance profiler**
+- 🎨 **Code formatter and linter**
+- 📚 **Automatic documentation generator**
+- 🌐 **Web playground**
+- 🔄 **Transpiler to JavaScript, Python, Go, Rust, Java, and C**
+- 📦 **Package manager**
+- 🌳 **AST generator**
+- 🎓 **Interactive training program**
+- 🔌 **VS Code extension**
 
-### 📋 Planned Features (Not Yet Implemented)
-- 🐛 Full-featured debugger
-- 📊 Performance profiler
-- 🎨 Code formatter and linter
-- 📚 Automatic documentation generator
-- 🌐 Web playground
-- 🔄 Transpiler to JavaScript, Python, Go, Rust, Java, and C
-- 📦 Package manager
-- 🌳 AST generator
-- 🎯 Multiple language editions (Base, Plus, PlusPlus, ThirstOfGods)
-- 🔌 VS Code extension support
-- 🎓 Interactive training program
+### 📋 Planned Features (Future Releases)
+- 🧩 Functions (`glass` keyword)
+- 📚 Arrays and advanced data structures
+- 🎯 Classes and OOP
+- 📦 Modules and imports (import/export)
+- ⚡ Async/await support
+- 🌍 Standard library expansion
+- 🎯 Multiple language editions (Base, Plus, PlusPlus, ThirstOfGods) - full implementation
 
 ## Getting Started
 
