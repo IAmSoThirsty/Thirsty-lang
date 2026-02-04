@@ -10,7 +10,8 @@ class ThreatDetector {
     this.bridge = securityBridge;
     this.threatPatterns = {
       xss: [
-        /<script[^>]*>.*?<\/script>/gi,
+        // Match script tags with any attributes and various closing tag formats
+        /<script[\s\S]*?>[\s\S]*?<\/\s*script[\s\S]*?>/gi,
         /javascript:/gi,
         /on\w+\s*=\s*["'][^"']*["']/gi,
         /<iframe[^>]*>/gi
