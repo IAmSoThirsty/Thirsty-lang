@@ -1,7 +1,10 @@
 # Thirsty-lang Core Python Dependencies
 # Python 3.8+ required
 
-# No external dependencies required for core interpreter
+# T.A.R.L. Integration Dependencies
+pyyaml>=6.0  # For YAML policy support (required for T.A.R.L.)
+
+# No other external dependencies required for core interpreter
 # The interpreter is built using only Python standard library
 
 # Optional dependencies for enhanced features:
@@ -24,3 +27,8 @@
 
 # For type checking
 # mypy>=0.950
+
+# For security enhancements (optional)
+# cryptography>=41.0  # For policy signing
+# prometheus-client>=0.18  # For metrics export
+

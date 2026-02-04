@@ -1,10 +1,22 @@
 # Thirsty-lang 💧🔒
 
-This is my Language for anyone and everyone who is Thirsty - now with **Defensive Programming** capabilities!
+This is my Language for anyone and everyone who is Thirsty - now with **Defensive Programming** capabilities and **T.A.R.L. Integration**!
 
 ## About
 
 Thirsty-lang is a unique, expressive programming language designed to be **defensive and combative** against all known code threats. It combines fun water-themed syntax with enterprise-grade security features.
+
+### 🚀 NEW: T.A.R.L. Integration
+
+Thirsty-lang now integrates with **T.A.R.L. (Thirsty's Active Resistance Language)** from Project-AI, providing:
+
+- **Dual Runtime Architecture**: JavaScript/Node.js + Python T.A.R.L. runtime
+- **Production-Grade Security**: Advanced threat detection, code morphing, defensive compilation
+- **Policy-Driven Enforcement**: Live-reloadable YAML/JSON security policies
+- **Bi-Directional Bridge**: Async JS ↔ Python communication with metrics
+- **Full Project-AI Compatibility**: Direct integration with Project-AI security infrastructure
+
+See [T.A.R.L. Integration Guide](./TARL_INTEGRATION.md) and [Security API Reference](./SECURITY_API.md) for complete documentation.
 
 ## Features
 
@@ -18,13 +30,16 @@ Thirsty-lang is a unique, expressive programming language designed to be **defen
 - ➕ Arithmetic operations (+, -, *, /) with proper precedence
 - 🔗 String concatenation
 - 🔀 Comparison operators (>, <, >=, <=, ==, !=)
-- 🔒 **Security Features:**
+- 🔒 **Enhanced Security Features with T.A.R.L.:**
   - 🛡️ Shield blocks - Protected execution contexts
   - 🧹 Sanitize - HTML encoding to prevent XSS injection
   - 🔐 Armor - Variable protection against modification
-  - 🔄 Morph - Dynamic code mutation (configuration)
-  - 🔍 Detect - Threat monitoring (configuration)
-  - 🛡️ Defend - Automated countermeasures (configuration)
+  - 🔍 **NEW: Advanced Threat Detection** - Pattern-based threat analysis
+  - 🔄 **NEW: Code Morphing** - Dynamic code transformation and obfuscation
+  - 🛡️ **NEW: Defense Compiler** - Defensive compilation with security guards
+  - 📋 **NEW: Policy Engine** - YAML/JSON policy management with hot-reload
+  - 🔗 **NEW: Security Bridge** - JS ↔ Python T.A.R.L. runtime integration
+  - 📊 **NEW: Security Metrics** - Performance and threat tracking
 - 🔍 Built-in REPL for experimenting
 - 🐍 **Python implementation included**
 - 🐳 **Docker and Docker Compose support**

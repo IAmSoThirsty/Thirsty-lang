@@ -1,7 +1,7 @@
 {
   "name": "thirsty-lang",
-  "version": "1.0.0",
-  "description": "A fun, expressive programming language for anyone and everyone who is Thirsty",
+  "version": "2.0.0",
+  "description": "A fun, expressive programming language with T.A.R.L. security integration",
   "main": "src/index.js",
   "bin": {
     "thirsty": "./src/thirsty-cli.js",
@@ -15,9 +15,14 @@
     "repl": "node src/repl.js",
     "test": "node src/test/runner.js",
     "test:base": "node src/test/runner.js",
+    "test:security": "node src/test/security-integration-tests.js",
+    "test:bridge": "node src/test/bridge-tests.js",
+    "test:all": "npm test && npm run test:security && npm run test:bridge",
     "test:plus": "echo 'Thirsty+ tests coming soon'",
     "test:plusplus": "echo 'Thirsty++ tests coming soon'",
     "test:gods": "echo 'ThirstOfGods tests coming soon'",
+    "example:security": "node examples/security/threat-detection-example.js",
+    "example:policy": "node examples/security/policy-enforcement-example.js",
     "thirstyplus": "echo 'Thirsty+ interpreter coming soon' && node src/cli.js",
     "thirstyplusplus": "echo 'Thirsty++ interpreter coming soon' && node src/cli.js",
     "thirstofgods": "echo 'ThirstOfGods interpreter coming soon' && node src/cli.js",
@@ -42,12 +47,18 @@
     "learning",
     "repl",
     "debugger",
-    "transpiler"
+    "transpiler",
+    "security",
+    "tarl",
+    "defensive-programming",
+    "threat-detection",
+    "policy-engine"
   ],
   "author": "IAmSoThirsty",
   "license": "SEE LICENSE IN LICENSE",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=14.0.0",
+    "python": ">=3.8.0"
   },
   "repository": {
     "type": "git",
