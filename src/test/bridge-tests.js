@@ -47,7 +47,7 @@ async function runTests() {
     // Test 3: Load policies
     console.log('\nTest 3: Load policies from file');
     try {
-      const policyPath = path.join(__dirname, '..', 'tarl', 'policies', 'default.json');
+      const policyPath = path.join(__dirname, '..', '..', 'tarl', 'policies', 'default.json');
       const result = await bridge.loadPolicies(policyPath);
       
       if (result && result.status === 'loaded') {

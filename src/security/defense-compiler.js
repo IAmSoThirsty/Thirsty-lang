@@ -141,7 +141,7 @@ const __SECURITY_CONTEXT__ = {
       transformations: 0
     };
     this.threatDetector.resetMetrics();
-    this.codeMorpher.getMetrics();
+    this.codeMorpher.resetMetrics ? this.codeMorpher.resetMetrics() : null;
   }
 }
 

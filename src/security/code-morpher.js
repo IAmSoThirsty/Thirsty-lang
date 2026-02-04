@@ -129,6 +129,16 @@ class CodeMorpher {
   getMetrics() {
     return { ...this.morphMetrics };
   }
+
+  /**
+   * Reset metrics
+   */
+  resetMetrics() {
+    this.morphMetrics = {
+      transformations: 0,
+      policyChecks: 0
+    };
+  }
 }
 
 module.exports = { CodeMorpher };
