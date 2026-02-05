@@ -10,7 +10,10 @@ const { SecurityManager } = require('./security/index');
 class ThirstyInterpreter {
   constructor(options = {}) {
     this.variables = {};
+    this.functions = {}; // Store user-defined functions
+    this.callStack = []; // Track function calls for debugging
     this.MAX_LOOP_ITERATIONS = 10000; // Safety limit for loops
+    this.MAX_CALL_DEPTH = 100; // Prevent stack overflow
     
     // Security features
     this.securityEnabled = options.security !== false;
@@ -57,6 +60,12 @@ class ThirstyInterpreter {
         i = this.handleRefill(lines, i);
       } else if (line.startsWith('shield ')) {
         i = this.handleShield(lines, i);
+      } else if (line.startsWith('glass ')) {
+        i = this.handleGlass(lines, i);
+      } else if (line.startsWith('return ')) {
+        throw { type: 'return', value: this.evaluateExpression(line.substring(7).trim()) };
+      } else if (line === 'return') {
+        throw { type: 'return', value: undefined };
       } else if (line === '}') {
         // End of block
         return i + 1;
@@ -103,7 +112,17 @@ class ThirstyInterpreter {
       this.handleSip(line);
     }
     else {
-      throw new Error(`Unknown statement: ${line}`);
+      // Check if it's a function call (function_name(...))
+      const funcCallMatch = line.match(/^(\w+)\s*\(([^)]*)\)$/);
+      if (funcCallMatch) {
+        const funcName = funcCallMatch[1];
+        const argsStr = funcCallMatch[2].trim();
+        const args = argsStr ? this.parseArguments(argsStr) : [];
+        const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+        this.callFunction(funcName, evaluatedArgs);
+      } else {
+        throw new Error(`Unknown statement: ${line}`);
+      }
     }
   }
 
@@ -307,6 +326,93 @@ class ThirstyInterpreter {
     }
     // Placeholder for input functionality
     console.log('Input functionality not yet implemented');
+  }
+
+  /**
+   * Handle glass (function declaration) statement
+   */
+  handleGlass(lines, startIndex) {
+    const line = lines[startIndex].trim();
+    const match = line.match(/glass\s+(\w+)\s*\(([^)]*)\)\s*{/);
+    
+    if (!match) {
+      throw new Error(`Invalid glass (function) statement: ${line}`);
+    }
+    
+    const funcName = match[1];
+    const params = match[2].split(',').map(p => p.trim()).filter(p => p);
+    
+    // Find the matching closing brace
+    const blockEnd = this.findMatchingBrace(lines, startIndex);
+    
+    if (blockEnd === -1) {
+      throw new Error(`Unmatched opening brace for glass statement at line ${startIndex + 1}`);
+    }
+    
+    // Store the function definition
+    this.functions[funcName] = {
+      params: params,
+      body: lines.slice(startIndex + 1, blockEnd),
+      line: startIndex
+    };
+    
+    return blockEnd + 1;
+  }
+
+  /**
+   * Call a user-defined function
+   */
+  callFunction(funcName, args) {
+    if (!this.functions.hasOwnProperty(funcName)) {
+      throw new Error(`Undefined function: ${funcName}`);
+    }
+    
+    // Check call stack depth
+    if (this.callStack.length >= this.MAX_CALL_DEPTH) {
+      throw new Error(`Maximum call depth exceeded (${this.MAX_CALL_DEPTH})`);
+    }
+    
+    const func = this.functions[funcName];
+    
+    // Check argument count
+    if (args.length !== func.params.length) {
+      throw new Error(`Function ${funcName} expects ${func.params.length} arguments, got ${args.length}`);
+    }
+    
+    // Save current variable scope
+    const savedVariables = { ...this.variables };
+    
+    // Create new scope with function parameters
+    const funcScope = { ...this.variables };
+    for (let i = 0; i < func.params.length; i++) {
+      funcScope[func.params[i]] = args[i];
+    }
+    this.variables = funcScope;
+    
+    // Track call stack
+    this.callStack.push({ function: funcName, line: func.line });
+    
+    try {
+      // Execute function body
+      this.executeBlock(func.body, 0);
+      
+      // Pop call stack
+      this.callStack.pop();
+      
+      // Restore variable scope
+      this.variables = savedVariables;
+      
+      return undefined;
+    } catch (e) {
+      // Handle return statement
+      if (e.type === 'return') {
+        this.callStack.pop();
+        this.variables = savedVariables;
+        return e.value;
+      }
+      // Re-throw other errors
+      throw e;
+    }
   }
 
   /**
@@ -547,12 +653,96 @@ class ThirstyInterpreter {
       return parseFloat(expr);
     }
     
+    // Function call - check for function_name(args) with nested parentheses
+    const funcMatch = expr.match(/^(\w+)\s*\(/);
+    if (funcMatch) {
+      const funcName = funcMatch[1];
+      const startIdx = expr.indexOf('(');
+      const argsStr = this.extractParenthesesContent(expr, startIdx);
+      const args = argsStr ? this.parseArguments(argsStr) : [];
+      const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+      return this.callFunction(funcName, evaluatedArgs);
+    }
+    
     // Variable reference
     if (this.variables.hasOwnProperty(expr)) {
       return this.variables[expr];
     }
     
     throw new Error(`Unknown expression: ${expr}`);
+  }
+
+  /**
+   * Extract content between parentheses, handling nested parentheses
+   */
+  extractParenthesesContent(expr, startIdx) {
+    let depth = 0;
+    let content = '';
+    
+    for (let i = startIdx; i < expr.length; i++) {
+      const char = expr[i];
+      
+      if (char === '(') {
+        if (depth > 0) {
+          content += char;
+        }
+        depth++;
+      } else if (char === ')') {
+        depth--;
+        if (depth > 0) {
+          content += char;
+        } else if (depth === 0) {
+          return content;
+        }
+      } else if (depth > 0) {
+        content += char;
+      }
+    }
+    
+    throw new Error('Unmatched parentheses in expression');
+  }
+
+  /**
+   * Parse function call arguments, respecting nested parentheses and strings
+   */
+  parseArguments(argsStr) {
+    const args = [];
+    let current = '';
+    let depth = 0;
+    let inString = false;
+    let stringChar = null;
+    
+    for (let i = 0; i < argsStr.length; i++) {
+      const char = argsStr[i];
+      
+      if ((char === '"' || char === "'") && (i === 0 || argsStr[i-1] !== '\\')) {
+        if (!inString) {
+          inString = true;
+          stringChar = char;
+        } else if (char === stringChar) {
+          inString = false;
+          stringChar = null;
+        }
+        current += char;
+      } else if (char === '(' && !inString) {
+        depth++;
+        current += char;
+      } else if (char === ')' && !inString) {
+        depth--;
+        current += char;
+      } else if (char === ',' && depth === 0 && !inString) {
+        args.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    if (current.trim()) {
+      args.push(current.trim());
+    }
+    
+    return args;
   }
 
   /**
