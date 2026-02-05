@@ -55,14 +55,19 @@ See [T.A.R.L. Integration Guide](./TARL_INTEGRATION.md) and [Security API Refere
 - 🎓 **Interactive training program**
 - 🔌 **VS Code extension**
 
+### ✅ Recently Implemented Features
+- 🧩 **Functions** (`glass` keyword) - Declare and call functions with parameters and return values
+- 📚 **Arrays and Data Structures** (`reservoir` keyword) - Dynamic arrays with rich methods
+- 🎯 **Classes and OOP** (`fountain` keyword) - Object-oriented programming with classes, methods, and properties
+- 🌍 **Standard Library** - Built-in Math and String utilities for common operations
+- 🎓 **Language Editions** - Four-tier progression system (Base, Plus, PlusPlus, ThirstOfGods)
+
 ### 📋 Planned Features (Future Releases)
-- 🧩 Functions (`glass` keyword)
-- 📚 Arrays and advanced data structures
-- 🎯 Classes and OOP
-- 📦 Modules and imports (import/export)
-- ⚡ Async/await support
-- 🌍 Standard library expansion
-- 🎯 Multiple language editions (Base, Plus, PlusPlus, ThirstOfGods) - full implementation
+- 📦 **Modules and imports** (import/export) - Code organization across multiple files
+- ⚡ **Async/await support** (`cascade`/`await` keywords) - Asynchronous programming
+- 🌐 **Network utilities** - HTTP requests and API interactions
+- 💾 **File I/O operations** - Read and write files
+- 🔧 **Advanced debugging tools** - Enhanced debugging capabilities
 
 ## Getting Started
 
@@ -193,6 +198,55 @@ node src/test/security-tests.js
 ```thirsty
 drink water = "Hello, World!"
 pour water
+```
+
+#### Using Functions
+```thirsty
+glass greet(name) {
+  return "Hello, " + name + "!"
+}
+
+drink message = greet("Thirsty Developer")
+pour message
+```
+
+#### Working with Arrays
+```thirsty
+reservoir fruits = ["apple", "banana", "orange"]
+pour "Fruits: " + fruits.join(", ")
+
+fruits.push("mango")
+pour "After adding mango: " + fruits.join(", ")
+```
+
+#### Object-Oriented Programming
+```thirsty
+fountain Calculator {
+  drink version = "1.0"
+  
+  glass add(a, b) {
+    return a + b
+  }
+  
+  glass multiply(a, b) {
+    return a * b
+  }
+}
+
+drink calc = Calculator()
+drink sum = calc.add(10, 5)
+pour "10 + 5 = " + sum
+```
+
+#### Using Standard Library
+```thirsty
+drink radius = 5
+drink area = Math.PI * Math.pow(radius, 2)
+pour "Circle area: " + area
+
+drink text = "  hello world  "
+drink formatted = String.toUpperCase(String.trim(text))
+pour "Formatted: " + formatted
 ```
 
 #### Secure Program with Basic Protection
@@ -345,16 +399,57 @@ See [PYTHON_SETUP.md](PYTHON_SETUP.md) for detailed Python setup and usage.
 
 ## Language Editions
 
-Thirsty-lang comes in four flavors:
+Thirsty-lang comes in four flavors, each building on the previous:
 
-| Edition | Level | Description |
-|---------|-------|-------------|
-| 💧 **Base** | Beginner | Core features: variables, output |
-| 💧+ **Thirsty+** | Intermediate | Adds control flow, conditionals |
-| 💧++ **Thirsty++** | Advanced | Functions, loops, arrays |
-| ⚡ **ThirstOfGods** | Master | Classes, async/await, modules |
+| Edition | Level | Features | Status |
+|---------|-------|----------|--------|
+| 💧 **Base** | Beginner | Variables (`drink`), Output (`pour`), Comments | ✅ Implemented |
+| 💧+ **Thirsty+** | Intermediate | Control flow (`thirsty`/`hydrated`), Loops (`refill`), Operators | ✅ Implemented |
+| 💧++ **Thirsty++** | Advanced | Functions (`glass`), Arrays (`reservoir`), Standard Library | ✅ Implemented |
+| ⚡ **ThirstOfGods** | Master | Classes (`fountain`), OOP, Advanced Data Structures | ✅ Implemented |
 
-See [docs/EXPANSIONS.md](docs/EXPANSIONS.md) for detailed information.
+### Feature Matrix by Edition
+
+#### 💧 Base Thirsty-lang
+- ✅ Variable declaration (`drink`)
+- ✅ Output statements (`pour`)
+- ✅ Input statements (`sip`)
+- ✅ Comments (`//`)
+- ✅ Basic string and number literals
+
+#### 💧+ Thirsty Plus
+**All Base features, plus:**
+- ✅ Conditional statements (`thirsty`/`hydrated`)
+- ✅ Comparison operators (`>`, `<`, `>=`, `<=`, `==`, `!=`)
+- ✅ Arithmetic operations (`+`, `-`, `*`, `/`)
+- ✅ String concatenation
+- ✅ Boolean values
+
+#### 💧++ Thirsty Plus Plus
+**All Thirsty+ features, plus:**
+- ✅ Function declarations (`glass`)
+- ✅ Function calls with parameters
+- ✅ Return statements
+- ✅ Array declarations (`reservoir`)
+- ✅ Array indexing and element access
+- ✅ Array methods (push, pop, shift, unshift, indexOf, includes, join, slice, reverse, sort)
+- ✅ Loops with iteration (`refill`)
+- ✅ Standard Library:
+  - Math utilities (PI, E, abs, sqrt, pow, floor, ceil, round, min, max, random)
+  - String methods (toUpperCase, toLowerCase, trim, split, replace, charAt, substring)
+
+#### ⚡ ThirstOfGods
+**All Thirsty++ features, plus:**
+- ✅ Class declarations (`fountain`)
+- ✅ Object instantiation
+- ✅ Class methods
+- ✅ Class properties
+- ✅ `this` keyword for property access
+- ✅ Object-oriented programming
+
+**Note:** All features are currently available in the standard interpreter. Future versions may introduce edition-specific runtime modes.
+
+See [docs/EXPANSIONS.md](docs/EXPANSIONS.md) for detailed information and examples.
 
 ## Documentation
 

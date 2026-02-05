@@ -42,34 +42,40 @@ hydrated
 
 Advanced features for power users:
 
-### Additional Features
+### ✅ Implemented Features
 - **Loops**: `refill` for iteration
-- **Functions**: `glass` for function declarations
-- **Arrays**: `reservoir` for collections
-- **Objects**: `bottle` for structured data
+- **Functions**: `glass` for function declarations with parameters and return values
+- **Arrays**: `reservoir` for dynamic collections
+- **Standard Library**: Built-in Math and String utilities
 
-### New Keywords
-- `refill times` - For loop
-- `refill while` - While loop
+### Keywords
+- `refill condition` - While loop
 - `glass name(params)` - Function definition
 - `sip` - Input from user
 - `reservoir` - Array declaration
-- `bottle` - Object declaration
 - `return` - Return from function
 
 ### Example
 ```thirstyplusplus
-glass calculateHydration(weight)
+glass calculateHydration(weight) {
   drink dailyWater = weight * 0.033
   return dailyWater
+}
 
 drink myWeight = 70
 drink needed = calculateHydration(myWeight)
 pour needed
 
 reservoir drinks = ["water", "juice", "tea"]
-refill 3 times
-  pour drinks[index]
+drink i = 0
+refill i < drinks.length {
+  pour drinks[i]
+  drink i = i + 1
+}
+
+// Using standard library
+drink area = Math.PI * Math.pow(5, 2)
+pour "Circle area: " + area
 ```
 
 **Use when**: Building complex applications with functions and data structures.
@@ -78,51 +84,53 @@ refill 3 times
 
 The most powerful variant with divine capabilities:
 
-### Additional Features
-- **Async/Await**: `cascade` and `await` for asynchronous operations
+### ✅ Implemented Features
 - **Classes**: `fountain` for object-oriented programming
+- **Object Instantiation**: Create instances of classes
+- **Class Methods**: Define and call methods on instances
+- **Class Properties**: Instance variables with default values
+- **this keyword**: Access instance properties within methods
+
+### 🔮 Future Features (Planned)
+- **Async/Await**: `cascade` and `await` for asynchronous operations
 - **Modules**: `import` and `export` for code organization
 - **Error Handling**: `spillage` (try) and `cleanup` (catch)
-- **Advanced Types**: Generics and type checking
-- **Decorators**: Meta-programming capabilities
 
-### New Keywords
+### Keywords
 - `fountain ClassName` - Class declaration
-- `cascade` - Async function
-- `await` - Wait for async operation
-- `spillage` - Try block
-- `cleanup` - Catch block
-- `import` - Module import
-- `export` - Module export
-- `sacred` - Constant declaration
-- `ocean` - Map/dictionary
-- `stream` - Generator function
+- `this` - Reference to instance properties
 
 ### Example
 ```thirstofgods
-fountain HydrationTracker
+fountain HydrationTracker {
   drink totalWater = 0
+  drink goal = 2000
   
-  glass addWater(amount)
-    this.totalWater = this.totalWater + amount
-    pour "Added " + amount + " liters"
+  glass addWater(amount) {
+    drink this.totalWater = this.totalWater + amount
+    pour "Added " + amount + "ml. Total: " + this.totalWater + "ml"
+  }
   
-  glass getTotal()
-    return this.totalWater
+  glass checkGoal() {
+    thirsty this.totalWater >= this.goal {
+      pour "Goal reached! Great hydration!"
+      return true
+    }
+    hydrated {
+      drink remaining = this.goal - this.totalWater
+      pour "Still need " + remaining + "ml to reach goal"
+      return false
+    }
+  }
+}
 
-cascade glass fetchWeatherData()
-  drink data = await getWeather()
-  return data
-
-spillage
-  drink tracker = new HydrationTracker()
-  tracker.addWater(2.5)
-  pour tracker.getTotal()
-cleanup error
-  pour "Spillage occurred: " + error
+drink tracker = HydrationTracker()
+tracker.addWater(500)
+tracker.addWater(800)
+tracker.checkGoal()
 ```
 
-**Use when**: Building enterprise-level applications with the power of gods!
+**Use when**: Building enterprise-level applications with object-oriented design.
 
 ## Choosing Your Edition
 
@@ -131,31 +139,36 @@ cleanup error
 | Variables | ✓ | ✓ | ✓ | ✓ |
 | Output | ✓ | ✓ | ✓ | ✓ |
 | Control Flow | ✗ | ✓ | ✓ | ✓ |
-| Loops | ✗ | ✗ | ✓ | ✓ |
+| Operators | ✗ | ✓ | ✓ | ✓ |
+| Loops | ✗ | ✓ | ✓ | ✓ |
 | Functions | ✗ | ✗ | ✓ | ✓ |
+| Arrays | ✗ | ✗ | ✓ | ✓ |
+| Standard Library | ✗ | ✗ | ✓ | ✓ |
 | Classes | ✗ | ✗ | ✗ | ✓ |
-| Async/Await | ✗ | ✗ | ✗ | ✓ |
-| Error Handling | ✗ | ✗ | ✗ | ✓ |
-| Modules | ✗ | ✗ | ✗ | ✓ |
+| OOP | ✗ | ✗ | ✗ | ✓ |
 
-## Running Different Editions
+## Running Your Code
+
+All editions are currently available in the standard Thirsty-lang interpreter:
 
 ```bash
-# Base Thirsty-lang
+# Run any Thirsty-lang program
 npm start examples/hello.thirsty
-
-# Thirsty+
-npm run thirstyplus examples/control-flow.thirstyplus
-
-# Thirsty++
-npm run thirstyplusplus examples/functions.thirstyplusplus
-
-# ThirstOfGods
-npm run thirstofgods examples/classes.thirstofgods
+npm start examples/functions.thirsty
+npm start examples/arrays.thirsty
+npm start examples/classes.thirsty
+npm start examples/stdlib.thirsty
 ```
+
+**Note:** All features from all editions are available by default. The edition system is designed as a progressive learning path rather than separate runtime modes.
 
 ## Migration Path
 
 Start with base Thirsty-lang and upgrade as your thirst grows! Each edition is backward compatible with the previous one.
+
+1. **Start with Base**: Learn variables and output
+2. **Move to Thirsty+**: Add control flow and conditionals
+3. **Advance to Thirsty++**: Master functions, arrays, and the standard library
+4. **Ascend to ThirstOfGods**: Embrace object-oriented programming
 
 Stay hydrated at every level! 💧✨

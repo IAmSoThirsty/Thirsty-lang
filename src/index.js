@@ -10,7 +10,12 @@ const { SecurityManager } = require('./security/index');
 class ThirstyInterpreter {
   constructor(options = {}) {
     this.variables = {};
+    this.functions = {}; // Store user-defined functions
+    this.classes = {}; // Store class definitions
+    this.arrays = {}; // Store arrays (reservoirs)
+    this.callStack = []; // Track function calls for debugging
     this.MAX_LOOP_ITERATIONS = 10000; // Safety limit for loops
+    this.MAX_CALL_DEPTH = 100; // Prevent stack overflow
     
     // Security features
     this.securityEnabled = options.security !== false;
@@ -23,6 +28,42 @@ class ThirstyInterpreter {
     this.shieldContext = null;
     this.armoredVariables = new Set();
     this.sanitizedVariables = new Set();
+    
+    // Initialize standard library
+    this.initializeStandardLibrary();
+  }
+  
+  /**
+   * Initialize the standard library with built-in functions
+   */
+  initializeStandardLibrary() {
+    // Math utilities
+    this.variables.Math = {
+      __builtin: true,
+      PI: 3.14159265359,
+      E: 2.71828182846,
+      abs: (x) => Math.abs(x),
+      sqrt: (x) => Math.sqrt(x),
+      pow: (x, y) => Math.pow(x, y),
+      floor: (x) => Math.floor(x),
+      ceil: (x) => Math.ceil(x),
+      round: (x) => Math.round(x),
+      min: (...args) => Math.min(...args),
+      max: (...args) => Math.max(...args),
+      random: () => Math.random()
+    };
+    
+    // String utilities
+    this.variables.String = {
+      __builtin: true,
+      toUpperCase: (str) => String(str).toUpperCase(),
+      toLowerCase: (str) => String(str).toLowerCase(),
+      trim: (str) => String(str).trim(),
+      split: (str, separator) => String(str).split(separator),
+      replace: (str, search, replacement) => String(str).replace(search, replacement),
+      charAt: (str, index) => String(str).charAt(index),
+      substring: (str, start, end) => String(str).substring(start, end)
+    };
   }
 
   /**
@@ -57,6 +98,14 @@ class ThirstyInterpreter {
         i = this.handleRefill(lines, i);
       } else if (line.startsWith('shield ')) {
         i = this.handleShield(lines, i);
+      } else if (line.startsWith('glass ')) {
+        i = this.handleGlass(lines, i);
+      } else if (line.startsWith('fountain ')) {
+        i = this.handleFountain(lines, i);
+      } else if (line.startsWith('return ')) {
+        throw { type: 'return', value: this.evaluateExpression(line.substring(7).trim()) };
+      } else if (line === 'return') {
+        throw { type: 'return', value: undefined };
       } else if (line === '}') {
         // End of block
         return i + 1;
@@ -94,6 +143,9 @@ class ThirstyInterpreter {
     else if (line.startsWith('drink ')) {
       this.handleDrink(line);
     }
+    else if (line.startsWith('reservoir ')) {
+      this.handleReservoir(line);
+    }
     // pour - Output statement
     else if (line.startsWith('pour ')) {
       this.handlePour(line);
@@ -103,7 +155,47 @@ class ThirstyInterpreter {
       this.handleSip(line);
     }
     else {
-      throw new Error(`Unknown statement: ${line}`);
+      // Check if it's a method call (varname.method(...))
+      const methodCallMatch = line.match(/^(\w+)\.(\w+)\s*\(([^)]*)\)$/);
+      if (methodCallMatch) {
+        const varName = methodCallMatch[1];
+        const methodName = methodCallMatch[2];
+        const argsStr = methodCallMatch[3].trim();
+        
+        if (!this.variables.hasOwnProperty(varName)) {
+          throw new Error(`Unknown variable: ${varName}`);
+        }
+        
+        const obj = this.variables[varName];
+        
+        // Handle array methods
+        if (Array.isArray(obj)) {
+          this.handleArrayMethod(varName, obj, methodName, argsStr);
+          return;
+        }
+        
+        // Handle class instance methods
+        if (obj && typeof obj === 'object' && obj.__class && obj.__methods) {
+          const args = argsStr ? this.parseArguments(argsStr) : [];
+          const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+          this.callInstanceMethod(obj, methodName, evaluatedArgs);
+          return;
+        }
+        
+        throw new Error(`Method '${methodName}' not supported for variable '${varName}'`);
+      }
+      
+      // Check if it's a function call (function_name(...))
+      const funcCallMatch = line.match(/^(\w+)\s*\(([^)]*)\)$/);
+      if (funcCallMatch) {
+        const funcName = funcCallMatch[1];
+        const argsStr = funcCallMatch[2].trim();
+        const args = argsStr ? this.parseArguments(argsStr) : [];
+        const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+        this.callFunction(funcName, evaluatedArgs);
+      } else {
+        throw new Error(`Unknown statement: ${line}`);
+      }
     }
   }
 
@@ -117,12 +209,18 @@ class ThirstyInterpreter {
     
     while (i < lines.length && braceCount > 0) {
       const currentLine = lines[i].trim();
-      // Count braces only for control flow statements
+      // Count braces only for control flow statements and class/function declarations
       if (currentLine.startsWith('thirsty ') && currentLine.endsWith('{')) {
         braceCount++;
       } else if (currentLine.startsWith('refill ') && currentLine.endsWith('{')) {
         braceCount++;
       } else if (currentLine === 'hydrated {') {
+        braceCount++;
+      } else if (currentLine.startsWith('glass ') && currentLine.endsWith('{')) {
+        braceCount++;
+      } else if (currentLine.startsWith('fountain ') && currentLine.endsWith('{')) {
+        braceCount++;
+      } else if (currentLine.startsWith('shield ') && currentLine.endsWith('{')) {
         braceCount++;
       } else if (currentLine === '}') {
         braceCount--;
@@ -268,8 +366,53 @@ class ThirstyInterpreter {
 
   /**
    * Handle variable declaration: drink varname = value
+   * Also handles array element assignment: drink arr[index] = value
+   * Also handles property assignment: drink obj.property = value
    */
   handleDrink(line) {
+    // Check for property assignment (this.property = value)
+    const propMatch = line.match(/drink\s+(\w+)\.(\w+)\s*=\s*(.+)/);
+    if (propMatch) {
+      const objName = propMatch[1];
+      const propName = propMatch[2];
+      const valueExpr = propMatch[3];
+      
+      if (!this.variables.hasOwnProperty(objName)) {
+        throw new Error(`Unknown variable: ${objName}`);
+      }
+      
+      const obj = this.variables[objName];
+      const value = this.evaluateExpression(valueExpr);
+      
+      // Handle 'this' reference (which is mapped to instance properties)
+      if (typeof obj === 'object' && obj !== null) {
+        obj[propName] = value;
+      } else {
+        throw new Error(`Cannot set property '${propName}' on non-object variable '${objName}'`);
+      }
+      
+      return;
+    }
+    
+    // Check for array element assignment
+    const arrayMatch = line.match(/drink\s+(\w+)\[(.+)\]\s*=\s*(.+)/);
+    if (arrayMatch) {
+      const varName = arrayMatch[1];
+      const indexExpr = arrayMatch[2];
+      const valueExpr = arrayMatch[3];
+      
+      const index = this.evaluateExpression(indexExpr);
+      const value = this.evaluateExpression(valueExpr);
+      
+      if (!this.variables.hasOwnProperty(varName) || !Array.isArray(this.variables[varName])) {
+        throw new Error(`Variable '${varName}' is not an array`);
+      }
+      
+      this.variables[varName][index] = value;
+      return;
+    }
+    
+    // Regular variable assignment
     const match = line.match(/drink\s+(\w+)\s*=\s*(.+)/);
     if (!match) {
       throw new Error(`Invalid drink statement: ${line}`);
@@ -285,6 +428,26 @@ class ThirstyInterpreter {
     
     const value = this.evaluateExpression(match[2]);
     this.variables[varName] = value;
+  }
+
+  /**
+   * Handle reservoir (array) declaration: reservoir name = [elements]
+   */
+  handleReservoir(line) {
+    const match = line.match(/reservoir\s+(\w+)\s*=\s*\[([^\]]*)\]/);
+    if (!match) {
+      throw new Error(`Invalid reservoir statement: ${line}`);
+    }
+    
+    const varName = match[1];
+    const elementsStr = match[2].trim();
+    
+    // Parse array elements
+    const elements = elementsStr ? this.parseArguments(elementsStr) : [];
+    const evaluatedElements = elements.map(elem => this.evaluateExpression(elem));
+    
+    // Store as a regular variable with array value
+    this.variables[varName] = evaluatedElements;
   }
 
   /**
@@ -307,6 +470,279 @@ class ThirstyInterpreter {
     }
     // Placeholder for input functionality
     console.log('Input functionality not yet implemented');
+  }
+
+  /**
+   * Handle glass (function declaration) statement
+   */
+  handleGlass(lines, startIndex) {
+    const line = lines[startIndex].trim();
+    const match = line.match(/glass\s+(\w+)\s*\(([^)]*)\)\s*{/);
+    
+    if (!match) {
+      throw new Error(`Invalid glass (function) statement: ${line}`);
+    }
+    
+    const funcName = match[1];
+    const params = match[2].split(',').map(p => p.trim()).filter(p => p);
+    
+    // Find the matching closing brace
+    const blockEnd = this.findMatchingBrace(lines, startIndex);
+    
+    if (blockEnd === -1) {
+      throw new Error(`Unmatched opening brace for glass statement at line ${startIndex + 1}`);
+    }
+    
+    // Store the function definition
+    this.functions[funcName] = {
+      params: params,
+      body: lines.slice(startIndex + 1, blockEnd),
+      line: startIndex
+    };
+    
+    return blockEnd + 1;
+  }
+
+  /**
+   * Handle fountain (class declaration) statement
+   */
+  handleFountain(lines, startIndex) {
+    const line = lines[startIndex].trim();
+    const match = line.match(/fountain\s+(\w+)\s*{/);
+    
+    if (!match) {
+      throw new Error(`Invalid fountain (class) statement: ${line}`);
+    }
+    
+    const className = match[1];
+    
+    // Find the matching closing brace
+    const blockEnd = this.findMatchingBrace(lines, startIndex);
+    
+    if (blockEnd === -1) {
+      throw new Error(`Unmatched opening brace for fountain statement at line ${startIndex + 1}`);
+    }
+    
+    // Parse class body to extract methods and properties
+    const classBody = lines.slice(startIndex + 1, blockEnd);
+    const methods = {};
+    const properties = [];
+    
+    let i = 0;
+    while (i < classBody.length) {
+      const bodyLine = classBody[i].trim();
+      
+      if (!bodyLine || bodyLine.startsWith('//')) {
+        i++;
+        continue;
+      }
+      
+      // Check for method declaration
+      if (bodyLine.startsWith('glass ')) {
+        const methodMatch = bodyLine.match(/glass\s+(\w+)\s*\(([^)]*)\)\s*{/);
+        if (methodMatch) {
+          const methodName = methodMatch[1];
+          const params = methodMatch[2].split(',').map(p => p.trim()).filter(p => p);
+          
+          // Find method body end by counting all braces
+          let methodEnd = -1;
+          let braceCount = 1;
+          
+          for (let j = i + 1; j < classBody.length; j++) {
+            const currentLine = classBody[j];
+            
+            // Count all opening and closing braces in the line
+            for (const char of currentLine) {
+              if (char === '{') braceCount++;
+              if (char === '}') braceCount--;
+            }
+            
+            if (braceCount === 0) {
+              methodEnd = j;
+              break;
+            }
+          }
+          
+          if (methodEnd === -1 || braceCount !== 0) {
+            throw new Error(`Unmatched opening brace for method ${methodName}`);
+          }
+          
+          methods[methodName] = {
+            params: params,
+            body: classBody.slice(i + 1, methodEnd)
+          };
+          
+          i = methodEnd + 1;
+          continue;
+        }
+      }
+      
+      // Check for property declaration
+      if (bodyLine.startsWith('drink ')) {
+        const propMatch = bodyLine.match(/drink\s+(\w+)\s*=\s*(.+)/);
+        if (propMatch) {
+          properties.push({
+            name: propMatch[1],
+            defaultValue: propMatch[2]
+          });
+        }
+      }
+      
+      i++;
+    }
+    
+    // Store the class definition
+    this.classes[className] = {
+      name: className,
+      methods: methods,
+      properties: properties,
+      line: startIndex
+    };
+    
+    return blockEnd + 1;
+  }
+
+  /**
+   * Instantiate a class (new ClassName())
+   */
+  instantiateClass(className, args) {
+    if (!this.classes.hasOwnProperty(className)) {
+      throw new Error(`Undefined class: ${className}`);
+    }
+    
+    const classDef = this.classes[className];
+    
+    // Create instance object
+    const instance = {
+      __class: className,
+      __properties: {},
+      __methods: {}
+    };
+    
+    // Initialize properties with default values
+    for (const prop of classDef.properties) {
+      instance.__properties[prop.name] = this.evaluateExpression(prop.defaultValue);
+    }
+    
+    // Bind methods to the instance
+    for (const methodName in classDef.methods) {
+      instance.__methods[methodName] = classDef.methods[methodName];
+    }
+    
+    // Call constructor if exists (constructor is a special method named 'fountain')
+    if (classDef.methods.hasOwnProperty('fountain')) {
+      this.callInstanceMethod(instance, 'fountain', args);
+    }
+    
+    return instance;
+  }
+
+  /**
+   * Call a method on a class instance
+   */
+  callInstanceMethod(instance, methodName, args) {
+    if (!instance.__methods.hasOwnProperty(methodName)) {
+      throw new Error(`Method '${methodName}' not found in class ${instance.__class}`);
+    }
+    
+    const method = instance.__methods[methodName];
+    
+    // Check argument count
+    if (args.length !== method.params.length) {
+      throw new Error(`Method ${methodName} expects ${method.params.length} arguments, got ${args.length}`);
+    }
+    
+    // Save current variable scope
+    const savedVariables = { ...this.variables };
+    
+    // Create new scope with method parameters and 'this' reference
+    const methodScope = { ...this.variables };
+    for (let i = 0; i < method.params.length; i++) {
+      methodScope[method.params[i]] = args[i];
+    }
+    
+    // Add 'this' reference to instance properties
+    methodScope.this = instance.__properties;
+    
+    this.variables = methodScope;
+    
+    try {
+      // Execute method body
+      this.executeBlock(method.body, 0);
+      
+      // Restore variable scope
+      this.variables = savedVariables;
+      
+      return undefined;
+    } catch (e) {
+      // Handle return statement
+      if (e.type === 'return') {
+        this.variables = savedVariables;
+        return e.value;
+      }
+      // Re-throw other errors
+      throw e;
+    }
+  }
+
+  /**
+   * Call a user-defined function
+   */
+  callFunction(funcName, args) {
+    if (!this.functions.hasOwnProperty(funcName)) {
+      // Check if it's a class name instead
+      if (this.classes.hasOwnProperty(funcName)) {
+        throw new Error(`'${funcName}' is a class, not a function. Cannot call as function.`);
+      }
+      throw new Error(`Undefined function: ${funcName}`);
+    }
+    
+    // Check call stack depth
+    if (this.callStack.length >= this.MAX_CALL_DEPTH) {
+      throw new Error(`Maximum call depth exceeded (${this.MAX_CALL_DEPTH})`);
+    }
+    
+    const func = this.functions[funcName];
+    
+    // Check argument count
+    if (args.length !== func.params.length) {
+      throw new Error(`Function ${funcName} expects ${func.params.length} arguments, got ${args.length}`);
+    }
+    
+    // Save current variable scope
+    const savedVariables = { ...this.variables };
+    
+    // Create new scope with function parameters
+    const funcScope = { ...this.variables };
+    for (let i = 0; i < func.params.length; i++) {
+      funcScope[func.params[i]] = args[i];
+    }
+    this.variables = funcScope;
+    
+    // Track call stack
+    this.callStack.push({ function: funcName, line: func.line });
+    
+    try {
+      // Execute function body
+      this.executeBlock(func.body, 0);
+      
+      // Pop call stack
+      this.callStack.pop();
+      
+      // Restore variable scope
+      this.variables = savedVariables;
+      
+      return undefined;
+    } catch (e) {
+      // Handle return statement
+      if (e.type === 'return') {
+        this.callStack.pop();
+        this.variables = savedVariables;
+        return e.value;
+      }
+      // Re-throw other errors
+      throw e;
+    }
   }
 
   /**
@@ -481,6 +917,7 @@ class ThirstyInterpreter {
     // Only split if there's a + or - NOT inside a higher precedence operation
     for (let i = expr.length - 1; i >= 0; i--) {
       if (this.isInString(expr, i)) continue;
+      if (this.isInParentheses(expr, i)) continue;
       
       if (expr[i] === '+') {
         const left = expr.substring(0, i).trim();
@@ -510,6 +947,7 @@ class ThirstyInterpreter {
     // Handle multiplication and division (higher precedence)
     for (let i = expr.length - 1; i >= 0; i--) {
       if (this.isInString(expr, i)) continue;
+      if (this.isInParentheses(expr, i)) continue;
       
       if (expr[i] === '*') {
         const left = expr.substring(0, i).trim();
@@ -547,12 +985,281 @@ class ThirstyInterpreter {
       return parseFloat(expr);
     }
     
+    // Function call or class instantiation - check for name(args) with nested parentheses
+    const funcMatch = expr.match(/^(\w+)\s*\(/);
+    if (funcMatch) {
+      const name = funcMatch[1];
+      const startIdx = expr.indexOf('(');
+      const argsStr = this.extractParenthesesContent(expr, startIdx);
+      const args = argsStr ? this.parseArguments(argsStr) : [];
+      const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+      
+      // Check if it's a class (class names typically start with uppercase)
+      if (this.classes.hasOwnProperty(name)) {
+        return this.instantiateClass(name, evaluatedArgs);
+      }
+      
+      // Check if it's a function
+      if (this.functions.hasOwnProperty(name)) {
+        return this.callFunction(name, evaluatedArgs);
+      }
+      
+      // Neither class nor function
+      throw new Error(`Undefined class or function: ${name}`);
+    }
+    
+    // Array access - varname[index]
+    const arrayAccessMatch = expr.match(/^(\w+)\[(.+)\]$/);
+    if (arrayAccessMatch) {
+      const varName = arrayAccessMatch[1];
+      const indexExpr = arrayAccessMatch[2];
+      
+      if (!this.variables.hasOwnProperty(varName)) {
+        throw new Error(`Unknown variable: ${varName}`);
+      }
+      
+      const arr = this.variables[varName];
+      if (!Array.isArray(arr)) {
+        throw new Error(`Variable '${varName}' is not an array`);
+      }
+      
+      const index = this.evaluateExpression(indexExpr);
+      
+      if (index < 0 || index >= arr.length) {
+        throw new Error(`Array index out of bounds: ${index} (length: ${arr.length})`);
+      }
+      
+      return arr[index];
+    }
+    
+    // Array/string/instance method calls - varname.method(args)
+    const methodMatch = expr.match(/^(\w+)\.(\w+)\s*\(([^)]*)\)$/);
+    if (methodMatch) {
+      const varName = methodMatch[1];
+      const methodName = methodMatch[2];
+      const argsStr = methodMatch[3].trim();
+      
+      if (!this.variables.hasOwnProperty(varName)) {
+        throw new Error(`Unknown variable: ${varName}`);
+      }
+      
+      const obj = this.variables[varName];
+      
+      // Handle array methods
+      if (Array.isArray(obj)) {
+        return this.handleArrayMethod(varName, obj, methodName, argsStr);
+      }
+      
+      // Handle class instance methods
+      if (obj && typeof obj === 'object' && obj.__class && obj.__methods) {
+        const args = argsStr ? this.parseArguments(argsStr) : [];
+        const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+        return this.callInstanceMethod(obj, methodName, evaluatedArgs);
+      }
+      
+      // Handle built-in library methods (Math, String, etc.)
+      if (obj && typeof obj === 'object' && obj.__builtin) {
+        const args = argsStr ? this.parseArguments(argsStr) : [];
+        const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+        if (typeof obj[methodName] === 'function') {
+          return obj[methodName](...evaluatedArgs);
+        }
+        throw new Error(`Built-in method '${methodName}' not found in '${varName}'`);
+      }
+      
+      throw new Error(`Method '${methodName}' not supported for variable '${varName}'`);
+    }
+    
+    // Array/string/instance property access - varname.property
+    const propertyMatch = expr.match(/^(\w+)\.(\w+)$/);
+    if (propertyMatch) {
+      const varName = propertyMatch[1];
+      const propName = propertyMatch[2];
+      
+      if (!this.variables.hasOwnProperty(varName)) {
+        throw new Error(`Unknown variable: ${varName}`);
+      }
+      
+      const obj = this.variables[varName];
+      
+      // Handle class instance properties
+      if (obj && typeof obj === 'object' && obj.__class && obj.__properties) {
+        if (obj.__properties.hasOwnProperty(propName)) {
+          return obj.__properties[propName];
+        }
+        throw new Error(`Property '${propName}' not found in class ${obj.__class}`);
+      }
+      
+      // Handle length property for arrays and strings
+      if (propName === 'length') {
+        if (Array.isArray(obj) || typeof obj === 'string') {
+          return obj.length;
+        }
+      }
+      
+      // Handle generic object property access
+      if (typeof obj === 'object' && obj !== null && obj.hasOwnProperty(propName)) {
+        return obj[propName];
+      }
+      
+      throw new Error(`Property '${propName}' not supported for variable '${varName}'`);
+    }
+    
     // Variable reference
     if (this.variables.hasOwnProperty(expr)) {
       return this.variables[expr];
     }
     
     throw new Error(`Unknown expression: ${expr}`);
+  }
+
+  /**
+   * Handle array method calls (push, pop, etc.)
+   */
+  handleArrayMethod(varName, arr, methodName, argsStr) {
+    const args = argsStr ? this.parseArguments(argsStr) : [];
+    const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+    
+    switch (methodName) {
+      case 'push':
+        // Add elements to the end of the array
+        for (const arg of evaluatedArgs) {
+          arr.push(arg);
+        }
+        return arr.length;
+        
+      case 'pop':
+        // Remove and return the last element
+        if (arr.length === 0) {
+          throw new Error(`Cannot pop from empty array '${varName}'`);
+        }
+        return arr.pop();
+        
+      case 'shift':
+        // Remove and return the first element
+        if (arr.length === 0) {
+          throw new Error(`Cannot shift from empty array '${varName}'`);
+        }
+        return arr.shift();
+        
+      case 'unshift':
+        // Add elements to the beginning of the array
+        for (const arg of evaluatedArgs) {
+          arr.unshift(arg);
+        }
+        return arr.length;
+        
+      case 'slice':
+        // Return a shallow copy of a portion of the array
+        const start = evaluatedArgs[0] || 0;
+        const end = evaluatedArgs[1];
+        return arr.slice(start, end);
+        
+      case 'indexOf':
+        // Find the index of an element
+        if (evaluatedArgs.length === 0) {
+          throw new Error(`indexOf requires at least one argument`);
+        }
+        return arr.indexOf(evaluatedArgs[0]);
+        
+      case 'includes':
+        // Check if array contains an element
+        if (evaluatedArgs.length === 0) {
+          throw new Error(`includes requires at least one argument`);
+        }
+        return arr.includes(evaluatedArgs[0]);
+        
+      case 'join':
+        // Join array elements into a string
+        const separator = evaluatedArgs[0] !== undefined ? evaluatedArgs[0] : ',';
+        return arr.join(separator);
+        
+      case 'reverse':
+        // Reverse the array in place
+        arr.reverse();
+        return arr;
+        
+      case 'sort':
+        // Sort the array in place
+        arr.sort();
+        return arr;
+        
+      default:
+        throw new Error(`Unknown array method: ${methodName}`);
+    }
+  }
+
+  /**
+   * Extract content between parentheses, handling nested parentheses
+   */
+  extractParenthesesContent(expr, startIdx) {
+    let depth = 0;
+    let content = '';
+    
+    for (let i = startIdx; i < expr.length; i++) {
+      const char = expr[i];
+      
+      if (char === '(') {
+        if (depth > 0) {
+          content += char;
+        }
+        depth++;
+      } else if (char === ')') {
+        depth--;
+        if (depth > 0) {
+          content += char;
+        } else if (depth === 0) {
+          return content;
+        }
+      } else if (depth > 0) {
+        content += char;
+      }
+    }
+    
+    throw new Error('Unmatched parentheses in expression');
+  }
+
+  /**
+   * Parse function call arguments, respecting nested parentheses and strings
+   */
+  parseArguments(argsStr) {
+    const args = [];
+    let current = '';
+    let depth = 0;
+    let inString = false;
+    let stringChar = null;
+    
+    for (let i = 0; i < argsStr.length; i++) {
+      const char = argsStr[i];
+      
+      if ((char === '"' || char === "'") && (i === 0 || argsStr[i-1] !== '\\')) {
+        if (!inString) {
+          inString = true;
+          stringChar = char;
+        } else if (char === stringChar) {
+          inString = false;
+          stringChar = null;
+        }
+        current += char;
+      } else if (char === '(' && !inString) {
+        depth++;
+        current += char;
+      } else if (char === ')' && !inString) {
+        depth--;
+        current += char;
+      } else if (char === ',' && depth === 0 && !inString) {
+        args.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    if (current.trim()) {
+      args.push(current.trim());
+    }
+    
+    return args;
   }
 
   /**
@@ -573,6 +1280,24 @@ class ThirstyInterpreter {
       }
     }
     return inString;
+  }
+
+  /**
+   * Check if a position is inside parentheses
+   */
+  isInParentheses(expr, pos) {
+    let depth = 0;
+    for (let i = 0; i < pos; i++) {
+      // Skip if in string
+      if (this.isInString(expr, i)) continue;
+      
+      if (expr[i] === '(') {
+        depth++;
+      } else if (expr[i] === ')') {
+        depth--;
+      }
+    }
+    return depth > 0;
   }
 
   /**
