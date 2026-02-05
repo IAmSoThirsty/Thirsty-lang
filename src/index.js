@@ -11,6 +11,7 @@ class ThirstyInterpreter {
   constructor(options = {}) {
     this.variables = {};
     this.functions = {}; // Store user-defined functions
+    this.arrays = {}; // Store arrays (reservoirs)
     this.callStack = []; // Track function calls for debugging
     this.MAX_LOOP_ITERATIONS = 10000; // Safety limit for loops
     this.MAX_CALL_DEPTH = 100; // Prevent stack overflow
@@ -103,6 +104,9 @@ class ThirstyInterpreter {
     else if (line.startsWith('drink ')) {
       this.handleDrink(line);
     }
+    else if (line.startsWith('reservoir ')) {
+      this.handleReservoir(line);
+    }
     // pour - Output statement
     else if (line.startsWith('pour ')) {
       this.handlePour(line);
@@ -112,6 +116,28 @@ class ThirstyInterpreter {
       this.handleSip(line);
     }
     else {
+      // Check if it's a method call (varname.method(...))
+      const methodCallMatch = line.match(/^(\w+)\.(\w+)\s*\(([^)]*)\)$/);
+      if (methodCallMatch) {
+        const varName = methodCallMatch[1];
+        const methodName = methodCallMatch[2];
+        const argsStr = methodCallMatch[3].trim();
+        
+        if (!this.variables.hasOwnProperty(varName)) {
+          throw new Error(`Unknown variable: ${varName}`);
+        }
+        
+        const obj = this.variables[varName];
+        
+        // Handle array methods
+        if (Array.isArray(obj)) {
+          this.handleArrayMethod(varName, obj, methodName, argsStr);
+          return;
+        }
+        
+        throw new Error(`Method '${methodName}' not supported for variable '${varName}'`);
+      }
+      
       // Check if it's a function call (function_name(...))
       const funcCallMatch = line.match(/^(\w+)\s*\(([^)]*)\)$/);
       if (funcCallMatch) {
@@ -287,8 +313,28 @@ class ThirstyInterpreter {
 
   /**
    * Handle variable declaration: drink varname = value
+   * Also handles array element assignment: drink arr[index] = value
    */
   handleDrink(line) {
+    // Check for array element assignment
+    const arrayMatch = line.match(/drink\s+(\w+)\[(.+)\]\s*=\s*(.+)/);
+    if (arrayMatch) {
+      const varName = arrayMatch[1];
+      const indexExpr = arrayMatch[2];
+      const valueExpr = arrayMatch[3];
+      
+      const index = this.evaluateExpression(indexExpr);
+      const value = this.evaluateExpression(valueExpr);
+      
+      if (!this.variables.hasOwnProperty(varName) || !Array.isArray(this.variables[varName])) {
+        throw new Error(`Variable '${varName}' is not an array`);
+      }
+      
+      this.variables[varName][index] = value;
+      return;
+    }
+    
+    // Regular variable assignment
     const match = line.match(/drink\s+(\w+)\s*=\s*(.+)/);
     if (!match) {
       throw new Error(`Invalid drink statement: ${line}`);
@@ -304,6 +350,26 @@ class ThirstyInterpreter {
     
     const value = this.evaluateExpression(match[2]);
     this.variables[varName] = value;
+  }
+
+  /**
+   * Handle reservoir (array) declaration: reservoir name = [elements]
+   */
+  handleReservoir(line) {
+    const match = line.match(/reservoir\s+(\w+)\s*=\s*\[([^\]]*)\]/);
+    if (!match) {
+      throw new Error(`Invalid reservoir statement: ${line}`);
+    }
+    
+    const varName = match[1];
+    const elementsStr = match[2].trim();
+    
+    // Parse array elements
+    const elements = elementsStr ? this.parseArguments(elementsStr) : [];
+    const evaluatedElements = elements.map(elem => this.evaluateExpression(elem));
+    
+    // Store as a regular variable with array value
+    this.variables[varName] = evaluatedElements;
   }
 
   /**
@@ -664,12 +730,155 @@ class ThirstyInterpreter {
       return this.callFunction(funcName, evaluatedArgs);
     }
     
+    // Array access - varname[index]
+    const arrayAccessMatch = expr.match(/^(\w+)\[(.+)\]$/);
+    if (arrayAccessMatch) {
+      const varName = arrayAccessMatch[1];
+      const indexExpr = arrayAccessMatch[2];
+      
+      if (!this.variables.hasOwnProperty(varName)) {
+        throw new Error(`Unknown variable: ${varName}`);
+      }
+      
+      const arr = this.variables[varName];
+      if (!Array.isArray(arr)) {
+        throw new Error(`Variable '${varName}' is not an array`);
+      }
+      
+      const index = this.evaluateExpression(indexExpr);
+      
+      if (index < 0 || index >= arr.length) {
+        throw new Error(`Array index out of bounds: ${index} (length: ${arr.length})`);
+      }
+      
+      return arr[index];
+    }
+    
+    // Array/string method calls - varname.method(args)
+    const methodMatch = expr.match(/^(\w+)\.(\w+)\s*\(([^)]*)\)$/);
+    if (methodMatch) {
+      const varName = methodMatch[1];
+      const methodName = methodMatch[2];
+      const argsStr = methodMatch[3].trim();
+      
+      if (!this.variables.hasOwnProperty(varName)) {
+        throw new Error(`Unknown variable: ${varName}`);
+      }
+      
+      const obj = this.variables[varName];
+      
+      // Handle array methods
+      if (Array.isArray(obj)) {
+        return this.handleArrayMethod(varName, obj, methodName, argsStr);
+      }
+      
+      throw new Error(`Method '${methodName}' not supported for variable '${varName}'`);
+    }
+    
+    // Array/string property access - varname.property
+    const propertyMatch = expr.match(/^(\w+)\.(\w+)$/);
+    if (propertyMatch) {
+      const varName = propertyMatch[1];
+      const propName = propertyMatch[2];
+      
+      if (!this.variables.hasOwnProperty(varName)) {
+        throw new Error(`Unknown variable: ${varName}`);
+      }
+      
+      const obj = this.variables[varName];
+      
+      // Handle length property for arrays and strings
+      if (propName === 'length') {
+        if (Array.isArray(obj) || typeof obj === 'string') {
+          return obj.length;
+        }
+      }
+      
+      throw new Error(`Property '${propName}' not supported for variable '${varName}'`);
+    }
+    
     // Variable reference
     if (this.variables.hasOwnProperty(expr)) {
       return this.variables[expr];
     }
     
     throw new Error(`Unknown expression: ${expr}`);
+  }
+
+  /**
+   * Handle array method calls (push, pop, etc.)
+   */
+  handleArrayMethod(varName, arr, methodName, argsStr) {
+    const args = argsStr ? this.parseArguments(argsStr) : [];
+    const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+    
+    switch (methodName) {
+      case 'push':
+        // Add elements to the end of the array
+        for (const arg of evaluatedArgs) {
+          arr.push(arg);
+        }
+        return arr.length;
+        
+      case 'pop':
+        // Remove and return the last element
+        if (arr.length === 0) {
+          throw new Error(`Cannot pop from empty array '${varName}'`);
+        }
+        return arr.pop();
+        
+      case 'shift':
+        // Remove and return the first element
+        if (arr.length === 0) {
+          throw new Error(`Cannot shift from empty array '${varName}'`);
+        }
+        return arr.shift();
+        
+      case 'unshift':
+        // Add elements to the beginning of the array
+        for (const arg of evaluatedArgs) {
+          arr.unshift(arg);
+        }
+        return arr.length;
+        
+      case 'slice':
+        // Return a shallow copy of a portion of the array
+        const start = evaluatedArgs[0] || 0;
+        const end = evaluatedArgs[1];
+        return arr.slice(start, end);
+        
+      case 'indexOf':
+        // Find the index of an element
+        if (evaluatedArgs.length === 0) {
+          throw new Error(`indexOf requires at least one argument`);
+        }
+        return arr.indexOf(evaluatedArgs[0]);
+        
+      case 'includes':
+        // Check if array contains an element
+        if (evaluatedArgs.length === 0) {
+          throw new Error(`includes requires at least one argument`);
+        }
+        return arr.includes(evaluatedArgs[0]);
+        
+      case 'join':
+        // Join array elements into a string
+        const separator = evaluatedArgs[0] !== undefined ? evaluatedArgs[0] : ',';
+        return arr.join(separator);
+        
+      case 'reverse':
+        // Reverse the array in place
+        arr.reverse();
+        return arr;
+        
+      case 'sort':
+        // Sort the array in place
+        arr.sort();
+        return arr;
+        
+      default:
+        throw new Error(`Unknown array method: ${methodName}`);
+    }
   }
 
   /**
