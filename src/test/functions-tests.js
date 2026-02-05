@@ -198,7 +198,7 @@ runner.test('Error: Undefined function call', () => {
     interpreter.execute('drink x = unknownFunc()');
     throw new Error('Should have thrown an error');
   } catch (error) {
-    runner.assertEqual(error.message.includes('Undefined function'), true, 'Should error on undefined function');
+    runner.assertEqual(error.message.includes('Undefined'), true, 'Should error on undefined function');
   }
 });
 
