@@ -28,6 +28,42 @@ class ThirstyInterpreter {
     this.shieldContext = null;
     this.armoredVariables = new Set();
     this.sanitizedVariables = new Set();
+    
+    // Initialize standard library
+    this.initializeStandardLibrary();
+  }
+  
+  /**
+   * Initialize the standard library with built-in functions
+   */
+  initializeStandardLibrary() {
+    // Math utilities
+    this.variables.Math = {
+      __builtin: true,
+      PI: 3.14159265359,
+      E: 2.71828182846,
+      abs: (x) => Math.abs(x),
+      sqrt: (x) => Math.sqrt(x),
+      pow: (x, y) => Math.pow(x, y),
+      floor: (x) => Math.floor(x),
+      ceil: (x) => Math.ceil(x),
+      round: (x) => Math.round(x),
+      min: (...args) => Math.min(...args),
+      max: (...args) => Math.max(...args),
+      random: () => Math.random()
+    };
+    
+    // String utilities
+    this.variables.String = {
+      __builtin: true,
+      toUpperCase: (str) => String(str).toUpperCase(),
+      toLowerCase: (str) => String(str).toLowerCase(),
+      trim: (str) => String(str).trim(),
+      split: (str, separator) => String(str).split(separator),
+      replace: (str, search, replacement) => String(str).replace(search, replacement),
+      charAt: (str, index) => String(str).charAt(index),
+      substring: (str, start, end) => String(str).substring(start, end)
+    };
   }
 
   /**
@@ -881,6 +917,7 @@ class ThirstyInterpreter {
     // Only split if there's a + or - NOT inside a higher precedence operation
     for (let i = expr.length - 1; i >= 0; i--) {
       if (this.isInString(expr, i)) continue;
+      if (this.isInParentheses(expr, i)) continue;
       
       if (expr[i] === '+') {
         const left = expr.substring(0, i).trim();
@@ -910,6 +947,7 @@ class ThirstyInterpreter {
     // Handle multiplication and division (higher precedence)
     for (let i = expr.length - 1; i >= 0; i--) {
       if (this.isInString(expr, i)) continue;
+      if (this.isInParentheses(expr, i)) continue;
       
       if (expr[i] === '*') {
         const left = expr.substring(0, i).trim();
@@ -1017,6 +1055,16 @@ class ThirstyInterpreter {
         const args = argsStr ? this.parseArguments(argsStr) : [];
         const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
         return this.callInstanceMethod(obj, methodName, evaluatedArgs);
+      }
+      
+      // Handle built-in library methods (Math, String, etc.)
+      if (obj && typeof obj === 'object' && obj.__builtin) {
+        const args = argsStr ? this.parseArguments(argsStr) : [];
+        const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+        if (typeof obj[methodName] === 'function') {
+          return obj[methodName](...evaluatedArgs);
+        }
+        throw new Error(`Built-in method '${methodName}' not found in '${varName}'`);
       }
       
       throw new Error(`Method '${methodName}' not supported for variable '${varName}'`);
@@ -1232,6 +1280,24 @@ class ThirstyInterpreter {
       }
     }
     return inString;
+  }
+
+  /**
+   * Check if a position is inside parentheses
+   */
+  isInParentheses(expr, pos) {
+    let depth = 0;
+    for (let i = 0; i < pos; i++) {
+      // Skip if in string
+      if (this.isInString(expr, i)) continue;
+      
+      if (expr[i] === '(') {
+        depth++;
+      } else if (expr[i] === ')') {
+        depth--;
+      }
+    }
+    return depth > 0;
   }
 
   /**
