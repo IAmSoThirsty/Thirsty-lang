@@ -35,7 +35,10 @@
     "transpile": "node src/transpiler.js",
     "build": "echo 'Build complete - All tools ready!'",
     "playground": "echo 'Open playground/index.html in your browser'",
-    "install-cli": "npm link"
+    "install-cli": "npm link",
+    "prepublishOnly": "npm test",
+    "version": "npm test && git add -A",
+    "postversion": "git push && git push --tags"
   },
   "keywords": [
     "programming-language",
@@ -67,5 +70,39 @@
   "bugs": {
     "url": "https://github.com/IAmSoThirsty/Thirsty-lang/issues"
   },
-  "homepage": "https://github.com/IAmSoThirsty/Thirsty-lang#readme"
+  "homepage": "https://github.com/IAmSoThirsty/Thirsty-lang#readme",
+  "files": [
+    "src/",
+    "examples/",
+    "docs/",
+    "playground/",
+    "vscode-extension/",
+    "tarl/",
+    "tools/",
+    "Dockerfile",
+    "requirements.txt",
+    "requirements-dev.txt",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "DOCUMENTATION.md",
+    "TUTORIAL.md",
+    "QUICKSTART.md",
+    "CONTRIBUTING.md",
+    "AUTHORS.txt",
+    "DEPENDENCIES.txt",
+    "VERSION.txt",
+    "DOCKER.md",
+    "PYTHON_SETUP.md",
+    "OPERATIONS.md",
+    "SECURITY_API.md",
+    "TARL_INTEGRATION.md",
+    "TEST_DOCUMENTATION.md",
+    "RELEASE_GUIDE.md",
+    "PRODUCTION_READY.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
 }
