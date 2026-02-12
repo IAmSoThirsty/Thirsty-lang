@@ -8,24 +8,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const commands = {
-  run: require('./cli'),
-  repl: require('./repl'),
-  test: require('./test/runner'),
-  debug: require('./debugger'),
-  format: require('./formatter'),
-  lint: require('./linter'),
-  profile: require('./profiler'),
-  doc: require('./doc-generator'),
-  ast: require('./ast'),
-  transpile: require('./transpiler'),
-  train: require('./training'),
-  pkg: require('./package-manager')
-};
+// Don't load command modules at top level to avoid auto-execution
+// They will be lazy-loaded when needed
 
 function showHelp() {
+  const pkg = require('../package.json');
   console.log('╔════════════════════════════════════════════════════════════╗');
-  console.log('║              💧 Thirsty-lang CLI v1.0.0 💧                ║');
+  console.log(`║              💧 Thirsty-lang CLI v${pkg.version} 💧                ║`);
   console.log('╚════════════════════════════════════════════════════════════╝');
   console.log('\nUsage: thirsty <command> [options]\n');
   console.log('Commands:\n');
@@ -184,7 +173,12 @@ async function main() {
         console.error('Usage: thirsty run <file>');
         process.exit(1);
       }
-      require('./cli');
+      // Remove 'run' from argv so cli.js gets the correct arguments
+      process.argv.splice(2, 1);
+      const runMain = require('./cli');
+      if (typeof runMain === 'function') {
+        runMain();
+      }
       break;
 
     case 'repl':
@@ -204,34 +198,50 @@ async function main() {
       break;
 
     case 'debug':
+      // Pass through to debugger module which has its own CLI
+      process.argv.splice(2, 1); // Remove 'debug' command
       require('./debugger');
       break;
 
     case 'format':
+      // Pass through to formatter module which has its own CLI
+      process.argv.splice(2, 1); // Remove 'format' command
       require('./formatter');
       break;
 
     case 'lint':
+      // Pass through to linter module which has its own CLI
+      process.argv.splice(2, 1); // Remove 'lint' command
       require('./linter');
       break;
 
     case 'profile':
+      // Pass through to profiler module which has its own CLI
+      process.argv.splice(2, 1); // Remove 'profile' command
       require('./profiler');
       break;
 
     case 'doc':
+      // Pass through to doc-generator module which has its own CLI
+      process.argv.splice(2, 1); // Remove 'doc' command
       require('./doc-generator');
       break;
 
     case 'ast':
+      // Pass through to ast module which has its own CLI
+      process.argv.splice(2, 1); // Remove 'ast' command
       require('./ast');
       break;
 
     case 'transpile':
+      // Pass through to transpiler module which has its own CLI
+      process.argv.splice(2, 1); // Remove 'transpile' command
       require('./transpiler');
       break;
 
     case 'pkg':
+      // Pass through to package-manager module which has its own CLI
+      process.argv.splice(2, 1); // Remove 'pkg' command
       require('./package-manager');
       break;
 
