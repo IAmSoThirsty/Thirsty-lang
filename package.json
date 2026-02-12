@@ -98,7 +98,8 @@
     "SECURITY_API.md",
     "TARL_INTEGRATION.md",
     "TEST_DOCUMENTATION.md",
-    "RELEASE_GUIDE.md"
+    "RELEASE_GUIDE.md",
+    "PRODUCTION_READY.md"
   ],
   "publishConfig": {
     "access": "public",
