@@ -162,7 +162,63 @@ class ThirstyDebugger extends ThirstyInterpreter {
       case 'v':
         console.log('\nVariables:');
         for (const [name, value] of Object.entries(this.variables)) {
-          console.log(`  ${name} = ${JSON.stringify(value)}`);
+          if (!value || !value.__builtin) {
+            console.log(`  ${name} = ${JSON.stringify(value)}`);
+          }
+        }
+        return false;
+
+      case 'print':
+      case 'p':
+        if (args.length > 0) {
+          const varName = args[0];
+          if (this.variables.hasOwnProperty(varName)) {
+            console.log(`${varName} = ${JSON.stringify(this.variables[varName], null, 2)}`);
+          } else {
+            console.log(`Variable '${varName}' not found`);
+          }
+        } else {
+          console.log('Usage: print <variable_name>');
+        }
+        return false;
+
+      case 'eval':
+      case 'e':
+        if (args.length > 0) {
+          try {
+            const expr = args.join(' ');
+            const result = this.evaluateExpression(expr);
+            console.log(`Result: ${JSON.stringify(result)}`);
+          } catch (error) {
+            console.log(`Error evaluating expression: ${error.message}`);
+          }
+        } else {
+          console.log('Usage: eval <expression>');
+        }
+        return false;
+
+      case 'stack':
+        if (this.callStack.length === 0) {
+          console.log('Call stack is empty');
+        } else {
+          console.log('\nCall Stack:');
+          for (let i = this.callStack.length - 1; i >= 0; i--) {
+            const frame = this.callStack[i];
+            console.log(`  ${i}: ${frame.function} (line ${frame.line})`);
+          }
+        }
+        return false;
+
+      case 'list':
+      case 'l':
+        const start = Math.max(0, this.currentLine - 5);
+        const end = Math.min(this.lines.length, this.currentLine + 5);
+        console.log('\nCode listing:');
+        for (let i = start; i < end; i++) {
+          const line = this.lines[i];
+          const marker = line.number === this.currentLine ? '→' : ' ';
+          const bp = this.breakpoints.has(line.number) ? '🔴' : '  ';
+          console.log(`${bp} ${marker} ${line.number}: ${line.code}`);
         }
         return false;
 
@@ -200,7 +256,11 @@ class ThirstyDebugger extends ThirstyInterpreter {
     console.log('  clear <line>         Clear breakpoint');
     console.log('  watch <var>, w       Watch variable');
     console.log('  unwatch <var>        Stop watching variable');
+    console.log('  print <var>, p       Print variable value');
+    console.log('  eval <expr>, e       Evaluate expression');
     console.log('  vars, v              Show all variables');
+    console.log('  stack                Show call stack');
+    console.log('  list, l              Show code listing');
     console.log('  breakpoints          List breakpoints');
     console.log('  quit, q              Exit debugger');
   }
