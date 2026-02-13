@@ -3,6 +3,7 @@
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const ThirstyInterpreter = require('../index');
 
@@ -53,7 +54,7 @@ const runner = new TestRunner();
 
 // File I/O Tests
 runner.test('File.write creates a file', () => {
-  const testFile = '/tmp/thirsty-test-write.txt';
+  const testFile = path.join(os.tmpdir(), 'thirsty-test-write.txt');
   const interpreter = new ThirstyInterpreter();
   
   // Clean up before test
@@ -70,7 +71,7 @@ runner.test('File.write creates a file', () => {
 });
 
 runner.test('File.read reads file content', () => {
-  const testFile = '/tmp/thirsty-test-read.txt';
+  const testFile = path.join(os.tmpdir(), 'thirsty-test-read.txt');
   fs.writeFileSync(testFile, 'Hello Thirsty!', 'utf8');
   
   const interpreter = new ThirstyInterpreter();
@@ -83,7 +84,7 @@ runner.test('File.read reads file content', () => {
 });
 
 runner.test('File.exists checks file existence', () => {
-  const testFile = '/tmp/thirsty-test-exists.txt';
+  const testFile = path.join(os.tmpdir(), 'thirsty-test-exists.txt');
   fs.writeFileSync(testFile, 'test', 'utf8');
   
   const interpreter = new ThirstyInterpreter();
@@ -96,7 +97,7 @@ runner.test('File.exists checks file existence', () => {
 });
 
 runner.test('File.delete removes a file', () => {
-  const testFile = '/tmp/thirsty-test-delete.txt';
+  const testFile = path.join(os.tmpdir(), 'thirsty-test-delete.txt');
   fs.writeFileSync(testFile, 'test', 'utf8');
   
   const interpreter = new ThirstyInterpreter();
@@ -108,8 +109,8 @@ runner.test('File.delete removes a file', () => {
 
 // Module System Tests
 runner.test('Export and import functions', () => {
-  const moduleFile = '/tmp/thirsty-module.thirsty';
-  const mainFile = '/tmp/thirsty-main.thirsty';
+  const moduleFile = path.join(os.tmpdir(), 'thirsty-module.thirsty');
+  const mainFile = path.join(os.tmpdir(), 'thirsty-main.thirsty');
   
   // Create module
   fs.writeFileSync(moduleFile, `
@@ -136,8 +137,8 @@ drink result = add(5, 3)
 });
 
 runner.test('Export and import variables', () => {
-  const moduleFile = '/tmp/thirsty-module-var.thirsty';
-  const mainFile = '/tmp/thirsty-main-var.thirsty';
+  const moduleFile = path.join(os.tmpdir(), 'thirsty-module-var.thirsty');
+  const mainFile = path.join(os.tmpdir(), 'thirsty-main-var.thirsty');
   
   // Create module
   fs.writeFileSync(moduleFile, `
@@ -167,8 +168,8 @@ drink circumference = 2 * PI * 5
 });
 
 runner.test('Module caching works', () => {
-  const moduleFile = '/tmp/thirsty-cache-module.thirsty';
-  const mainFile = '/tmp/thirsty-cache-main.thirsty';
+  const moduleFile = path.join(os.tmpdir(), 'thirsty-cache-module.thirsty');
+  const mainFile = path.join(os.tmpdir(), 'thirsty-cache-main.thirsty');
   
   // Create module with a counter
   fs.writeFileSync(moduleFile, `

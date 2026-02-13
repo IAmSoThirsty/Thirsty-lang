@@ -1,27 +1,14 @@
 // string-utils.thirsty - A reusable module with string utilities
 
-glass reverse(str) {
-  drink result = ""
-  drink chars = String.split(str, "")
-  drink len = 0
-  
-  // Count characters
-  refill len < 100 {
-    thirsty len >= 0 {
-      drink len = len + 1
-    }
-    thirsty len >= 10 {
-      drink len = 100
-    }
-  }
-  
-  return str
-}
-
 glass capitalize(str) {
   return String.toUpperCase(str)
 }
 
+glass trimAndCapitalize(str) {
+  drink trimmed = String.trim(str)
+  return String.toUpperCase(trimmed)
+}
+
 // Export functions
-export reverse
 export capitalize
+export trimAndCapitalize
