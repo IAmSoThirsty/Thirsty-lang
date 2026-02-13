@@ -202,6 +202,132 @@ pour temperature
 pour liters
 ```
 
+## Modules and Imports
+
+Thirsty-lang supports modular code organization through the `import` and `export` keywords.
+
+### Exporting
+
+The `export` keyword makes functions and variables available to other modules:
+
+```thirsty
+glass add(a, b) {
+  return a + b
+}
+
+drink PI = 3.14159
+
+export add
+export PI
+```
+
+### Importing
+
+The `import` keyword loads functions and variables from other modules:
+
+```thirsty
+// Import specific items
+import { add, PI } from "math-utils.thirsty"
+
+// Import entire module
+import MathUtils from "math-utils.thirsty"
+```
+
+Modules are cached after first load to avoid redundant execution.
+
+## Async/Await Support
+
+Thirsty-lang supports asynchronous programming with the `cascade` and `await` keywords.
+
+### Cascade (Async Functions)
+
+The `cascade` keyword declares an asynchronous function:
+
+```thirsty
+cascade fetchData(url) {
+  drink response = await Http.get(url)
+  return response.body
+}
+```
+
+### Await
+
+The `await` keyword pauses execution until a promise resolves:
+
+```thirsty
+cascade processFile() {
+  drink content = await File.readAsync("data.txt")
+  pour content
+}
+```
+
+## Built-in Libraries
+
+### File I/O (File)
+
+The `File` built-in provides file system operations:
+
+- `File.read(path)` - Read file contents synchronously
+- `File.write(path, content)` - Write to file synchronously
+- `File.exists(path)` - Check if file exists
+- `File.delete(path)` - Delete a file
+- `File.readAsync(path)` - Read file asynchronously (returns promise)
+- `File.writeAsync(path, content)` - Write file asynchronously (returns promise)
+
+Example:
+```thirsty
+drink content = File.read("data.txt")
+drink success = File.write("output.txt", "Hello!")
+drink exists = File.exists("data.txt")
+```
+
+### Network Utilities (Http)
+
+The `Http` built-in provides HTTP request capabilities:
+
+- `Http.get(url)` - Perform GET request (returns promise)
+- `Http.post(url, data)` - Perform POST request (returns promise)
+- `Http.fetch(url, options)` - Generic HTTP request (returns promise)
+
+All HTTP functions return a promise that resolves to:
+```thirsty
+{
+  status: 200,
+  headers: {...},
+  body: "response body"
+}
+```
+
+Example:
+```thirsty
+cascade getData() {
+  drink response = await Http.get("https://api.example.com/data")
+  pour "Status: " + response.status
+  return response.body
+}
+```
+
+## Enhanced Debugging
+
+The debugger (`node src/debugger.js file.thirsty`) includes:
+
+- **Breakpoints**: Set/clear breakpoints at specific lines
+- **Step execution**: Step through code line by line
+- **Variable watching**: Monitor variable changes
+- **Expression evaluation**: Evaluate expressions at runtime
+- **Call stack**: View function call hierarchy
+- **Code listing**: View code with context
+
+Commands:
+- `break <line>`, `b` - Set breakpoint
+- `continue`, `c` - Continue execution
+- `step`, `s` - Step into
+- `next`, `n` - Step over
+- `print <var>`, `p` - Print variable
+- `eval <expr>`, `e` - Evaluate expression
+- `stack` - Show call stack
+- `list`, `l` - Show code listing
+
 ## Grammar (BNF)
 
 ```

@@ -1,0 +1,14 @@
+// string-utils.thirsty - A reusable module with string utilities
+
+glass capitalize(str) {
+  return String.toUpperCase(str)
+}
+
+glass trimAndCapitalize(str) {
+  drink trimmed = String.trim(str)
+  return String.toUpperCase(trimmed)
+}
+
+// Export functions
+export capitalize
+export trimAndCapitalize

@@ -6,6 +6,10 @@
  */
 
 const { SecurityManager } = require('./security/index');
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+const http = require('http');
 
 class ThirstyInterpreter {
   constructor(options = {}) {
@@ -16,6 +20,15 @@ class ThirstyInterpreter {
     this.callStack = []; // Track function calls for debugging
     this.MAX_LOOP_ITERATIONS = 10000; // Safety limit for loops
     this.MAX_CALL_DEPTH = 100; // Prevent stack overflow
+    
+    // Module system
+    this.modules = {}; // Cache for loaded modules
+    this.exports = {}; // Exports from current module
+    this.currentFile = options.currentFile || null; // Current file being executed
+    
+    // Async/await support
+    this.asyncFunctions = new Set(); // Track async functions
+    this.pendingPromises = []; // Track pending promises
     
     // Security features
     this.securityEnabled = options.security !== false;
@@ -64,6 +77,123 @@ class ThirstyInterpreter {
       charAt: (str, index) => String(str).charAt(index),
       substring: (str, start, end) => String(str).substring(start, end)
     };
+    
+    // File I/O utilities
+    this.variables.File = {
+      __builtin: true,
+      read: (filePath) => {
+        try {
+          return fs.readFileSync(filePath, 'utf8');
+        } catch (err) {
+          throw new Error(`Failed to read file: ${err.message}`);
+        }
+      },
+      write: (filePath, content) => {
+        try {
+          fs.writeFileSync(filePath, String(content), 'utf8');
+          return true;
+        } catch (err) {
+          throw new Error(`Failed to write file: ${err.message}`);
+        }
+      },
+      exists: (filePath) => {
+        return fs.existsSync(filePath);
+      },
+      delete: (filePath) => {
+        try {
+          fs.unlinkSync(filePath);
+          return true;
+        } catch (err) {
+          throw new Error(`Failed to delete file: ${err.message}`);
+        }
+      },
+      readAsync: async (filePath) => {
+        return new Promise((resolve, reject) => {
+          fs.readFile(filePath, 'utf8', (err, data) => {
+            if (err) reject(new Error(`Failed to read file: ${err.message}`));
+            else resolve(data);
+          });
+        });
+      },
+      writeAsync: async (filePath, content) => {
+        return new Promise((resolve, reject) => {
+          fs.writeFile(filePath, String(content), 'utf8', (err) => {
+            if (err) reject(new Error(`Failed to write file: ${err.message}`));
+            else resolve(true);
+          });
+        });
+      }
+    };
+    
+    // Network utilities (HTTP requests)
+    this.variables.Http = {
+      __builtin: true,
+      get: (url) => {
+        return new Promise((resolve, reject) => {
+          const urlObj = new URL(url);
+          const protocol = urlObj.protocol === 'https:' ? https : http;
+          
+          protocol.get(url, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+              resolve({
+                status: res.statusCode,
+                headers: res.headers,
+                body: data
+              });
+            });
+          }).on('error', (err) => {
+            reject(new Error(`HTTP GET failed: ${err.message}`));
+          });
+        });
+      },
+      post: (url, postData) => {
+        return new Promise((resolve, reject) => {
+          const urlObj = new URL(url);
+          const protocol = urlObj.protocol === 'https:' ? https : http;
+          const data = typeof postData === 'string' ? postData : JSON.stringify(postData);
+          
+          const options = {
+            hostname: urlObj.hostname,
+            port: urlObj.port,
+            path: urlObj.pathname + urlObj.search,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(data)
+            }
+          };
+          
+          const req = protocol.request(options, (res) => {
+            let responseData = '';
+            res.on('data', (chunk) => { responseData += chunk; });
+            res.on('end', () => {
+              resolve({
+                status: res.statusCode,
+                headers: res.headers,
+                body: responseData
+              });
+            });
+          });
+          
+          req.on('error', (err) => {
+            reject(new Error(`HTTP POST failed: ${err.message}`));
+          });
+          
+          req.write(data);
+          req.end();
+        });
+      },
+      fetch: async (url, options = {}) => {
+        const method = (options.method || 'GET').toUpperCase();
+        if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+          return this.variables.Http.post(url, options.body || '');
+        } else {
+          return this.variables.Http.get(url);
+        }
+      }
+    };
   }
 
   /**
@@ -88,6 +218,23 @@ class ThirstyInterpreter {
       // Skip empty lines and comments
       if (!line || line.startsWith('//')) {
         i++;
+        continue;
+      }
+      
+      // Handle module imports/exports
+      if (line.startsWith('import ')) {
+        this.handleImport(line);
+        i++;
+        continue;
+      } else if (line.startsWith('export ')) {
+        this.handleExport(line);
+        i++;
+        continue;
+      }
+      
+      // Handle async function declarations (cascade keyword)
+      if (line.startsWith('cascade ')) {
+        i = this.handleCascade(lines, i);
         continue;
       }
       
@@ -603,6 +750,144 @@ class ThirstyInterpreter {
   }
 
   /**
+   * Handle import statement
+   * Syntax: import ModuleName from "path/to/module.thirsty"
+   *        import { func1, func2 } from "path/to/module.thirsty"
+   */
+  handleImport(line) {
+    // Pattern 1: import ModuleName from "path"
+    let match = line.match(/import\s+(\w+)\s+from\s+["']([^"']+)["']/);
+    if (match) {
+      const moduleName = match[1];
+      const modulePath = match[2];
+      const exports = this.loadModule(modulePath);
+      this.variables[moduleName] = exports;
+      return;
+    }
+    
+    // Pattern 2: import { name1, name2 } from "path"
+    match = line.match(/import\s+{([^}]+)}\s+from\s+["']([^"']+)["']/);
+    if (match) {
+      const names = match[1].split(',').map(n => n.trim());
+      const modulePath = match[2];
+      const exports = this.loadModule(modulePath);
+      
+      names.forEach(name => {
+        if (exports.hasOwnProperty(name)) {
+          const exported = exports[name];
+          // If it's a function definition, add to functions dictionary
+          if (exported && typeof exported === 'object' && exported.params && exported.body) {
+            this.functions[name] = exported;
+          } else {
+            // Otherwise add to variables
+            this.variables[name] = exported;
+          }
+        } else {
+          throw new Error(`Module does not export '${name}'`);
+        }
+      });
+      return;
+    }
+    
+    throw new Error(`Invalid import statement: ${line}`);
+  }
+
+  /**
+   * Handle export statement
+   * Syntax: export varname
+   *        export glass funcname() { ... }
+   */
+  handleExport(line) {
+    // Pattern: export varname
+    const match = line.match(/export\s+(\w+)/);
+    if (match) {
+      const varName = match[1];
+      if (this.variables.hasOwnProperty(varName)) {
+        this.exports[varName] = this.variables[varName];
+      } else if (this.functions.hasOwnProperty(varName)) {
+        this.exports[varName] = this.functions[varName];
+      } else {
+        throw new Error(`Cannot export undefined identifier: ${varName}`);
+      }
+      return;
+    }
+    
+    throw new Error(`Invalid export statement: ${line}`);
+  }
+
+  /**
+   * Load a module from file
+   */
+  loadModule(modulePath) {
+    // Resolve relative paths
+    let absolutePath = modulePath;
+    if (this.currentFile && !path.isAbsolute(modulePath)) {
+      absolutePath = path.resolve(path.dirname(this.currentFile), modulePath);
+    }
+    
+    // Check cache
+    if (this.modules[absolutePath]) {
+      return this.modules[absolutePath];
+    }
+    
+    // Load and execute module
+    if (!fs.existsSync(absolutePath)) {
+      throw new Error(`Module not found: ${absolutePath}`);
+    }
+    
+    const code = fs.readFileSync(absolutePath, 'utf8');
+    
+    // Create new interpreter instance for module
+    const moduleInterpreter = new ThirstyInterpreter({
+      currentFile: absolutePath,
+      security: this.securityEnabled,
+      securityMode: this.securityManager.mode
+    });
+    
+    // Execute module code
+    moduleInterpreter.execute(code);
+    
+    // Cache and return exports
+    this.modules[absolutePath] = moduleInterpreter.exports;
+    return moduleInterpreter.exports;
+  }
+
+  /**
+   * Handle cascade (async function) statement
+   * Syntax: cascade funcname(params) { ... }
+   */
+  handleCascade(lines, startIndex) {
+    const line = lines[startIndex].trim();
+    const match = line.match(/cascade\s+(\w+)\s*\(([^)]*)\)\s*{/);
+    
+    if (!match) {
+      throw new Error(`Invalid cascade (async function) statement: ${line}`);
+    }
+    
+    const funcName = match[1];
+    const params = match[2].split(',').map(p => p.trim()).filter(p => p);
+    
+    // Find the matching closing brace
+    const blockEnd = this.findMatchingBrace(lines, startIndex);
+    
+    if (blockEnd === -1) {
+      throw new Error(`Unmatched opening brace for cascade statement at line ${startIndex + 1}`);
+    }
+    
+    // Store the async function definition
+    this.functions[funcName] = {
+      params: params,
+      body: lines.slice(startIndex + 1, blockEnd),
+      line: startIndex,
+      async: true  // Mark as async
+    };
+    
+    this.asyncFunctions.add(funcName);
+    
+    return blockEnd + 1;
+  }
+
+  /**
    * Instantiate a class (new ClassName())
    */
   instantiateClass(className, args) {
@@ -709,6 +994,11 @@ class ThirstyInterpreter {
       throw new Error(`Function ${funcName} expects ${func.params.length} arguments, got ${args.length}`);
     }
     
+    // If async function, return a promise
+    if (func.async) {
+      return this.callAsyncFunction(funcName, args);
+    }
+    
     // Save current variable scope
     const savedVariables = { ...this.variables };
     
@@ -743,6 +1033,163 @@ class ThirstyInterpreter {
       // Re-throw other errors
       throw e;
     }
+  }
+
+  /**
+   * Call an async function (cascade)
+   */
+  async callAsyncFunction(funcName, args) {
+    const func = this.functions[funcName];
+    
+    // Save current variable scope
+    const savedVariables = { ...this.variables };
+    
+    // Create new scope with function parameters
+    const funcScope = { ...this.variables };
+    for (let i = 0; i < func.params.length; i++) {
+      funcScope[func.params[i]] = args[i];
+    }
+    this.variables = funcScope;
+    
+    // Track call stack
+    this.callStack.push({ function: funcName, line: func.line });
+    
+    try {
+      // Execute function body asynchronously
+      await this.executeBlockAsync(func.body, 0);
+      
+      // Pop call stack
+      this.callStack.pop();
+      
+      // Restore variable scope
+      this.variables = savedVariables;
+      
+      return undefined;
+    } catch (e) {
+      // Handle return statement
+      if (e.type === 'return') {
+        this.callStack.pop();
+        this.variables = savedVariables;
+        return e.value;
+      }
+      // Re-throw other errors
+      throw e;
+    }
+  }
+
+  /**
+   * Execute a block of code asynchronously
+   */
+  async executeBlockAsync(lines, startIndex) {
+    let i = startIndex;
+    
+    while (i < lines.length) {
+      const line = lines[i].trim();
+      
+      // Skip empty lines and comments
+      if (!line || line.startsWith('//')) {
+        i++;
+        continue;
+      }
+      
+      // Handle await keyword
+      if (line.startsWith('await ')) {
+        const expr = line.substring(6).trim();
+        const result = await this.evaluateExpressionAsync(expr);
+        i++;
+        continue;
+      }
+      
+      // Handle variable assignment with await
+      if (line.startsWith('drink ') && line.includes('await ')) {
+        const match = line.match(/drink\s+(\w+)\s*=\s*await\s+(.+)/);
+        if (match) {
+          const varName = match[1];
+          const expr = match[2];
+          const value = await this.evaluateExpressionAsync(expr);
+          this.variables[varName] = value;
+          i++;
+          continue;
+        }
+      }
+      
+      // For other statements, execute normally
+      if (line.startsWith('thirsty ')) {
+        i = this.handleThirsty(lines, i);
+      } else if (line.startsWith('refill ')) {
+        i = this.handleRefill(lines, i);
+      } else if (line.startsWith('return ')) {
+        const value = await this.evaluateExpressionAsync(line.substring(7).trim());
+        throw { type: 'return', value: value };
+      } else if (line === 'return') {
+        throw { type: 'return', value: undefined };
+      } else if (line === '}') {
+        return i + 1;
+      } else {
+        this.executeLine(line);
+        i++;
+      }
+    }
+    
+    return i;
+  }
+
+  /**
+   * Evaluate an expression asynchronously (for await)
+   */
+  async evaluateExpressionAsync(expr) {
+    expr = expr.trim();
+    
+    // Check if it's a function call
+    const funcCallMatch = expr.match(/^(\w+)\s*\(([^)]*)\)$/);
+    if (funcCallMatch) {
+      const funcName = funcCallMatch[1];
+      const argsStr = funcCallMatch[2].trim();
+      const args = argsStr ? this.parseArguments(argsStr) : [];
+      const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+      
+      // If it's an async function, await it
+      if (this.asyncFunctions.has(funcName)) {
+        return await this.callAsyncFunction(funcName, evaluatedArgs);
+      }
+      
+      // Otherwise call normally
+      const result = this.callFunction(funcName, evaluatedArgs);
+      
+      // If result is a promise, await it
+      if (result && typeof result.then === 'function') {
+        return await result;
+      }
+      
+      return result;
+    }
+    
+    // Check if it's a method call (e.g., Http.get(...))
+    const methodCallMatch = expr.match(/^(\w+)\.(\w+)\s*\(([^)]*)\)$/);
+    if (methodCallMatch) {
+      const objName = methodCallMatch[1];
+      const methodName = methodCallMatch[2];
+      const argsStr = methodCallMatch[3].trim();
+      const args = argsStr ? this.parseArguments(argsStr) : [];
+      const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+      
+      if (this.variables.hasOwnProperty(objName)) {
+        const obj = this.variables[objName];
+        if (obj && obj[methodName] && typeof obj[methodName] === 'function') {
+          const result = obj[methodName](...evaluatedArgs);
+          
+          // If result is a promise, await it
+          if (result && typeof result.then === 'function') {
+            return await result;
+          }
+          
+          return result;
+        }
+      }
+    }
+    
+    // For other expressions, evaluate normally
+    return this.evaluateExpression(expr);
   }
 
   /**

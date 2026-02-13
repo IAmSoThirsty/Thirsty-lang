@@ -82,13 +82,15 @@ See [T.A.R.L. Integration Guide](./TARL_INTEGRATION.md) and [Security API Refere
 - 🎯 **Classes and OOP** (`fountain` keyword) - Object-oriented programming with classes, methods, and properties
 - 🌍 **Standard Library** - Built-in Math and String utilities for common operations
 - 🎓 **Language Editions** - Four-tier progression system (Base, Plus, PlusPlus, ThirstOfGods)
+- 📦 **Modules and imports** (`import`/`export` keywords) - Code organization across multiple files
+- ⚡ **Async/await support** (`cascade`/`await` keywords) - Asynchronous programming with promises
+- 🌐 **Network utilities** (`Http` built-in) - HTTP requests and API interactions (GET, POST, fetch)
+- 💾 **File I/O operations** (`File` built-in) - Read, write, check existence, and delete files
+- 🔧 **Enhanced debugging tools** - Advanced breakpoints, variable inspection, expression evaluation, and call stack viewing
 
 ### 📋 Planned Features (Future Releases)
-- 📦 **Modules and imports** (import/export) - Code organization across multiple files
-- ⚡ **Async/await support** (`cascade`/`await` keywords) - Asynchronous programming
-- 🌐 **Network utilities** - HTTP requests and API interactions
-- 💾 **File I/O operations** - Read and write files
-- 🔧 **Advanced debugging tools** - Enhanced debugging capabilities
+- 🔄 **Error handling** (`try`/`catch` keywords) - Exception handling and error recovery
+- 📊 **JSON support** - Native JSON parsing and serialization
 
 ## Getting Started
 
@@ -283,6 +285,71 @@ pour "Circle area: " + area
 drink text = "  hello world  "
 drink formatted = String.toUpperCase(String.trim(text))
 pour "Formatted: " + formatted
+```
+
+#### Using Modules (Import/Export)
+```thirsty
+// math-utils.thirsty
+glass square(n) {
+  return n * n
+}
+export square
+
+// main.thirsty
+import { square } from "math-utils.thirsty"
+drink result = square(5)
+pour "5 squared is: " + result
+```
+
+#### Async/Await with Cascade
+```thirsty
+// Define async function with cascade keyword
+cascade fetchData(url) {
+  drink response = await Http.get(url)
+  return response.body
+}
+
+// Use async file I/O
+cascade saveData(filename, content) {
+  drink success = await File.writeAsync(filename, content)
+  return success
+}
+```
+
+#### File I/O Operations
+```thirsty
+// Write to a file
+drink success = File.write("data.txt", "Hello, Thirsty!")
+pour "File written: " + success
+
+// Read from a file
+drink content = File.read("data.txt")
+pour "File content: " + content
+
+// Check if file exists
+drink exists = File.exists("data.txt")
+pour "File exists: " + exists
+
+// Delete file
+drink deleted = File.delete("data.txt")
+```
+
+#### Network Utilities (HTTP Requests)
+```thirsty
+// Note: These examples use async functions
+cascade getData() {
+  // HTTP GET request
+  drink response = await Http.get("https://api.example.com/data")
+  pour "Status: " + response.status
+  pour "Body: " + response.body
+  
+  // HTTP POST request
+  drink postData = await Http.post("https://api.example.com/submit", "data")
+  
+  // Using fetch
+  drink result = await Http.fetch("https://api.example.com/endpoint")
+  return result
+}
 ```
 
 #### Secure Program with Basic Protection
