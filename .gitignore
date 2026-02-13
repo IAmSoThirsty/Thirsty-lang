@@ -75,3 +75,6 @@ thirsty_packages/
 .thirsty_history
 docs/generated/
 benchmark-results.json
+
+# Audit and analysis reports
+ARCHITECTURE_AUDIT.md

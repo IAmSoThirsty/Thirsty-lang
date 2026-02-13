@@ -5,7 +5,7 @@
  * Tests threat detection, code morphing, and defense compilation
  */
 
-const { SecurityManager } = require('../src/security');
+const { SecurityManager } = require('../security');
 const path = require('path');
 
 async function runTests() {
