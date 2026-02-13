@@ -5,7 +5,7 @@
  * Tests the JS <-> Python T.A.R.L. bridge
  */
 
-const { SecurityBridge } = require('../src/security/bridge');
+const { SecurityBridge } = require('../security/bridge');
 const path = require('path');
 
 async function runTests() {

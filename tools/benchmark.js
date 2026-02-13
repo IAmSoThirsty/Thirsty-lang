@@ -4,7 +4,7 @@
  */
 
 const fs = require('fs');
-const ThirstyInterpreter = require('../index');
+const ThirstyInterpreter = require('../src/index');
 
 class ThirstyBenchmark {
   constructor() {
