@@ -1,0 +1,24 @@
+// math-utils.thirsty - A reusable module with math utilities
+
+glass square(n) {
+  return n * n
+}
+
+glass cube(n) {
+  return n * n * n
+}
+
+glass factorial(n) {
+  thirsty n <= 1 {
+    return 1
+  }
+  return n * factorial(n - 1)
+}
+
+drink PI = 3.14159
+
+// Export functions and variables
+export square
+export cube
+export factorial
+export PI

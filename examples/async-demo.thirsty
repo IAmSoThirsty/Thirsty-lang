@@ -1,0 +1,22 @@
+// Async/await demonstration using cascade keyword
+
+// Define an async function using cascade keyword
+cascade fetchData(url) {
+  pour "Fetching data from " + url
+  drink result = await Http.get(url)
+  return result
+}
+
+// Another async function
+cascade processData(data) {
+  pour "Processing data..."
+  return "Processed: " + data
+}
+
+// Using async file I/O
+cascade readFileAsync(path) {
+  drink content = await File.readAsync(path)
+  return content
+}
+
+pour "Async demo complete!"

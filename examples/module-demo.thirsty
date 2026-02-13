@@ -1,0 +1,14 @@
+// Module import example
+
+// Import specific functions
+import { square, cube, PI } from "math-utils.thirsty"
+
+// Use imported functions
+drink num = 5
+drink squared = square(num)
+drink cubed = cube(num)
+
+pour "Number: " + num
+pour "Squared: " + squared
+pour "Cubed: " + cubed
+pour "PI value: " + PI

@@ -6,6 +6,7 @@
  */
 
 const fs = require('fs');
+const path = require('path');
 const ThirstyInterpreter = require('./index');
 
 function main() {
@@ -28,7 +29,9 @@ function main() {
 
   try {
     const code = fs.readFileSync(filename, 'utf-8');
-    const interpreter = new ThirstyInterpreter();
+    const interpreter = new ThirstyInterpreter({
+      currentFile: path.resolve(filename)
+    });
     interpreter.execute(code);
   } catch (error) {
     console.error(`Error: ${error.message}`);
