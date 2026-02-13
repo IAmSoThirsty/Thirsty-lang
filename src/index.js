@@ -6,10 +6,9 @@
  */
 
 const { SecurityManager } = require('./security/index');
+const { initializeStandardLibrary } = require('./interpreter/stdlib');
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
-const http = require('http');
 
 class ThirstyInterpreter {
   constructor(options = {}) {
@@ -50,150 +49,16 @@ class ThirstyInterpreter {
    * Initialize the standard library with built-in functions
    */
   initializeStandardLibrary() {
-    // Math utilities
-    this.variables.Math = {
-      __builtin: true,
-      PI: 3.14159265359,
-      E: 2.71828182846,
-      abs: (x) => Math.abs(x),
-      sqrt: (x) => Math.sqrt(x),
-      pow: (x, y) => Math.pow(x, y),
-      floor: (x) => Math.floor(x),
-      ceil: (x) => Math.ceil(x),
-      round: (x) => Math.round(x),
-      min: (...args) => Math.min(...args),
-      max: (...args) => Math.max(...args),
-      random: () => Math.random()
-    };
-    
-    // String utilities
-    this.variables.String = {
-      __builtin: true,
-      toUpperCase: (str) => String(str).toUpperCase(),
-      toLowerCase: (str) => String(str).toLowerCase(),
-      trim: (str) => String(str).trim(),
-      split: (str, separator) => String(str).split(separator),
-      replace: (str, search, replacement) => String(str).replace(search, replacement),
-      charAt: (str, index) => String(str).charAt(index),
-      substring: (str, start, end) => String(str).substring(start, end)
-    };
-    
-    // File I/O utilities
-    this.variables.File = {
-      __builtin: true,
-      read: (filePath) => {
-        try {
-          return fs.readFileSync(filePath, 'utf8');
-        } catch (err) {
-          throw new Error(`Failed to read file: ${err.message}`);
-        }
-      },
-      write: (filePath, content) => {
-        try {
-          fs.writeFileSync(filePath, String(content), 'utf8');
-          return true;
-        } catch (err) {
-          throw new Error(`Failed to write file: ${err.message}`);
-        }
-      },
-      exists: (filePath) => {
-        return fs.existsSync(filePath);
-      },
-      delete: (filePath) => {
-        try {
-          fs.unlinkSync(filePath);
-          return true;
-        } catch (err) {
-          throw new Error(`Failed to delete file: ${err.message}`);
-        }
-      },
-      readAsync: async (filePath) => {
-        return new Promise((resolve, reject) => {
-          fs.readFile(filePath, 'utf8', (err, data) => {
-            if (err) reject(new Error(`Failed to read file: ${err.message}`));
-            else resolve(data);
-          });
-        });
-      },
-      writeAsync: async (filePath, content) => {
-        return new Promise((resolve, reject) => {
-          fs.writeFile(filePath, String(content), 'utf8', (err) => {
-            if (err) reject(new Error(`Failed to write file: ${err.message}`));
-            else resolve(true);
-          });
-        });
-      }
-    };
-    
-    // Network utilities (HTTP requests)
-    this.variables.Http = {
-      __builtin: true,
-      get: (url) => {
-        return new Promise((resolve, reject) => {
-          const urlObj = new URL(url);
-          const protocol = urlObj.protocol === 'https:' ? https : http;
-          
-          protocol.get(url, (res) => {
-            let data = '';
-            res.on('data', (chunk) => { data += chunk; });
-            res.on('end', () => {
-              resolve({
-                status: res.statusCode,
-                headers: res.headers,
-                body: data
-              });
-            });
-          }).on('error', (err) => {
-            reject(new Error(`HTTP GET failed: ${err.message}`));
-          });
-        });
-      },
-      post: (url, postData) => {
-        return new Promise((resolve, reject) => {
-          const urlObj = new URL(url);
-          const protocol = urlObj.protocol === 'https:' ? https : http;
-          const data = typeof postData === 'string' ? postData : JSON.stringify(postData);
-          
-          const options = {
-            hostname: urlObj.hostname,
-            port: urlObj.port,
-            path: urlObj.pathname + urlObj.search,
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': Buffer.byteLength(data)
-            }
-          };
-          
-          const req = protocol.request(options, (res) => {
-            let responseData = '';
-            res.on('data', (chunk) => { responseData += chunk; });
-            res.on('end', () => {
-              resolve({
-                status: res.statusCode,
-                headers: res.headers,
-                body: responseData
-              });
-            });
-          });
-          
-          req.on('error', (err) => {
-            reject(new Error(`HTTP POST failed: ${err.message}`));
-          });
-          
-          req.write(data);
-          req.end();
-        });
-      },
-      fetch: async (url, options = {}) => {
-        const method = (options.method || 'GET').toUpperCase();
-        if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
-          return this.variables.Http.post(url, options.body || '');
-        } else {
-          return this.variables.Http.get(url);
-        }
-      }
-    };
+    const stdlib = initializeStandardLibrary();
+
+    // Add all stdlib objects to variables
+    this.variables.Math = stdlib.Math;
+    this.variables.String = stdlib.String;
+    this.variables.File = stdlib.File;
+    this.variables.Http = stdlib.Http;
+
+    // Add the fetch method that needs access to this.variables
+    this.variables.Http.fetch = stdlib.Http._createFetch(this.variables.Http);
   }
 
   /**
