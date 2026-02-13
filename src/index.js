@@ -7,6 +7,7 @@
 
 const { SecurityManager } = require('./security/index');
 const { initializeStandardLibrary } = require('./interpreter/stdlib');
+const { SecurityHandlers } = require('./interpreter/security-handlers');
 const fs = require('fs');
 const path = require('path');
 
@@ -40,7 +41,10 @@ class ThirstyInterpreter {
     this.shieldContext = null;
     this.armoredVariables = new Set();
     this.sanitizedVariables = new Set();
-    
+
+    // Initialize security handlers
+    this.securityHandlers = new SecurityHandlers(this);
+
     // Initialize standard library
     this.initializeStandardLibrary();
   }
@@ -1061,142 +1065,42 @@ class ThirstyInterpreter {
    * Handle shield (security block) statement
    */
   handleShield(lines, startIndex) {
-    const line = lines[startIndex].trim();
-    const match = line.match(/shield\s+(\w+)\s*{/);
-    
-    if (!match) {
-      throw new Error(`Invalid shield statement: ${line}`);
-    }
-    
-    const shieldName = match[1];
-    const blockEnd = this.findMatchingBrace(lines, startIndex);
-    
-    if (blockEnd === -1) {
-      throw new Error(`Unmatched opening brace for shield statement at line ${startIndex + 1}`);
-    }
-    
-    // Activate shield protection
-    const previousShieldState = this.shieldActive;
-    const previousContext = this.shieldContext;
-    
-    this.shieldActive = true;
-    this.shieldContext = {
-      name: shieldName,
-      startLine: startIndex,
-      threats: [],
-      protected: true
-    };
-    
-    try {
-      // Execute the protected block
-      this.executeBlock(lines.slice(startIndex + 1, blockEnd), 0);
-    } finally {
-      // Restore previous shield state
-      this.shieldActive = previousShieldState;
-      this.shieldContext = previousContext;
-    }
-    
-    return blockEnd + 1;
+    return this.securityHandlers.handleShield(lines, startIndex);
   }
 
   /**
    * Handle sanitize (input cleaning) statement
    */
   handleSanitize(line) {
-    const match = line.match(/sanitize\s+(\w+)/);
-    if (!match) {
-      throw new Error(`Invalid sanitize statement: ${line}`);
-    }
-    
-    const varName = match[1];
-    
-    if (!this.variables.hasOwnProperty(varName)) {
-      throw new Error(`Cannot sanitize undefined variable: ${varName}`);
-    }
-    
-    // Apply security sanitization
-    const value = this.variables[varName];
-    if (this.securityEnabled) {
-      const result = this.securityManager.secureInput(value, {
-        variable: varName,
-        shield: this.shieldContext
-      });
-      // Extract the sanitized value from the result object
-      this.variables[varName] = result.sanitized || result;
-    } else {
-      // Basic sanitization without security manager
-      this.variables[varName] = this.basicSanitize(value);
-    }
-    
-    this.sanitizedVariables.add(varName);
+    return this.securityHandlers.handleSanitize(line);
   }
 
   /**
    * Handle armor (memory protection) statement
    */
   handleArmor(line) {
-    const match = line.match(/armor\s+(\w+)/);
-    if (!match) {
-      throw new Error(`Invalid armor statement: ${line}`);
-    }
-    
-    const varName = match[1];
-    
-    if (!this.variables.hasOwnProperty(varName)) {
-      throw new Error(`Cannot armor undefined variable: ${varName}`);
-    }
-    
-    // Mark variable as armored (protected from modification)
-    this.armoredVariables.add(varName);
-    
-    // In production, this would use Object.freeze or similar mechanisms
-    // For now, we'll check this in handleDrink
+    return this.securityHandlers.handleArmor(line);
   }
 
   /**
    * Handle morph (code obfuscation) statement
    */
   handleMorph(line) {
-    const match = line.match(/morph\s+on:\s*\[([^\]]+)\]/);
-    if (match) {
-      const threats = match[1].split(',').map(t => t.trim().replace(/["']/g, ''));
-      // Enable morphing for specified threat types
-      if (this.shieldContext) {
-        this.shieldContext.morphEnabled = true;
-        this.shieldContext.morphThreats = threats;
-      }
-    }
+    return this.securityHandlers.handleMorph(line);
   }
 
   /**
    * Handle detect (threat monitoring) statement
    */
   handleDetect(line) {
-    const match = line.match(/detect\s+(\w+)/);
-    if (match) {
-      const detectType = match[1];
-      if (this.shieldContext) {
-        this.shieldContext.detectEnabled = true;
-        this.shieldContext.detectType = detectType;
-      }
-    }
+    return this.securityHandlers.handleDetect(line);
   }
 
   /**
    * Handle defend (countermeasures) statement
    */
   handleDefend(line) {
-    const match = line.match(/defend\s+with:\s*"(\w+)"/);
-    if (match) {
-      const strategy = match[1];
-      if (this.shieldContext) {
-        this.shieldContext.defendStrategy = strategy;
-      }
-      // Set defense strategy: passive, moderate, aggressive, paranoid
-      if (this.securityEnabled) {
-        this.securityManager.setMode(strategy === 'aggressive' ? 'offensive' : 'defensive');
-      }
-    }
+    return this.securityHandlers.handleDefend(line);
   }
 
   /**
@@ -1204,19 +1108,7 @@ class ThirstyInterpreter {
    * Production-grade HTML encoding to prevent XSS
    */
   basicSanitize(value) {
-    if (typeof value !== 'string') {
-      return value;
-    }
-    
-    // HTML encode all special characters to prevent injection
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;')
-      .replace(/\//g, '&#x2F;')
-      .trim();
+    return this.securityHandlers.basicSanitize(value);
   }
 
   /**
