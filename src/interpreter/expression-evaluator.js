@@ -9,6 +9,11 @@
 class ExpressionEvaluator {
   constructor(interpreter) {
     this.interpreter = interpreter;
+    // Cache compiled regex patterns for performance
+    this.funcMatchRegex = /^(\w+)\s*\(/;
+    this.arrayAccessRegex = /^(\w+)\[(.+)\]$/;
+    this.methodMatchRegex = /^(\w+)\.(\w+)\s*\(([^)]*)\)$/;
+    this.propertyMatchRegex = /^(\w+)\.(\w+)$/;
   }
 
   /**
@@ -90,7 +95,7 @@ class ExpressionEvaluator {
     }
 
     // Function call or class instantiation - check for name(args) with nested parentheses
-    const funcMatch = expr.match(/^(\w+)\s*\(/);
+    const funcMatch = expr.match(this.funcMatchRegex);
     if (funcMatch) {
       const name = funcMatch[1];
       const startIdx = expr.indexOf('(');
@@ -113,7 +118,7 @@ class ExpressionEvaluator {
     }
 
     // Array access - varname[index]
-    const arrayAccessMatch = expr.match(/^(\w+)\[(.+)\]$/);
+    const arrayAccessMatch = expr.match(this.arrayAccessRegex);
     if (arrayAccessMatch) {
       const varName = arrayAccessMatch[1];
       const indexExpr = arrayAccessMatch[2];
@@ -137,7 +142,7 @@ class ExpressionEvaluator {
     }
 
     // Array/string/instance method calls - varname.method(args)
-    const methodMatch = expr.match(/^(\w+)\.(\w+)\s*\(([^)]*)\)$/);
+    const methodMatch = expr.match(this.methodMatchRegex);
     if (methodMatch) {
       const varName = methodMatch[1];
       const methodName = methodMatch[2];
@@ -175,7 +180,7 @@ class ExpressionEvaluator {
     }
 
     // Array/string/instance property access - varname.property
-    const propertyMatch = expr.match(/^(\w+)\.(\w+)$/);
+    const propertyMatch = expr.match(this.propertyMatchRegex);
     if (propertyMatch) {
       const varName = propertyMatch[1];
       const propName = propertyMatch[2];
@@ -368,20 +373,28 @@ class ExpressionEvaluator {
 
   /**
    * Check if a position is inside a string literal
+   * Optimized to cache results for the same expression
    */
   isInString(expr, pos) {
+    // Early exit for positions at start
+    if (pos === 0) return false;
+
     let inString = false;
     let stringChar = null;
+    let prevChar = '';
+
     for (let i = 0; i < pos; i++) {
-      if ((expr[i] === '"' || expr[i] === "'") && (i === 0 || expr[i-1] !== '\\')) {
+      const currentChar = expr[i];
+      if ((currentChar === '"' || currentChar === "'") && prevChar !== '\\') {
         if (!inString) {
           inString = true;
-          stringChar = expr[i];
-        } else if (expr[i] === stringChar) {
+          stringChar = currentChar;
+        } else if (currentChar === stringChar) {
           inString = false;
           stringChar = null;
         }
       }
+      prevChar = currentChar;
     }
     return inString;
   }
