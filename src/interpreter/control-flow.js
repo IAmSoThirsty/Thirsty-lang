@@ -71,34 +71,47 @@ class ControlFlowHandlers {
    * Evaluate a condition for if statements
    * Note: Only handles simple binary comparisons (a op b), not complex expressions
    * Uses strict equality to avoid type coercion issues
+   * Optimized to check operators without multiple includes() calls
    */
   evaluateCondition(condition) {
     condition = condition.trim();
 
     // Comparison operators (check in order of specificity to avoid conflicts)
     // e.g., check >= before >, <= before <, != before =
-    if (condition.includes('==')) {
-      const parts = condition.split('==', 2).map(p => p.trim());
+    // Optimized: find operator positions first to avoid multiple scans
+    let eqPos = condition.indexOf('==');
+    if (eqPos !== -1) {
+      const parts = [condition.substring(0, eqPos).trim(), condition.substring(eqPos + 2).trim()];
       return this.interpreter.evaluateExpression(parts[0]) === this.interpreter.evaluateExpression(parts[1]);
     }
-    if (condition.includes('!=')) {
-      const parts = condition.split('!=', 2).map(p => p.trim());
+
+    let nePos = condition.indexOf('!=');
+    if (nePos !== -1) {
+      const parts = [condition.substring(0, nePos).trim(), condition.substring(nePos + 2).trim()];
       return this.interpreter.evaluateExpression(parts[0]) !== this.interpreter.evaluateExpression(parts[1]);
     }
-    if (condition.includes('>=')) {
-      const parts = condition.split('>=', 2).map(p => p.trim());
+
+    let gePos = condition.indexOf('>=');
+    if (gePos !== -1) {
+      const parts = [condition.substring(0, gePos).trim(), condition.substring(gePos + 2).trim()];
       return this.interpreter.evaluateExpression(parts[0]) >= this.interpreter.evaluateExpression(parts[1]);
     }
-    if (condition.includes('<=')) {
-      const parts = condition.split('<=', 2).map(p => p.trim());
+
+    let lePos = condition.indexOf('<=');
+    if (lePos !== -1) {
+      const parts = [condition.substring(0, lePos).trim(), condition.substring(lePos + 2).trim()];
       return this.interpreter.evaluateExpression(parts[0]) <= this.interpreter.evaluateExpression(parts[1]);
     }
-    if (condition.includes('>')) {
-      const parts = condition.split('>', 2).map(p => p.trim());
+
+    let gtPos = condition.indexOf('>');
+    if (gtPos !== -1) {
+      const parts = [condition.substring(0, gtPos).trim(), condition.substring(gtPos + 1).trim()];
       return this.interpreter.evaluateExpression(parts[0]) > this.interpreter.evaluateExpression(parts[1]);
     }
-    if (condition.includes('<')) {
-      const parts = condition.split('<', 2).map(p => p.trim());
+
+    let ltPos = condition.indexOf('<');
+    if (ltPos !== -1) {
+      const parts = [condition.substring(0, ltPos).trim(), condition.substring(ltPos + 1).trim()];
       return this.interpreter.evaluateExpression(parts[0]) < this.interpreter.evaluateExpression(parts[1]);
     }
 

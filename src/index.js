@@ -92,10 +92,10 @@ class ThirstyInterpreter {
    */
   executeBlock(lines, startIndex) {
     let i = startIndex;
-    
+
     while (i < lines.length) {
       const line = lines[i].trim();
-      
+
       // Skip empty lines and comments
       if (!line || line.startsWith('//')) {
         i++;
@@ -149,81 +149,90 @@ class ThirstyInterpreter {
   /**
    * Execute a single line of code
    * @param {string} line - A single line of Thirsty-lang code
+   * Optimized with first-character checks to reduce string comparisons
    */
   executeLine(line) {
-    // Security keywords
-    if (line.startsWith('sanitize ')) {
-      this.handleSanitize(line);
-    }
-    else if (line.startsWith('armor ')) {
+    // Get first character for quick dispatch
+    const firstChar = line[0];
+
+    // Security keywords (s, a, m, d)
+    if (firstChar === 's') {
+      if (line.startsWith('sanitize ')) {
+        this.handleSanitize(line);
+        return;
+      } else if (line.startsWith('sip ')) {
+        this.handleSip(line);
+        return;
+      }
+    } else if (firstChar === 'a' && line.startsWith('armor ')) {
       this.handleArmor(line);
-    }
-    else if (line.startsWith('morph ')) {
+      return;
+    } else if (firstChar === 'm' && line.startsWith('morph ')) {
       this.handleMorph(line);
-    }
-    else if (line.startsWith('detect ')) {
-      this.handleDetect(line);
-    }
-    else if (line.startsWith('defend ')) {
-      this.handleDefend(line);
+      return;
+    } else if (firstChar === 'd') {
+      if (line.startsWith('detect ')) {
+        this.handleDetect(line);
+        return;
+      } else if (line.startsWith('defend ')) {
+        this.handleDefend(line);
+        return;
+      } else if (line.startsWith('drink ')) {
+        this.handleDrink(line);
+        return;
+      }
     }
     // Core keywords
-    else if (line.startsWith('drink ')) {
-      this.handleDrink(line);
-    }
-    else if (line.startsWith('reservoir ')) {
+    else if (firstChar === 'r' && line.startsWith('reservoir ')) {
       this.handleReservoir(line);
+      return;
     }
     // pour - Output statement
-    else if (line.startsWith('pour ')) {
+    else if (firstChar === 'p' && line.startsWith('pour ')) {
       this.handlePour(line);
+      return;
     }
-    // sip - Input statement
-    else if (line.startsWith('sip ')) {
-      this.handleSip(line);
-    }
-    else {
-      // Check if it's a method call (varname.method(...))
-      const methodCallMatch = line.match(/^(\w+)\.(\w+)\s*\(([^)]*)\)$/);
-      if (methodCallMatch) {
-        const varName = methodCallMatch[1];
-        const methodName = methodCallMatch[2];
-        const argsStr = methodCallMatch[3].trim();
-        
-        if (!this.variables.hasOwnProperty(varName)) {
-          throw new Error(`Unknown variable: ${varName}`);
-        }
-        
-        const obj = this.variables[varName];
-        
-        // Handle array methods
-        if (Array.isArray(obj)) {
-          this.handleArrayMethod(varName, obj, methodName, argsStr);
-          return;
-        }
-        
-        // Handle class instance methods
-        if (obj && typeof obj === 'object' && obj.__class && obj.__methods) {
-          const args = argsStr ? this.parseArguments(argsStr) : [];
-          const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
-          this.callInstanceMethod(obj, methodName, evaluatedArgs);
-          return;
-        }
-        
-        throw new Error(`Method '${methodName}' not supported for variable '${varName}'`);
+
+    // Check if it's a method call (varname.method(...))
+    const methodCallMatch = line.match(/^(\w+)\.(\w+)\s*\(([^)]*)\)$/);
+    if (methodCallMatch) {
+      const varName = methodCallMatch[1];
+      const methodName = methodCallMatch[2];
+      const argsStr = methodCallMatch[3].trim();
+
+      if (!this.variables.hasOwnProperty(varName)) {
+        throw new Error(`Unknown variable: ${varName}`);
       }
-      
-      // Check if it's a function call (function_name(...))
-      const funcCallMatch = line.match(/^(\w+)\s*\(([^)]*)\)$/);
-      if (funcCallMatch) {
-        const funcName = funcCallMatch[1];
-        const argsStr = funcCallMatch[2].trim();
+
+      const obj = this.variables[varName];
+
+      // Handle array methods
+      if (Array.isArray(obj)) {
+        this.handleArrayMethod(varName, obj, methodName, argsStr);
+        return;
+      }
+
+      // Handle class instance methods
+      if (obj && typeof obj === 'object' && obj.__class && obj.__methods) {
         const args = argsStr ? this.parseArguments(argsStr) : [];
         const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
-        this.callFunction(funcName, evaluatedArgs);
-      } else {
-        throw new Error(`Unknown statement: ${line}`);
+        this.callInstanceMethod(obj, methodName, evaluatedArgs);
+        return;
       }
+
+      throw new Error(`Method '${methodName}' not supported for variable '${varName}'`);
+    }
+
+    // Check if it's a function call (function_name(...))
+    const funcCallMatch = line.match(/^(\w+)\s*\(([^)]*)\)$/);
+    if (funcCallMatch) {
+      const funcName = funcCallMatch[1];
+      const argsStr = funcCallMatch[2].trim();
+      const args = argsStr ? this.parseArguments(argsStr) : [];
+      const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+      this.callFunction(funcName, evaluatedArgs);
+    } else {
+      throw new Error(`Unknown statement: ${line}`);
     }
   }
 
