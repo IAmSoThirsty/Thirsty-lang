@@ -7,7 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const ThirstyInterpreter = require('./index');
+const { ThirstyInterpreter } = require('./index');
 
 function main() {
   const args = process.argv.slice(2);

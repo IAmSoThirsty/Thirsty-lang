@@ -5,7 +5,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const ThirstyInterpreter = require('../index');
+const { ThirstyInterpreter } = require('../index');
 
 class TestRunner {
   constructor() {

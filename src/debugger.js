@@ -5,7 +5,7 @@
  * Step through your code and find bugs
  */
 
-const ThirstyInterpreter = require('./index');
+const { ThirstyInterpreter } = require('./index');
 const readline = require('readline');
 
 class ThirstyDebugger extends ThirstyInterpreter {

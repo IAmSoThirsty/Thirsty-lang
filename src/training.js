@@ -6,7 +6,7 @@
  */
 
 const readline = require('readline');
-const ThirstyInterpreter = require('./index');
+const { ThirstyInterpreter } = require('./index');
 
 const rl = readline.createInterface({
   input: process.stdin,

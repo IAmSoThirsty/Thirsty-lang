@@ -11,6 +11,7 @@ const { SecurityHandlers } = require('./interpreter/security-handlers');
 const { ControlFlowHandlers } = require('./interpreter/control-flow');
 const { ClassFunctionHandlers } = require('./interpreter/class-function-handlers');
 const { ExpressionEvaluator } = require('./interpreter/expression-evaluator');
+const { ExceptionHandlers, ThirstyError } = require('./interpreter/exception-handlers');
 const fs = require('fs');
 const path = require('path');
 
@@ -57,6 +58,9 @@ class ThirstyInterpreter {
     // Initialize expression evaluator
     this.expressionEvaluator = new ExpressionEvaluator(this);
 
+    // Initialize exception handlers
+    this.exceptionHandlers = new ExceptionHandlers(this);
+
     // Initialize standard library
     this.initializeStandardLibrary();
   }
@@ -72,6 +76,7 @@ class ThirstyInterpreter {
     this.variables.String = stdlib.String;
     this.variables.File = stdlib.File;
     this.variables.Http = stdlib.Http;
+    this.variables.JSON = stdlib.JSON;
 
     // Add the fetch method that needs access to this.variables
     this.variables.Http.fetch = stdlib.Http._createFetch(this.variables.Http);
@@ -120,7 +125,9 @@ class ThirstyInterpreter {
       }
       
       // Handle control flow
-      if (line.startsWith('thirsty ')) {
+      if (line === 'try {' || line.startsWith('try {')) {
+        i = this.handleTry(lines, i);
+      } else if (line.startsWith('thirsty ')) {
         i = this.handleThirsty(lines, i);
       } else if (line.startsWith('refill ')) {
         i = this.handleRefill(lines, i);
@@ -130,6 +137,9 @@ class ThirstyInterpreter {
         i = this.handleGlass(lines, i);
       } else if (line.startsWith('fountain ')) {
         i = this.handleFountain(lines, i);
+      } else if (line.startsWith('throw ')) {
+        this.handleThrow(line);
+        i++;
       } else if (line.startsWith('return ')) {
         throw { type: 'return', value: this.evaluateExpression(line.substring(7).trim()) };
       } else if (line === 'return') {
@@ -243,7 +253,7 @@ class ThirstyInterpreter {
   findMatchingBrace(lines, startIndex) {
     let braceCount = 1;
     let i = startIndex + 1;
-    
+
     while (i < lines.length && braceCount > 0) {
       const currentLine = lines[i].trim();
       // Count braces only for control flow statements and class/function declarations
@@ -252,6 +262,8 @@ class ThirstyInterpreter {
       } else if (currentLine.startsWith('refill ') && currentLine.endsWith('{')) {
         braceCount++;
       } else if (currentLine === 'hydrated {') {
+        braceCount++;
+      } else if (currentLine === 'try {' || currentLine.startsWith('try {')) {
         braceCount++;
       } else if (currentLine.startsWith('glass ') && currentLine.endsWith('{')) {
         braceCount++;
@@ -264,10 +276,18 @@ class ThirstyInterpreter {
         if (braceCount === 0) {
           return i;
         }
+      } else if (currentLine.includes('} catch') || currentLine.includes('} finally')) {
+        // Line has both closing and opening brace - these balance out
+        // but we still count the close for the current block
+        braceCount--;
+        if (braceCount === 0) {
+          return i;
+        }
+        braceCount++; // Add back for the opening brace on same line
       }
       i++;
     }
-    
+
     return -1; // No matching brace found
   }
 
@@ -290,6 +310,20 @@ class ThirstyInterpreter {
    */
   handleRefill(lines, startIndex) {
     return this.controlFlowHandlers.handleRefill(lines, startIndex);
+  }
+
+  /**
+   * Handle try/catch/finally statement
+   */
+  handleTry(lines, startIndex) {
+    return this.exceptionHandlers.handleTry(lines, startIndex);
+  }
+
+  /**
+   * Handle throw statement
+   */
+  handleThrow(line) {
+    return this.exceptionHandlers.handleThrow(line);
   }
 
   /**
@@ -589,4 +623,4 @@ class ThirstyInterpreter {
   }
 }
 
-module.exports = ThirstyInterpreter;
+module.exports = { ThirstyInterpreter, ThirstyError };
