@@ -3,7 +3,7 @@
  * Measure execution time and optimize your code
  */
 
-const ThirstyInterpreter = require('./index');
+const { ThirstyInterpreter } = require('./index');
 
 class ThirstyProfiler extends ThirstyInterpreter {
   constructor() {

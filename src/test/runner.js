@@ -2,7 +2,7 @@
  * Test Runner for Thirsty-lang
  */
 
-const ThirstyInterpreter = require('../index');
+const { ThirstyInterpreter } = require('../index');
 
 class TestRunner {
   constructor() {
