@@ -3,11 +3,13 @@
 /**
  * Security Bridge - Connects JavaScript runtime to Python T.A.R.L. runtime
  * Provides bi-directional communication for policy enforcement
+ * Enhanced with circuit breaker pattern for resilience
  */
 
 const { spawn } = require('child_process');
 const path = require('path');
 const EventEmitter = require('events');
+const { CircuitBreaker } = require('./circuit-breaker');
 
 class SecurityBridge extends EventEmitter {
   constructor(options = {}) {
@@ -22,6 +24,46 @@ class SecurityBridge extends EventEmitter {
       successes: 0,
       failures: 0,
       avgResponseTime: 0
+    };
+
+    // Initialize circuit breaker with fallback
+    this.circuitBreaker = new CircuitBreaker({
+      name: 'SecurityBridge-TARL',
+      failureThreshold: options.failureThreshold || 5,
+      successThreshold: options.successThreshold || 2,
+      timeout: options.timeout || 30000,
+      resetTimeout: options.resetTimeout || 60000,
+      halfOpenMaxCalls: options.halfOpenMaxCalls || 3,
+      fallback: options.fallback || this._defaultFallback.bind(this)
+    });
+
+    // Forward circuit breaker events
+    this.circuitBreaker.on('stateChange', (event) => {
+      this.emit('circuitStateChange', event);
+    });
+
+    this.circuitBreaker.on('rejected', (event) => {
+      this.emit('circuitRejected', event);
+    });
+
+    this.circuitBreaker.on('fallback', (event) => {
+      this.emit('circuitFallback', event);
+    });
+  }
+
+  /**
+   * Default fallback when circuit is open
+   * Returns a safe default policy decision (DENY)
+   * @private
+   */
+  _defaultFallback() {
+    return {
+      verdict: 'DENY',
+      reason: 'Security bridge circuit breaker is OPEN - failing safe',
+      metadata: {
+        circuitState: this.circuitBreaker.getState(),
+        timestamp: new Date().toISOString()
+      }
     };
   }
 
@@ -158,38 +200,77 @@ class SecurityBridge extends EventEmitter {
   }
 
   /**
-   * Evaluate policy through T.A.R.L. runtime
+   * Evaluate policy through T.A.R.L. runtime with circuit breaker protection
    */
   async evaluatePolicy(context) {
-    return await this._sendRequest('evaluate_policy', { context });
+    return await this.circuitBreaker.execute(
+      () => this._sendRequest('evaluate_policy', { context })
+    );
   }
 
   /**
-   * Load policies from file
+   * Load policies from file with circuit breaker protection
    */
   async loadPolicies(policyPath) {
-    return await this._sendRequest('load_policies', { path: policyPath });
+    return await this.circuitBreaker.execute(
+      () => this._sendRequest('load_policies', { path: policyPath })
+    );
   }
 
   /**
-   * Reload policies (hot-reload)
+   * Reload policies (hot-reload) with circuit breaker protection
    */
   async reloadPolicies() {
-    return await this._sendRequest('reload_policies', {});
+    return await this.circuitBreaker.execute(
+      () => this._sendRequest('reload_policies', {})
+    );
   }
 
   /**
-   * Get runtime metrics
+   * Get runtime metrics with circuit breaker protection
    */
   async getRuntimeMetrics() {
-    return await this._sendRequest('get_metrics', {});
+    return await this.circuitBreaker.execute(
+      () => this._sendRequest('get_metrics', {})
+    );
   }
 
   /**
-   * Get bridge metrics
+   * Get bridge metrics (includes circuit breaker metrics)
    */
   getBridgeMetrics() {
-    return { ...this.metrics };
+    return {
+      bridge: { ...this.metrics },
+      circuitBreaker: this.circuitBreaker.getMetrics()
+    };
+  }
+
+  /**
+   * Get circuit breaker health status
+   */
+  getCircuitHealth() {
+    return this.circuitBreaker.getHealth();
+  }
+
+  /**
+   * Force circuit breaker to open (for maintenance or emergencies)
+   */
+  openCircuit() {
+    this.circuitBreaker.forceOpen();
+  }
+
+  /**
+   * Force circuit breaker to close (use with caution)
+   */
+  closeCircuit() {
+    this.circuitBreaker.forceClose();
+  }
+
+  /**
+   * Reset circuit breaker metrics and state
+   */
+  resetCircuit() {
+    this.circuitBreaker.reset();
   }
 
   /**
