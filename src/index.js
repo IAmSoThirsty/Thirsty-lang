@@ -76,6 +76,7 @@ class ThirstyInterpreter {
     this.variables.String = stdlib.String;
     this.variables.File = stdlib.File;
     this.variables.Http = stdlib.Http;
+    this.variables.JSON = stdlib.JSON;
 
     // Add the fetch method that needs access to this.variables
     this.variables.Http.fetch = stdlib.Http._createFetch(this.variables.Http);
