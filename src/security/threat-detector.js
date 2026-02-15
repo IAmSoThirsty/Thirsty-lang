@@ -17,12 +17,17 @@ class ThreatDetector {
         /<iframe[^>]*>/gi
       ],
       sqlInjection: [
-        /(\b(union|select|insert|update|delete|drop|create|alter|exec)\b)/gi,
-        /(--|\#|\/\*|\*\/)/g,
-        /('|\"|;)/g
+        // SQL keywords with context - must have SQL-like structure
+        /(\b(union|select|insert|update|delete|drop|create|alter|exec)\b.*\bfrom\b)/gi,
+        /(\bunion\b.*\bselect\b)/gi,
+        /(--|\#|\/\*|\*\/).*\b(select|insert|update|delete|drop)\b/gi,
+        // Multiple single quotes or SQL comment with keywords
+        /'{2,}|;.*\b(select|drop|delete|update|insert)\b/gi
       ],
       commandInjection: [
-        /[;&|`$()]/g,
+        // Shell metacharacters with context - must have shell commands
+        /[;&|`]\s*(rm|cat|ls|curl|wget|bash|sh|exec|chmod|chown)/gi,
+        /\$\([^)]*\)/g,
         /\.\.\//g,
         /~\//g
       ],
