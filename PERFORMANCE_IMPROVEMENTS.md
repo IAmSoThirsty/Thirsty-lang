@@ -3,9 +3,11 @@
 ## Changes Made
 
 ### 1. Expression Evaluator Optimization
+
 **File**: `src/interpreter/expression-evaluator.js`
 
 **Changes**:
+
 - Added regex pattern caching in constructor (4 patterns cached)
 - Optimized `isInString()` method with early exit and reduced overhead
 - All regex patterns now compiled once instead of on every call
@@ -13,9 +15,11 @@
 **Impact**: 20-30% faster expression evaluation
 
 ### 2. Control Flow Optimization
+
 **File**: `src/interpreter/control-flow.js`
 
 **Changes**:
+
 - Replaced `includes()` + `split()` with `indexOf()` + `substring()`
 - Eliminated redundant string scanning for operator detection
 - Reduced memory allocations in condition parsing
@@ -23,9 +27,11 @@
 **Impact**: 15-20% faster condition evaluation
 
 ### 3. Line Execution Optimization
+
 **File**: `src/index.js`
 
 **Changes**:
+
 - Added first-character dispatch for keyword matching
 - Reduced sequential `startsWith()` calls with character pre-check
 - Early returns to avoid unnecessary checks
@@ -33,9 +39,11 @@
 **Impact**: 10-15% faster line execution
 
 ### 4. Benchmark Tool
+
 **File**: `tools/benchmark-optimized.js` (new)
 
 **Features**:
+
 - Console output suppression for accurate measurements
 - Comprehensive test cases covering all common patterns
 - Detailed performance comparison reporting

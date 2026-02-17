@@ -13,6 +13,7 @@ new SecurityManager(options)
 ```
 
 **Options**:
+
 - `enabled` (boolean): Enable security features (default: true)
 - `mode` (string): Security mode - 'defensive', 'strict', 'permissive' (default: 'defensive')
 - `useTarl` (boolean): Enable T.A.R.L. integration (default: true)
@@ -38,6 +39,7 @@ await security.initialize();
 Sanitize input using HTML encoding.
 
 **Parameters**:
+
 - `input` (string): Input to sanitize
 - `context` (object): Optional context information
 
@@ -54,6 +56,7 @@ console.log(result.sanitized); // &lt;script&gt;alert(&quot;xss&quot;)&lt;/scrip
 Detect security threats in input.
 
 **Parameters**:
+
 - `input` (string): Input to analyze
 - `context` (object): Context for threat detection
 
@@ -87,6 +90,7 @@ if (result.detected) {
 Compile code with defensive measures.
 
 **Parameters**:
+
 - `code` (string): Source code to compile
 - `options` (object): Compilation options
   - `source` (string): Source identifier
@@ -109,9 +113,9 @@ Compile code with defensive measures.
 
 **Example**:
 ```javascript
-const result = await security.compileSecure(code, { 
-  source: 'user', 
-  mode: 'production' 
+const result = await security.compileSecure(code, {
+  source: 'user',
+  mode: 'production'
 });
 ```
 
@@ -120,6 +124,7 @@ const result = await security.compileSecure(code, {
 Load security policies from file.
 
 **Parameters**:
+
 - `policyPath` (string): Path to policy file (JSON or YAML)
 
 **Returns**: `Promise<LoadResult>`
@@ -156,6 +161,7 @@ new SecurityBridge(options)
 ```
 
 **Options**:
+
 - `pythonPath` (string): Path to Python executable (default: 'python3')
 - `tarlPath` (string): Path to T.A.R.L. directory
 
@@ -174,6 +180,7 @@ Start Python bridge server.
 Evaluate policy against context.
 
 **Parameters**:
+
 - `context` (object): Evaluation context
 
 **Returns**: `Promise<PolicyDecision>`
@@ -262,6 +269,7 @@ new ThreatDetector(securityBridge)
 Detect threats in input.
 
 **Parameters**:
+
 - `input` (string): Input to analyze
 - `context` (object): Detection context
 
@@ -272,6 +280,7 @@ Detect threats in input.
 Add custom threat pattern.
 
 **Parameters**:
+
 - `threatType` (string): Type of threat
 - `pattern` (RegExp): Pattern to match
 
@@ -313,6 +322,7 @@ new CodeMorpher(securityBridge)
 Transform code using configured strategies.
 
 **Parameters**:
+
 - `code` (string): Code to morph
 - `context` (object): Morphing context
 
@@ -333,6 +343,7 @@ Transform code using configured strategies.
 Configure morphing strategy.
 
 **Parameters**:
+
 - `strategy` (string): Strategy name ('rename', 'shuffle', 'obfuscate', 'encrypt')
 - `enabled` (boolean): Enable or disable strategy
 
@@ -361,6 +372,7 @@ new DefenseCompiler(securityBridge)
 Compile with defensive measures.
 
 **Parameters**:
+
 - `code` (string): Source code
 - `options` (object): Compilation options
 
@@ -429,6 +441,7 @@ Manually reload policies from disk.
 Evaluate action against loaded policies.
 
 **Parameters**:
+
 - `action` (string): Action to evaluate
 - `context` (object): Evaluation context
 
@@ -464,9 +477,10 @@ Get policy engine metrics.
 from tarl import TarlRuntime, TarlPolicy, TarlDecision, TarlVerdict
 
 # Create runtime with policies
+
 policies = [
     TarlPolicy("policy_name", lambda ctx: TarlDecision(
-        TarlVerdict.ALLOW, 
+        TarlVerdict.ALLOW,
         "reason"
     ))
 ]
@@ -479,9 +493,11 @@ runtime = TarlRuntime(
 )
 
 # Evaluate
+
 decision = runtime.evaluate({"action": "compile"})
 
 # Get metrics
+
 metrics = runtime.get_performance_metrics()
 ```
 
@@ -504,6 +520,7 @@ policy = TarlPolicy("my_policy", policy_rule)
 from tarl import TarlDecision, TarlVerdict
 
 # Create decision
+
 decision = TarlDecision(
     TarlVerdict.ALLOW,
     "Operation permitted",
@@ -511,6 +528,7 @@ decision = TarlDecision(
 )
 
 # Check if terminal
+
 if decision.is_terminal():
     print("Decision terminates evaluation")
 ```
@@ -522,6 +540,7 @@ if decision.is_terminal():
 ### PolicyEngine Events
 
 - `policies_loaded`: Fired when policies are loaded
+
   ```javascript
   policyEngine.on('policies_loaded', ({ count, path }) => {
     console.log(`Loaded ${count} policies from ${path}`);
@@ -529,6 +548,7 @@ if decision.is_terminal():
   ```
 
 - `policies_reloaded`: Fired when policies are hot-reloaded
+
   ```javascript
   policyEngine.on('policies_reloaded', () => {
     console.log('Policies updated');
@@ -536,6 +556,7 @@ if decision.is_terminal():
   ```
 
 - `reload_error`: Fired when hot-reload fails
+
   ```javascript
   policyEngine.on('reload_error', (error) => {
     console.error('Reload failed:', error);
@@ -545,6 +566,7 @@ if decision.is_terminal():
 ### SecurityBridge Events
 
 - `disconnected`: Fired when Python bridge disconnects
+
   ```javascript
   bridge.on('disconnected', (code) => {
     console.error('Bridge disconnected with code', code);

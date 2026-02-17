@@ -1,0 +1,76 @@
+{
+    "name": "thirsty-lang",
+    "displayName": "Thirsty-Lang",
+    "description": "Language support for Thirsty-Lang (TARL)",
+    "version": "1.0.0",
+    "publisher": "thirsty-lang",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "activationEvents": [
+        "onLanguage:thirsty"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "languages": [
+            {
+                "id": "thirsty",
+                "aliases": [
+                    "Thirsty-Lang",
+                    "TARL",
+                    "thirsty"
+                ],
+                "extensions": [
+                    ".tarl",
+                    ".tl"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "thirsty",
+                "scopeName": "source.thirsty",
+                "path": "./syntaxes/thirsty.tmLanguage.json"
+            }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "Thirsty-Lang",
+            "properties": {
+                "thirstyLang.lsp.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable Language Server Protocol"
+                },
+                "thirstyLang.lsp.serverPath": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Path to LSP server executable"
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "thirstyLang.runFile",
+                "title": "Run Thirsty-Lang File"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./"
+    },
+    "devDependencies": {
+        "@types/node": "^16.x",
+        "@types/vscode": "^1.80.0",
+        "typescript": "^5.0.0"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^8.1.0"
+    }
+}

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thirsty-Lang Playground</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        .editor-panel,
+        .output-panel {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        #code-editor {
+            flex: 1;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            resize: none;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #code-editor:focus {
+            border-color: #667eea;
+        }
+
+        .button-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-run {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-run:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-clear {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-clear:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-share {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-share:hover {
+            background: #45a049;
+        }
+
+        #output {
+            flex: 1;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .output-success {
+            color: #4ec9b0;
+        }
+
+        .output-error {
+            color: #f48771;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🚀 Thirsty-Lang Playground</h1>
+    </div>
+
+    <div class="container">
+        <div class="editor-panel">
+            <div class="panel-title">Code Editor</div>
+            <textarea id="code-editor" placeholder="# Write your Thirsty-Lang code here...
+print('Hello, World!')"></textarea>
+            <div class="button-group">
+                <button class="btn-run" onclick="runCode()">▶ Run</button>
+                <button class="btn-clear" onclick="clearCode()">Clear</button>
+                <button class="btn-share" onclick="shareCode()">Share</button>
+            </div>
+        </div>
+
+        <div class="output-panel">
+            <div class="panel-title">Output</div>
+            <div id="output">Ready to run code...</div>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = null;
+
+        // Initialize session
+        async function initSession() {
+            const response = await fetch('/api/session/create', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            sessionId = data.session_id;
+        }
+
+        // Run code
+        async function runCode() {
+            const code = document.getElementById('code-editor').value;
+            const output = document.getElementById('output');
+
+            if (!code.trim()) {
+                output.textContent = 'Please enter some code to run.';
+                return;
+            }
+
+            output.textContent = 'Running...';
+
+            try {
+                const response = await fetch('/api/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        code: code
+                    })
+                });
+
+                const result = await response.json();
+
+                let outputText = '';
+                if (result.stdout) {
+                    outputText += result.stdout;
+                }
+                if (result.error) {
+                    outputText += '\n' + result.error;
+                    output.className = 'output-error';
+                } else {
+                    output.className = 'output-success';
+                }
+
+                output.textContent = outputText || 'Code executed successfully (no output)';
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+                output.className = 'output-error';
+            }
+        }
+
+        // Clear code
+        function clearCode() {
+            document.getElementById('code-editor').value = '';
+            document.getElementById('output').textContent = 'Ready to run code...';
+        }
+
+        // Share code
+        async function shareCode() {
+            const code = document.getElementById('code-editor').value;
+
+            if (!code.trim()) {
+                alert('Please enter some code to share.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/share', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        title: 'Shared Code'
+                    })
+                });
+
+                const result = await response.json();
+                const shareUrl = window.location.origin + result.url;
+
+                navigator.clipboard.writeText(shareUrl);
+                alert('Share URL copied to clipboard!\\n' + shareUrl);
+            } catch (error) {
+                alert('Error sharing code: ' + error.message);
+            }
+        }
+
+        // Initialize
+        initSession();
+    </script>
+</body>
+
+</html>

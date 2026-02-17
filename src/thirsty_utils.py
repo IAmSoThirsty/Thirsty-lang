@@ -12,27 +12,27 @@ from typing import List, Optional
 def read_file(filename: str) -> str:
     """
     Read a Thirsty-lang source file
-    
+
     Args:
         filename: Path to the file
-        
+
     Returns:
         File contents as string
-        
+
     Raises:
         FileNotFoundError: If file doesn't exist
     """
-    with open(filename, 'r', encoding='utf-8') as f:
+    with open(filename, "r", encoding="utf-8") as f:
         return f.read()
 
 
 def get_file_extension(filename: str) -> str:
     """
     Get the file extension
-    
+
     Args:
         filename: Path to the file
-        
+
     Returns:
         File extension (e.g., '.thirsty')
     """
@@ -42,29 +42,24 @@ def get_file_extension(filename: str) -> str:
 def is_thirsty_file(filename: str) -> bool:
     """
     Check if a file is a Thirsty-lang file
-    
+
     Args:
         filename: Path to the file
-        
+
     Returns:
         True if file has Thirsty-lang extension
     """
-    valid_extensions = [
-        '.thirsty',
-        '.thirstyplus',
-        '.thirstyplusplus',
-        '.thirstofgods'
-    ]
+    valid_extensions = [".thirsty", ".thirstyplus", ".thirstyplusplus", ".thirstofgods"]
     return get_file_extension(filename).lower() in valid_extensions
 
 
 def find_thirsty_files(directory: str) -> List[str]:
     """
     Find all Thirsty-lang files in a directory
-    
+
     Args:
         directory: Path to search
-        
+
     Returns:
         List of Thirsty-lang file paths
     """
@@ -80,11 +75,11 @@ def find_thirsty_files(directory: str) -> List[str]:
 def format_error(message: str, line_num: Optional[int] = None) -> str:
     """
     Format an error message
-    
+
     Args:
         message: Error message
         line_num: Optional line number
-        
+
     Returns:
         Formatted error string
     """
@@ -96,7 +91,7 @@ def format_error(message: str, line_num: Optional[int] = None) -> str:
 def print_banner(title: str):
     """
     Print a formatted banner
-    
+
     Args:
         title: Banner title
     """
@@ -111,15 +106,17 @@ def print_banner(title: str):
 def check_version() -> str:
     """
     Get Python and Thirsty-lang version info
-    
+
     Returns:
         Version string
     """
-    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    python_version = (
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
     return f"Python {python_version} | Thirsty-lang 1.0.0"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Test utilities
     print_banner("Thirsty-lang Python Utilities")
     print(f"\n{check_version()}\n")

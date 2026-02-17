@@ -55,10 +55,13 @@ These runtimes communicate via a **Security Bridge** that provides bi-directiona
 ### Installation
 
 ```bash
+
 # Install dependencies
+
 npm install
 
 # Install Python requirements
+
 pip install pyyaml  # For YAML policy support
 ```
 
@@ -127,6 +130,7 @@ if (result.detected) {
 ```
 
 **Threat Types**:
+
 - XSS (Cross-Site Scripting)
 - SQL Injection
 - Command Injection
@@ -151,6 +155,7 @@ console.log('Morphed code:', result.code);
 ```
 
 **Strategies**:
+
 - `rename`: Variable renaming
 - `shuffle`: Statement reordering
 - `obfuscate`: String obfuscation
@@ -235,10 +240,14 @@ Policies can be defined in JSON or YAML format.
 
 ```yaml
 policies:
+
   - name: threat_policy
+
     description: Block detected threats
     rules:
+
       - condition:
+
           action: threat_detected
         verdict: DENY
         reason: Threats detected in input
@@ -354,13 +363,17 @@ export TARL_COMPILER_DEBUG_MODE=true
 Run security integration tests:
 
 ```bash
+
 # Bridge tests
+
 node src/test/bridge-tests.js
 
 # Security module tests
+
 node src/test/security-integration-tests.js
 
 # All tests
+
 npm test
 ```
 
@@ -407,6 +420,7 @@ const bridge = new SecurityBridge({
 ## Examples
 
 See `examples/security/` for complete examples:
+
 - `basic-threat-detection.js`
 - `policy-enforcement.js`
 - `defensive-compilation.js`

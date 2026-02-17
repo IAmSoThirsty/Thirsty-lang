@@ -50,6 +50,7 @@ npm start examples/hello.thirsty
 ## Language Extensions
 
 We welcome contributions to all language variants:
+
 - **Thirsty-lang**: The base language
 - **Thirsty+**: Enhanced features
 - **Thirsty++**: Advanced features

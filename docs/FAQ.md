@@ -64,7 +64,8 @@ A: Yes! ThirstOfGods will support plugins and extensions.
 ### Advanced Questions
 
 **Q: What's the difference between the language editions?**
-A: 
+A:
+
 - **Base**: Variables, output, comments
 - **Thirsty+**: Adds control flow (if/else)
 - **Thirsty++**: Adds functions, loops, data structures

@@ -319,6 +319,7 @@ The debugger (`node src/debugger.js file.thirsty`) includes:
 - **Code listing**: View code with context
 
 Commands:
+
 - `break <line>`, `b` - Set breakpoint
 - `continue`, `c` - Continue execution
 - `step`, `s` - Step into
@@ -379,6 +380,7 @@ comment        ::= "//" [^\n]*
 ## Error Handling
 
 The interpreter will report errors for:
+
 - Unknown statements
 - Invalid syntax
 - Undefined variables

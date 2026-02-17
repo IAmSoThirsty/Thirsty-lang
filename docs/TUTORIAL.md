@@ -12,6 +12,7 @@ pour message
 ```
 
 **Explanation:**
+
 - `drink message = "Hello, World!"` creates a variable called `message` and assigns it the text "Hello, World!"
 - `pour message` outputs the value of `message` to the console
 
@@ -43,6 +44,7 @@ pour total_liters
 ```
 
 **Key Points:**
+
 - Numbers don't need quotes
 - You can use integers (8) or decimals (0.25)
 - Each variable stores one value
@@ -67,6 +69,7 @@ H2O
 ```
 
 **REPL Commands:**
+
 - `.help` - Show available commands
 - `.vars` - List all variables
 - `.clear` - Clear all variables
@@ -89,6 +92,7 @@ pour username  // You can also comment at the end of lines
 Debug your code step-by-step:
 
 1. Create `debug_example.thirsty`:
+
 ```thirsty
 drink a = 10
 drink b = 20
@@ -99,6 +103,7 @@ pour c
 ```
 
 2. Run the debugger:
+
 ```bash
 npm run debug debug_example.thirsty
 ```
@@ -141,16 +146,21 @@ This shows execution time and helps optimize your code.
 Convert your Thirsty-lang code to other languages:
 
 ```bash
+
 # To Python
+
 node src/transpiler.js hello.thirsty --target python
 
 # To JavaScript
+
 node src/transpiler.js hello.thirsty --target javascript
 
 # To Go
+
 node src/transpiler.js hello.thirsty --target go --wrap
 
 # Save to file
+
 node src/transpiler.js hello.thirsty --target python --output hello.py
 ```
 
@@ -174,6 +184,7 @@ Try Thirsty-lang in your browser:
 4. Use keyboard shortcut: Ctrl/Cmd + Enter
 
 Features:
+
 - Live code editing
 - Instant execution
 - Example programs
@@ -189,6 +200,7 @@ npm run train
 ```
 
 This interactive program guides you through:
+
 1. Base Thirsty-lang fundamentals
 2. Thirsty+ control flow
 3. Thirsty++ functions and loops
@@ -199,22 +211,29 @@ This interactive program guides you through:
 Try these exercises to practice:
 
 ### Exercise 1: Personal Info
+
 Create variables for your name, age, and favorite drink, then output them.
 
 ### Exercise 2: Math
+
 Create three number variables and output each one.
 
 ### Exercise 3: Comments
+
 Write a program with at least 3 comments explaining what it does.
 
 ### Exercise 4: Hydration Tracker
+
 Create variables for:
+
 - Target glasses per day (8)
 - Glasses consumed (5)
 - Then output both values
 
 ### Exercise 5: Use All Tools
+
 For your hydration tracker:
+
 1. Format it
 2. Lint it
 3. Profile it
