@@ -2,7 +2,7 @@
 
 ## Enterprise-Grade Programming Language with Defensive Security
 
-Version: 1.0.0  
+Version: 1.0.0
 Status: Production Ready ✅
 
 ---
@@ -34,12 +34,14 @@ Thirsty-lang is a fully operational, enterprise-grade programming language desig
 ### Key Features
 
 ✅ **Full Language Implementation**
+
 - Variables, arithmetic, strings
 - Control flow (if/else, loops)
 - Operator precedence
 - Type safety with strict equality
 
 ✅ **Enterprise Security**
+
 - Shield blocks for protected execution
 - Input/output sanitization
 - Variable protection (armor)
@@ -47,6 +49,7 @@ Thirsty-lang is a fully operational, enterprise-grade programming language desig
 - Threat detection and defense
 
 ✅ **Quality Assurance**
+
 - 37/37 tests passing
 - 0 security vulnerabilities (CodeQL)
 - Comprehensive error handling
@@ -65,17 +68,22 @@ Thirsty-lang is a fully operational, enterprise-grade programming language desig
 ### Quick Start
 
 ```bash
+
 # Clone repository
+
 git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
 cd Thirsty-lang
 
 # Install dependencies (if any)
+
 npm install
 
 # Verify installation
+
 npm test
 
 # Run your first program
+
 echo 'pour "Hello, Thirsty!"' > hello.thirsty
 npm start hello.thirsty
 ```
@@ -121,6 +129,7 @@ shield name {                 // Security block
 **Syntax:** `drink variableName = value`
 
 **Supported Types:**
+
 - Strings: `"text"` or `'text'`
 - Numbers: `42`, `3.14`, `-10`
 - Booleans: `true`, `false`
@@ -135,6 +144,7 @@ drink negativeNumber = -5
 ```
 
 **Rules:**
+
 - Variable names must start with a letter
 - Can contain letters, numbers, underscore
 - Case-sensitive
@@ -163,6 +173,7 @@ pour "Age: " + age             // Concatenation
 **Operators:** `+` `-` `*` `/`
 
 **Operator Precedence:**
+
 1. Multiplication (`*`) and Division (`/`)
 2. Addition (`+`) and Subtraction (`-`)
 
@@ -378,12 +389,13 @@ shield secureOperation {
   drink apiKey = "secret-key"
   sanitize apiKey
   armor apiKey
-  
+
   pour "Processing in secure context"
 }
 ```
 
 **Features:**
+
 - Context isolation
 - Nesting support
 - Threat monitoring
@@ -398,6 +410,7 @@ shield secureOperation {
 **Syntax:** `sanitize variableName`
 
 **Protection Against:**
+
 - XSS (Cross-Site Scripting)
 - SQL Injection
 - Command Injection
@@ -405,6 +418,7 @@ shield secureOperation {
 - Script Injection
 
 **Implementation:**
+
 - HTML entity encoding
 - Special character escaping
 - Pattern-based threat detection
@@ -433,11 +447,11 @@ shield dataValidation {
   drink email = "<user@example.com>"
   drink username = "admin' OR '1'='1"
   drink comment = "Test<script>hack()</script>"
-  
+
   sanitize email
   sanitize username
   sanitize comment
-  
+
   pour "All inputs sanitized"
 }
 ```
@@ -451,6 +465,7 @@ shield dataValidation {
 **Syntax:** `armor variableName`
 
 **Features:**
+
 - Read-only protection
 - Warning on modification attempts
 - Secure credential storage
@@ -473,15 +488,15 @@ shield credentialManager {
   drink apiKey = "secret-key"
   drink dbPassword = "secure-pwd"
   drink jwtSecret = "jwt-secret"
-  
+
   sanitize apiKey
   sanitize dbPassword
   sanitize jwtSecret
-  
+
   armor apiKey
   armor dbPassword
   armor jwtSecret
-  
+
   pour "Credentials secured"
 }
 ```
@@ -495,6 +510,7 @@ shield credentialManager {
 **Syntax:** `morph on: [threatList]`
 
 **Threat Types:**
+
 - `"injection"` - SQL, XSS, command injection
 - `"overflow"` - Buffer overflow
 - `"timing"` - Timing attacks
@@ -505,7 +521,7 @@ shield credentialManager {
 ```thirsty
 shield protectedApp {
   morph on: ["injection", "overflow", "timing"]
-  
+
   drink sensitiveData = "confidential"
   sanitize sensitiveData
   armor sensitiveData
@@ -521,6 +537,7 @@ shield protectedApp {
 **Syntax:** `defend with: "strategy"`
 
 **Strategies:**
+
 - `"passive"` - Log only
 - `"moderate"` - Warn and log
 - `"aggressive"` - Block threats
@@ -531,11 +548,11 @@ shield protectedApp {
 shield highSecurity {
   defend with: "paranoid"
   morph on: ["injection", "overflow", "timing", "xss"]
-  
+
   drink userData = "user-input"
   sanitize userData
   armor userData
-  
+
   pour "Maximum security active"
 }
 ```
@@ -564,6 +581,7 @@ const interpreter = new ThirstyInterpreter(options);
 **Methods:**
 
 **execute(code)**
+
 - Execute Thirsty-lang code
 - Parameters: `code` (string) - The source code
 - Returns: void
@@ -590,6 +608,7 @@ npm test
 **37 comprehensive tests covering:**
 
 **Core Features (12 tests):**
+
 - Variable declaration (strings, numbers)
 - Output statements
 - Multiple statements
@@ -603,6 +622,7 @@ npm test
 - Loop functionality (basic)
 
 **Loop Tests (5 tests):**
+
 - Simple countdown
 - Counter with multiplication
 - Nested variable updates
@@ -610,6 +630,7 @@ npm test
 - Complex conditions
 
 **Error Tests (17 tests):**
+
 - Division by zero (2 tests)
 - Unmatched braces (3 tests)
 - Invalid statements (5 tests)
@@ -620,6 +641,7 @@ npm test
 - Invalid drink statement
 
 **Security Tests (3 tests):**
+
 - Shield block execution
 - Sanitize XSS removal
 - Armor variable protection
@@ -680,11 +702,11 @@ refill i >= 0 {
 shield paymentProcessing {
   defend with: "paranoid"
   morph on: ["injection", "overflow"]
-  
+
   drink cardNumber = "4532-1234-5678-9012"
   sanitize cardNumber
   armor cardNumber
-  
+
   // Process payment
 }
 ```
@@ -774,6 +796,7 @@ npm start examples/security/basic-protection.thirsty
 ## Production Readiness Checklist
 
 ✅ **Language Features**
+
 - [x] Variables with all types
 - [x] Arithmetic with precedence
 - [x] String operations
@@ -783,6 +806,7 @@ npm start examples/security/basic-protection.thirsty
 - [x] Error handling
 
 ✅ **Security Features**
+
 - [x] Shield blocks
 - [x] Input/output sanitization
 - [x] Variable protection (armor)
@@ -791,6 +815,7 @@ npm start examples/security/basic-protection.thirsty
 - [x] Threat detection
 
 ✅ **Quality Assurance**
+
 - [x] 37/37 tests passing
 - [x] 0 security vulnerabilities
 - [x] Comprehensive error handling
@@ -799,6 +824,7 @@ npm start examples/security/basic-protection.thirsty
 - [x] Example programs
 
 ✅ **Production Features**
+
 - [x] Loop safety limits
 - [x] Division by zero protection
 - [x] Brace matching validation

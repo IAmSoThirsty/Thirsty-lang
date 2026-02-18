@@ -25,6 +25,7 @@ shield protectionName {
 ```
 
 **Features**:
+
 - Automatic threat monitoring
 - Memory protection
 - Integrity checking
@@ -39,6 +40,7 @@ morph on: ["injection", "overflow", "timing"]
 ```
 
 **Capabilities**:
+
 - Identifier obfuscation
 - Control flow flattening
 - Dead code injection
@@ -57,6 +59,7 @@ detect attacks {
 ```
 
 **Detection Levels**:
+
 - **White Box**: Source code analysis threats
 - **Grey Box**: Partial knowledge attacks
 - **Black Box**: Behavioral attacks
@@ -71,6 +74,7 @@ defend with: "paranoid"
 ```
 
 **Defense Levels**:
+
 - `passive` - Log threats only
 - `moderate` - Warn and sanitize
 - `aggressive` - Block threats
@@ -86,6 +90,7 @@ sanitize userInput
 ```
 
 **Sanitization Features**:
+
 - HTML entity encoding
 - SQL injection prevention
 - XSS attack blocking
@@ -103,6 +108,7 @@ armor secretKey
 ```
 
 **Protection**:
+
 - Immutability enforcement
 - Memory freezing
 - Type safety
@@ -116,13 +122,14 @@ armor secretKey
 shield sqlProtection {
   drink query = sip "Enter search term"
   sanitize query
-  
+
   // Query is now safe from SQL injection
   pour "Safe query: " + query
 }
 ```
 
 **Blocked Patterns**:
+
 - `OR`, `AND`, `UNION`, `SELECT`, `DROP`, `INSERT`, `UPDATE`, `DELETE`
 - String concatenation attacks
 - Comment-based injections
@@ -133,13 +140,14 @@ shield sqlProtection {
 shield xssProtection {
   drink htmlContent = sip "Enter content"
   sanitize htmlContent
-  
+
   // Content is sanitized from XSS
   pour "Safe HTML: " + htmlContent
 }
 ```
 
 **Blocked Elements**:
+
 - `<script>` tags
 - `javascript:` protocol
 - Event handlers (`onerror`, `onload`)
@@ -153,7 +161,7 @@ shield commandProtection {
     morph on: ["injection"]
     defend with: "aggressive"
   }
-  
+
   drink command = sip "Enter command"
   sanitize command
   armor command
@@ -161,6 +169,7 @@ shield commandProtection {
 ```
 
 **Blocked Characters**:
+
 - `;`, `|`, `&`, `` ` ``, `$(`, `&&`, `||`
 - Shell metacharacters
 - Escape sequences
@@ -173,7 +182,7 @@ shield bufferProtection {
     morph on: ["overflow"]
     defend with: "aggressive"
   }
-  
+
   drink largeInput = sip "Enter data"
   sanitize largeInput  // Automatically limits length
   armor largeInput
@@ -181,6 +190,7 @@ shield bufferProtection {
 ```
 
 **Limits**:
+
 - Maximum input length: 8192 bytes (configurable)
 - Pattern-based overflow detection
 - Automatic truncation
@@ -193,7 +203,7 @@ shield timingProtection {
     morph on: ["timing"]
     defend with: "moderate"
   }
-  
+
   // Constant-time operations
   drink secret = "password"
   armor secret
@@ -201,6 +211,7 @@ shield timingProtection {
 ```
 
 **Features**:
+
 - Execution time normalization
 - Variance detection
 - Random delays
@@ -211,7 +222,7 @@ shield timingProtection {
 shield typeProtection {
   drink value = "string"
   armor value  // Type is locked
-  
+
   // Attempting to change type will fail
 }
 ```
@@ -267,6 +278,7 @@ const interpreter = new SecureThirstyInterpreter({
 ### White Box Attacks
 
 Detects threats through source code analysis:
+
 - SQL injection patterns
 - XSS vulnerabilities
 - Command injection attempts
@@ -278,6 +290,7 @@ Detects threats through source code analysis:
 ### Grey Box Attacks
 
 Detects attacks with partial knowledge:
+
 - Timing attacks
 - Side-channel attacks
 - Brute force attempts
@@ -286,6 +299,7 @@ Detects attacks with partial knowledge:
 ### Black Box Attacks
 
 Detects behavioral threats:
+
 - Buffer overflows
 - DoS attacks
 - Format string vulnerabilities
@@ -295,6 +309,7 @@ Detects behavioral threats:
 ### Red Team Attacks
 
 Defends against penetration testing:
+
 - Reverse engineering attempts
 - Memory dump analysis
 - Dynamic analysis (VM/Sandbox detection)
@@ -442,14 +457,14 @@ shield webForm {
     morph on: ["injection", "xss"]
     defend with: "aggressive"
   }
-  
+
   drink email = sip "Enter email"
   sanitize email
-  
+
   drink password = sip "Enter password"
   sanitize password
   armor password
-  
+
   pour "Credentials secured"
 }
 ```
@@ -460,11 +475,11 @@ shield webForm {
 shield apiKeyHandler {
   drink apiKey = "sk-1234567890"
   armor apiKey
-  
+
   detect attacks {
     defend with: "paranoid"
   }
-  
+
   pour "API key protected with maximum security"
 }
 ```
@@ -478,14 +493,14 @@ shield multilayer {
     morph on: ["injection", "overflow", "timing", "xss"]
     defend with: "paranoid"
   }
-  
+
   // Layer 2: Input sanitization
   drink userInput = sip "Enter data"
   sanitize userInput
-  
+
   // Layer 3: Memory protection
   armor userInput
-  
+
   // Layer 4: Safe output
   pour "Data: " + userInput
 }

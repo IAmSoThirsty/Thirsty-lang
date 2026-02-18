@@ -13,6 +13,7 @@
 #### Optional
 
 - **PyYAML**: For YAML policy support
+
   ```bash
   pip install pyyaml
   ```
@@ -29,20 +30,26 @@ cd Thirsty-lang
 #### 2. Install Dependencies
 
 ```bash
+
 # Node.js dependencies
+
 npm install
 
 # Python dependencies (optional)
+
 pip install pyyaml
 ```
 
 #### 3. Verify Installation
 
 ```bash
+
 # Run tests
+
 npm test
 
 # Check Python availability
+
 python3 --version
 ```
 
@@ -63,10 +70,13 @@ const security = new SecurityManager({
 #### Environment Variables
 
 ```bash
+
 # Python executable path
+
 export PYTHON_PATH=/usr/local/bin/python3
 
 # T.A.R.L. configuration overrides
+
 export TARL_SECURITY_MAX_EXECUTION_TIME=60.0
 export TARL_RUNTIME_ENABLE_JIT=true
 export TARL_COMPILER_DEBUG_MODE=false
@@ -100,6 +110,7 @@ await security.loadPolicies('./tarl/policies/development.yaml');
 ```
 
 **Characteristics**:
+
 - Threats logged but not blocked
 - All operations allowed
 - Detailed debugging output
@@ -119,6 +130,7 @@ await security.loadPolicies('./tarl/policies/testing.json');
 ```
 
 **Characteristics**:
+
 - Threats detected and logged
 - Critical threats blocked
 - Warnings for suspicious operations
@@ -144,6 +156,7 @@ const metricsInterval = setInterval(async () => {
 ```
 
 **Characteristics**:
+
 - All threats blocked immediately
 - Escalation for suspicious operations
 - Comprehensive audit logging
@@ -157,12 +170,18 @@ const metricsInterval = setInterval(async () => {
 #### 1. Create Policy
 
 ```yaml
+
 # development-policy.yaml
+
 policies:
+
   - name: dev_allow_all
+
     description: Development mode - allow everything
     rules:
+
       - condition:
+
           action: compile
         verdict: ALLOW
         reason: Development mode
@@ -183,10 +202,13 @@ console.log('Policy decision:', result.verdict);
 #### 3. Deploy Policy
 
 ```bash
+
 # Copy to production
+
 cp policies/production-policy.yaml /etc/thirsty-lang/policies/
 
 # Reload in running application
+
 await security.policyEngine.reloadPolicies();
 ```
 
@@ -227,12 +249,12 @@ security.policyEngine.on('reload_error', (err) => {
 // Monitor bridge health
 setInterval(() => {
   const metrics = security.bridge.getBridgeMetrics();
-  
+
   if (metrics.failures / metrics.requests > 0.1) {
     console.error('Bridge failure rate high:', metrics);
     // Alert monitoring system
   }
-  
+
   if (metrics.avgResponseTime > 100) {
     console.warn('Bridge response time degraded:', metrics.avgResponseTime);
   }
@@ -247,7 +269,7 @@ const runtimeMetrics = await security.bridge.getRuntimeMetrics();
 
 console.log('Performance:');
 console.log('  Cache hit rate:', runtimeMetrics.cache_hit_rate_percent + '%');
-console.log('  Productivity improvement:', 
+console.log('  Productivity improvement:',
   runtimeMetrics.productivity_improvement_percent + '%');
 console.log('  Total evaluations:', runtimeMetrics.total_evaluations);
 ```
@@ -305,12 +327,12 @@ const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
   transports: [
-    new winston.transports.File({ 
-      filename: 'security-error.log', 
-      level: 'error' 
+    new winston.transports.File({
+      filename: 'security-error.log',
+      level: 'error'
     }),
-    new winston.transports.File({ 
-      filename: 'security-combined.log' 
+    new winston.transports.File({
+      filename: 'security-combined.log'
     })
   ]
 });
@@ -318,7 +340,7 @@ const logger = winston.createLogger({
 // Log security events
 async function logSecureCompile(code, options) {
   logger.info('Secure compilation started', { options });
-  
+
   try {
     const result = await security.compileSecure(code, options);
     logger.info('Secure compilation completed', {
@@ -372,17 +394,17 @@ class BridgePool {
   constructor(size = 4) {
     this.bridges = [];
     this.currentIndex = 0;
-    
+
     for (let i = 0; i < size; i++) {
       const bridge = new SecurityBridge();
       this.bridges.push(bridge);
     }
   }
-  
+
   async initializeAll() {
     await Promise.all(this.bridges.map(b => b.initialize()));
   }
-  
+
   getBridge() {
     const bridge = this.bridges[this.currentIndex];
     this.currentIndex = (this.currentIndex + 1) % this.bridges.length;
@@ -401,14 +423,14 @@ await pool.initializeAll();
 ```javascript
 async function initializeSecurityWithFallback() {
   const security = new SecurityManager({ useTarl: true });
-  
+
   try {
     await security.initialize();
     console.log('✓ T.A.R.L. security enabled');
     return security;
   } catch (err) {
     console.warn('T.A.R.L. unavailable, using basic security:', err.message);
-    
+
     // Fallback to basic security
     return new SecurityManager({ useTarl: false });
   }
@@ -423,7 +445,7 @@ await bridge.initialize();
 
 bridge.on('disconnected', async (code) => {
   console.error('Bridge disconnected, reconnecting...');
-  
+
   try {
     bridge = new SecurityBridge();
     await bridge.initialize();
@@ -445,20 +467,20 @@ app.get('/health', async (req, res) => {
   try {
     // Check bridge health
     const metrics = security.bridge.getBridgeMetrics();
-    
+
     if (metrics.failures / metrics.requests > 0.2) {
-      return res.status(503).json({ 
-        status: 'unhealthy', 
-        reason: 'High bridge failure rate' 
+      return res.status(503).json({
+        status: 'unhealthy',
+        reason: 'High bridge failure rate'
       });
     }
-    
+
     // Test policy evaluation
-    const decision = await security.bridge.evaluatePolicy({ 
-      action: 'health_check' 
+    const decision = await security.bridge.evaluatePolicy({
+      action: 'health_check'
     });
-    
-    res.json({ 
+
+    res.json({
       status: 'healthy',
       metrics: {
         bridgeRequests: metrics.requests,
@@ -466,9 +488,9 @@ app.get('/health', async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(503).json({ 
-      status: 'unhealthy', 
-      error: err.message 
+    res.status(503).json({
+      status: 'unhealthy',
+      error: err.message
     });
   }
 });
@@ -480,13 +502,13 @@ app.get('/health', async (req, res) => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...');
-  
+
   // Stop accepting new requests
   server.close();
-  
+
   // Shutdown security bridge
   await security.shutdown();
-  
+
   console.log('Shutdown complete');
   process.exit(0);
 });
@@ -519,7 +541,7 @@ if (latency > 100) {
 setInterval(() => {
   const usage = process.memoryUsage();
   const heapMB = Math.round(usage.heapUsed / 1024 / 1024);
-  
+
   if (heapMB > 512) {
     console.warn('High heap usage:', heapMB, 'MB');
     // Force garbage collection if needed
@@ -561,6 +583,7 @@ setInterval(() => {
 ## Support
 
 For operational issues:
+
 - Check logs in `logs/` directory
 - Review metrics from monitoring endpoints
 - Consult [Troubleshooting Guide](./TROUBLESHOOTING.md)
@@ -568,5 +591,5 @@ For operational issues:
 
 ---
 
-**Last Updated**: February 2026  
+**Last Updated**: February 2026
 **Version**: 2.0.0

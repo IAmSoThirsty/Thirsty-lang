@@ -329,7 +329,7 @@ pour userInput  // &lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;
 shield databaseQuery {
   drink query = "'; DROP TABLE users; --"
   sanitize query
-  
+
   pour "Safe query:"
   pour query  // &#x27;; DROP TABLE users; --
 }
@@ -356,11 +356,11 @@ Enable code obfuscation against specific threats:
 ```thirsty
 shield protectedApp {
   morph on: ["injection", "overflow", "timing"]
-  
+
   drink data = "sensitive information"
   sanitize data
   armor data
-  
+
   pour "Data is protected"
 }
 ```
@@ -372,7 +372,7 @@ Set your security strategy:
 ```thirsty
 shield highSecurity {
   defend with: "aggressive"
-  
+
   drink password = "user_password"
   sanitize password
   armor password
@@ -387,23 +387,23 @@ shield applicationSecurity {
   // Configure defenses
   morph on: ["injection", "xss", "overflow"]
   defend with: "paranoid"
-  
+
   // User authentication
   drink username = "admin'--"
   drink password = "<script>steal()</script>"
-  
+
   // Sanitize all inputs
   sanitize username
   sanitize password
-  
+
   // Protect credentials
   armor username
   armor password
-  
+
   // Process safely
   drink credentials = username + ":" + password
   armor credentials
-  
+
   pour "Secure authentication complete"
   pour "Username: " + username
   pour "All threats neutralized"
@@ -469,20 +469,20 @@ hydrated {
 shield dataProcessor {
   morph on: ["injection", "overflow"]
   defend with: "aggressive"
-  
+
   // Simulate user data
   drink records = 5
   drink processed = 0
-  
+
   refill processed < records {
     drink dataItem = "Record " + processed
     sanitize dataItem
     armor dataItem
-    
+
     pour "Processing: " + dataItem
     drink processed = processed + 1
   }
-  
+
   pour "All records processed securely"
   pour "Total: " + processed
 }
@@ -498,7 +498,7 @@ shield dataProcessor {
 shield userInterface {
   drink userEmail = "<user@example.com>"
   sanitize userEmail  // Always sanitize before use
-  
+
   drink userName = "admin' OR '1'='1"
   sanitize userName  // Protect against SQL injection
 }
@@ -522,7 +522,7 @@ armor dbPassword
 shield criticalOperation {
   defend with: "paranoid"
   morph on: ["injection", "timing", "overflow"]
-  
+
   // Your critical code here
 }
 ```
@@ -617,12 +617,14 @@ Running Thirsty-lang Tests...
 Thirsty-lang provides clear error messages:
 
 ### Division by Zero
+
 ```thirsty
 pour 10 / 0
 // Error: Division by zero in expression
 ```
 
 ### Unmatched Braces
+
 ```thirsty
 thirsty true {
   pour "missing closing brace"
@@ -630,12 +632,14 @@ thirsty true {
 ```
 
 ### Unknown Variables
+
 ```thirsty
 pour undefinedVar
 // Error: Unknown expression: undefinedVar
 ```
 
 ### Invalid Statements
+
 ```thirsty
 unknownKeyword test
 // Error: Unknown statement: unknownKeyword test
