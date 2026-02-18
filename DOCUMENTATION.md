@@ -2,24 +2,25 @@
 
 ## Enterprise-Grade Programming Language with Defensive Security
 
-Version: 1.0.0 Status: Production Ready ✅
+Version: 1.0.0
+Status: Production Ready ✅
 
-______________________________________________________________________
+---
 
 ## Table of Contents
 
 1. [Overview](#overview)
-1. [Installation](#installation)
-1. [Language Syntax](#language-syntax)
-1. [Core Features](#core-features)
-1. [Security Features](#security-features)
-1. [API Reference](#api-reference)
-1. [Testing](#testing)
-1. [Error Handling](#error-handling)
-1. [Best Practices](#best-practices)
-1. [Examples](#examples)
+2. [Installation](#installation)
+3. [Language Syntax](#language-syntax)
+4. [Core Features](#core-features)
+5. [Security Features](#security-features)
+6. [API Reference](#api-reference)
+7. [Testing](#testing)
+8. [Error Handling](#error-handling)
+9. [Best Practices](#best-practices)
+10. [Examples](#examples)
 
-______________________________________________________________________
+---
 
 ## Overview
 
@@ -54,7 +55,7 @@ Thirsty-lang is a fully operational, enterprise-grade programming language desig
 - Comprehensive error handling
 - Production-grade validation
 
-______________________________________________________________________
+---
 
 ## Installation
 
@@ -87,7 +88,7 @@ echo 'pour "Hello, Thirsty!"' > hello.thirsty
 npm start hello.thirsty
 ```
 
-______________________________________________________________________
+---
 
 ## Language Syntax
 
@@ -119,7 +120,7 @@ shield name {                 // Security block
 }
 ```
 
-______________________________________________________________________
+---
 
 ## Core Features
 
@@ -134,7 +135,6 @@ ______________________________________________________________________
 - Booleans: `true`, `false`
 
 **Examples:**
-
 ```thirsty
 drink name = "Alice"
 drink age = 30
@@ -150,14 +150,13 @@ drink negativeNumber = -5
 - Case-sensitive
 - Must be declared before use
 
-______________________________________________________________________
+---
 
 ### 2. Output (pour)
 
 **Syntax:** `pour expression`
 
 **Examples:**
-
 ```thirsty
 pour "Hello, World!"          // String literal
 pour 42                        // Number
@@ -167,7 +166,7 @@ pour 10 + 5                    // Expression
 pour "Age: " + age             // Concatenation
 ```
 
-______________________________________________________________________
+---
 
 ### 3. Arithmetic Operations
 
@@ -176,10 +175,9 @@ ______________________________________________________________________
 **Operator Precedence:**
 
 1. Multiplication (`*`) and Division (`/`)
-1. Addition (`+`) and Subtraction (`-`)
+2. Addition (`+`) and Subtraction (`-`)
 
 **Examples:**
-
 ```thirsty
 drink a = 10
 drink b = 5
@@ -198,14 +196,13 @@ pour 5 * 2 + 3                 // 13
 pour 10 / 0                    // Error: Division by zero
 ```
 
-______________________________________________________________________
+---
 
 ### 4. String Operations
 
 **Concatenation:** Use `+` operator
 
 **Examples:**
-
 ```thirsty
 drink first = "Hello"
 drink second = "World"
@@ -220,7 +217,7 @@ pour name + " is " + age       // "Alice is 25"
 pour "Result: " + 10 + 5       // "Result: 105"
 ```
 
-______________________________________________________________________
+---
 
 ### 5. Comparison Operators
 
@@ -229,7 +226,6 @@ ______________________________________________________________________
 **Strict Equality:** Uses `===` and `!==` internally to avoid type coercion
 
 **Examples:**
-
 ```thirsty
 drink x = 10
 drink y = 20
@@ -251,12 +247,11 @@ thirsty y >= 20 {              // Greater than or equal
 }
 ```
 
-______________________________________________________________________
+---
 
 ### 6. Conditional Statements
 
 **Syntax:**
-
 ```thirsty
 thirsty condition {
   // code if true
@@ -269,7 +264,6 @@ hydrated {
 **Examples:**
 
 **Simple If:**
-
 ```thirsty
 drink age = 25
 
@@ -279,7 +273,6 @@ thirsty age >= 18 {
 ```
 
 **If-Else:**
-
 ```thirsty
 drink temperature = 85
 
@@ -292,7 +285,6 @@ hydrated {
 ```
 
 **Nested Conditions:**
-
 ```thirsty
 drink score = 85
 
@@ -314,12 +306,11 @@ hydrated {
 }
 ```
 
-______________________________________________________________________
+---
 
 ### 7. Loops (refill)
 
 **Syntax:**
-
 ```thirsty
 refill condition {
   // loop body
@@ -331,7 +322,6 @@ refill condition {
 **Examples:**
 
 **Basic Loop:**
-
 ```thirsty
 drink i = 0
 
@@ -343,7 +333,6 @@ refill i < 5 {
 ```
 
 **Countdown:**
-
 ```thirsty
 drink count = 10
 
@@ -355,7 +344,6 @@ pour "Done!"
 ```
 
 **Accumulation:**
-
 ```thirsty
 drink sum = 0
 drink i = 1
@@ -369,7 +357,6 @@ pour sum  // 55
 ```
 
 **Complex Conditions:**
-
 ```thirsty
 drink a = 1
 drink b = 100
@@ -381,7 +368,7 @@ refill a < b {
 // Output: 1, 2, 4, 8, 16, 32, 64
 ```
 
-______________________________________________________________________
+---
 
 ## Security Features
 
@@ -390,7 +377,6 @@ ______________________________________________________________________
 **Purpose:** Create protected execution contexts
 
 **Syntax:**
-
 ```thirsty
 shield blockName {
   // protected code
@@ -398,7 +384,6 @@ shield blockName {
 ```
 
 **Example:**
-
 ```thirsty
 shield secureOperation {
   drink apiKey = "secret-key"
@@ -416,7 +401,7 @@ shield secureOperation {
 - Threat monitoring
 - Enhanced error handling
 
-______________________________________________________________________
+---
 
 ### 2. Sanitization (sanitize)
 
@@ -441,7 +426,6 @@ ______________________________________________________________________
 **Examples:**
 
 **XSS Prevention:**
-
 ```thirsty
 drink userInput = "<script>alert('XSS')</script>"
 sanitize userInput
@@ -450,7 +434,6 @@ pour userInput
 ```
 
 **SQL Injection Prevention:**
-
 ```thirsty
 drink query = "'; DROP TABLE users; --"
 sanitize query
@@ -459,7 +442,6 @@ pour query
 ```
 
 **Complete Sanitization:**
-
 ```thirsty
 shield dataValidation {
   drink email = "<user@example.com>"
@@ -474,7 +456,7 @@ shield dataValidation {
 }
 ```
 
-______________________________________________________________________
+---
 
 ### 3. Variable Protection (armor)
 
@@ -492,7 +474,6 @@ ______________________________________________________________________
 **Examples:**
 
 **Basic Protection:**
-
 ```thirsty
 drink secretKey = "prod-api-key-12345"
 armor secretKey
@@ -502,7 +483,6 @@ pour secretKey              // Still: "prod-api-key-12345"
 ```
 
 **Complete Security:**
-
 ```thirsty
 shield credentialManager {
   drink apiKey = "secret-key"
@@ -521,7 +501,7 @@ shield credentialManager {
 }
 ```
 
-______________________________________________________________________
+---
 
 ### 4. Code Morphing (morph)
 
@@ -538,7 +518,6 @@ ______________________________________________________________________
 - `"sqli"` - SQL injection specific
 
 **Example:**
-
 ```thirsty
 shield protectedApp {
   morph on: ["injection", "overflow", "timing"]
@@ -549,7 +528,7 @@ shield protectedApp {
 }
 ```
 
-______________________________________________________________________
+---
 
 ### 5. Defense Strategy (defend)
 
@@ -565,7 +544,6 @@ ______________________________________________________________________
 - `"paranoid"` - Maximum security
 
 **Example:**
-
 ```thirsty
 shield highSecurity {
   defend with: "paranoid"
@@ -579,21 +557,19 @@ shield highSecurity {
 }
 ```
 
-______________________________________________________________________
+---
 
 ## API Reference
 
 ### ThirstyInterpreter Class
 
 **Constructor:**
-
 ```javascript
 const ThirstyInterpreter = require('./src/index');
 const interpreter = new ThirstyInterpreter(options);
 ```
 
 **Options:**
-
 ```javascript
 {
   security: true,              // Enable security features (default: true)
@@ -612,13 +588,12 @@ const interpreter = new ThirstyInterpreter(options);
 - Throws: Error on invalid syntax or runtime errors
 
 **Example:**
-
 ```javascript
 const interpreter = new ThirstyInterpreter();
 interpreter.execute('drink x = 10\npour x');
 ```
 
-______________________________________________________________________
+---
 
 ## Testing
 
@@ -671,35 +646,31 @@ npm test
 - Sanitize XSS removal
 - Armor variable protection
 
-______________________________________________________________________
+---
 
 ## Error Handling
 
 ### Error Types
 
 **1. Syntax Errors**
-
 ```thirsty
 drink noValue
 // Error: Invalid drink statement
 ```
 
 **2. Runtime Errors**
-
 ```thirsty
 pour undefined Var
 // Error: Unknown expression: undefinedVar
 ```
 
 **3. Division Errors**
-
 ```thirsty
 pour 10 / 0
 // Error: Division by zero in expression
 ```
 
 **4. Brace Errors**
-
 ```thirsty
 thirsty true {
   pour "test"
@@ -707,14 +678,12 @@ thirsty true {
 ```
 
 **5. Security Errors**
-
 ```thirsty
 sanitize nonExistent
 // Error: Cannot sanitize undefined variable: nonExistent
 ```
 
 **6. Loop Safety**
-
 ```thirsty
 drink i = 0
 refill i >= 0 {
@@ -723,7 +692,7 @@ refill i >= 0 {
 // Error: Loop exceeded maximum iterations (10000)
 ```
 
-______________________________________________________________________
+---
 
 ## Best Practices
 
@@ -798,21 +767,21 @@ hydrated {
 }
 ```
 
-______________________________________________________________________
+---
 
 ## Examples
 
 ### Complete Examples in Repository
 
 1. **hello.thirsty** - Basic output
-1. **variables.thirsty** - Variable usage
-1. **arithmetic.thirsty** - Math operations
-1. **control-flow.thirsty** - If/else statements
-1. **loops.thirsty** - Loop examples
-1. **basic-protection.thirsty** - Security basics
-1. **advanced-defense.thirsty** - Advanced security
-1. **attack-mitigation.thirsty** - Threat prevention
-1. **paranoid-mode.thirsty** - Maximum security
+2. **variables.thirsty** - Variable usage
+3. **arithmetic.thirsty** - Math operations
+4. **control-flow.thirsty** - If/else statements
+5. **loops.thirsty** - Loop examples
+6. **basic-protection.thirsty** - Security basics
+7. **advanced-defense.thirsty** - Advanced security
+8. **attack-mitigation.thirsty** - Threat prevention
+9. **paranoid-mode.thirsty** - Maximum security
 
 ### Running Examples
 
@@ -822,7 +791,7 @@ npm start examples/arithmetic.thirsty
 npm start examples/security/basic-protection.thirsty
 ```
 
-______________________________________________________________________
+---
 
 ## Production Readiness Checklist
 
@@ -863,7 +832,7 @@ ______________________________________________________________________
 - [x] Type validation
 - [x] Clear error messages
 
-______________________________________________________________________
+---
 
 ## Support
 
@@ -872,13 +841,13 @@ ______________________________________________________________________
 - **Documentation**: README.md, TUTORIAL.md, this file
 - **Examples**: See `examples/` directory
 
-______________________________________________________________________
+---
 
 ## License
 
 See LICENSE file in repository.
 
-______________________________________________________________________
+---
 
 **Thirsty-lang - Enterprise-Grade Security Language**
 
