@@ -1,731 +1,159 @@
-# Thirsty-lang 💧🔒
+# Thirsty-Lang
 
-[![NPM Version](https://img.shields.io/npm/v/thirsty-lang.svg)](https://www.npmjs.com/package/thirsty-lang) [![Node.js CI](https://github.com/IAmSoThirsty/Thirsty-lang/workflows/Thirsty-lang%20CI/badge.svg)](https://github.com/IAmSoThirsty/Thirsty-lang/actions) [![License](https://img.shields.io/badge/license-Custom-blue.svg)](LICENSE) [![Production Ready](https://img.shields.io/badge/status-100%25%20Real%20Production-success.svg)](RELEASE_GUIDE.md)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square)](https://www.python.org/)
+[![PyYAML](https://img.shields.io/badge/dep-PyYAML%206.0%2B-orange?style=flat-square)](https://pyyaml.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-This is my Language for anyone and everyone who is Thirsty - now with **Defensive Programming** capabilities and **T.A.R.L. Integration**!
+**Sovereign Stack workflow definition language.** `thirsty_lang` parses `.tl.yaml` flow definitions, validates them, and compiles them to [Thirstys-Monolith](https://github.com/IAmSoThirsty/Thirstys-Monolith) task payloads or [Thirstys-Waterfall](https://github.com/IAmSoThirsty/Thirstys-waterfall) DAG specs.
 
-## 🚀 Production Ready
+---
 
-**Thirsty-lang v2.0.0** is now **100% Real Production Ready**! This release includes:
+## Pipeline
 
-- ✅ Complete NPM package configuration for publishing
-- ✅ Automated CI/CD pipeline with GitHub Actions
-- ✅ Full test coverage (37 tests passing)
-- ✅ Comprehensive documentation and guides
-- ✅ Production-grade security with T.A.R.L. integration
-- ✅ Multi-platform support (Node.js, Python, Docker)
-- ✅ Complete developer toolchain
+```
+.tl.yaml source
+       │ parse_yaml()
+       ▼
+  FlowDocument   (AST — grammar.py)
+       │ validate_and_normalize()
+       ▼
+    IRFlow        (normalized IR — ir.py)
+       │
+       ├─ ir_to_monolith_tasks()  → List[dict]  → Supervisor.submit_task()
+       └─ ir_to_waterfall_spec()  → dict         → Waterfall DAG engine
+```
 
-**Install globally:** `npm install -g thirsty-lang`
+**Single runtime dependency:** `pyyaml>=6.0.1`.
 
-See [RELEASE_GUIDE.md](RELEASE_GUIDE.md) for release and publishing instructions.
+---
 
-## About
+## Flow Definition Format
 
-Thirsty-lang is a unique, expressive programming language designed to be **defensive and combative** against all known code threats. It combines fun water-themed syntax with enterprise-grade security features.
+Flows are YAML files (`.tl.yaml`):
 
-### 🚀 NEW: T.A.R.L. Integration
+```yaml
+version: 1
+id: "rag-pipeline"
+tenant: "demo-tenant"
 
-Thirsty-lang now integrates with **T.A.R.L. (Thirsty's Active Resistance Language)** from Project-AI, providing:
+tasks:
+  - name: "fetch_context"
+    agent: "retriever"
+    input:
+      query: "{{user.input}}"
+    resources:
+      priority: 10
+      timeout_ms: 2000
 
-- **Dual Runtime Architecture**: JavaScript/Node.js + Python T.A.R.L. runtime
-- **Production-Grade Security**: Advanced threat detection, code morphing, defensive compilation
-- **Policy-Driven Enforcement**: Live-reloadable YAML/JSON security policies
-- **Bi-Directional Bridge**: Async JS ↔ Python communication with metrics
-- **Full Project-AI Compatibility**: Direct integration with Project-AI security infrastructure
+  - name: "answer"
+    agent: "llm"
+    input:
+      context_from: "fetch_context"
+      question: "{{user.input}}"
+    resources:
+      priority: 5
+      timeout_ms: 8000
 
-See [T.A.R.L. Integration Guide](./TARL_INTEGRATION.md) and [Security API Reference](./SECURITY_API.md) for complete documentation.
+edges:
+  - from: "fetch_context"
+    to: "answer"
 
-## Features
+policy:
+  risk_level: "medium"       # low | medium | high | critical
+  requires_approval: false
+  retention: "30d"           # optional
+```
 
-### ✅ Fully Implemented & Functional
+**Validation rules:**
 
-- ✨ Simple and intuitive syntax
-- 📥 Variable assignment (`drink`)
-- 📤 Output statements (`pour`)
-- 📨 Input statements (`sip`)
-- 🔄 Control flow (if/else with `thirsty`/`hydrated`)
-- 🔁 Loops (`refill` keyword)
-- ➕ Arithmetic operations (+, -, \*, /) with proper precedence
-- 🔗 String concatenation
-- 🔀 Comparison operators (>, \<, >=, \<=, ==, !=)
-- 🔒 **Enhanced Security Features with T.A.R.L.:**
-  - 🛡️ Shield blocks - Protected execution contexts
-  - 🧹 Sanitize - HTML encoding to prevent XSS injection
-  - 🔐 Armor - Variable protection against modification
-  - 🔍 **NEW: Advanced Threat Detection** - Pattern-based threat analysis
-  - 🔄 **NEW: Code Morphing** - Dynamic code transformation and obfuscation
-  - 🛡️ **NEW: Defense Compiler** - Defensive compilation with security guards
-  - 📋 **NEW: Policy Engine** - YAML/JSON policy management with hot-reload
-  - 🔗 **NEW: Security Bridge** - JS ↔ Python T.A.R.L. runtime integration
-  - 📊 **NEW: Security Metrics** - Performance and threat tracking
-- 🔍 Built-in REPL for experimenting
-- 🐍 **Python implementation included**
-- 🐳 **Docker and Docker Compose support**
-- 🔒 **Virtual environment setup**
-- 🐛 **Full-featured debugger**
-- 📊 **Performance profiler**
-- 🎨 **Code formatter and linter**
-- 📚 **Automatic documentation generator**
-- 🌐 **Web playground**
-- 🔄 **Transpiler to JavaScript, Python, Go, Rust, Java, and C**
-- 📦 **Package manager**
-- 🌳 **AST generator**
-- 🎓 **Interactive training program**
-- 🔌 **VS Code extension**
+- `id` and `tenant` must be non-empty.
+- Task `name` and `agent` must be non-empty; names must be unique.
+- `edge.from` and `edge.to` must reference known task names.
+- `risk_level` must be one of `low`, `medium`, `high`, `critical`.
+- `timeout_ms` must be > 0.
+- The task graph must be a DAG (cycles are rejected).
 
-### ✅ Recently Implemented Features
+---
 
-- 🧩 **Functions** (`glass` keyword) - Declare and call functions with parameters and return values
-- 📚 **Arrays and Data Structures** (`reservoir` keyword) - Dynamic arrays with rich methods
-- 🎯 **Classes and OOP** (`fountain` keyword) - Object-oriented programming with classes, methods, and properties
-- 🌍 **Standard Library** - Built-in Math and String utilities for common operations
-- 🎓 **Language Editions** - Four-tier progression system (Base, Plus, PlusPlus, ThirstOfGods)
-- 📦 **Modules and imports** (`import`/`export` keywords) - Code organization across multiple files
-- ⚡ **Async/await support** (`cascade`/`await` keywords) - Asynchronous programming with promises
-- 🌐 **Network utilities** (`Http` built-in) - HTTP requests and API interactions (GET, POST, fetch)
-- 💾 **File I/O operations** (`File` built-in) - Read, write, check existence, and delete files
-- 🔧 **Enhanced debugging tools** - Advanced breakpoints, variable inspection, expression evaluation, and call stack viewing
-
-### 📋 Planned Features (Future Releases)
-
-- 🔄 **Error handling** (`try`/`catch` keywords) - Exception handling and error recovery
-- 📊 **JSON support** - Native JSON parsing and serialization
-
-## Getting Started
-
-### Prerequisites
-
-**Choose your runtime:**
-
-- **Node.js** (Primary): 14 or higher
-- **Python** (Alternative): 3.8 or higher
-- **Docker** (Optional): For containerized execution
-
-### Installation
-
-#### NPM Installation (Recommended for Production)
+## Quick Start
 
 ```bash
-
-# Install globally
-
-npm install -g thirsty-lang
-
-# Verify installation
-
-thirsty --version
-
-# Run a program
-
-thirsty examples/hello.thirsty
-
-# Start REPL
-
-thirsty-repl
+pip install -e ".[dev]"   # PyYAML + pytest, ruff, mypy, …
+pytest -q                 # 27 tests across parser, validator, compiler
 ```
 
-#### Node.js Setup (Development)
+```python
+from thirsty_lang import parse_yaml, validate_and_normalize, ir_to_monolith_tasks, ir_to_waterfall_spec
+
+src = open("flow.tl.yaml").read()
+doc = parse_yaml(src)                   # → FlowDocument (AST)
+ir  = validate_and_normalize(doc)       # → IRFlow (validated, cycle-free)
+
+# Compile to Monolith
+tasks = ir_to_monolith_tasks(ir)        # → [{"meta": {...}, "agent": ..., "input": ...}, ...]
+
+# Compile to Waterfall
+spec  = ir_to_waterfall_spec(ir)        # → {"id": ..., "tasks": [...], "edges": [...], ...}
+```
+
+### End-to-End with Monolith
+
+```python
+from thirsty_lang import parse_yaml, validate_and_normalize, ir_to_monolith_tasks
+from monolith import Supervisor, load_config
+
+ir = validate_and_normalize(parse_yaml(open("flow.tl.yaml").read()))
+
+with Supervisor(load_config()) as sup:
+    for payload in ir_to_monolith_tasks(ir):
+        sup.submit_task(payload)
+    results = sup.collect_results(timeout=5.0)
+```
+
+---
+
+## Package Structure
+
+```
+src/thirsty_lang/
+  __init__.py    # public API: parse_yaml, validate_and_normalize, ir_to_*
+  errors.py      # ThirstyLangError, ParseError, ValidationError, CompileError
+  grammar.py     # AST types: FlowDocument, TaskNode, Edge, Policy
+  parser.py      # parse_yaml() — YAML → FlowDocument
+  ir.py          # IRFlow, IRTask, IREdge, IRPolicy
+  validator.py   # validate_and_normalize() — static rules + DAG cycle check
+  compiler.py    # ir_to_monolith_tasks() / ir_to_waterfall_spec() + topo sort
+  examples/
+    hello_world.tl.yaml   # retriever → LLM two-step RAG pipeline
+```
+
+---
+
+## Error Handling
+
+| Exception | When |
+|---|---|
+| `ParseError` | Invalid YAML syntax or missing required top-level fields |
+| `ValidationError` | Empty names, unknown edge refs, bad `risk_level`, cycle, `timeout_ms ≤ 0` |
+| `CompileError` | Future: compilation target constraints |
+
+All are subclasses of `ThirstyLangError`.
+
+---
+
+## Development
 
 ```bash
-npm install
+pip install -e ".[dev]"
+
+pytest -q                  # run tests
+ruff check src/ tests/     # lint
+mypy src/thirsty_lang/     # type-check
+pip-audit                  # dependency audit
 ```
 
-#### Python Setup (Alternative)
-
-```bash
-
-# Automated setup
-
-./setup_venv.sh
-
-# Manual setup
-
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-#### Docker Setup (Optional)
-
-```bash
-
-# Build and run with Docker Compose
-
-docker-compose up
-
-# Or build Docker image directly
-
-docker build -t thirsty-lang .
-```
-
-See [DOCKER.md](DOCKER.md) for detailed Docker instructions and [PYTHON_SETUP.md](PYTHON_SETUP.md) for Python setup guide.
-
-### Quick Start
-
-#### Using Node.js
-
-```bash
-
-# Run a program
-
-npm start examples/hello.thirsty
-
-# Or use the unified CLI
-
-node src/thirsty-cli.js run examples/hello.thirsty
-```
-
-#### Using Python
-
-```bash
-
-# Activate virtual environment (if using)
-
-source .venv/bin/activate
-
-# Run a program
-
-python3 src/thirsty_interpreter.py examples/hello.thirsty
-
-# Start Python REPL
-
-python3 src/thirsty_repl.py
-```
-
-#### Using Docker
-
-```bash
-
-# Run a program
-
-docker-compose run --rm thirsty node src/cli.js examples/hello.thirsty
-
-# Start Node.js REPL
-
-docker-compose run --rm repl
-
-# Start Python REPL
-
-docker-compose run --rm python-repl
-```
-
-### Interactive Training Program 🎓
-
-Learn Thirsty-lang interactively with our built-in training program:
-
-```bash
-npm run train
-```
-
-The training program includes:
-
-- 💧 **Base Thirsty-lang**: Fundamentals for beginners
-- 💧+ **Thirsty Plus**: Control flow and logic
-- 💧++ **Thirsty Plus Plus**: Functions and loops
-- ⚡ **ThirstOfGods**: Advanced OOP and async features
-
-### Running Thirsty-lang Programs
-
-```bash
-npm start examples/hello.thirsty
-```
-
-### Running Tests
-
-```bash
-npm test
-
-# Run security tests
-
-node src/test/security-tests.js
-```
-
-## Language Syntax
-
-### Core Keywords (Water-Themed)
-
-- `drink` - Variable declaration
-- `pour` - Output/print statement
-- `sip` - Input statement
-- `thirsty` - If statement
-- `hydrated` - Else statement
-- `refill` - Loop statement
-- `glass` - Function declaration
-
-### Security Keywords (Defensive Programming)
-
-- `shield` - Mark code blocks for protection
-- `morph` - Enable dynamic code mutation
-- `detect` - Set up threat monitoring
-- `defend` - Automatic countermeasures
-- `sanitize` - Input/output cleaning
-- `armor` - Memory protection
-
-### Example Programs
-
-#### Basic Program
-
-```thirsty
-drink water = "Hello, World!"
-pour water
-```
-
-#### Using Functions
-
-```thirsty
-glass greet(name) {
-  return "Hello, " + name + "!"
-}
-
-drink message = greet("Thirsty Developer")
-pour message
-```
-
-#### Working with Arrays
-
-```thirsty
-reservoir fruits = ["apple", "banana", "orange"]
-pour "Fruits: " + fruits.join(", ")
-
-fruits.push("mango")
-pour "After adding mango: " + fruits.join(", ")
-```
-
-#### Object-Oriented Programming
-
-```thirsty
-fountain Calculator {
-  drink version = "1.0"
-
-  glass add(a, b) {
-    return a + b
-  }
-
-  glass multiply(a, b) {
-    return a * b
-  }
-}
-
-drink calc = Calculator()
-drink sum = calc.add(10, 5)
-pour "10 + 5 = " + sum
-```
-
-#### Using Standard Library
-
-```thirsty
-drink radius = 5
-drink area = Math.PI * Math.pow(radius, 2)
-pour "Circle area: " + area
-
-drink text = "  hello world  "
-drink formatted = String.toUpperCase(String.trim(text))
-pour "Formatted: " + formatted
-```
-
-#### Using Modules (Import/Export)
-
-```thirsty
-// math-utils.thirsty
-glass square(n) {
-  return n * n
-}
-export square
-
-// main.thirsty
-import { square } from "math-utils.thirsty"
-drink result = square(5)
-pour "5 squared is: " + result
-```
-
-#### Async/Await with Cascade
-
-```thirsty
-// Define async function with cascade keyword
-cascade fetchData(url) {
-  drink response = await Http.get(url)
-  return response.body
-}
-
-// Use async file I/O
-cascade saveData(filename, content) {
-  drink success = await File.writeAsync(filename, content)
-  return success
-}
-```
-
-#### File I/O Operations
-
-```thirsty
-// Write to a file
-drink success = File.write("data.txt", "Hello, Thirsty!")
-pour "File written: " + success
-
-// Read from a file
-drink content = File.read("data.txt")
-pour "File content: " + content
-
-// Check if file exists
-drink exists = File.exists("data.txt")
-pour "File exists: " + exists
-
-// Delete file
-drink deleted = File.delete("data.txt")
-```
-
-#### Network Utilities (HTTP Requests)
-
-```thirsty
-// Note: These examples use async functions
-cascade getData() {
-  // HTTP GET request
-  drink response = await Http.get("https://api.example.com/data")
-  pour "Status: " + response.status
-  pour "Body: " + response.body
-
-  // HTTP POST request
-  drink postData = await Http.post("https://api.example.com/submit", "data")
-
-  // Using fetch
-  drink result = await Http.fetch("https://api.example.com/endpoint")
-  return result
-}
-```
-
-#### Secure Program with Basic Protection
-
-```thirsty
-shield mySecureApp {
-  drink userData = "<script>alert('xss')</script>"
-  sanitize userData  // Removes XSS with HTML encoding
-
-  drink secretKey = "my-secret-123"
-  armor secretKey    // Protects from modification
-
-  pour "Hello, " + userData  // Safe output
-}
-```
-
-**Note:** `morph`, `detect`, and `defend` keywords can be used but are configuration placeholders only. The real security comes from `shield` (execution context), `sanitize` (HTML encoding), and `armor` (variable protection).
-
-See more examples in the `examples/` and `examples/security/` directories.
-
-## Basic Security Features
-
-Thirsty-lang includes basic security features for educational purposes:
-
-### What Actually Works
-
-**1. Shield Blocks** - Protected execution contexts
-
-```thirsty
-shield secureApp {
-  // Code here runs in isolated context
-}
-```
-
-**2. Sanitization** - HTML encoding to prevent XSS
-
-```thirsty
-drink userInput = "<script>alert('xss')</script>"
-sanitize userInput  // Becomes: &lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;
-```
-
-- Escapes `<`, `>`, `&`, `"`, `'`, `/`
-- Prevents script injection
-- Real HTML encoding
-
-**3. Variable Armor** - Protection from modification
-
-```thirsty
-drink secretKey = "api-key-123"
-armor secretKey            // Variable is now protected
-drink secretKey = "hacked" // Warning: modification blocked
-```
-
-### Configuration Placeholders
-
-The following keywords are accepted but only set configuration flags:
-
-- `morph on: [...]` - Sets morph flag in shield context
-- `detect attacks` - Sets detect flag
-- `defend with: "strategy"` - Sets defense strategy flag
-
-These do not provide actual threat detection or countermeasures, they're placeholders for future expansion.
-
-See the `examples/security/` directory for working examples.
-
-## Available Tools
-
-### ✅ Working Tools
-
-#### REPL (Read-Eval-Pour-Loop)
-
-```bash
-npm run repl
-```
-
-Interactive console for experimenting with Thirsty-lang.
-
-#### CLI Runner
-
-```bash
-npm start examples/hello.thirsty
-```
-
-Run Thirsty-lang programs from the command line.
-
-### 🛠️ Development Tools (Fully Functional)
-
-All documented development tools are implemented and functional:
-
-**✅ Debugger** (`src/debugger.js`) - Step through code, set breakpoints, watch variables
-
-```bash
-node src/debugger.js examples/hello.thirsty
-```
-
-**✅ Code Formatter** (`src/formatter.js`) - Beautify and format Thirsty code
-
-```bash
-node src/formatter.js examples/hello.thirsty
-```
-
-**✅ Linter** (`src/linter.js`) - Check code quality and style
-
-```bash
-node src/linter.js examples/hello.thirsty
-```
-
-**✅ Performance Profiler** (`src/profiler.js`) - Analyze code performance
-
-```bash
-node src/profiler.js examples/hello.thirsty
-```
-
-**✅ Documentation Generator** (`src/doc-generator.js`) - Generate docs from code
-
-```bash
-node src/doc-generator.js examples/hello.thirsty
-```
-
-**✅ AST Generator** (`src/ast.js`) - Generate Abstract Syntax Trees
-
-```bash
-node src/ast.js examples/hello.thirsty
-```
-
-**✅ Transpiler** (`src/transpiler.js`) - Transpile to JavaScript
-
-```bash
-node src/transpiler.js examples/hello.thirsty
-```
-
-**✅ Package Manager** (`src/package-manager.js`) - Manage Thirsty packages
-
-```bash
-node src/package-manager.js init
-```
-
-**✅ Web Playground** (`playground/index.html`) - Try Thirsty in your browser
-
-```bash
-
-# Open playground/index.html in your browser
-
-```
-
-All tools have been tested and are fully functional.
-
-## Implementation Support
-
-Thirsty-lang includes two complete implementations:
-
-### Node.js Implementation (Primary)
-
-- **Fast and feature-complete**
-- All tools and utilities included
-- Production-ready
-- Run: `node src/cli.js <file.thirsty>`
-
-### Python Implementation (Alternative)
-
-- **Pure Python with standard library**
-- Educational and portable
-- Cross-platform compatible
-- Run: `python3 src/thirsty_interpreter.py <file.thirsty>`
-
-See [PYTHON_SETUP.md](PYTHON_SETUP.md) for detailed Python setup and usage.
-
-### Docker Support
-
-- **Multi-service architecture**
-- Development and production images
-- Pre-configured services for all tools
-- See [DOCKER.md](DOCKER.md) for complete Docker guide
-
-## Language Editions
-
-Thirsty-lang comes in four flavors, each building on the previous:
-
-| Edition             | Level        | Features                                                         | Status         |
-| ------------------- | ------------ | ---------------------------------------------------------------- | -------------- |
-| 💧 **Base**         | Beginner     | Variables (`drink`), Output (`pour`), Comments                   | ✅ Implemented |
-| 💧+ **Thirsty+**    | Intermediate | Control flow (`thirsty`/`hydrated`), Loops (`refill`), Operators | ✅ Implemented |
-| 💧++ **Thirsty++**  | Advanced     | Functions (`glass`), Arrays (`reservoir`), Standard Library      | ✅ Implemented |
-| ⚡ **ThirstOfGods** | Master       | Classes (`fountain`), OOP, Advanced Data Structures              | ✅ Implemented |
-
-### Feature Matrix by Edition
-
-#### 💧 Base Thirsty-lang
-
-- ✅ Variable declaration (`drink`)
-- ✅ Output statements (`pour`)
-- ✅ Input statements (`sip`)
-- ✅ Comments (`//`)
-- ✅ Basic string and number literals
-
-#### 💧+ Thirsty Plus
-
-**All Base features, plus:**
-
-- ✅ Conditional statements (`thirsty`/`hydrated`)
-- ✅ Comparison operators (`>`, `<`, `>=`, `<=`, `==`, `!=`)
-- ✅ Arithmetic operations (`+`, `-`, `*`, `/`)
-- ✅ String concatenation
-- ✅ Boolean values
-
-#### 💧++ Thirsty Plus Plus
-
-**All Thirsty+ features, plus:**
-
-- ✅ Function declarations (`glass`)
-- ✅ Function calls with parameters
-- ✅ Return statements
-- ✅ Array declarations (`reservoir`)
-- ✅ Array indexing and element access
-- ✅ Array methods (push, pop, shift, unshift, indexOf, includes, join, slice, reverse, sort)
-- ✅ Loops with iteration (`refill`)
-- ✅ Standard Library:
-  - Math utilities (PI, E, abs, sqrt, pow, floor, ceil, round, min, max, random)
-  - String methods (toUpperCase, toLowerCase, trim, split, replace, charAt, substring)
-
-#### ⚡ ThirstOfGods
-
-**All Thirsty++ features, plus:**
-
-- ✅ Class declarations (`fountain`)
-- ✅ Object instantiation
-- ✅ Class methods
-- ✅ Class properties
-- ✅ `this` keyword for property access
-- ✅ Object-oriented programming
-
-**Note:** All features are currently available in the standard interpreter. Future versions may introduce edition-specific runtime modes.
-
-See [docs/EXPANSIONS.md](docs/EXPANSIONS.md) for detailed information and examples.
-
-## Documentation
-
-Full language specification and documentation can be found in the `docs/` directory and root:
-
-### Core Documentation
-
-- [README.md](README.md) - Main documentation (this file)
-- [Language Specification](docs/SPECIFICATION.md) - Complete syntax and semantics
-- [Expansions Guide](docs/EXPANSIONS.md) - Multi-tier language editions
-- [Tutorial](docs/TUTORIAL.md) - Step-by-step learning guide
-- [Quick Reference](docs/QUICK_REFERENCE.md) - Syntax cheat sheet
-- [FAQ](docs/FAQ.md) - Frequently asked questions
-- [Installation Guide](docs/INSTALLATION.md) - Setup instructions
-
-### Setup Guides
-
-- [PYTHON_SETUP.md](PYTHON_SETUP.md) - Python implementation setup
-- [DOCKER.md](DOCKER.md) - Docker and containerization guide
-
-### Project Information
-
-- [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute
-- [CHANGELOG.md](CHANGELOG.md) - Version history and changes
-- [AUTHORS.txt](AUTHORS.txt) - Contributors and authors
-- [DEPENDENCIES.txt](DEPENDENCIES.txt) - Dependency information
-- [VERSION.txt](VERSION.txt) - Current version
-- [LICENSE](LICENSE) - License terms
-
-## VS Code Extension
-
-Syntax highlighting and code snippets are available in `vscode-extension/`.
-
-To install:
-
-1. Copy the `vscode-extension` folder to your VS Code extensions directory
-1. Reload VS Code
-1. Enjoy syntax highlighting for `.thirsty` files!
-
-See [vscode-extension/README.md](vscode-extension/README.md) for detailed installation instructions.
-
-## Project Structure
-
-```
-Thirsty-lang/
-├── src/
-│   ├── index.js                # Main Node.js interpreter
-│   ├── cli.js                  # CLI runner
-│   ├── thirsty-cli.js          # Unified CLI
-│   ├── repl.js                 # Interactive REPL
-│   ├── training.js             # Interactive training program
-│   ├── debugger.js             # Debugger
-│   ├── formatter.js            # Code formatter
-│   ├── linter.js               # Code linter
-│   ├── profiler.js             # Performance profiler
-│   ├── doc-generator.js        # Documentation generator
-│   ├── ast.js                  # AST generator
-│   ├── transpiler.js           # Multi-language transpiler
-│   ├── package-manager.js      # Package manager
-│   ├── thirsty_interpreter.py  # Python interpreter
-│   ├── thirsty_repl.py         # Python REPL
-│   ├── thirsty_utils.py        # Python utilities
-│   └── test/                   # Test suite
-├── examples/                   # Example programs
-│   ├── hello.thirsty
-│   ├── variables.thirsty
-│   ├── hydration.thirsty
-│   └── advanced/               # Advanced examples
-├── docs/                       # Documentation
-├── playground/                 # Web playground
-├── vscode-extension/           # VS Code extension
-├── tools/                      # Benchmark tools
-├── requirements.txt            # Python core dependencies
-├── requirements-dev.txt        # Python dev dependencies
-├── setup_venv.sh               # Python venv setup script
-├── Dockerfile                  # Docker container definition
-├── docker-compose.yml          # Docker multi-service setup
-├── .dockerignore               # Docker ignore file
-├── CHANGELOG.md                # Version history
-├── AUTHORS.txt                 # Contributors
-├── DEPENDENCIES.txt            # Dependency information
-├── VERSION.txt                 # Current version
-└── .github/workflows/          # CI/CD
-```
-
-## Contributing
-
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+---
 
 ## License
 
-This project is licensed under the terms in the LICENSE file.
-
-## Author
-
-Created by someone who believes coding should be refreshing! 💧
-
-## Stay Connected
-
-- 🐛 [Report Issues](https://github.com/IAmSoThirsty/Thirsty-lang/issues)
-- 💡 [Request Features](https://github.com/IAmSoThirsty/Thirsty-lang/issues/new)
-- ⭐ [Star on GitHub](https://github.com/IAmSoThirsty/Thirsty-lang)
-
-Stay hydrated and happy coding! 💧✨
+MIT © Thirsty-Lang Team
