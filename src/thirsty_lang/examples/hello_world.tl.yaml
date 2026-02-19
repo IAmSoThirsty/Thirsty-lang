@@ -1,0 +1,29 @@
+version: 1
+id: "example-flow"
+tenant: "demo-tenant"
+
+tasks:
+  - name: "fetch_context"
+    agent: "retriever"
+    input:
+      query: "{{user.input}}"
+    resources:
+      priority: 10
+      timeout_ms: 2000
+
+  - name: "answer"
+    agent: "llm"
+    input:
+      context_from: "fetch_context"
+      question: "{{user.input}}"
+    resources:
+      priority: 5
+      timeout_ms: 8000
+
+edges:
+  - from: "fetch_context"
+    to: "answer"
+
+policy:
+  risk_level: "medium"
+  requires_approval: false
