@@ -39,7 +39,7 @@ This is the **100% Real Production** release of Thirsty-lang! The language is no
 - 📚 **Arrays and Data Structures** (`reservoir` keyword) - Dynamic arrays with rich methods
 - 🎯 **Classes and OOP** (`fountain` keyword) - Object-oriented programming
 - 🌍 **Standard Library** - Built-in Math and String utilities
-- 🎓 **Language Editions** - Four-tier progression system (Base, Plus, PlusPlus, ThirstOfGods)
+- 🎓 **Language Tiers** — Four-tier progression system (Thirsty-Lang, Thirst of Gods, T.A.R.L., Thirsty's Shadow)
 - 🔒 **Enhanced Security Features**:
   - 🛡️ Shield blocks - Protected execution contexts
   - 🧹 Sanitize - HTML encoding to prevent XSS injection
@@ -115,10 +115,10 @@ This is the **100% Real Production** release of Thirsty-lang! The language is no
 
 ### Language Features
 
-- 💧 **Base Thirsty-lang**: Core features for beginners
-- 💧+ **Thirsty Plus**: Control flow and conditionals
-- 💧++ **Thirsty Plus Plus**: Functions, loops, and arrays
-- ⚡ **ThirstOfGods**: Advanced OOP and async features
+- 💧 **Thirsty-Lang**: Core features for beginners
+- ⚡ **Thirst of Gods**: Control flow and conditionals
+- 🛡️ **T.A.R.L.**: Functions, loops, arrays, and security
+- 🌑 **Thirsty's Shadow**: Advanced OOP and async features
 
 ### Tools & Infrastructure
 

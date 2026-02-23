@@ -10,8 +10,7 @@ from typing import List, Optional
 
 
 def read_file(filename: str) -> str:
-    """
-    Read a Thirsty-lang source file
+    """Read a Thirsty-lang source file.
 
     Args:
         filename: Path to the file
@@ -27,8 +26,7 @@ def read_file(filename: str) -> str:
 
 
 def get_file_extension(filename: str) -> str:
-    """
-    Get the file extension
+    """Get the file extension.
 
     Args:
         filename: Path to the file
@@ -40,8 +38,7 @@ def get_file_extension(filename: str) -> str:
 
 
 def is_thirsty_file(filename: str) -> bool:
-    """
-    Check if a file is a Thirsty-lang file
+    """Check if a file is a Thirsty-lang file.
 
     Args:
         filename: Path to the file
@@ -49,13 +46,17 @@ def is_thirsty_file(filename: str) -> bool:
     Returns:
         True if file has Thirsty-lang extension
     """
-    valid_extensions = [".thirsty", ".thirstyplus", ".thirstyplusplus", ".thirstofgods"]
+    valid_extensions = [
+        ".thirsty",
+        ".tog",
+        ".tarl",
+        ".shadow",
+    ]
     return get_file_extension(filename).lower() in valid_extensions
 
 
 def find_thirsty_files(directory: str) -> List[str]:
-    """
-    Find all Thirsty-lang files in a directory
+    """Find all Thirsty-lang files in a directory.
 
     Args:
         directory: Path to search
@@ -64,7 +65,7 @@ def find_thirsty_files(directory: str) -> List[str]:
         List of Thirsty-lang file paths
     """
     thirsty_files = []
-    for root, dirs, files in os.walk(directory):
+    for root, _dirs, files in os.walk(directory):
         for file in files:
             filepath = os.path.join(root, file)
             if is_thirsty_file(filepath):
@@ -72,9 +73,10 @@ def find_thirsty_files(directory: str) -> List[str]:
     return thirsty_files
 
 
-def format_error(message: str, line_num: Optional[int] = None) -> str:
-    """
-    Format an error message
+def format_error(
+    message: str, line_num: Optional[int] = None
+) -> str:
+    """Format an error message.
 
     Args:
         message: Error message
@@ -88,9 +90,8 @@ def format_error(message: str, line_num: Optional[int] = None) -> str:
     return f"Error: {message}"
 
 
-def print_banner(title: str):
-    """
-    Print a formatted banner
+def print_banner(title: str) -> None:
+    """Print a formatted banner.
 
     Args:
         title: Banner title
@@ -98,22 +99,23 @@ def print_banner(title: str):
     width = 60
     border = "═" * (width - 2)
     print(f"╔{border}╗")
-    padding = (width - len(title) - 2) // 2
-    print(f"║{' ' * padding}{title}{' ' * (width - len(title) - padding - 2)}║")
+    pad = (width - len(title) - 2) // 2
+    right = width - len(title) - pad - 2
+    print(f"║{' ' * pad}{title}{' ' * right}║")
     print(f"╚{border}╝")
 
 
 def check_version() -> str:
-    """
-    Get Python and Thirsty-lang version info
+    """Get Python and Thirsty-lang version info.
 
     Returns:
         Version string
     """
-    python_version = (
-        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-    )
-    return f"Python {python_version} | Thirsty-lang 1.0.0"
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+    micro = sys.version_info.micro
+    py_ver = f"{major}.{minor}.{micro}"
+    return f"Python {py_ver} | Thirsty-lang 2.0.0"
 
 
 if __name__ == "__main__":

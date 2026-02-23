@@ -1,21 +1,59 @@
 {
   "name": "thirsty-lang",
-  "displayName": "Thirsty-lang",
-  "description": "Language support for Thirsty-lang - Stay hydrated while coding!",
+  "displayName": "Thirsty-lang — The Hydration Language Family",
+  "description": "Language support for the Thirsty language family: Thirsty-Lang, Thirst of Gods, T.A.R.L., and Thirsty's Shadow",
   "version": "1.0.0",
-  "publisher": "thirsty-lang",
+  "publisher": "IAmSoThirsty",
+  "icon": "icon.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IAmSoThirsty/Thirsty-Lang"
+  },
+  "homepage": "https://github.com/IAmSoThirsty/Thirsty-Lang",
+  "bugs": {
+    "url": "https://github.com/IAmSoThirsty/Thirsty-Lang/issues"
+  },
+  "galleryBanner": {
+    "color": "#0A1628",
+    "theme": "dark"
+  },
+  "keywords": [
+    "thirsty",
+    "thirsty-lang",
+    "thirst-of-gods",
+    "tarl",
+    "thirstys-shadow",
+    "programming-language",
+    "water",
+    "hydration",
+    "defensive-programming",
+    "security"
+  ],
   "engines": {
     "vscode": "^1.60.0"
   },
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Snippets"
   ],
   "contributes": {
     "languages": [
       {
         "id": "thirsty",
-        "aliases": ["Thirsty", "thirsty-lang"],
-        "extensions": [".thirsty", ".thirstyplus", ".thirstyplusplus", ".thirstofgods"],
+        "aliases": [
+          "Thirsty",
+          "thirsty-lang",
+          "Thirst of Gods",
+          "T.A.R.L.",
+          "Thirsty's Shadow"
+        ],
+        "extensions": [
+          ".thirsty",
+          ".tog",
+          ".tarl",
+          ".shadow"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],

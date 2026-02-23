@@ -1,5 +1,5 @@
-// Advanced Thirsty++ Example
-// This demonstrates future features
+// T.A.R.L. Example
+// This demonstrates functions, loops, and security features
 
 // Function to calculate daily water intake
 glass calculateWaterIntake(weight, activity_level)
@@ -18,10 +18,10 @@ pour "Daily water intake:"
 pour daily_water
 pour "liters"
 
-// Array example (future feature)
+// Array example
 reservoir hydration_log = [2.0, 1.5, 2.5, 3.0]
 
-// Loop through log (future feature)
+// Loop through log
 refill 4 times
   pour hydration_log[index]
 

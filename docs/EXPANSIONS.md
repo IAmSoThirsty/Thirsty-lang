@@ -1,10 +1,10 @@
 # Thirsty-lang Expansions
 
-Thirsty-lang comes in multiple flavors to suit different levels of thirst! 💧
+Thirsty-lang comes in four tiers to suit different levels of thirst! 💧
 
-## Base: Thirsty-lang
+## Tier 1: Thirsty-Lang (`.thirsty`)
 
-The core language with basic features:
+The core language with fundamental features:
 
 - Variable declaration (`drink`)
 - Output (`pour`)
@@ -12,7 +12,7 @@ The core language with basic features:
 
 **Use when**: You're just starting your hydration journey.
 
-## Thirsty+ (Thirsty Plus)
+## Tier 2: Thirst of Gods (`.tog`)
 
 Enhanced features for intermediate users:
 
@@ -30,9 +30,9 @@ Enhanced features for intermediate users:
 - `parched` - Boolean true
 - `quenched` - Boolean false
 
-### Example
+### Thirst of Gods Example
 
-```thirstyplus
+```thirsty
 drink temperature = 25
 thirsty temperature > 20
   pour "It's warm! Drink more water!"
@@ -42,9 +42,9 @@ hydrated
 
 **Use when**: You need basic logic and control flow.
 
-## Thirsty++ (Thirsty Plus Plus)
+## Tier 3: T.A.R.L. (`.tarl`)
 
-Advanced features for power users:
+Advanced features for power users — Tactical Analysis & Response Language:
 
 ### ✅ Implemented Features
 
@@ -52,18 +52,22 @@ Advanced features for power users:
 - **Functions**: `glass` for function declarations with parameters and return values
 - **Arrays**: `reservoir` for dynamic collections
 - **Standard Library**: Built-in Math and String utilities
+- **Security**: `shield`, `sanitize`, `armor`, `detect`, `defend`
 
-### Keywords
+### T.A.R.L. Keywords
 
 - `refill condition` - While loop
 - `glass name(params)` - Function definition
 - `sip` - Input from user
 - `reservoir` - Array declaration
 - `return` - Return from function
+- `shield` - Protected code block
+- `sanitize` - Input cleaning
+- `armor` - Memory protection
 
-### Example
+### T.A.R.L. Example
 
-```thirstyplusplus
+```thirsty
 glass calculateHydration(weight) {
   drink dailyWater = weight * 0.033
   return dailyWater
@@ -85,11 +89,11 @@ drink area = Math.PI * Math.pow(5, 2)
 pour "Circle area: " + area
 ```
 
-**Use when**: Building complex applications with functions and data structures.
+**Use when**: Building complex applications with functions, data structures, and security.
 
-## ThirstOfGods (Ultimate Edition)
+## Tier 4: Thirsty's Shadow (`.shadow`)
 
-The most powerful variant with divine capabilities:
+The most powerful tier with shadow-realm capabilities:
 
 ### ✅ Implemented Features
 
@@ -104,15 +108,18 @@ The most powerful variant with divine capabilities:
 - **Async/Await**: `cascade` and `await` for asynchronous operations
 - **Modules**: `import` and `export` for code organization
 - **Error Handling**: `spillage` (try) and `cleanup` (catch)
+- **Shadow Computing**: Dual-reality execution model
 
-### Keywords
+### Shadow Keywords
 
 - `fountain ClassName` - Class declaration
 - `this` - Reference to instance properties
+- `cascade` - Async function
+- `morph` - Code obfuscation
 
-### Example
+### Shadow Example
 
-```thirstofgods
+```thirsty
 fountain HydrationTracker {
   drink totalWater = 0
   drink goal = 2000
@@ -143,10 +150,10 @@ tracker.checkGoal()
 
 **Use when**: Building enterprise-level applications with object-oriented design.
 
-## Choosing Your Edition
+## Choosing Your Tier
 
-| Feature | Base | Thirsty+ | Thirsty++ | ThirstOfGods |
-|---------|------|----------|-----------|--------------|
+| Feature | Thirsty-Lang | Thirst of Gods | T.A.R.L. | Thirsty's Shadow |
+| --------- | :---: | :---: | :---: | :---: |
 | Variables | ✓ | ✓ | ✓ | ✓ |
 | Output | ✓ | ✓ | ✓ | ✓ |
 | Control Flow | ✗ | ✓ | ✓ | ✓ |
@@ -155,17 +162,16 @@ tracker.checkGoal()
 | Functions | ✗ | ✗ | ✓ | ✓ |
 | Arrays | ✗ | ✗ | ✓ | ✓ |
 | Standard Library | ✗ | ✗ | ✓ | ✓ |
+| Security Features | ✗ | ✗ | ✓ | ✓ |
 | Classes | ✗ | ✗ | ✗ | ✓ |
 | OOP | ✗ | ✗ | ✗ | ✓ |
 
 ## Running Your Code
 
-All editions are currently available in the standard Thirsty-lang interpreter:
+All tiers are currently available in the standard Thirsty-lang interpreter:
 
 ```bash
-
 # Run any Thirsty-lang program
-
 npm start examples/hello.thirsty
 npm start examples/functions.thirsty
 npm start examples/arrays.thirsty
@@ -173,15 +179,15 @@ npm start examples/classes.thirsty
 npm start examples/stdlib.thirsty
 ```
 
-**Note:** All features from all editions are available by default. The edition system is designed as a progressive learning path rather than separate runtime modes.
+**Note:** All features from all tiers are available by default. The tier system is designed as a progressive learning path rather than separate runtime modes.
 
 ## Migration Path
 
-Start with base Thirsty-lang and upgrade as your thirst grows! Each edition is backward compatible with the previous one.
+Start with Thirsty-Lang and ascend as your thirst grows! Each tier is backward compatible.
 
-1. **Start with Base**: Learn variables and output
-2. **Move to Thirsty+**: Add control flow and conditionals
-3. **Advance to Thirsty++**: Master functions, arrays, and the standard library
-4. **Ascend to ThirstOfGods**: Embrace object-oriented programming
+1. **Start with Thirsty-Lang**: Learn variables and output
+2. **Ascend to Thirst of Gods**: Add control flow and conditionals
+3. **Master T.A.R.L.**: Functions, arrays, security, and the standard library
+4. **Enter Thirsty's Shadow**: Embrace OOP and shadow computing
 
-Stay hydrated at every level! 💧✨
+Stay hydrated at every tier! 💧✨

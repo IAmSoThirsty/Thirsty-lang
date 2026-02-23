@@ -49,12 +49,12 @@ npm start examples/hello.thirsty
 
 ## Language Extensions
 
-We welcome contributions to all language variants:
+We welcome contributions to all language family tiers:
 
-- **Thirsty-lang**: The base language
-- **Thirsty+**: Enhanced features
-- **Thirsty++**: Advanced features
-- **ThirstOfGods**: Ultimate power features
+- **Thirsty-Lang** (`.thirsty`) — Core water-themed programming
+- **Thirst of Gods** (`.tog`) — Divine-tier capabilities
+- **T.A.R.L.** (`.tarl`) — Tactical security & analysis
+- **Thirsty's Shadow** (`.shadow`) — Shadow computing & dual-reality
 
 ## Testing
 

@@ -14,7 +14,7 @@ A: Yes! It's a fully functional interpreted language with a complete toolchain i
 A: You can write scripts, learn programming concepts, create educational content, and have fun! Future versions will support web apps, APIs, and more.
 
 **Q: Which version should I start with?**
-A: Start with Base Thirsty-lang to learn the fundamentals, then progress to Thirsty+, Thirsty++, and ThirstOfGods as you advance.
+A: Start with Thirsty-Lang to learn the fundamentals, then progress to Thirst of Gods, T.A.R.L., and Thirsty's Shadow as you advance.
 
 ### Technical Questions
 
@@ -59,17 +59,17 @@ A: Absolutely! Read [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 A: Open an issue on GitHub with details and example code.
 
 **Q: Can I create my own Thirsty-lang extension?**
-A: Yes! ThirstOfGods will support plugins and extensions.
+A: Yes! Thirsty's Shadow will support plugins and extensions.
 
 ### Advanced Questions
 
 **Q: What's the difference between the language editions?**
 A:
 
-- **Base**: Variables, output, comments
-- **Thirsty+**: Adds control flow (if/else)
-- **Thirsty++**: Adds functions, loops, data structures
-- **ThirstOfGods**: Adds classes, async/await, modules
+- **Thirsty-Lang**: Variables, output, comments
+- **Thirst of Gods**: Adds control flow (if/else)
+- **T.A.R.L.**: Adds functions, loops, security, data structures
+- **Thirsty's Shadow**: Adds classes, async/await, modules, shadow computing
 
 **Q: Can I use Thirsty-lang in production?**
 A: The base language is stable for educational use. Production features are in development.

@@ -1,7 +1,7 @@
 {
   "name": "thirsty-lang",
   "version": "2.0.0",
-  "description": "A fun, expressive programming language with T.A.R.L. security integration",
+  "description": "The Hydration Language Family — Thirsty-Lang, Thirst of Gods, T.A.R.L., and Thirsty's Shadow",
   "main": "src/index.js",
   "bin": {
     "thirsty": "./src/thirsty-cli.js",
@@ -18,14 +18,15 @@
     "test:security": "node src/test/security-integration-tests.js",
     "test:bridge": "node src/test/bridge-tests.js",
     "test:all": "npm test && npm run test:security && npm run test:bridge",
-    "test:plus": "echo 'Thirsty+ tests coming soon'",
-    "test:plusplus": "echo 'Thirsty++ tests coming soon'",
-    "test:gods": "echo 'ThirstOfGods tests coming soon'",
+    "test:tog": "echo 'Thirst of Gods tests coming soon'",
+    "test:tarl": "echo 'T.A.R.L. tests coming soon'",
+    "test:shadow": "echo 'Thirsty Shadow tests coming soon'",
     "example:security": "node examples/security/threat-detection-example.js",
     "example:policy": "node examples/security/policy-enforcement-example.js",
-    "thirstyplus": "echo 'Thirsty+ interpreter coming soon' && node src/cli.js",
-    "thirstyplusplus": "echo 'Thirsty++ interpreter coming soon' && node src/cli.js",
-    "thirstofgods": "echo 'ThirstOfGods interpreter coming soon' && node src/cli.js",
+    "thirsty:run": "node src/thirsty-cli.js",
+    "thirsty:tog": "node src/thirsty-cli.js",
+    "thirsty:tarl": "node src/thirsty-cli.js",
+    "thirsty:shadow": "node src/thirsty-cli.js",
     "lint": "node src/linter.js examples/*.thirsty",
     "format": "node src/formatter.js examples/hello.thirsty",
     "profile": "node src/profiler.js examples/hello.thirsty",
@@ -44,15 +45,16 @@
     "programming-language",
     "interpreter",
     "thirsty",
+    "thirst-of-gods",
+    "tarl",
+    "thirstys-shadow",
     "water",
     "educational",
     "fun",
-    "learning",
     "repl",
     "debugger",
     "transpiler",
     "security",
-    "tarl",
     "defensive-programming",
     "threat-detection",
     "policy-engine"
@@ -65,12 +67,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/IAmSoThirsty/Thirsty-lang.git"
+    "url": "https://github.com/IAmSoThirsty/Thirsty-Lang.git"
   },
   "bugs": {
-    "url": "https://github.com/IAmSoThirsty/Thirsty-lang/issues"
+    "url": "https://github.com/IAmSoThirsty/Thirsty-Lang/issues"
   },
-  "homepage": "https://github.com/IAmSoThirsty/Thirsty-lang#readme",
+  "homepage": "https://github.com/IAmSoThirsty/Thirsty-Lang#readme",
   "files": [
     "src/",
     "examples/",

@@ -1,8 +1,8 @@
-# Thirsty language files
-*.thirsty linguist-language=Thirsty
-*.thirstyplus linguist-language=Thirsty
-*.thirstyplusplus linguist-language=Thirsty
-*.thirstofgods linguist-language=Thirsty
+# Thirsty language family files
+*.thirsty linguist-language=Thirsty-lang linguist-detectable
+*.tog linguist-language=Thirsty-lang linguist-detectable
+*.tarl linguist-language=Thirsty-lang linguist-detectable
+*.shadow linguist-language=Thirsty-lang linguist-detectable
 
 # Documentation
 *.md linguist-documentation

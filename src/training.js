@@ -48,40 +48,40 @@ const TRAINING_LEVELS = {
       }
     ]
   },
-  plus: {
-    name: '💧+ Thirsty Plus',
+  tog: {
+    name: '⚡ Thirst of Gods',
     description: 'Add control flow and logic',
     lessons: [
       {
         title: 'Lesson 1: Conditional Statements',
         instruction: 'Use "thirsty" for if statements (coming soon!).\nExample: thirsty temperature > 30\n  pour "Drink more water!"',
-        hint: 'This feature will be available in the full Thirsty+ release',
+        hint: 'This feature will be available in the full Thirst of Gods release',
         expectedPattern: /.*/,
         validation: () => true
       }
     ]
   },
-  plusplus: {
-    name: '💧++ Thirsty Plus Plus',
+  tarl: {
+    name: '🛡️ T.A.R.L.',
     description: 'Master functions and loops',
     lessons: [
       {
         title: 'Lesson 1: Functions',
         instruction: 'Use "glass" to define functions (coming soon!).\nExample: glass hydrate(amount)\n  pour amount',
-        hint: 'This feature will be available in the full Thirsty++ release',
+        hint: 'This feature will be available in the full T.A.R.L. release',
         expectedPattern: /.*/,
         validation: () => true
       }
     ]
   },
-  gods: {
-    name: '⚡ ThirstOfGods',
+  shadow: {
+    name: '🌑 Thirsty\'s Shadow',
     description: 'Achieve ultimate mastery',
     lessons: [
       {
         title: 'Lesson 1: Classes and OOP',
         instruction: 'Use "fountain" to create classes (coming soon!).\nExample: fountain WaterBottle',
-        hint: 'This feature will be available in the full ThirstOfGods release',
+        hint: 'This feature will be available in the full Thirsty\'s Shadow release',
         expectedPattern: /.*/,
         validation: () => true
       }
@@ -95,9 +95,9 @@ class TrainingProgram {
     this.currentLessonIndex = 0;
     this.completedLessons = {
       base: [],
-      plus: [],
-      plusplus: [],
-      gods: []
+      tog: [],
+      tarl: [],
+      shadow: []
     };
   }
 
@@ -118,27 +118,27 @@ class TrainingProgram {
 
   async showMainMenu() {
     console.log('\n📚 Select Your Training Level:\n');
-    console.log('  1. 💧 Base Thirsty-lang (Beginner)');
-    console.log('  2. 💧+ Thirsty Plus (Intermediate)');
-    console.log('  3. 💧++ Thirsty Plus Plus (Advanced)');
-    console.log('  4. ⚡ ThirstOfGods (Master)');
+    console.log('  1. 💧 Thirsty-Lang (Beginner)');
+    console.log('  2. ⚡ Thirst of Gods (Intermediate)');
+    console.log('  3. 🛡️ T.A.R.L. (Advanced)');
+    console.log('  4. 🌑 Thirsty\'s Shadow (Master)');
     console.log('  5. 📊 View Progress');
     console.log('  6. ❌ Exit\n');
 
     return new Promise((resolve) => {
       rl.question('Enter your choice (1-6): ', async (answer) => {
-        switch(answer.trim()) {
+        switch (answer.trim()) {
           case '1':
             await this.startLevel('base');
             break;
           case '2':
-            await this.startLevel('plus');
+            await this.startLevel('tog');
             break;
           case '3':
-            await this.startLevel('plusplus');
+            await this.startLevel('tarl');
             break;
           case '4':
-            await this.startLevel('gods');
+            await this.startLevel('shadow');
             break;
           case '5':
             this.showProgress();
@@ -162,19 +162,19 @@ class TrainingProgram {
     this.currentLevel = levelKey;
     this.currentLessonIndex = 0;
     const level = TRAINING_LEVELS[levelKey];
-    
+
     console.clear();
     console.log(`\n🎓 ${level.name}`);
     console.log(`📖 ${level.description}\n`);
     console.log('━'.repeat(60));
-    
+
     await this.runLesson();
   }
 
   async runLesson() {
     const level = TRAINING_LEVELS[this.currentLevel];
     const lesson = level.lessons[this.currentLessonIndex];
-    
+
     if (!lesson) {
       console.log('\n🎉 Congratulations! You\'ve completed all lessons in this level!');
       console.log('💪 Your thirst for knowledge has been quenched!\n');
@@ -188,7 +188,7 @@ class TrainingProgram {
     console.log(lesson.instruction);
     console.log('\n💡 Hint: ' + lesson.hint);
     console.log('\nType your code below (type "skip" to skip, "hint" for help, "menu" to return):');
-    
+
     await this.getLessonInput(lesson);
   }
 
@@ -196,13 +196,13 @@ class TrainingProgram {
     return new Promise((resolve) => {
       rl.question('\n> ', async (answer) => {
         const input = answer.trim();
-        
+
         if (input.toLowerCase() === 'menu') {
           await this.showMainMenu();
           resolve();
           return;
         }
-        
+
         if (input.toLowerCase() === 'skip') {
           console.log('⏭️  Lesson skipped.');
           this.currentLessonIndex++;
@@ -210,7 +210,7 @@ class TrainingProgram {
           resolve();
           return;
         }
-        
+
         if (input.toLowerCase() === 'hint') {
           console.log('💡 ' + lesson.hint);
           await this.getLessonInput(lesson);
@@ -222,11 +222,11 @@ class TrainingProgram {
         try {
           const interpreter = new ThirstyInterpreter();
           interpreter.execute(input);
-          
+
           if (lesson.validation(input, interpreter)) {
             console.log('\n✅ Excellent! Lesson completed!');
             this.completedLessons[this.currentLevel].push(this.currentLessonIndex);
-            
+
             await this.waitForEnter();
             this.currentLessonIndex++;
             await this.runLesson();
@@ -240,7 +240,7 @@ class TrainingProgram {
           console.log('Try again or type "hint" for help.');
           await this.getLessonInput(lesson);
         }
-        
+
         resolve();
       });
     });
@@ -250,17 +250,17 @@ class TrainingProgram {
     console.clear();
     console.log('\n📊 Your Training Progress\n');
     console.log('═'.repeat(60));
-    
+
     for (const [key, level] of Object.entries(TRAINING_LEVELS)) {
       const completed = this.completedLessons[key].length;
       const total = level.lessons.length;
       const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
       const bar = '█'.repeat(Math.floor(percentage / 5)) + '░'.repeat(20 - Math.floor(percentage / 5));
-      
+
       console.log(`\n${level.name}`);
       console.log(`[${bar}] ${percentage}% (${completed}/${total} lessons)`);
     }
-    
+
     console.log('\n═'.repeat(60));
   }
 

@@ -31,14 +31,14 @@ pour variable_name
 - `pour` - Output a value
 - `sip` - Input (future)
 
-### Thirsty+ (Plus)
+### Thirst of Gods
 
 - `thirsty` - If statement
 - `hydrated` - Else statement
 - `parched` - Boolean true
 - `quenched` - Boolean false
 
-### Thirsty++ (Plus Plus)
+### T.A.R.L
 
 - `glass` - Function declaration
 - `refill` - Loop
@@ -46,7 +46,7 @@ pour variable_name
 - `bottle` - Object
 - `return` - Return from function
 
-### ThirstOfGods
+### Thirsty's Shadow
 
 - `fountain` - Class declaration
 - `cascade` - Async function
@@ -95,7 +95,7 @@ drink sum = a + b
 pour sum
 ```
 
-### Conditional (Thirsty+)
+### Conditional (Thirst of Gods)
 
 ```thirsty
 drink temp = 30
@@ -105,7 +105,7 @@ hydrated
   pour "It's cool"
 ```
 
-### Function (Thirsty++)
+### Function (T.A.R.L.)
 
 ```thirsty
 glass greet(name)
@@ -114,7 +114,7 @@ glass greet(name)
 greet("World")
 ```
 
-### Class (ThirstOfGods)
+### Class (Thirsty's Shadow)
 
 ```thirsty
 fountain Person

@@ -37,7 +37,7 @@
       "  ${3:// function body}",
       "  return ${4:value}"
     ],
-    "description": "Define a function (Thirsty++)"
+    "description": "Define a function (T.A.R.L.)"
   },
   "Loop": {
     "prefix": "refill",
@@ -45,7 +45,7 @@
       "refill ${1:times} times",
       "  ${2:// loop body}"
     ],
-    "description": "Create a loop (Thirsty++)"
+    "description": "Create a loop (T.A.R.L.)"
   },
   "Class": {
     "prefix": "fountain",
@@ -56,7 +56,7 @@
       "  glass ${4:method}()",
       "    ${5:// method body}"
     ],
-    "description": "Define a class (ThirstOfGods)"
+    "description": "Define a class (Thirsty's Shadow)"
   },
   "Async Function": {
     "prefix": "cascade",
@@ -65,6 +65,6 @@
       "  drink ${3:result} = await ${4:promise}",
       "  return ${3:result}"
     ],
-    "description": "Define an async function (ThirstOfGods)"
+    "description": "Define an async function (Thirsty's Shadow)"
   }
 }

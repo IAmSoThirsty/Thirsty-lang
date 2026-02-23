@@ -4,34 +4,36 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "thirsty-lang"
-version = "1.0.0"
-description = "Sovereign Stack workflow definition language: parse → validate → compile YAML flows to Monolith tasks and Waterfall DAG specs"
+version = "2.0.0"
+description = "A fun, water-themed programming language with defensive security features — interpreter, REPL, and toolchain"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.8"
 license = {file = "LICENSE"}
 authors = [
-    {name = "Thirsty-Lang Team", email = "team@thirsty-lang.org"}
+    {name = "Jeremy Karrick", email = "team@thirsty-lang.org"}
 ]
 keywords = [
-    "thirsty-lang", "sovereign-stack", "workflow", "dsl", "dag",
-    "monolith", "waterfall", "tarl",
+    "thirsty-lang", "programming-language", "interpreter", "repl",
+    "water", "fun", "educational", "defensive-programming", "security",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Intended Audience :: Education",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Interpreters",
     "Topic :: Software Development :: Compilers",
-    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Education",
 ]
 
-# Only hard runtime dependency: PyYAML for .tl.yaml parsing.
-dependencies = [
-    "pyyaml>=6.0.1",
-]
+dependencies = []
 
 [project.optional-dependencies]
 dev = [
@@ -40,24 +42,26 @@ dev = [
     "mypy>=1.8.0",
     "ruff>=0.3.0",
     "black>=24.0.0",
-    "types-PyYAML>=6.0.12",
-    "pip-audit>=2.7.0",
     "build>=1.0.0",
-    "wheel>=0.43.0",
+    "twine>=5.0.0",
 ]
+
+[project.scripts]
+thirsty = "thirsty_lang:main"
 
 [project.urls]
 "Homepage"     = "https://github.com/IAmSoThirsty/Thirsty-Lang"
 "Bug Tracker"  = "https://github.com/IAmSoThirsty/Thirsty-Lang/issues"
 "Source Code"  = "https://github.com/IAmSoThirsty/Thirsty-Lang"
+"Playground"   = "https://iamsothirsty.github.io/Thirsty-Lang/"
 
 # ── Package discovery ─────────────────────────────────────────────────────────
 [tool.setuptools.packages.find]
-where   = ["src"]
+where   = ["."]
 include = ["thirsty_lang*"]
 
 [tool.setuptools.package-data]
-thirsty_lang = ["examples/*.tl.yaml"]
+thirsty_lang = ["py.typed"]
 
 # ── Test ──────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
@@ -65,12 +69,12 @@ testpaths      = ["tests"]
 python_files   = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts        = "--cov=thirsty_lang --cov-report=term-missing -q"
+addopts        = "-q"
 
 # ── Lint / format ─────────────────────────────────────────────────────────────
 [tool.ruff]
 line-length    = 100
-target-version = "py311"
+target-version = "py38"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
@@ -78,11 +82,11 @@ ignore = ["E501"]
 
 [tool.black]
 line-length    = 100
-target-version = ["py311", "py312"]
+target-version = ["py38", "py312"]
 
 # ── Type-check ────────────────────────────────────────────────────────────────
 [tool.mypy]
-python_version      = "3.11"
+python_version      = "3.8"
 strict              = true
 warn_return_any     = true
 warn_unused_configs = true

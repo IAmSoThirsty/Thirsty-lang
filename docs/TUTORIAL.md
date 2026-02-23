@@ -17,12 +17,14 @@ pour message
 - `pour message` outputs the value of `message` to the console
 
 Save this as `hello.thirsty` and run:
+
 ```bash
 npm start hello.thirsty
 ```
 
 Output:
-```
+
+```text
 Hello, World!
 ```
 
@@ -58,6 +60,7 @@ npm run repl
 ```
 
 Try typing:
+
 ```thirsty
 💧> drink water = "H2O"
 💧> pour water
@@ -102,13 +105,14 @@ pour b
 pour c
 ```
 
-2. Run the debugger:
+1. Run the debugger:
 
 ```bash
 npm run debug debug_example.thirsty
 ```
 
-3. Try these debugger commands:
+1. Try these debugger commands:
+
 - `s` or `step` - Execute next line
 - `c` or `continue` - Run until breakpoint
 - `vars` - Show all variables
@@ -201,10 +205,10 @@ npm run train
 
 This interactive program guides you through:
 
-1. Base Thirsty-lang fundamentals
-2. Thirsty+ control flow
-3. Thirsty++ functions and loops
-4. ThirstOfGods advanced features
+1. Thirsty-Lang fundamentals
+2. Thirst of Gods control flow
+3. T.A.R.L. functions, loops, and security
+4. Thirsty's Shadow advanced features
 
 ## Practice Exercises
 
@@ -243,7 +247,7 @@ For your hydration tracker:
 ## Next Steps
 
 - 📚 Read the [Language Specification](SPECIFICATION.md)
-- 🚀 Explore [Expansions](EXPANSIONS.md) (Thirsty+, Thirsty++, ThirstOfGods)
+- 🚀 Explore [Expansions](EXPANSIONS.md) (Thirst of Gods, T.A.R.L., Thirsty's Shadow)
 - 💡 Check [Advanced Examples](../examples/advanced/)
 - 🤝 Read [Contributing Guidelines](../CONTRIBUTING.md)
 
@@ -258,18 +262,21 @@ For your hydration tracker:
 ## Common Mistakes
 
 ❌ **Forgetting quotes around strings**
+
 ```thirsty
 drink name = ThirstyCoder  // Wrong!
 drink name = "ThirstyCoder"  // Correct!
 ```
 
 ❌ **Misspelling keywords**
+
 ```thirsty
 drank water = "H2O"  // Wrong! It's 'drink'
 drink water = "H2O"  // Correct!
 ```
 
 ❌ **Missing equals sign**
+
 ```thirsty
 drink water "H2O"  // Wrong!
 drink water = "H2O"  // Correct!

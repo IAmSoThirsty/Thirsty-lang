@@ -1,436 +1,1049 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thirsty-lang Playground 💧</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thirsty-lang — The Hydration Language Family 💧</title>
+  <meta name="description" content="A fun, water-themed programming language with defensive security features. Write code. Stay hydrated.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ── Reset & Tokens ─────────────────────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #0A1628;
+      --bg-secondary: #0F1F3A;
+      --bg-card: rgba(15, 31, 58, 0.65);
+      --bg-glass: rgba(255,255,255,0.04);
+      --border-glass: rgba(255,255,255,0.08);
+      --water-start: #00BFFF;
+      --water-end: #0057B7;
+      --accent: #00E5FF;
+      --text-primary: #E8EDF5;
+      --text-secondary: #8B9DC3;
+      --text-dim: #4A6491;
+      --success: #00E676;
+      --error: #FF5252;
+      --warning: #FFD740;
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: var(--water-start); text-decoration: none; transition: color var(--transition); }
+    a:hover { color: var(--accent); }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+    /* ── Animated background ────────────────────────────────────────────── */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0,191,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,191,255,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+    .bg-glow {
+      position: fixed; top: -30%; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 800px; border-radius: 50%; z-index: 0; pointer-events: none;
+      background: radial-gradient(circle, rgba(0,191,255,0.08) 0%, transparent 70%);
+      animation: pulseGlow 8s ease-in-out infinite alternate;
+    }
+    @keyframes pulseGlow {
+      0% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+      100% { opacity: 1; transform: translateX(-50%) scale(1.15); }
+    }
 
-        .header {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
-        }
+    /* ── Nav ─────────────────────────────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 40px;
+      background: rgba(10,22,40,0.75); backdrop-filter: blur(20px) saturate(1.4);
+      border-bottom: 1px solid var(--border-glass);
+    }
+    .nav-brand { font-weight: 800; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
+    .nav-brand span { background: linear-gradient(135deg, var(--water-start), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a { color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--text-primary); }
+    @media(max-width:768px) { .nav-links { display: none; } nav { padding: 14px 20px; } }
 
-        .header h1 {
-            color: #667eea;
-            font-size: 2em;
-            margin-bottom: 5px;
-        }
+    /* ── Sections ────────────────────────────────────────────────────────── */
+    section { position: relative; z-index: 1; padding: 100px 40px; max-width: 1200px; margin: 0 auto; }
+    @media(max-width:768px) { section { padding: 60px 20px; } }
+    .section-label {
+      display: inline-block; font-size: 0.75rem; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--water-start); margin-bottom: 12px;
+    }
+    .section-title { font-size: 2.4rem; font-weight: 800; margin-bottom: 16px; line-height: 1.2; }
+    .section-sub { color: var(--text-secondary); font-size: 1.1rem; max-width: 640px; margin-bottom: 48px; }
 
-        .header p {
-            color: #666;
-            font-size: 1em;
-        }
+    /* ── Hero ────────────────────────────────────────────────────────────── */
+    #hero { padding-top: 160px; text-align: center; }
+    #hero .section-title { font-size: clamp(2.4rem, 5vw, 4rem); }
+    .hero-tagline {
+      font-size: 1.35rem; color: var(--text-secondary); margin: 20px auto 36px; max-width: 560px;
+    }
+    .hero-buttons { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 12px 26px;
+      border-radius: 999px; font-weight: 600; font-size: 0.92rem; border: none; cursor: pointer;
+      transition: all var(--transition); font-family: var(--font-sans);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--water-start), var(--water-end));
+      color: #fff; box-shadow: 0 4px 20px rgba(0,191,255,0.25);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 30px rgba(0,191,255,0.4); transform: translateY(-2px); }
+    .btn-secondary {
+      background: var(--bg-glass); color: var(--text-primary);
+      border: 1px solid var(--border-glass); backdrop-filter: blur(10px);
+    }
+    .btn-secondary:hover { border-color: var(--water-start); background: rgba(0,191,255,0.08); }
+    .install-cmd {
+      margin: 32px auto 0; max-width: 420px;
+      background: var(--bg-glass); border: 1px solid var(--border-glass);
+      border-radius: var(--radius-sm); padding: 14px 20px;
+      font-family: var(--font-mono); font-size: 0.88rem; color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      backdrop-filter: blur(10px);
+    }
+    .install-cmd code { color: var(--accent); }
+    .install-cmd button {
+      background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1.1rem;
+      transition: color var(--transition); padding: 0;
+    }
+    .install-cmd button:hover { color: var(--accent); }
 
-        .container {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-            padding: 20px;
-            gap: 20px;
-        }
+    /* ── Playground ──────────────────────────────────────────────────────── */
+    #playground { max-width: 1100px; }
+    .playground-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius);
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+    }
+    .playground-toolbar {
+      display: flex; align-items: center; gap: 12px; padding: 12px 18px;
+      background: rgba(0,0,0,0.25); border-bottom: 1px solid var(--border-glass);
+      flex-wrap: wrap;
+    }
+    .playground-toolbar .dots { display: flex; gap: 6px; }
+    .playground-toolbar .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red { background: #FF5F57; }
+    .dot-yellow { background: #FFBD2E; }
+    .dot-green { background: #28CA41; }
+    .playground-toolbar select {
+      background: rgba(255,255,255,0.06); color: var(--text-secondary);
+      border: 1px solid var(--border-glass); border-radius: 6px;
+      padding: 6px 12px; font-family: var(--font-sans); font-size: 0.82rem; cursor: pointer;
+    }
+    .playground-toolbar select:focus { outline: none; border-color: var(--water-start); }
+    .toolbar-spacer { flex: 1; }
+    .run-btn {
+      background: linear-gradient(135deg, var(--water-start), var(--water-end));
+      color: #fff; border: none; padding: 7px 20px; border-radius: 6px;
+      font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all var(--transition);
+      font-family: var(--font-sans);
+    }
+    .run-btn:hover { box-shadow: 0 4px 16px rgba(0,191,255,0.3); transform: translateY(-1px); }
+    .playground-split { display: grid; grid-template-columns: 1fr 1fr; min-height: 380px; }
+    @media(max-width:768px) { .playground-split { grid-template-columns: 1fr; } }
+    .editor-pane, .output-pane { position: relative; }
+    .pane-label {
+      position: absolute; top: 12px; left: 16px; font-size: 0.7rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); z-index: 2;
+    }
+    .editor-pane { border-right: 1px solid var(--border-glass); }
+    @media(max-width:768px) { .editor-pane { border-right: none; border-bottom: 1px solid var(--border-glass); } }
+    #editor {
+      width: 100%; height: 100%; min-height: 340px; border: none; outline: none; resize: none;
+      background: transparent; color: var(--text-primary); padding: 40px 18px 18px;
+      font-family: var(--font-mono); font-size: 0.88rem; line-height: 1.7; tab-size: 2;
+    }
+    #output {
+      padding: 40px 18px 18px; font-family: var(--font-mono); font-size: 0.88rem;
+      line-height: 1.7; color: var(--success); white-space: pre-wrap; word-break: break-word;
+      overflow-y: auto; min-height: 340px;
+    }
+    #output .err { color: var(--error); }
+    .playground-status {
+      display: flex; align-items: center; justify-content: space-between; padding: 8px 18px;
+      background: rgba(0,0,0,0.15); border-top: 1px solid var(--border-glass);
+      font-size: 0.75rem; color: var(--text-dim);
+    }
+    .kbd { font-family: var(--font-mono); padding: 2px 6px; background: rgba(255,255,255,0.06); border-radius: 4px; font-size: 0.72rem; }
 
-        .panel {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+    /* ── Tier cards ──────────────────────────────────────────────────────── */
+    .tiers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+    .tier-card {
+      background: var(--bg-card); border: 1px solid var(--border-glass);
+      border-radius: var(--radius); padding: 28px; transition: all var(--transition);
+      backdrop-filter: blur(10px); position: relative; overflow: hidden;
+    }
+    .tier-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--water-start), var(--water-end));
+      opacity: 0; transition: opacity var(--transition);
+    }
+    .tier-card:hover { border-color: rgba(0,191,255,0.2); transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+    .tier-card:hover::before { opacity: 1; }
+    .tier-badge {
+      display: inline-block; font-size: 0.68rem; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; padding: 4px 10px; border-radius: 999px; margin-bottom: 14px;
+      background: rgba(0,191,255,0.1); color: var(--water-start); border: 1px solid rgba(0,191,255,0.15);
+    }
+    .tier-card h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+    .tier-card p { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 16px; }
+    .tier-card .ext { font-family: var(--font-mono); font-size: 0.82rem; color: var(--accent); }
+    .tier-features { list-style: none; margin-top: 12px; }
+    .tier-features li {
+      font-size: 0.84rem; color: var(--text-secondary); padding: 4px 0; padding-left: 18px; position: relative;
+    }
+    .tier-features li::before {
+      content: '→'; position: absolute; left: 0; color: var(--water-start); font-weight: 600;
+    }
 
-        .editor-panel {
-            flex: 1;
-        }
+    /* ── Quick Reference ─────────────────────────────────────────────────── */
+    .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .ref-item {
+      display: flex; align-items: baseline; gap: 12px; padding: 14px 18px;
+      background: var(--bg-glass); border: 1px solid var(--border-glass);
+      border-radius: var(--radius-sm); transition: border-color var(--transition);
+    }
+    .ref-item:hover { border-color: rgba(0,191,255,0.2); }
+    .ref-kw { font-family: var(--font-mono); font-weight: 600; color: var(--accent); white-space: nowrap; min-width: 90px; }
+    .ref-desc { color: var(--text-secondary); font-size: 0.86rem; }
 
-        .output-panel {
-            flex: 1;
-        }
+    /* ── Install ──────────────────────────────────────────────────────────── */
+    .install-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .install-card {
+      background: var(--bg-card); border: 1px solid var(--border-glass);
+      border-radius: var(--radius); padding: 28px; backdrop-filter: blur(10px);
+    }
+    .install-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .install-card pre {
+      background: rgba(0,0,0,0.3); border-radius: var(--radius-sm); padding: 14px;
+      font-family: var(--font-mono); font-size: 0.82rem; color: var(--accent); overflow-x: auto;
+      border: 1px solid var(--border-glass);
+    }
 
-        .panel-header {
-            background: #667eea;
-            color: white;
-            padding: 15px;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    /* ── Footer ──────────────────────────────────────────────────────────── */
+    footer {
+      position: relative; z-index: 1; text-align: center; padding: 48px 40px;
+      border-top: 1px solid var(--border-glass); color: var(--text-dim); font-size: 0.85rem;
+    }
+    .footer-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 16px; }
+    .footer-links a { color: var(--text-secondary); }
+    .footer-links a:hover { color: var(--accent); }
 
-        .panel-content {
-            flex: 1;
-            padding: 0;
-            overflow: auto;
-        }
+    /* ── Scroll animation ────────────────────────────────────────────────── */
+    .fade-in { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
 
-        #editor {
-            width: 100%;
-            height: 100%;
-            border: none;
-            padding: 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            resize: none;
-            outline: none;
-        }
-
-        #output {
-            padding: 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            background: #f8f9fa;
-            height: 100%;
-            overflow: auto;
-        }
-
-        .toolbar {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 15px 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        }
-
-        button {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        button:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        .examples {
-            flex: 1;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        select {
-            padding: 10px;
-            border: 2px solid #667eea;
-            border-radius: 5px;
-            font-size: 14px;
-            cursor: pointer;
-            background: white;
-        }
-
-        .error {
-            color: #dc3545;
-            font-weight: bold;
-        }
-
-        .success {
-            color: #28a745;
-        }
-
-        .line-numbers {
-            float: left;
-            padding: 20px 10px 20px 20px;
-            background: #f0f0f0;
-            color: #999;
-            text-align: right;
-            user-select: none;
-        }
-    </style>
+    /* ── Scrollbar ────────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--text-dim); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+  </style>
 </head>
 <body>
-    <div class="header">
-        <h1>💧 Thirsty-lang Playground</h1>
-        <p>Write, run, and experiment with Thirsty-lang code in your browser!</p>
+
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<!-- ── Nav ────────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-brand">💧 <span>Thirsty-lang</span></div>
+  <div class="nav-links">
+    <a href="#playground">Playground</a>
+    <a href="#tiers">Tiers</a>
+    <a href="#reference">Reference</a>
+    <a href="#install">Install</a>
+    <a href="https://github.com/IAmSoThirsty/Thirsty-Lang" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</nav>
+
+<!-- ── Hero ───────────────────────────────────────────────────────────── -->
+<section id="hero">
+  <div class="section-label">The Hydration Language Family</div>
+  <h1 class="section-title">Write code.<br>Stay hydrated. 💧</h1>
+  <p class="hero-tagline">A fun, water-themed programming language with defensive security features — from learning to enterprise.</p>
+  <div class="hero-buttons">
+    <a href="#playground" class="btn btn-primary">▶ Try It Now</a>
+    <a href="#install" class="btn btn-secondary">Install</a>
+    <a href="https://github.com/IAmSoThirsty/Thirsty-Lang" target="_blank" rel="noopener" class="btn btn-secondary">GitHub →</a>
+  </div>
+  <div class="install-cmd">
+    <code id="installText">npm install -g thirsty-lang</code>
+    <button onclick="copyInstall()" title="Copy" id="copyBtn">📋</button>
+  </div>
+</section>
+
+<!-- ── Playground ─────────────────────────────────────────────────────── -->
+<section id="playground" class="fade-in">
+  <div class="section-label">Interactive</div>
+  <h2 class="section-title">Playground</h2>
+  <p class="section-sub">Write Thirsty-lang code and run it directly in your browser.</p>
+  <div class="playground-container">
+    <div class="playground-toolbar">
+      <div class="dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+      <select id="examples" onchange="loadExample(this.value)" aria-label="Select example program">
+        <option value="">Load Example…</option>
+        <optgroup label="Thirsty-Lang (.thirsty)">
+          <option value="hello">Hello World</option>
+          <option value="variables">Variables</option>
+        </optgroup>
+        <optgroup label="Thirst of Gods (.tog)">
+          <option value="conditionals">Conditionals</option>
+          <option value="arithmetic">Arithmetic</option>
+        </optgroup>
+        <optgroup label="T.A.R.L. (.tarl)">
+          <option value="functions">Functions</option>
+          <option value="arrays">Arrays &amp; Loops</option>
+          <option value="stdlib">Standard Library</option>
+        </optgroup>
+        <optgroup label="Thirsty's Shadow (.shadow)">
+          <option value="classes">Classes &amp; OOP</option>
+        </optgroup>
+        <optgroup label="Showcase">
+          <option value="hydration">Hydration Calculator</option>
+          <option value="security">Security Demo</option>
+        </optgroup>
+      </select>
+      <div class="toolbar-spacer"></div>
+      <button class="run-btn" onclick="runCode()" id="runBtn">▶ Run</button>
     </div>
+    <div class="playground-split">
+      <div class="editor-pane">
+        <div class="pane-label">Editor</div>
+        <textarea id="editor" spellcheck="false" aria-label="Code editor">// Welcome to Thirsty-lang! 💧
+// Edit and click Run (or Ctrl+Enter)
 
-    <div class="container">
-        <div class="panel editor-panel">
-            <div class="panel-header">
-                <span>Code Editor</span>
-                <span id="line-count">Line: 1</span>
-            </div>
-            <div class="panel-content">
-                <textarea id="editor" spellcheck="false">// Welcome to Thirsty-lang! 💧
-// Try editing the code below and click Run
-
-drink message = "Hello, Thirsty World!"
-pour message
-
-drink water_intake = 8
-pour water_intake
-
-// Stay hydrated!</textarea>
-            </div>
-        </div>
-
-        <div class="panel output-panel">
-            <div class="panel-header">
-                <span>Output</span>
-                <span id="status">Ready</span>
-            </div>
-            <div class="panel-content">
-                <div id="output">Click "Run" to execute your code...</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="toolbar">
-        <button onclick="runCode()">▶️ Run</button>
-        <button onclick="clearOutput()">🗑️ Clear Output</button>
-        <button onclick="formatCode()">✨ Format</button>
-        <button onclick="shareCode()">🔗 Share</button>
-        
-        <div class="examples">
-            <label for="examples">Load Example:</label>
-            <select id="examples" onchange="loadExample(this.value)">
-                <option value="">-- Select Example --</option>
-                <option value="hello">Hello World</option>
-                <option value="variables">Variables</option>
-                <option value="numbers">Numbers</option>
-                <option value="comments">Comments</option>
-            </select>
-        </div>
-        
-        <button onclick="downloadCode()">💾 Download</button>
-    </div>
-
-    <script>
-        const examples = {
-            hello: `// Hello World Example
 drink greeting = "Hello, Thirsty World!"
-pour greeting`,
-            
-            variables: `// Working with Variables
-drink water = "H2O"
-drink temperature = 25
-drink is_cold = "yes"
+pour greeting
 
-pour water
-pour temperature
-pour is_cold`,
-            
-            numbers: `// Number Operations
 drink glasses = 8
-drink liters = 2.5
-drink total = 64
+pour "Daily goal: " + glasses + " glasses"
 
-pour glasses
-pour liters
-pour total`,
-            
-            comments: `// This is a comment
-// Comments are ignored by the interpreter
+thirsty glasses >= 8 {
+  pour "You're well hydrated! 💧"
+}
+hydrated {
+  pour "Drink more water!"
+}</textarea>
+      </div>
+      <div class="output-pane">
+        <div class="pane-label">Output</div>
+        <div id="output">Click ▶ Run to execute your code…</div>
+      </div>
+    </div>
+    <div class="playground-status">
+      <span id="statusText">Ready</span>
+      <span><span class="kbd">Ctrl</span>+<span class="kbd">Enter</span> to run</span>
+    </div>
+  </div>
+</section>
 
-drink hydration = "essential"
-// You can explain your code
-pour hydration
+<!-- ── Tiers ──────────────────────────────────────────────────────────── -->
+<section id="tiers" class="fade-in">
+  <div class="section-label">Progressive</div>
+  <h2 class="section-title">Four Tiers of Thirst</h2>
+  <p class="section-sub">Start simple, grow powerful. Each tier builds on the last — fully backward compatible.</p>
+  <div class="tiers-grid">
+    <div class="tier-card">
+      <div class="tier-badge">Tier 1</div>
+      <h3>Thirsty-Lang</h3>
+      <div class="ext">.thirsty</div>
+      <p>The foundation. Variables, output, and comments.</p>
+      <ul class="tier-features">
+        <li><code>drink</code> — declare variables</li>
+        <li><code>pour</code> — print output</li>
+        <li><code>//</code> — comments</li>
+      </ul>
+    </div>
+    <div class="tier-card">
+      <div class="tier-badge">Tier 2</div>
+      <h3>Thirst of Gods</h3>
+      <div class="ext">.tog</div>
+      <p>Logic and flow. Conditions, arithmetic, comparisons.</p>
+      <ul class="tier-features">
+        <li><code>thirsty</code> / <code>hydrated</code> — if/else</li>
+        <li><code>parched</code> / <code>quenched</code> — true/false</li>
+        <li>Arithmetic &amp; comparisons</li>
+      </ul>
+    </div>
+    <div class="tier-card">
+      <div class="tier-badge">Tier 3</div>
+      <h3>T.A.R.L.</h3>
+      <div class="ext">.tarl</div>
+      <p>Power tools. Functions, arrays, loops, security.</p>
+      <ul class="tier-features">
+        <li><code>glass</code> — function definitions</li>
+        <li><code>refill</code> — while loops</li>
+        <li><code>reservoir</code> — arrays</li>
+        <li><code>shield</code> / <code>armor</code> — security</li>
+      </ul>
+    </div>
+    <div class="tier-card">
+      <div class="tier-badge">Tier 4</div>
+      <h3>Thirsty's Shadow</h3>
+      <div class="ext">.shadow</div>
+      <p>Enterprise. Classes, OOP, and shadow computing.</p>
+      <ul class="tier-features">
+        <li><code>fountain</code> — class declarations</li>
+        <li><code>this</code> — instance scope</li>
+        <li><code>cascade</code> — async (planned)</li>
+        <li><code>morph</code> — obfuscation (planned)</li>
+      </ul>
+    </div>
+  </div>
+</section>
 
-// Stay hydrated! 💧`
-        };
+<!-- ── Reference ──────────────────────────────────────────────────────── -->
+<section id="reference" class="fade-in">
+  <div class="section-label">Cheatsheet</div>
+  <h2 class="section-title">Quick Reference</h2>
+  <p class="section-sub">Every keyword at a glance.</p>
+  <div class="ref-grid">
+    <div class="ref-item"><span class="ref-kw">drink</span><span class="ref-desc">Declare a variable</span></div>
+    <div class="ref-item"><span class="ref-kw">pour</span><span class="ref-desc">Print to output</span></div>
+    <div class="ref-item"><span class="ref-kw">sip</span><span class="ref-desc">Read user input</span></div>
+    <div class="ref-item"><span class="ref-kw">thirsty</span><span class="ref-desc">If condition</span></div>
+    <div class="ref-item"><span class="ref-kw">hydrated</span><span class="ref-desc">Else branch</span></div>
+    <div class="ref-item"><span class="ref-kw">parched</span><span class="ref-desc">Boolean true</span></div>
+    <div class="ref-item"><span class="ref-kw">quenched</span><span class="ref-desc">Boolean false</span></div>
+    <div class="ref-item"><span class="ref-kw">refill</span><span class="ref-desc">While loop</span></div>
+    <div class="ref-item"><span class="ref-kw">glass</span><span class="ref-desc">Function definition</span></div>
+    <div class="ref-item"><span class="ref-kw">return</span><span class="ref-desc">Return value</span></div>
+    <div class="ref-item"><span class="ref-kw">reservoir</span><span class="ref-desc">Array declaration</span></div>
+    <div class="ref-item"><span class="ref-kw">fountain</span><span class="ref-desc">Class declaration</span></div>
+    <div class="ref-item"><span class="ref-kw">shield</span><span class="ref-desc">Protected block</span></div>
+    <div class="ref-item"><span class="ref-kw">sanitize</span><span class="ref-desc">Input cleaning</span></div>
+    <div class="ref-item"><span class="ref-kw">armor</span><span class="ref-desc">Memory protection</span></div>
+    <div class="ref-item"><span class="ref-kw">cascade</span><span class="ref-desc">Async function (planned)</span></div>
+    <div class="ref-item"><span class="ref-kw">morph</span><span class="ref-desc">Code obfuscation (planned)</span></div>
+    <div class="ref-item"><span class="ref-kw">this</span><span class="ref-desc">Instance reference</span></div>
+  </div>
+</section>
 
-        const editor = document.getElementById('editor');
-        const output = document.getElementById('output');
-        const statusEl = document.getElementById('status');
-        const lineCount = document.getElementById('line-count');
+<!-- ── Install ────────────────────────────────────────────────────────── -->
+<section id="install" class="fade-in">
+  <div class="section-label">Get Started</div>
+  <h2 class="section-title">Install Thirsty-lang</h2>
+  <p class="section-sub">Available on npm, pip, VS Code Marketplace, and Docker.</p>
+  <div class="install-grid">
+    <div class="install-card">
+      <h3>📦 npm</h3>
+      <pre>npm install -g thirsty-lang
+thirsty hello.thirsty</pre>
+    </div>
+    <div class="install-card">
+      <h3>🐍 pip</h3>
+      <pre>pip install thirsty-lang
+thirsty hello.thirsty
+python -m thirsty_lang hello.thirsty</pre>
+    </div>
+    <div class="install-card">
+      <h3>🧩 VS Code</h3>
+      <pre>ext install IAmSoThirsty.thirsty-lang</pre>
+    </div>
+    <div class="install-card">
+      <h3>🐳 Docker</h3>
+      <pre>docker pull iamsothirsty/thirsty-lang
+docker run -v .:/app thirsty-lang hello.thirsty</pre>
+    </div>
+  </div>
+</section>
 
-        // Simple Thirsty-lang interpreter for the browser
-        class BrowserThirstyInterpreter {
-            constructor() {
-                this.variables = {};
-                this.output = [];
-            }
+<!-- ── Footer ─────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-links">
+    <a href="https://github.com/IAmSoThirsty/Thirsty-Lang" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://www.npmjs.com/package/thirsty-lang" target="_blank" rel="noopener">npm</a>
+    <a href="https://pypi.org/project/thirsty-lang/" target="_blank" rel="noopener">PyPI</a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=IAmSoThirsty.thirsty-lang" target="_blank" rel="noopener">VS Code</a>
+  </div>
+  <p>Made with 💧 by IAmSoThirsty · MIT License</p>
+</footer>
 
-            execute(code) {
-                this.variables = {};
-                this.output = [];
+<!-- ── Browser Interpreter ────────────────────────────────────────────── -->
+<script>
+'use strict';
 
-                const lines = code.split('\n')
-                    .map(line => line.trim())
-                    .filter(line => line && !line.startsWith('//'));
+/* ── Example programs ─────────────────────────────────────────────────── */
+const EXAMPLES={
+hello:`// Hello World 💧
+drink message = "Hello, Thirsty World!"
+pour message`,
 
-                for (const line of lines) {
-                    this.executeLine(line);
-                }
+variables:`// Working with Variables
+drink name = "Aqua"
+drink temp = 22
+drink unit = "°C"
+pour "Name: " + name
+pour "Temperature: " + temp + unit`,
 
-                return this.output.join('\n');
-            }
+conditionals:`// Conditionals (Thirst of Gods)
+drink temperature = 35
 
-            executeLine(line) {
-                if (line.startsWith('drink ')) {
-                    const match = line.match(/drink\s+(\w+)\s*=\s*(.+)/);
-                    if (!match) {
-                        throw new Error(`Invalid drink statement: ${line}`);
-                    }
-                    const varName = match[1];
-                    const value = this.evaluateExpression(match[2]);
-                    this.variables[varName] = value;
-                }
-                else if (line.startsWith('pour ')) {
-                    const expression = line.substring(5).trim();
-                    const value = this.evaluateExpression(expression);
-                    this.output.push(value);
-                }
-                else {
-                    throw new Error(`Unknown statement: ${line}`);
-                }
-            }
+thirsty temperature > 30 {
+  pour "It's HOT! Drink extra water! 🔥"
+}
+hydrated {
+  pour "Nice weather. Stay hydrated anyway!"
+}
 
-            evaluateExpression(expr) {
-                expr = expr.trim();
+drink isThirsty = parched
+thirsty isThirsty {
+  pour "Time for a refill! 💧"
+}`,
 
-                if ((expr.startsWith('"') && expr.endsWith('"')) ||
-                    (expr.startsWith("'") && expr.endsWith("'"))) {
-                    return expr.slice(1, -1);
-                }
+arithmetic:`// Arithmetic Operations
+drink a = 10
+drink b = 3
 
-                if (!isNaN(expr)) {
-                    return parseFloat(expr);
-                }
+pour "a = " + a
+pour "b = " + b
+pour "a + b = " + (a + b)
+pour "a - b = " + (a - b)
+pour "a * b = " + (a * b)
+pour "a / b = " + (a / b)`,
 
-                if (this.variables.hasOwnProperty(expr)) {
-                    return this.variables[expr];
-                }
+functions:`// Functions (T.A.R.L.)
+glass greet(name) {
+  pour "Hello, " + name + "! Stay hydrated 💧"
+}
 
-                throw new Error(`Unknown expression: ${expr}`);
-            }
+glass add(x, y) {
+  return x + y
+}
+
+greet("World")
+greet("Thirsty Dev")
+
+drink result = add(42, 58)
+pour "42 + 58 = " + result`,
+
+arrays:`// Arrays & Loops (T.A.R.L.)
+reservoir drinks = ["Water", "Juice", "Tea", "Sparkling"]
+
+pour "Today's drinks menu:"
+drink i = 0
+refill i < 4 {
+  pour "  " + (i + 1) + ". " + drinks[i]
+  drink i = i + 1
+}
+
+pour "Total options: " + drinks.length`,
+
+stdlib:`// Standard Library
+pour "=== Math ==="
+pour "PI = " + Math.PI
+pour "sqrt(144) = " + Math.sqrt(144)
+pour "pow(2, 10) = " + Math.pow(2, 10)
+pour "floor(3.7) = " + Math.floor(3.7)
+
+pour "=== Strings ==="
+pour String.upper("hydrate")
+pour String.repeat("💧", 5)`,
+
+classes:`// Classes & OOP (Thirsty's Shadow)
+fountain WaterBottle {
+  drink capacity = 750
+  drink current = 0
+
+  glass fill(amount) {
+    drink this.current = this.current + amount
+    thirsty this.current > this.capacity {
+      drink this.current = this.capacity
+      pour "Bottle full! (" + this.capacity + "ml)"
+    }
+    hydrated {
+      pour "Added " + amount + "ml → " + this.current + "ml"
+    }
+  }
+
+  glass drink_water(amount) {
+    thirsty amount > this.current {
+      pour "Not enough water! Only " + this.current + "ml left"
+    }
+    hydrated {
+      drink this.current = this.current - amount
+      pour "Drank " + amount + "ml → " + this.current + "ml remaining"
+    }
+  }
+}
+
+drink bottle = WaterBottle()
+bottle.fill(500)
+bottle.fill(400)
+bottle.drink_water(200)`,
+
+hydration:`// Hydration Calculator
+glass calculateDailyWater(weightKg) {
+  return weightKg * 33
+}
+
+glass formatMl(ml) {
+  pour ml + "ml (" + (ml / 1000) + " liters)"
+}
+
+drink weight = 75
+drink daily = calculateDailyWater(weight)
+
+pour "=== Hydration Calculator 💧 ==="
+pour "Weight: " + weight + "kg"
+pour "Daily water needed:"
+formatMl(daily)
+
+pour ""
+pour "Breakdown:"
+pour "  Morning:   " + (daily * 0.3) + "ml"
+pour "  Afternoon: " + (daily * 0.4) + "ml"
+pour "  Evening:   " + (daily * 0.3) + "ml"`,
+
+security:`// Security Features (T.A.R.L.)
+pour "=== Thirsty Security Demo ==="
+
+// Shield protects critical code
+shield {
+  drink apiKey = "sk_live_secret123"
+  pour "Protected resource accessed"
+}
+
+// Sanitize cleans input
+drink userInput = "<script>alert('xss')</script>"
+sanitize userInput
+pour "Input sanitized ✓"
+
+// Armor protects memory
+armor {
+  drink sensitiveData = "encrypted_payload"
+  pour "Memory-protected operation complete"
+}
+
+pour "All security checks passed ✓"`
+};
+
+/* ── Browser Interpreter ──────────────────────────────────────────────── */
+class ThirstyBrowserInterpreter {
+  constructor() { this.reset(); }
+  reset() {
+    this.vars = {};
+    this.funcs = {};
+    this.classes = {};
+    this.out = [];
+  }
+
+  run(code) {
+    this.reset();
+    const lines = code.split('\n');
+    this._block(lines, 0);
+    return this.out;
+  }
+
+  /* ── block executor ──────────────────────────────────────────────────── */
+  _block(lines, start) {
+    let i = start;
+    while (i < lines.length) {
+      const raw = lines[i], line = raw.trim();
+      if (!line || line.startsWith('//') || line.startsWith('#')) { i++; continue; }
+
+      /* fountain ClassName { */
+      const classM = line.match(/^fountain\s+(\w+)\s*\{?$/);
+      if (classM) { i = this._parseClass(classM[1], lines, i + 1); continue; }
+
+      /* glass name(params) { */
+      const funcM = line.match(/^glass\s+(\w+)\s*\(([^)]*)\)\s*\{?$/);
+      if (funcM) { i = this._parseFunc(funcM[1], funcM[2], lines, i + 1); continue; }
+
+      /* thirsty condition { */
+      const ifM = line.match(/^thirsty\s+(.+?)\s*\{?\s*$/);
+      if (ifM) { i = this._parseCond(ifM[1], lines, i + 1); continue; }
+
+      /* refill condition { */
+      const loopM = line.match(/^refill\s+(.+?)\s*\{?\s*$/);
+      if (loopM) { i = this._parseLoop(loopM[1], lines, i + 1); continue; }
+
+      if (line === '}') { i++; return i; }
+
+      const r = this._exec(line);
+      if (r === '__RET__') return i;
+      i++;
+    }
+    return i;
+  }
+
+  /* ── parse helpers ───────────────────────────────────────────────────── */
+  _collectBody(lines, i) {
+    const body = []; let depth = 1;
+    while (i < lines.length) {
+      const l = lines[i].trim();
+      if (l === '}') { depth--; if (depth === 0) { i++; break; } }
+      if (l.endsWith('{')) depth++;
+      body.push(lines[i]); i++;
+    }
+    return [body, i];
+  }
+
+  _parseFunc(name, paramsStr, lines, i) {
+    const params = paramsStr.split(',').map(s => s.trim()).filter(Boolean);
+    const [body, next] = this._collectBody(lines, i);
+    this.funcs[name] = { params, body };
+    return next;
+  }
+
+  _parseClass(name, lines, i) {
+    const props = {}, methods = {};
+    let depth = 1;
+    while (i < lines.length && depth > 0) {
+      const l = lines[i].trim();
+      if (l === '}') { depth--; if (depth === 0) { i++; break; } }
+      const propM = l.match(/^drink\s+(\w+)\s*=\s*(.+)/);
+      if (propM) { props[propM[1]] = this._evalExpr(propM[2].trim()); i++; continue; }
+      const methM = l.match(/^glass\s+(\w+)\s*\(([^)]*)\)\s*\{?$/);
+      if (methM) {
+        const mParams = methM[2].split(',').map(s=>s.trim()).filter(Boolean);
+        const [mBody, next] = this._collectBody(lines, i + 1);
+        methods[methM[1]] = { params: mParams, body: mBody };
+        i = next; continue;
+      }
+      i++;
+    }
+    this.classes[name] = { props, methods };
+    return i;
+  }
+
+  _parseCond(condStr, lines, i) {
+    const [ifBody, afterIf] = this._collectBody(lines, i);
+    let elseBody = [], next = afterIf;
+    if (afterIf < lines.length && lines[afterIf].trim().startsWith('hydrated')) {
+      const [ eb, en ] = this._collectBody(lines, afterIf + 1);
+      elseBody = eb; next = en;
+    }
+    if (this._evalCond(condStr)) this._block(ifBody, 0);
+    else if (elseBody.length) this._block(elseBody, 0);
+    return next;
+  }
+
+  _parseLoop(condStr, lines, i) {
+    const [body, next] = this._collectBody(lines, i);
+    let safety = 0;
+    while (this._evalCond(condStr) && safety++ < 10000) this._block(body, 0);
+    return next;
+  }
+
+  /* ── single-line execution ───────────────────────────────────────────── */
+  _exec(line) {
+    /* drink var = expr */
+    const drinkM = line.match(/^drink\s+([\w.]+)\s*=\s*(.+)/);
+    if (drinkM) { this.vars[drinkM[1]] = this._evalExpr(drinkM[2].trim()); return; }
+
+    /* pour expr */
+    const pourM = line.match(/^pour\s+(.+)/);
+    if (pourM) { this.out.push(String(this._evalExpr(pourM[1].trim()))); return; }
+
+    /* sip var */
+    const sipM = line.match(/^sip\s+(\w+)/);
+    if (sipM) { this.vars[sipM[1]] = prompt(`Enter value for ${sipM[1]}:`) || ''; return; }
+
+    /* return expr */
+    const retM = line.match(/^return\s+(.+)/);
+    if (retM) { this.vars['__ret__'] = this._evalExpr(retM[1].trim()); return '__RET__'; }
+    if (line === 'return') { this.vars['__ret__'] = null; return '__RET__'; }
+
+    /* reservoir name = [...] */
+    const resM = line.match(/^reservoir\s+(\w+)\s*=\s*\[([^\]]*)\]/);
+    if (resM) {
+      const els = resM[2].trim() ? resM[2].split(',').map(e => this._evalExpr(e.trim())) : [];
+      this.vars[resM[1]] = els; return;
+    }
+
+    /* security keywords — no-op */
+    for (const kw of ['shield','sanitize','armor','detect','defend'])
+      if (line.startsWith(kw)) return;
+
+    /* obj.method(args) */
+    const methCallM = line.match(/^(\w+)\.(\w+)\s*\(([^)]*)\)/);
+    if (methCallM) { this._callMethod(methCallM[1], methCallM[2], methCallM[3]); return; }
+
+    /* func(args) */
+    const callM = line.match(/^(\w+)\s*\(([^)]*)\)/);
+    if (callM && this.funcs[callM[1]]) { this._callFunc(callM[1], callM[2]); return; }
+
+    /* Instantiation: drink x = ClassName() */
+    /* handled in _evalExpr */
+
+    if (line === '}') return;
+    throw new Error(`Unknown statement: ${line}`);
+  }
+
+  /* ── expression evaluator ────────────────────────────────────────────── */
+  _evalExpr(expr) {
+    expr = expr.trim();
+
+    /* string literal */
+    if ((expr[0]==='"' && expr[expr.length-1]==='"') || (expr[0]==="'" && expr[expr.length-1]==="'"))
+      return expr.slice(1, -1);
+
+    /* booleans */
+    if (expr === 'parched' || expr === 'true') return true;
+    if (expr === 'quenched' || expr === 'false') return false;
+
+    /* number */
+    if (/^-?\d+(\.\d+)?$/.test(expr)) return parseFloat(expr);
+
+    /* string concat with + (contains a quoted string) */
+    if (expr.includes('+') && (expr.includes('"') || expr.includes("'"))) return this._evalConcat(expr);
+
+    /* parenthesized sub-expression */
+    if (expr[0] === '(' && expr[expr.length-1] === ')') return this._evalExpr(expr.slice(1,-1));
+
+    /* arithmetic */
+    if (/[+\-*/]/.test(expr) && !/^[\w.]/.test(expr) === false) {
+      const arith = this._tryArith(expr);
+      if (arith !== null) return arith;
+    }
+
+    /* array access: name[index] */
+    const arrM = expr.match(/^(\w+)\[(.+)\]$/);
+    if (arrM) {
+      const arr = this.vars[arrM[1]];
+      if (Array.isArray(arr)) return arr[Math.floor(this._evalExpr(arrM[2]))];
+    }
+
+    /* Math built-ins */
+    if (expr.startsWith('Math.')) {
+      const callM2 = expr.match(/^Math\.(\w+)\((.+)\)$/);
+      if (callM2) {
+        const args = this._splitArgs(callM2[2]).map(a => this._evalExpr(a));
+        const fn = { pow:Math.pow, sqrt:Math.sqrt, abs:Math.abs, floor:Math.floor, ceil:Math.ceil, round:Math.round, sin:Math.sin, cos:Math.cos, log:Math.log, max:Math.max, min:Math.min }[callM2[1]];
+        if (fn) return fn(...args);
+      }
+      if (expr === 'Math.PI') return Math.PI;
+      if (expr === 'Math.E') return Math.E;
+    }
+
+    /* String built-ins */
+    if (expr.startsWith('String.')) {
+      const callM3 = expr.match(/^String\.(\w+)\((.+)\)$/);
+      if (callM3) {
+        const args = this._splitArgs(callM3[2]).map(a => this._evalExpr(a));
+        if (callM3[1]==='upper') return String(args[0]).toUpperCase();
+        if (callM3[1]==='lower') return String(args[0]).toLowerCase();
+        if (callM3[1]==='repeat') return String(args[0]).repeat(Number(args[1]));
+        if (callM3[1]==='length') return String(args[0]).length;
+      }
+    }
+
+    /* property access: name.prop */
+    const propM = expr.match(/^(\w+)\.(\w+)$/);
+    if (propM) {
+      const obj = this.vars[propM[1]];
+      if (Array.isArray(obj) && propM[2]==='length') return obj.length;
+      if (typeof obj === 'string' && propM[2]==='length') return obj.length;
+      /* class instance property */
+      if (obj && typeof obj === 'object' && propM[2] in obj) return obj[propM[2]];
+      /* this.prop */
+      if (propM[1] === 'this') return this.vars['this.' + propM[2]] ?? this.vars[`this.${propM[2]}`];
+      const full = `${propM[1]}.${propM[2]}`;
+      if (full in this.vars) return this.vars[full];
+    }
+
+    /* class instantiation: ClassName() */
+    const instM = expr.match(/^(\w+)\(\)$/);
+    if (instM && this.classes[instM[1]]) {
+      return { ...this.classes[instM[1]].props, __class__: instM[1] };
+    }
+
+    /* function call as expression */
+    const fCallM = expr.match(/^(\w+)\s*\(([^)]*)\)$/);
+    if (fCallM && this.funcs[fCallM[1]]) return this._callFunc(fCallM[1], fCallM[2]);
+
+    /* variable */
+    if (expr in this.vars) return this.vars[expr];
+
+    /* arithmetic fallback */
+    const arith2 = this._tryArith(expr);
+    if (arith2 !== null) return arith2;
+
+    return expr;
+  }
+
+  _evalConcat(expr) {
+    const parts = []; let cur = '', inStr = false, q = '';
+    for (const ch of expr) {
+      if (!inStr && (ch==='"'||ch==="'")) { inStr = true; q = ch; cur += ch; }
+      else if (inStr && ch === q) { inStr = false; cur += ch; }
+      else if (!inStr && ch === '+') { parts.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    if (cur.trim()) parts.push(cur.trim());
+    return parts.map(p => String(this._evalExpr(p))).join('');
+  }
+
+  _tryArith(expr) {
+    expr = expr.trim();
+    /* scan right-to-left for +/- then *// */
+    for (const ops of [['+','-'],['*','/']]) {
+      let depth = 0;
+      for (let i = expr.length - 1; i > 0; i--) {
+        if (expr[i]===')') depth++;
+        else if (expr[i]==='(') depth--;
+        else if (depth===0 && ops.includes(expr[i])) {
+          const l = this._evalExpr(expr.slice(0,i));
+          const r = this._evalExpr(expr.slice(i+1));
+          const ln = Number(l), rn = Number(r);
+          if (isNaN(ln) || isNaN(rn)) return null;
+          if (expr[i]==='+') return ln + rn;
+          if (expr[i]==='-') return ln - rn;
+          if (expr[i]==='*') return ln * rn;
+          if (expr[i]==='/') return rn===0 ? Infinity : ln / rn;
         }
+      }
+    }
+    return null;
+  }
 
-        const interpreter = new BrowserThirstyInterpreter();
+  _splitArgs(s) {
+    const args = []; let cur = '', depth = 0, inStr = false, q = '';
+    for (const ch of s) {
+      if (!inStr && (ch==='"'||ch==="'")) { inStr = true; q = ch; }
+      else if (inStr && ch === q) inStr = false;
+      if (!inStr && ch==='(') depth++;
+      if (!inStr && ch===')') depth--;
+      if (!inStr && depth===0 && ch===',') { args.push(cur.trim()); cur=''; }
+      else cur += ch;
+    }
+    if (cur.trim()) args.push(cur.trim());
+    return args;
+  }
 
-        function runCode() {
-            const code = editor.value;
-            
-            try {
-                statusEl.textContent = 'Running...';
-                statusEl.className = '';
-                
-                const result = interpreter.execute(code);
-                
-                output.innerHTML = result || '(no output)';
-                output.className = 'success';
-                statusEl.textContent = '✓ Success';
-                statusEl.className = 'success';
-            } catch (error) {
-                output.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
-                statusEl.textContent = '✗ Error';
-                statusEl.className = 'error';
-            }
+  /* ── condition evaluator ─────────────────────────────────────────────── */
+  _evalCond(cond) {
+    cond = cond.trim();
+    for (const [sym] of [['>='],['<='],['!='],['=='],['>'],[' < ','<']]) {
+      const actual = sym.trim();
+      const idx = cond.indexOf(actual);
+      if (idx > 0) {
+        const l = this._evalExpr(cond.slice(0, idx));
+        const r = this._evalExpr(cond.slice(idx + actual.length));
+        const ln = Number(l), rn = Number(r);
+        if (actual==='>=') return ln >= rn;
+        if (actual==='<=') return ln <= rn;
+        if (actual==='>') return ln > rn;
+        if (actual==='<') return ln < rn;
+        if (actual==='==') return l == r;
+        if (actual==='!=') return l != r;
+      }
+    }
+    return Boolean(this._evalExpr(cond));
+  }
+
+  /* ── function / method calls ─────────────────────────────────────────── */
+  _callFunc(name, argsStr) {
+    const { params, body } = this.funcs[name];
+    const args = argsStr.trim() ? this._splitArgs(argsStr).map(a => this._evalExpr(a)) : [];
+    const savedVars = { ...this.vars };
+    params.forEach((p, idx) => this.vars[p] = args[idx]);
+    this._block(body, 0);
+    const ret = this.vars['__ret__'];
+    this.vars = savedVars;
+    if (ret !== undefined) this.vars['__ret__'] = ret;
+    return ret;
+  }
+
+  _callMethod(objName, method, argsStr) {
+    const obj = this.vars[objName];
+    const args = argsStr.trim() ? this._splitArgs(argsStr).map(a => this._evalExpr(a)) : [];
+
+    /* array methods */
+    if (Array.isArray(obj)) {
+      if (method==='push') { obj.push(args[0]); return; }
+      if (method==='pop') return obj.pop();
+    }
+
+    /* class instance methods */
+    if (obj && typeof obj === 'object' && obj.__class__) {
+      const cls = this.classes[obj.__class__];
+      if (cls && cls.methods[method]) {
+        const { params, body } = cls.methods[method];
+        const savedVars = { ...this.vars };
+        /* bind this.props */
+        for (const [k,v] of Object.entries(obj)) {
+          if (k !== '__class__') this.vars['this.' + k] = v;
         }
-
-        function clearOutput() {
-            output.innerHTML = 'Output cleared. Click "Run" to execute your code.';
-            output.className = '';
-            statusEl.textContent = 'Ready';
-            statusEl.className = '';
+        params.forEach((p, idx) => this.vars[p] = args[idx]);
+        this._block(body, 0);
+        const ret = this.vars['__ret__'];
+        /* write back this.props */
+        for (const key of Object.keys(this.vars)) {
+          if (key.startsWith('this.')) obj[key.slice(5)] = this.vars[key];
         }
+        this.vars = savedVars;
+        this.vars[objName] = obj;
+        if (ret !== undefined) this.vars['__ret__'] = ret;
+        return ret;
+      }
+    }
+  }
+}
 
-        function formatCode() {
-            let code = editor.value;
-            const lines = code.split('\n');
-            const formatted = lines.map(line => {
-                const trimmed = line.trim();
-                if (trimmed.startsWith('drink ') && !trimmed.includes(' = ')) {
-                    return trimmed.replace(/=/g, ' = ');
-                }
-                return trimmed;
-            }).join('\n');
-            
-            editor.value = formatted;
-            statusEl.textContent = '✓ Code formatted';
-        }
+/* ── UI Wiring ────────────────────────────────────────────────────────── */
+const interp = new ThirstyBrowserInterpreter();
+const editorEl = document.getElementById('editor');
+const outputEl = document.getElementById('output');
+const statusEl = document.getElementById('statusText');
 
-        function shareCode() {
-            const code = editor.value;
-            const encoded = btoa(encodeURIComponent(code));
-            const url = `${window.location.href.split('?')[0]}?code=${encoded}`;
-            
-            navigator.clipboard.writeText(url).then(() => {
-                alert('🔗 Share link copied to clipboard!');
-            });
-        }
+function runCode() {
+  const code = editorEl.value;
+  try {
+    statusEl.textContent = 'Running…';
+    const t0 = performance.now();
+    const result = interp.run(code);
+    const ms = (performance.now() - t0).toFixed(1);
+    outputEl.innerHTML = result.length
+      ? result.map(l => escHtml(l)).join('\n')
+      : '<span style="color:var(--text-dim)">(no output)</span>';
+    statusEl.textContent = `✓ Done in ${ms}ms · ${result.length} line${result.length!==1?'s':''}`;
+  } catch (e) {
+    outputEl.innerHTML = `<span class="err">❌ ${escHtml(e.message)}</span>`;
+    statusEl.textContent = '✗ Error';
+  }
+}
 
-        function downloadCode() {
-            const code = editor.value;
-            const blob = new Blob([code], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'program.thirsty';
-            a.click();
-            URL.revokeObjectURL(url);
-            statusEl.textContent = '💾 Downloaded';
-        }
+function escHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 
-        function loadExample(key) {
-            if (key && examples[key]) {
-                editor.value = examples[key];
-                clearOutput();
-            }
-        }
+function loadExample(key) { if (key && EXAMPLES[key]) { editorEl.value = EXAMPLES[key]; outputEl.innerHTML='Click ▶ Run to execute your code…'; statusEl.textContent='Ready'; } }
 
-        // Update line count
-        editor.addEventListener('input', () => {
-            const lines = editor.value.split('\n').length;
-            lineCount.textContent = `Lines: ${lines}`;
-        });
+function copyInstall() {
+  navigator.clipboard.writeText(document.getElementById('installText').textContent)
+    .then(() => { const b=document.getElementById('copyBtn'); b.textContent='✓'; setTimeout(()=>b.textContent='📋',1500); });
+}
 
-        // Load code from URL if present
-        const urlParams = new URLSearchParams(window.location.search);
-        const sharedCode = urlParams.get('code');
-        if (sharedCode) {
-            try {
-                editor.value = decodeURIComponent(atob(sharedCode));
-            } catch (e) {
-                console.error('Failed to load shared code');
-            }
-        }
+/* Keyboard shortcut */
+editorEl.addEventListener('keydown', e => {
+  if ((e.ctrlKey||e.metaKey) && e.key==='Enter') { e.preventDefault(); runCode(); }
+  if (e.key==='Tab') { e.preventDefault(); const s=editorEl.selectionStart,en=editorEl.selectionEnd; editorEl.value=editorEl.value.substring(0,s)+'  '+editorEl.value.substring(en); editorEl.selectionStart=editorEl.selectionEnd=s+2; }
+});
 
-        // Keyboard shortcuts
-        editor.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + Enter to run
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                runCode();
-            }
-            
-            // Tab key for indentation
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                const start = editor.selectionStart;
-                const end = editor.selectionEnd;
-                editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
-                editor.selectionStart = editor.selectionEnd = start + 2;
-            }
-        });
-    </script>
+/* Scroll-in animation */
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.15 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+
 </body>
 </html>

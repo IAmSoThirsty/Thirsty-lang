@@ -99,10 +99,10 @@ pour userName
 
 ## File Extensions
 
-- `.thirsty` - Base edition
-- `.thirstyplus` - Plus edition
-- `.thirstyplusplus` - PlusPlus edition
-- `.thirstofgods` - ThirstOfGods edition
+- `.thirsty` — Thirsty-Lang (Core)
+- `.tog` — Thirst of Gods
+- `.tarl` — T.A.R.L.
+- `.shadow` — Thirsty's Shadow
 
 ## Help & Documentation
 
@@ -220,7 +220,7 @@ npm test
 
 ## Directory Structure
 
-```
+```text
 Thirsty-lang/
 ├── examples/           # Example programs
 ├── src/               # Source code (JS + Python)
@@ -239,12 +239,12 @@ Thirsty-lang/
 
 ## Version
 
-Current version: **1.0.0**
+Current version: **2.0.0**
 
 See `VERSION.txt` and `CHANGELOG.md` for details.
 
 ---
 
-**Stay hydrated and happy coding! 💧✨**
+### Stay hydrated and happy coding! 💧✨
 
-*For detailed information, see the complete README.md*
+For detailed information, see the complete README.md
