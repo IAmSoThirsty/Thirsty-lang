@@ -83,7 +83,7 @@ See [T.A.R.L. Integration Guide](./TARL_INTEGRATION.md) and [Security API Refere
 - 📚 **Arrays and Data Structures** (`reservoir` keyword) - Dynamic arrays with rich methods
 - 🎯 **Classes and OOP** (`fountain` keyword) - Object-oriented programming with classes, methods, and properties
 - 🌍 **Standard Library** - Built-in Math and String utilities for common operations
-- 🎓 **Language Editions** - Four-tier progression system (Base, Plus, PlusPlus, ThirstOfGods)
+- 🎓 **Language Editions** - Four-tier progression system (Thirsty-Lang, Thirst of Gods, T.A.R.L., Thirsty's Shadow)
 - 📦 **Modules and imports** (`import`/`export` keywords) - Code organization across multiple files
 - ⚡ **Async/await support** (`cascade`/`await` keywords) - Asynchronous programming with promises
 - 🌐 **Network utilities** (`Http` built-in) - HTTP requests and API interactions (GET, POST, fetch)
@@ -223,10 +223,10 @@ npm run train
 
 The training program includes:
 
-- 💧 **Base Thirsty-lang**: Fundamentals for beginners
-- 💧+ **Thirsty Plus**: Control flow and logic
-- 💧++ **Thirsty Plus Plus**: Functions and loops
-- ⚡ **ThirstOfGods**: Advanced OOP and async features
+- 💧 **Thirsty-Lang** (`.thirsty`): Fundamentals for beginners
+- ⚡ **Thirst of Gods** (`.tog`): Control flow and logic
+- �️ **T.A.R.L.** (`.tarl`): Functions, loops, arrays, and security
+- 🔮 **Thirsty's Shadow** (`.shadow`): Advanced OOP and async features
 
 ### Running Thirsty-lang Programs
 
@@ -421,6 +421,7 @@ Thirsty-lang includes basic security features for educational purposes:
 ### What Actually Works
 
 **1. Shield Blocks** - Protected execution contexts
+
 ```thirsty
 shield secureApp {
   // Code here runs in isolated context
@@ -428,6 +429,7 @@ shield secureApp {
 ```
 
 **2. Sanitization** - HTML encoding to prevent XSS
+
 ```thirsty
 drink userInput = "<script>alert('xss')</script>"
 sanitize userInput  // Becomes: &lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;
@@ -438,6 +440,7 @@ sanitize userInput  // Becomes: &lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&
 - Real HTML encoding
 
 **3. Variable Armor** - Protection from modification
+
 ```thirsty
 drink secretKey = "api-key-123"
 armor secretKey            // Variable is now protected
@@ -465,6 +468,7 @@ See the `examples/security/` directory for working examples.
 ```bash
 npm run repl
 ```
+
 Interactive console for experimenting with Thirsty-lang.
 
 #### CLI Runner
@@ -472,6 +476,7 @@ Interactive console for experimenting with Thirsty-lang.
 ```bash
 npm start examples/hello.thirsty
 ```
+
 Run Thirsty-lang programs from the command line.
 
 ### 🛠️ Development Tools (Fully Functional)
@@ -479,46 +484,55 @@ Run Thirsty-lang programs from the command line.
 All documented development tools are implemented and functional:
 
 **✅ Debugger** (`src/debugger.js`) - Step through code, set breakpoints, watch variables
+
 ```bash
 node src/debugger.js examples/hello.thirsty
 ```
 
 **✅ Code Formatter** (`src/formatter.js`) - Beautify and format Thirsty code
+
 ```bash
 node src/formatter.js examples/hello.thirsty
 ```
 
 **✅ Linter** (`src/linter.js`) - Check code quality and style
+
 ```bash
 node src/linter.js examples/hello.thirsty
 ```
 
 **✅ Performance Profiler** (`src/profiler.js`) - Analyze code performance
+
 ```bash
 node src/profiler.js examples/hello.thirsty
 ```
 
 **✅ Documentation Generator** (`src/doc-generator.js`) - Generate docs from code
+
 ```bash
 node src/doc-generator.js examples/hello.thirsty
 ```
 
 **✅ AST Generator** (`src/ast.js`) - Generate Abstract Syntax Trees
+
 ```bash
 node src/ast.js examples/hello.thirsty
 ```
 
 **✅ Transpiler** (`src/transpiler.js`) - Transpile to JavaScript
+
 ```bash
 node src/transpiler.js examples/hello.thirsty
 ```
 
 **✅ Package Manager** (`src/package-manager.js`) - Manage Thirsty packages
+
 ```bash
 node src/package-manager.js init
 ```
 
 **✅ Web Playground** (`playground/index.html`) - Try Thirsty in your browser
+
 ```bash
 
 # Open playground/index.html in your browser
@@ -556,18 +570,18 @@ See [PYTHON_SETUP.md](PYTHON_SETUP.md) for detailed Python setup and usage.
 
 ## Language Editions
 
-Thirsty-lang comes in four flavors, each building on the previous:
+Thirsty-lang comes in four tiers, each building on the previous:
 
-| Edition | Level | Features | Status |
-|---------|-------|----------|--------|
-| 💧 **Base** | Beginner | Variables (`drink`), Output (`pour`), Comments | ✅ Implemented |
-| 💧+ **Thirsty+** | Intermediate | Control flow (`thirsty`/`hydrated`), Loops (`refill`), Operators | ✅ Implemented |
-| 💧++ **Thirsty++** | Advanced | Functions (`glass`), Arrays (`reservoir`), Standard Library | ✅ Implemented |
-| ⚡ **ThirstOfGods** | Master | Classes (`fountain`), OOP, Advanced Data Structures | ✅ Implemented |
+| Tier | Extension | Level | Features | Status |
+|------|-----------|-------|----------|--------|
+| 💧 **Thirsty-Lang** | `.thirsty` | Beginner | Variables (`drink`), Output (`pour`), Comments | ✅ Implemented |
+| ⚡ **Thirst of Gods** | `.tog` | Intermediate | Control flow (`thirsty`/`hydrated`), Loops (`refill`), Operators | ✅ Implemented |
+| �️ **T.A.R.L.** | `.tarl` | Advanced | Functions (`glass`), Arrays (`reservoir`), Standard Library, Security | ✅ Implemented |
+| 🔮 **Thirsty's Shadow** | `.shadow` | Master | Classes (`fountain`), OOP, Advanced Data Structures | ✅ Implemented |
 
-### Feature Matrix by Edition
+### Feature Matrix by Tier
 
-#### 💧 Base Thirsty-lang
+#### 💧 Thirsty-Lang (`.thirsty`)
 
 - ✅ Variable declaration (`drink`)
 - ✅ Output statements (`pour`)
@@ -575,19 +589,19 @@ Thirsty-lang comes in four flavors, each building on the previous:
 - ✅ Comments (`//`)
 - ✅ Basic string and number literals
 
-#### 💧+ Thirsty Plus
+#### ⚡ Thirst of Gods (`.tog`)
 
-**All Base features, plus:**
+**All Thirsty-Lang features, plus:**
 
 - ✅ Conditional statements (`thirsty`/`hydrated`)
 - ✅ Comparison operators (`>`, `<`, `>=`, `<=`, `==`, `!=`)
 - ✅ Arithmetic operations (`+`, `-`, `*`, `/`)
 - ✅ String concatenation
-- ✅ Boolean values
+- ✅ Boolean values (`parched`/`quenched`)
 
-#### 💧++ Thirsty Plus Plus
+#### �️ T.A.R.L. — Tactical Analysis & Response Language (`.tarl`)
 
-**All Thirsty+ features, plus:**
+**All Thirst of Gods features, plus:**
 
 - ✅ Function declarations (`glass`)
 - ✅ Function calls with parameters
@@ -596,13 +610,14 @@ Thirsty-lang comes in four flavors, each building on the previous:
 - ✅ Array indexing and element access
 - ✅ Array methods (push, pop, shift, unshift, indexOf, includes, join, slice, reverse, sort)
 - ✅ Loops with iteration (`refill`)
+- ✅ Security features (`shield`, `sanitize`, `armor`)
 - ✅ Standard Library:
   - Math utilities (PI, E, abs, sqrt, pow, floor, ceil, round, min, max, random)
   - String methods (toUpperCase, toLowerCase, trim, split, replace, charAt, substring)
 
-#### ⚡ ThirstOfGods
+#### 🔮 Thirsty's Shadow (`.shadow`)
 
-**All Thirsty++ features, plus:**
+**All T.A.R.L. features, plus:**
 
 - ✅ Class declarations (`fountain`)
 - ✅ Object instantiation
@@ -611,7 +626,7 @@ Thirsty-lang comes in four flavors, each building on the previous:
 - ✅ `this` keyword for property access
 - ✅ Object-oriented programming
 
-**Note:** All features are currently available in the standard interpreter. Future versions may introduce edition-specific runtime modes.
+**Note:** All features are currently available in the standard interpreter. Future versions may introduce tier-specific runtime modes.
 
 See [docs/EXPANSIONS.md](docs/EXPANSIONS.md) for detailed information and examples.
 
@@ -651,14 +666,14 @@ To install:
 
 1. Copy the `vscode-extension` folder to your VS Code extensions directory
 2. Reload VS Code
-3. Enjoy syntax highlighting for `.thirsty` files!
+3. Enjoy syntax highlighting for `.thirsty`, `.tog`, `.tarl`, and `.shadow` files!
 
 See [vscode-extension/README.md](vscode-extension/README.md) for detailed installation instructions.
 
 ## Project Structure
 
 ```
-Thirsty-lang/
+Thirsty-Lang/
 ├── src/
 │   ├── index.js                # Main Node.js interpreter
 │   ├── cli.js                  # CLI runner
@@ -673,29 +688,36 @@ Thirsty-lang/
 │   ├── ast.js                  # AST generator
 │   ├── transpiler.js           # Multi-language transpiler
 │   ├── package-manager.js      # Package manager
-│   ├── thirsty_interpreter.py  # Python interpreter
+│   ├── thirsty_interpreter.py  # Python interpreter (legacy)
 │   ├── thirsty_repl.py         # Python REPL
 │   ├── thirsty_utils.py        # Python utilities
+│   ├── security/               # T.A.R.L. security modules
 │   └── test/                   # Test suite
+├── thirsty_lang/               # Python pip package
+│   ├── __init__.py             # Package exports
+│   ├── __main__.py             # python -m thirsty_lang
+│   ├── interpreter.py          # Canonical Python interpreter
+│   └── py.typed                # PEP 561 marker
+├── tarl/                       # T.A.R.L. runtime
 ├── examples/                   # Example programs
 │   ├── hello.thirsty
 │   ├── variables.thirsty
 │   ├── hydration.thirsty
-│   └── advanced/               # Advanced examples
+│   └── advanced/               # .tog, .tarl, .shadow examples
 ├── docs/                       # Documentation
-├── playground/                 # Web playground
+│   ├── EXPANSIONS.md           # Four-tier system guide
+│   ├── PUBLISHING.md           # VS Code / npm / PyPI publishing
+│   └── ...                     # Specs, tutorial, FAQ, etc.
+├── playground/                 # Premium web playground
 ├── vscode-extension/           # VS Code extension
+│   ├── icon.png                # Marketplace icon
+│   └── ...                     # Grammar, snippets, config
 ├── tools/                      # Benchmark tools
-├── requirements.txt            # Python core dependencies
-├── requirements-dev.txt        # Python dev dependencies
-├── setup_venv.sh               # Python venv setup script
-├── Dockerfile                  # Docker container definition
-├── docker-compose.yml          # Docker multi-service setup
-├── .dockerignore               # Docker ignore file
+├── package.json                # npm package config
+├── pyproject.toml              # pip package config
+├── Dockerfile                  # Docker container
+├── docker-compose.yml          # Docker multi-service
 ├── CHANGELOG.md                # Version history
-├── AUTHORS.txt                 # Contributors
-├── DEPENDENCIES.txt            # Dependency information
-├── VERSION.txt                 # Current version
 └── .github/workflows/          # CI/CD
 ```
 
