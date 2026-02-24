@@ -1,0 +1,59 @@
+// Standard library usage in Thirsty-lang
+// Demonstrates Math and String built-in utilities
+
+pour "=== Math Utilities ==="
+
+// Math constants
+pour "Pi: " + Math.PI
+pour "E: " + Math.E
+
+// Math functions
+drink num = -42
+drink absValue = Math.abs(num)
+pour "Absolute value of -42: " + absValue
+
+drink squareRoot = Math.sqrt(16)
+pour "Square root of 16: " + squareRoot
+
+drink power = Math.pow(2, 8)
+pour "2 to the power of 8: " + power
+
+drink floored = Math.floor(3.7)
+pour "Floor of 3.7: " + floored
+
+drink ceiled = Math.ceil(3.2)
+pour "Ceiling of 3.2: " + ceiled
+
+drink rounded = Math.round(3.5)
+pour "Round of 3.5: " + rounded
+
+drink minimum = Math.min(5, 3)
+pour "Min of 5 and 3: " + minimum
+
+drink maximum = Math.max(5, 3)
+pour "Max of 5 and 3: " + maximum
+
+pour ""
+pour "=== String Utilities ==="
+
+drink text = "  hello world  "
+drink upper = String.toUpperCase(text)
+pour "Uppercase: " + upper
+
+drink lower = String.toLowerCase("THIRSTY LANG")
+pour "Lowercase: " + lower
+
+drink trimmed = String.trim(text)
+pour "Trimmed: '" + trimmed + "'"
+
+drink parts = String.split("a,b,c", ",")
+pour "Split result: " + parts.join(" | ")
+
+drink replaced = String.replace("hello world", "world", "Thirsty")
+pour "Replace: " + replaced
+
+drink char = String.charAt("Thirsty", 0)
+pour "First character: " + char
+
+drink sub = String.substring("Thirsty-lang", 0, 7)
+pour "Substring: " + sub

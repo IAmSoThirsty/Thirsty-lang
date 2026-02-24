@@ -1,0 +1,5 @@
+// Hello World in Thirsty-lang
+// This demonstrates the basic syntax of the language
+
+drink message = "Hello, World!"
+pour message

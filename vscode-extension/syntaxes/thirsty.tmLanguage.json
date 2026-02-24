@@ -31,7 +31,27 @@
       "patterns": [
         {
           "name": "keyword.control.thirsty",
-          "match": "\\b(drink|pour|sip|thirsty|hydrated|refill|glass|fountain|cascade|await|spillage|cleanup|import|export|sacred|ocean|stream|parched|quenched|reservoir|bottle|return)\\b"
+          "match": "\\b(thirsty|hydrated|refill|return|import|export|await|cascade)\\b"
+        },
+        {
+          "name": "keyword.declaration.thirsty",
+          "match": "\\b(drink|glass|fountain|reservoir)\\b"
+        },
+        {
+          "name": "keyword.other.thirsty",
+          "match": "\\b(pour|sip)\\b"
+        },
+        {
+          "name": "keyword.security.thirsty",
+          "match": "\\b(shield|sanitize|armor|morph|detect|defend)\\b"
+        },
+        {
+          "name": "constant.language.thirsty",
+          "match": "\\b(true|false|this)\\b"
+        },
+        {
+          "name": "support.class.thirsty",
+          "match": "\\b(Math|String|File|Http)\\b"
         }
       ]
     },
