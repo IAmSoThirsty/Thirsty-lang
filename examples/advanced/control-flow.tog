@@ -1,34 +1,55 @@
-// Thirst of Gods Control Flow Example
-// Demonstrates conditional logic
+// Thirst of Gods — Control Flow Example
+// Demonstrates conditional logic and operators
+
+pour "=== Thirst of Gods: Control Flow ==="
+pour ""
 
 drink temperature = 35
 drink water_consumed = 6
 
 // If-else statement
-thirsty temperature > 30
+thirsty temperature > 30 {
   pour "It's hot! Drink more water!"
   drink recommended = 10
-hydrated
+}
+hydrated {
   pour "Normal temperature"
   drink recommended = 8
+}
 
-pour "Recommended daily intake:"
-pour recommended
+pour "Recommended daily intake: " + recommended
 
 // Check consumption
-thirsty water_consumed < recommended
+thirsty water_consumed < recommended {
   drink deficit = recommended - water_consumed
-  pour "You need to drink more!"
-  pour deficit
-  pour "liters remaining"
-hydrated
+  pour "You need " + deficit + " more liters!"
+}
+hydrated {
   pour "Great job! You're well hydrated!"
+}
 
-// Boolean values
-drink is_thirsty = parched  // true
-drink is_quenched = quenched  // false
+// Nested conditionals
+pour ""
+drink hour = 14
+thirsty hour > 12 {
+  thirsty hour > 17 {
+    pour "Evening — time for a final hydration push"
+  }
+  hydrated {
+    pour "Afternoon — stay topped up!"
+  }
+}
+hydrated {
+  pour "Morning — start hydrating early"
+}
 
-thirsty is_thirsty
-  pour "Time to hydrate!"
-
-// Stay healthy and hydrated! 💧
+// Arithmetic operators
+drink a = 100
+drink b = 37
+pour ""
+drink sum = a + b
+drink diff = a - b
+drink prod = a * b
+pour "Math: " + a + " + " + b + " = " + sum
+pour "Math: " + a + " - " + b + " = " + diff
+pour "Math: " + a + " * " + b + " = " + prod

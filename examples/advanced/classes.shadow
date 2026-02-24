@@ -1,51 +1,76 @@
-// Thirsty's Shadow Example - Ultimate Power
-// This showcases the most advanced features
+// Thirsty's Shadow — Classes and OOP
+// The ultimate tier: object-oriented programming
 
-// Import modules (future feature)
-import hydration from "thirsty-utils"
+pour "=== Thirsty's Shadow: OOP ==="
+pour ""
 
-// Class definition
-fountain WaterTracker
+// Class with properties and methods
+fountain WaterTracker {
   drink total_intake = 0
   drink goal = 8
 
-  // Constructor
-  glass init(goal_liters)
-    this.goal = goal_liters
+  glass addWater(amount) {
+    drink this.total_intake = this.total_intake + amount
+    pour "Added " + amount + " liters"
+  }
 
-  // Method to add water
-  glass addWater(amount)
-    this.total_intake = this.total_intake + amount
-    pour "Added: " + amount + " liters"
+  glass getProgress() {
+    drink pct = this.total_intake / this.goal * 100
+    return pct
+  }
 
-  // Method to check progress
-  glass checkProgress()
-    drink percentage = (this.total_intake / this.goal) * 100
-    return percentage
+  glass getStatus() {
+    thirsty this.total_intake >= this.goal {
+      return "Goal reached!"
+    }
+    hydrated {
+      drink remaining = this.goal - this.total_intake
+      return remaining + " liters to go"
+    }
+  }
+}
 
-  // Async method to fetch weather
-  cascade glass getWeatherAdvice()
-    drink weather = await fetchWeather()
+// Using the class
+drink tracker = WaterTracker()
+tracker.addWater(2.5)
+tracker.addWater(1.5)
+tracker.addWater(3.0)
 
-    thirsty weather.temperature > 30
-      return "Hot day! Drink extra water!"
-    hydrated
-      return "Normal hydration is fine"
+pour ""
+drink progress = tracker.getProgress()
+pour "Progress: " + progress + "%"
 
-// Error handling
-spillage
-  drink tracker = new WaterTracker(8)
-  tracker.addWater(2.5)
-  tracker.addWater(1.5)
+drink status = tracker.getStatus()
+pour status
 
-  drink progress = tracker.checkProgress()
-  pour "Hydration progress: " + progress + "%"
+// Another class
+pour ""
+fountain HydrationCoach {
+  drink specialty = "hydration"
 
-  // Async call
-  drink advice = await tracker.getWeatherAdvice()
-  pour advice
+  glass recommend(temp) {
+    thirsty temp > 30 {
+      return "Drink 12 glasses today!"
+    }
+    hydrated {
+      return "Drink 8 glasses today"
+    }
+  }
 
-cleanup error
-  pour "Error occurred: " + error.message
+  glass motivate() {
+    return "Stay hydrated, champion!"
+  }
+}
 
-// Enter the Shadow realm! 🌑💧
+drink coach = HydrationCoach()
+drink advice = coach.recommend(35)
+pour "Coach says: " + advice
+pour coach.motivate()
+
+// Standard library usage
+pour ""
+drink pi_area = Math.PI * Math.pow(5, 2)
+pour "Circle area (r=5): " + pi_area
+
+drink msg = String.toUpperCase("stay hydrated")
+pour msg

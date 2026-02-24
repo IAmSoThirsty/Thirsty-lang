@@ -1,28 +1,60 @@
-// T.A.R.L. Example
-// This demonstrates functions, loops, and security features
+// T.A.R.L. — Functions, Arrays, and Security
+// Demonstrates the full T.A.R.L. tier features
+
+pour "=== T.A.R.L.: Functions, Arrays, Security ==="
+pour ""
 
 // Function to calculate daily water intake
-glass calculateWaterIntake(weight, activity_level)
-  drink base_intake = weight * 0.033
-  drink activity_multiplier = activity_level * 0.5
-  drink total = base_intake + activity_multiplier
-  return total
+glass calculateIntake(weight, activity) {
+  drink base = weight * 0.033
+  drink bonus = activity * 0.5
+  return base + bonus
+}
+
+// Function to rate hydration
+glass rateHydration(consumed, target) {
+  thirsty consumed > target {
+    return "Excellent hydration!"
+  }
+  hydrated {
+    return "Drink more water!"
+  }
+}
 
 // Main program
 drink my_weight = 70
 drink my_activity = 2
+drink daily_target = calculateIntake(my_weight, my_activity)
+pour "Daily target: " + daily_target + " liters"
 
-drink daily_water = calculateWaterIntake(my_weight, my_activity)
-
-pour "Daily water intake:"
-pour daily_water
-pour "liters"
-
-// Array example
+// Array tracking
 reservoir hydration_log = [2.0, 1.5, 2.5, 3.0]
+pour "Hydration log: " + hydration_log.join(", ")
+pour "Entries: " + hydration_log.length
 
-// Loop through log
-refill 4 times
-  pour hydration_log[index]
+// Add a new entry
+hydration_log.push(1.0)
+pour "After adding 1.0: " + hydration_log.join(", ")
 
-// Stay hydrated! 💧
+// Sum using a loop
+drink total = 0
+drink i = 0
+refill i < hydration_log.length {
+  drink amount = hydration_log[i]
+  drink total = total + amount
+  drink i = i + 1
+}
+pour "Total consumed: " + total + " liters"
+
+// Rate it
+pour ""
+drink rating = rateHydration(total, daily_target)
+pour rating
+
+// Security demo
+pour ""
+shield secureHydration {
+  drink user_input = "<script>steal(data)</script>"
+  sanitize user_input
+  pour "Sanitized: " + user_input
+}
