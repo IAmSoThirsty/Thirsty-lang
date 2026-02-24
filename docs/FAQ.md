@@ -1,16 +1,16 @@
-# Thirsty-lang FAQ
+# Thirsty-Lang FAQ
 
 ## Frequently Asked Questions
 
 ### General Questions
 
-**Q: What is Thirsty-lang?**
-A: Thirsty-lang is a fun, educational programming language with water-themed keywords designed to make learning to code refreshing and enjoyable!
+**Q: What is Thirsty-Lang?**
+A: Thirsty-Lang is a fun, educational programming language with water-themed keywords designed to make learning to code refreshing and enjoyable!
 
-**Q: Is Thirsty-lang a real programming language?**
+**Q: Is Thirsty-Lang a real programming language?**
 A: Yes! It's a fully functional interpreted language with a complete toolchain including debugger, profiler, REPL, and more.
 
-**Q: What can I build with Thirsty-lang?**
+**Q: What can I build with Thirsty-Lang?**
 A: You can write scripts, learn programming concepts, create educational content, and have fun! Future versions will support web apps, APIs, and more.
 
 **Q: Which version should I start with?**
@@ -18,16 +18,16 @@ A: Start with Thirsty-Lang to learn the fundamentals, then progress to Thirst of
 
 ### Technical Questions
 
-**Q: How do I install Thirsty-lang?**
-A: Clone the repository and run `npm install`. Node.js 14+ required.
+**Q: How do I install Thirsty-Lang?**
+A: Clone the repository and run `npm install`. Node.js 18+ required.
 
-**Q: How do I run a Thirsty-lang program?**
+**Q: How do I run a Thirsty-Lang program?**
 A: Use `npm start program.thirsty` or `node src/cli.js program.thirsty`
 
 **Q: Is there an IDE or editor support?**
-A: Yes! We provide a VS Code extension in `.vscode/extensions/thirsty-lang/` with syntax highlighting and snippets.
+A: Yes! We provide a VS Code extension in `.vscode/extensions/Thirsty-Lang/` with syntax highlighting and snippets.
 
-**Q: Can I transpile Thirsty-lang to other languages?**
+**Q: Can I transpile Thirsty-Lang to other languages?**
 A: Yes! Use the transpiler to convert to JavaScript, Python, Go, Rust, Java, or C.
 
 **Q: How do I debug my code?**
@@ -41,8 +41,8 @@ A: Yes! Use `node src/package-manager.js` to manage dependencies.
 **Q: I'm new to programming. Where should I start?**
 A: Run `npm run train` to start our interactive training program! It guides you through all levels.
 
-**Q: How long does it take to learn Thirsty-lang?**
-A: Base Thirsty-lang can be learned in under an hour. Advanced features take longer but our training program makes it fun!
+**Q: How long does it take to learn Thirsty-Lang?**
+A: Base Thirsty-Lang can be learned in under an hour. Advanced features take longer but our training program makes it fun!
 
 **Q: Are there example programs?**
 A: Yes! Check the `examples/` directory for basic and advanced examples.
@@ -52,13 +52,13 @@ A: Yes! Open `playground/index.html` in your browser for an online playground.
 
 ### Contributing Questions
 
-**Q: Can I contribute to Thirsty-lang?**
+**Q: Can I contribute to Thirsty-Lang?**
 A: Absolutely! Read [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 **Q: How can I report bugs?**
 A: Open an issue on GitHub with details and example code.
 
-**Q: Can I create my own Thirsty-lang extension?**
+**Q: Can I create my own Thirsty-Lang extension?**
 A: Yes! Thirsty's Shadow will support plugins and extensions.
 
 ### Advanced Questions
@@ -71,16 +71,16 @@ A:
 - **T.A.R.L.**: Adds functions, loops, security, data structures
 - **Thirsty's Shadow**: Adds classes, async/await, modules, shadow computing
 
-**Q: Can I use Thirsty-lang in production?**
+**Q: Can I use Thirsty-Lang in production?**
 A: The base language is stable for educational use. Production features are in development.
 
 **Q: Will there be more features?**
 A: Yes! We're constantly adding new features. Check the roadmap in the repository.
 
 **Q: How does the transpiler work?**
-A: It converts Thirsty-lang AST to equivalent code in target languages while maintaining semantics.
+A: It converts Thirsty-Lang AST to equivalent code in target languages while maintaining semantics.
 
-**Q: Can I create a language server for Thirsty-lang?**
+**Q: Can I create a language server for Thirsty-Lang?**
 A: Yes! The AST generator and parser can be used to build language servers and IDE integrations.
 
 ## Still have questions?

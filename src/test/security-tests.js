@@ -2,7 +2,7 @@
 
 /**
  * Security Features Test Suite
- * Tests for Thirsty-lang defensive programming capabilities
+ * Tests for Thirsty-Lang defensive programming capabilities
  */
 
 const ThreatDetector = require('../security/threat-detector');

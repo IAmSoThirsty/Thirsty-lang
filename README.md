@@ -1,6 +1,6 @@
 # Thirsty-Lang 💧
 
-[![NPM Version](https://img.shields.io/npm/v/thirsty-lang.svg)](https://www.npmjs.com/package/thirsty-lang)
+[![NPM Version](https://img.shields.io/npm/v/Thirsty-Lang.svg)](https://www.npmjs.com/package/Thirsty-Lang)
 [![CI](https://github.com/IAmSoThirsty/Thirsty-Lang/actions/workflows/ci.yml/badge.svg)](https://github.com/IAmSoThirsty/Thirsty-Lang/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Custom-blue.svg)](LICENSE)
 
@@ -10,11 +10,11 @@
 
 ```bash
 # npm
-npm install -g thirsty-lang
+npm install -g Thirsty-Lang
 thirsty examples/hello.thirsty
 
 # pip
-pip install thirsty-lang
+pip install Thirsty-Lang
 python -m thirsty_lang examples/hello.thirsty
 
 # From source
@@ -134,7 +134,7 @@ See more examples in [`examples/`](examples/) and [`examples/advanced/`](example
 ### Node.js (Primary Runtime)
 
 ```bash
-npm install -g thirsty-lang    # Global install
+npm install -g Thirsty-Lang    # Global install
 thirsty examples/hello.thirsty # Run a program
 thirsty-repl                   # Interactive REPL
 ```
@@ -142,7 +142,7 @@ thirsty-repl                   # Interactive REPL
 ### Python (Alternative Runtime)
 
 ```bash
-pip install thirsty-lang
+pip install Thirsty-Lang
 python -m thirsty_lang examples/hello.thirsty
 ```
 
@@ -158,7 +158,7 @@ python3 src/thirsty_interpreter.py examples/hello.thirsty
 
 ```bash
 docker-compose up
-# Or: docker build -t thirsty-lang .
+# Or: docker build -t Thirsty-Lang .
 ```
 
 See [DOCKER.md](DOCKER.md) for detailed Docker instructions and [PYTHON_SETUP.md](PYTHON_SETUP.md) for Python setup.

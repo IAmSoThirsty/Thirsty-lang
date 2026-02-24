@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "Thirsty-lang",
+  "name": "Thirsty-Lang",
   "patterns": [
     {
       "include": "#comments"

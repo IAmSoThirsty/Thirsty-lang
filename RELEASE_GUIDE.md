@@ -1,6 +1,6 @@
-# Release Guide - Thirsty-lang
+# Release Guide - Thirsty-Lang
 
-This guide explains how to prepare, package, and release Thirsty-lang for production use.
+This guide explains how to prepare, package, and release Thirsty-Lang for production use.
 
 ## 🚀 Release Checklist
 
@@ -27,16 +27,16 @@ This guide explains how to prepare, package, and release Thirsty-lang for produc
 
 - [ ] Verify npm credentials: `npm whoami`
 - [ ] Test package locally: `npm pack`
-- [ ] Inspect package contents: `tar -tzf thirsty-lang-*.tgz`
+- [ ] Inspect package contents: `tar -tzf Thirsty-Lang-*.tgz`
 - [ ] Publish to npm: `npm publish`
-- [ ] Verify on npm: `npm view thirsty-lang`
+- [ ] Verify on npm: `npm view Thirsty-Lang`
 
 ### Post-Release
 
 - [ ] Create GitHub Release with release notes
 - [ ] Update documentation site
 - [ ] Announce release on social media
-- [ ] Test installation: `npm install -g thirsty-lang`
+- [ ] Test installation: `npm install -g Thirsty-Lang`
 - [ ] Verify CLI commands work globally
 
 ## 📦 NPM Package Contents
@@ -46,7 +46,7 @@ The published npm package includes:
 ### Core Files
 
 - `src/` - All source code files
-- `examples/` - Example Thirsty-lang programs
+- `examples/` - Example Thirsty-Lang programs
 - `docs/` - Documentation files
 - `package.json` - Package metadata
 
@@ -113,7 +113,7 @@ npm publish
 
 # 6. Verify installation
 
-npm install -g thirsty-lang@latest
+npm install -g Thirsty-Lang@latest
 thirsty --version
 ```
 
@@ -185,11 +185,11 @@ npm pack
 
 # Inspect contents
 
-tar -tzf thirsty-lang-2.0.0.tgz
+tar -tzf Thirsty-Lang-2.0.0.tgz
 
 # Test installation locally
 
-npm install -g ./thirsty-lang-2.0.0.tgz
+npm install -g ./Thirsty-Lang-2.0.0.tgz
 
 # Test CLI commands
 
@@ -200,7 +200,7 @@ thirsty-repl
 
 ## 📊 Version Numbering
 
-Thirsty-lang follows [Semantic Versioning](https://semver.org/):
+Thirsty-Lang follows [Semantic Versioning](https://semver.org/):
 
 - **Major** (X.0.0): Breaking changes
 - **Minor** (x.X.0): New features, backwards compatible
@@ -254,7 +254,7 @@ After publishing, verify the release:
 
 # Install globally
 
-npm install -g thirsty-lang@latest
+npm install -g Thirsty-Lang@latest
 
 # Check version
 
@@ -277,7 +277,7 @@ thirsty-repl
 
 # Uninstall test
 
-npm uninstall -g thirsty-lang
+npm uninstall -g Thirsty-Lang
 ```
 
 ## 📝 Release Notes Template
@@ -314,11 +314,11 @@ npm uninstall -g thirsty-lang
 
 ## 🔗 Useful Links
 
-- **NPM Package**: https://www.npmjs.com/package/thirsty-lang
-- **GitHub Repository**: https://github.com/IAmSoThirsty/Thirsty-lang
-- **GitHub Releases**: https://github.com/IAmSoThirsty/Thirsty-lang/releases
-- **Documentation**: https://github.com/IAmSoThirsty/Thirsty-lang#readme
-- **Issue Tracker**: https://github.com/IAmSoThirsty/Thirsty-lang/issues
+- **NPM Package**: https://www.npmjs.com/package/Thirsty-Lang
+- **GitHub Repository**: https://github.com/IAmSoThirsty/Thirsty-Lang
+- **GitHub Releases**: https://github.com/IAmSoThirsty/Thirsty-Lang/releases
+- **Documentation**: https://github.com/IAmSoThirsty/Thirsty-Lang#readme
+- **Issue Tracker**: https://github.com/IAmSoThirsty/Thirsty-Lang/issues
 
 ## 🆘 Troubleshooting
 
@@ -348,7 +348,7 @@ npm uninstall -g thirsty-lang
 
 ## 🏁 Production Ready!
 
-Thirsty-lang is now **100% Real Production** ready with:
+Thirsty-Lang is now **100% Real Production** ready with:
 
 ✅ Complete npm package configuration
 ✅ Automated CI/CD pipeline

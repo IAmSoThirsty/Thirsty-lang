@@ -1,4 +1,4 @@
-# Publishing Thirsty-lang
+# Publishing Thirsty-Lang
 
 Guides for publishing across all three distribution channels.
 
@@ -36,7 +36,7 @@ vsce publish --no-dependencies
 
 1. Install the `.vsix` locally first: **Extensions → ⋯ → Install from VSIX…**
 2. Open a `.thirsty`, `.tog`, `.tarl`, or `.shadow` file — verify syntax highlighting, snippets, and bracket matching work.
-3. After publishing, search "thirsty-lang" on the [Marketplace](https://marketplace.visualstudio.com/) to confirm it appears.
+3. After publishing, search "Thirsty-Lang" on the [Marketplace](https://marketplace.visualstudio.com/) to confirm it appears.
 
 ### Updating
 
@@ -80,7 +80,7 @@ npm publish --access public
 
 ```bash
 # Install globally from npm to verify
-npm install -g thirsty-lang
+npm install -g Thirsty-Lang
 thirsty --help
 thirsty examples/hello.thirsty
 ```
@@ -118,10 +118,10 @@ tar -tzf dist/thirsty_lang-2.0.0.tar.gz | head -20
 
 # Upload to TestPyPI first
 twine upload --repository testpypi dist/*
-# Visit: https://test.pypi.org/project/thirsty-lang/
+# Visit: https://test.pypi.org/project/Thirsty-Lang/
 
 # Install from TestPyPI to verify
-pip install -i https://test.pypi.org/simple/ thirsty-lang
+pip install -i https://test.pypi.org/simple/ Thirsty-Lang
 thirsty examples/hello.thirsty
 python -m thirsty_lang examples/hello.thirsty
 
@@ -152,7 +152,7 @@ password = pypi-YOUR_TEST_TOKEN_HERE
 ### Verification
 
 ```bash
-pip install thirsty-lang
+pip install Thirsty-Lang
 thirsty examples/hello.thirsty
 python -m thirsty_lang examples/hello.thirsty
 python -c "from thirsty_lang import ThirstyInterpreter; print('OK')"

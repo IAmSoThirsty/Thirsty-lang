@@ -1,4 +1,4 @@
-# Thirsty-lang for VS Code 💧
+# Thirsty-Lang for VS Code 💧
 
 **Full language support for the [Thirsty language family](https://github.com/IAmSoThirsty/Thirsty-Lang)** — syntax highlighting, code snippets, and language configuration for all four tiers.
 
@@ -13,7 +13,7 @@
 
 ## Features
 
-- 🎨 **Syntax Highlighting** — Full TextMate grammar for all Thirsty-lang keywords
+- 🎨 **Syntax Highlighting** — Full TextMate grammar for all Thirsty-Lang keywords
 - ✂️ **Code Snippets** — Quick templates for common patterns
 - 📝 **Language Configuration** — Auto-closing brackets, comment toggling, indentation rules
 - 📁 **All Four Tiers** — `.thirsty`, `.tog`, `.tarl`, and `.shadow` files recognized
@@ -21,7 +21,7 @@
 ## Syntax Preview
 
 ```thirsty
-// Hello World in Thirsty-lang
+// Hello World in Thirsty-Lang
 drink message = "Hello, Thirsty World!"
 pour message
 
@@ -69,13 +69,13 @@ refill glasses < 8 {
 
 1. Open VS Code
 2. Press `Ctrl+Shift+X` (Extensions)
-3. Search for **"Thirsty-lang"**
+3. Search for **"Thirsty-Lang"**
 4. Click **Install**
 
 ### From VSIX
 
 ```bash
-code --install-extension thirsty-lang-1.0.0.vsix
+code --install-extension Thirsty-Lang-1.0.0.vsix
 ```
 
 ## Requirements
@@ -86,8 +86,8 @@ code --install-extension thirsty-lang-1.0.0.vsix
 
 - [GitHub Repository](https://github.com/IAmSoThirsty/Thirsty-Lang)
 - [Language Specification](https://github.com/IAmSoThirsty/Thirsty-Lang/blob/main/docs/SPECIFICATION.md)
-- [npm Package](https://www.npmjs.com/package/thirsty-lang)
-- [PyPI Package](https://pypi.org/project/thirsty-lang/)
+- [npm Package](https://www.npmjs.com/package/Thirsty-Lang)
+- [PyPI Package](https://pypi.org/project/Thirsty-Lang/)
 
 ## License
 

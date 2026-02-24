@@ -1,5 +1,5 @@
 /**
- * Test Runner for Thirsty-lang Classes
+ * Test Runner for Thirsty-Lang Classes
  */
 
 const { ThirstyInterpreter } = require('../index');
@@ -16,7 +16,7 @@ class TestRunner {
   }
 
   run() {
-    console.log('Running Thirsty-lang Class Tests...\n');
+    console.log('Running Thirsty-Lang Class Tests...\n');
 
     for (const { name, fn } of this.tests) {
       try {

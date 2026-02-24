@@ -1,5 +1,5 @@
 /**
- * Thirsty-lang Linter
+ * Thirsty-Lang Linter
  * Keep your code clean and hydrated!
  */
 
@@ -191,7 +191,7 @@ function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.log('Thirsty-lang Linter');
+    console.log('Thirsty-Lang Linter');
     console.log('Usage: node src/linter.js <file.thirsty>');
     console.log('\nOptions:');
     console.log('  --max-line-length <n>    Set max line length (default: 80)');

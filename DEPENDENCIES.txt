@@ -1,4 +1,4 @@
-# Thirsty-lang Dependencies
+# Thirsty-Lang Dependencies
 
 ## Core Dependencies
 
@@ -17,7 +17,7 @@
 ## Node.js Dependencies (package.json)
 
 ### Production Dependencies
-None - Thirsty-lang core uses only Node.js standard library
+None - Thirsty-Lang core uses only Node.js standard library
 
 ### Development Dependencies
 None - Testing and tools use Node.js standard library
@@ -58,13 +58,13 @@ None - Python implementation uses only Python standard library
 - Visual Studio Code 1.60.0 or higher
 
 ## Build Dependencies
-None - Thirsty-lang is an interpreted language
+None - Thirsty-Lang is an interpreted language
 
 ## Runtime Dependencies
 None - All interpreters use standard library only
 
 ## Notes
-- Thirsty-lang is designed to have zero external dependencies for core functionality
+- Thirsty-Lang is designed to have zero external dependencies for core functionality
 - All features work with just Node.js or Python standard libraries
 - Optional dependencies enhance but are not required for basic operation
 - Docker is optional and only needed for containerized deployment

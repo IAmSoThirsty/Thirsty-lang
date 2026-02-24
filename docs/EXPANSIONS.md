@@ -1,6 +1,6 @@
-# Thirsty-lang Expansions
+# Thirsty-Lang Expansions
 
-Thirsty-lang comes in four tiers to suit different levels of thirst! 💧
+Thirsty-Lang comes in four tiers to suit different levels of thirst! 💧
 
 ## Tier 1: Thirsty-Lang (`.thirsty`)
 
@@ -168,10 +168,10 @@ tracker.checkGoal()
 
 ## Running Your Code
 
-All tiers are currently available in the standard Thirsty-lang interpreter:
+All tiers are currently available in the standard Thirsty-Lang interpreter:
 
 ```bash
-# Run any Thirsty-lang program
+# Run any Thirsty-Lang program
 npm start examples/hello.thirsty
 npm start examples/functions.thirsty
 npm start examples/arrays.thirsty

@@ -14,11 +14,11 @@ const path = require('path');
 function showHelp() {
   const pkg = require('../package.json');
   console.log('╔════════════════════════════════════════════════════════════╗');
-  console.log(`║              💧 Thirsty-lang CLI v${pkg.version} 💧                ║`);
+  console.log(`║              💧 Thirsty-Lang CLI v${pkg.version} 💧                ║`);
   console.log('╚════════════════════════════════════════════════════════════╝');
   console.log('\nUsage: thirsty <command> [options]\n');
   console.log('Commands:\n');
-  console.log('  run <file>              Run a Thirsty-lang program');
+  console.log('  run <file>              Run a Thirsty-Lang program');
   console.log('  repl                    Start interactive REPL');
   console.log('  train                   Launch interactive training');
   console.log('  test [file]             Run tests');
@@ -39,13 +39,13 @@ function showHelp() {
   console.log('  thirsty train');
   console.log('  thirsty format examples/hello.thirsty');
   console.log('  thirsty transpile program.thirsty --target python\n');
-  console.log('For more information: https://github.com/IAmSoThirsty/Thirsty-lang');
+  console.log('For more information: https://github.com/IAmSoThirsty/Thirsty-Lang');
   console.log('\nStay hydrated! 💧\n');
 }
 
 function showVersion() {
   const pkg = require('../package.json');
-  console.log(`Thirsty-lang v${pkg.version}`);
+  console.log(`Thirsty-Lang v${pkg.version}`);
   console.log(`Node.js ${process.version}`);
   console.log('Stay hydrated! 💧');
 }
@@ -66,7 +66,7 @@ function initProject(name = 'my-thirsty-project') {
 
   // Create main file
   const mainContent = `// Welcome to ${name}!
-// Start coding your Thirsty-lang application here
+// Start coding your Thirsty-Lang application here
 
 drink message = "Hello from ${name}!"
 pour message
@@ -79,7 +79,7 @@ pour message
   const config = {
     name: name,
     version: '1.0.0',
-    description: 'A Thirsty-lang project',
+    description: 'A Thirsty-Lang project',
     main: 'src/main.thirsty',
     scripts: {
       start: 'thirsty run src/main.thirsty',
@@ -100,7 +100,7 @@ pour message
   // Create README
   const readme = `# ${name}
 
-A Thirsty-lang project.
+A Thirsty-Lang project.
 
 ## Getting Started
 
@@ -117,9 +117,9 @@ thirsty test
 
 ## Learn More
 
-- [Thirsty-lang Documentation](https://github.com/IAmSoThirsty/Thirsty-lang)
-- [Language Specification](https://github.com/IAmSoThirsty/Thirsty-lang/blob/main/docs/SPECIFICATION.md)
-- [Expansions Guide](https://github.com/IAmSoThirsty/Thirsty-lang/blob/main/docs/EXPANSIONS.md)
+- [Thirsty-Lang Documentation](https://github.com/IAmSoThirsty/Thirsty-Lang)
+- [Language Specification](https://github.com/IAmSoThirsty/Thirsty-Lang/blob/main/docs/SPECIFICATION.md)
+- [Expansions Guide](https://github.com/IAmSoThirsty/Thirsty-Lang/blob/main/docs/EXPANSIONS.md)
 
 Stay hydrated! 💧
 `;

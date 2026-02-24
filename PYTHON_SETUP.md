@@ -1,6 +1,6 @@
-# Python Setup Guide for Thirsty-lang 🐍💧
+# Python Setup Guide for Thirsty-Lang 🐍💧
 
-This guide explains how to set up and use the Python implementation of Thirsty-lang.
+This guide explains how to set up and use the Python implementation of Thirsty-Lang.
 
 ## Prerequisites
 
@@ -54,7 +54,7 @@ pip install -r requirements.txt
 
 ## Running Python Implementation
 
-### Run a Thirsty-lang Program
+### Run a Thirsty-Lang Program
 
 ```bash
 
@@ -372,7 +372,7 @@ source .venv/bin/activate
 
 # Make sure you're in the right directory
 
-cd /path/to/Thirsty-lang
+cd /path/to/Thirsty-Lang
 
 # Make sure venv is activated
 
@@ -493,7 +493,7 @@ Add to `.vscode/launch.json`:
 
 ### Is Python version production-ready?
 
-The Python version is fully functional for basic Thirsty-lang features.
+The Python version is fully functional for basic Thirsty-Lang features.
 For production use, the Node.js version is recommended.
 
 ### Can I extend the Python implementation?
@@ -517,7 +517,7 @@ Yes! The code is modular and easy to extend:
 - [Python Documentation](https://docs.python.org/)
 - [Virtual Environments Guide](https://docs.python.org/3/tutorial/venv.html)
 - [pip Documentation](https://pip.pypa.io/)
-- Thirsty-lang main README.md
+- Thirsty-Lang main README.md
 
 ## Support
 

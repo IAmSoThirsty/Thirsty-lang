@@ -1,4 +1,4 @@
-# Operational Guide: Thirsty-lang with T.A.R.L.
+# Operational Guide: Thirsty-Lang with T.A.R.L.
 
 ## Deployment Guide
 
@@ -23,8 +23,8 @@
 #### 1. Clone Repository
 
 ```bash
-git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
-cd Thirsty-lang
+git clone https://github.com/IAmSoThirsty/Thirsty-Lang.git
+cd Thirsty-Lang
 ```
 
 #### 2. Install Dependencies
@@ -205,7 +205,7 @@ console.log('Policy decision:', result.verdict);
 
 # Copy to production
 
-cp policies/production-policy.yaml /etc/thirsty-lang/policies/
+cp policies/production-policy.yaml /etc/Thirsty-Lang/policies/
 
 # Reload in running application
 
@@ -587,7 +587,7 @@ For operational issues:
 - Check logs in `logs/` directory
 - Review metrics from monitoring endpoints
 - Consult [Troubleshooting Guide](./TROUBLESHOOTING.md)
-- Open issue: https://github.com/IAmSoThirsty/Thirsty-lang/issues
+- Open issue: https://github.com/IAmSoThirsty/Thirsty-Lang/issues
 
 ---
 

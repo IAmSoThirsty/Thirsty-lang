@@ -15,220 +15,67 @@ class ClassFunctionHandlers {
   }
 
   /**
-   * Handle glass (function declaration) statement
+   * Handle glass (function declaration) - DEPRECATED
+   * Legacy string-based parsing removed in favor of AST Parser.
    */
   handleGlass(lines, startIndex) {
-    const line = lines[startIndex].trim();
-    const match = line.match(/glass\s+(\w+)\s*\(([^)]*)\)\s*{/);
-
-    if (!match) {
-      throw new Error(`Invalid glass (function) statement: ${line}`);
-    }
-
-    const funcName = match[1];
-    const params = match[2].split(',').map(p => p.trim()).filter(p => p);
-
-    // Find the matching closing brace
-    const blockEnd = this.interpreter.findMatchingBrace(lines, startIndex);
-
-    if (blockEnd === -1) {
-      throw new Error(`Unmatched opening brace for glass statement at line ${startIndex + 1}`);
-    }
-
-    // Store the function definition
-    this.interpreter.functions[funcName] = {
-      params: params,
-      body: lines.slice(startIndex + 1, blockEnd),
-      line: startIndex
-    };
-
-    return blockEnd + 1;
+    throw new Error('Legacy handleGlass is deprecated. Use AST Parser.');
   }
 
   /**
-   * Handle fountain (class declaration) statement
+   * Handle fountain (class declaration) - DEPRECATED
+   * Legacy string-based parsing removed in favor of AST Parser.
    */
   handleFountain(lines, startIndex) {
-    const line = lines[startIndex].trim();
-    const match = line.match(/fountain\s+(\w+)\s*{/);
-
-    if (!match) {
-      throw new Error(`Invalid fountain (class) statement: ${line}`);
-    }
-
-    const className = match[1];
-
-    // Find the matching closing brace
-    const blockEnd = this.interpreter.findMatchingBrace(lines, startIndex);
-
-    if (blockEnd === -1) {
-      throw new Error(`Unmatched opening brace for fountain statement at line ${startIndex + 1}`);
-    }
-
-    // Parse class body to extract methods and properties
-    const classBody = lines.slice(startIndex + 1, blockEnd);
-    const methods = {};
-    const properties = [];
-
-    let i = 0;
-    while (i < classBody.length) {
-      const bodyLine = classBody[i].trim();
-
-      if (!bodyLine || bodyLine.startsWith('//')) {
-        i++;
-        continue;
-      }
-
-      // Check for method declaration
-      if (bodyLine.startsWith('glass ')) {
-        const methodMatch = bodyLine.match(/glass\s+(\w+)\s*\(([^)]*)\)\s*{/);
-        if (methodMatch) {
-          const methodName = methodMatch[1];
-          const params = methodMatch[2].split(',').map(p => p.trim()).filter(p => p);
-
-          // Find method body end by counting all braces
-          let methodEnd = -1;
-          let braceCount = 1;
-
-          for (let j = i + 1; j < classBody.length; j++) {
-            const currentLine = classBody[j];
-
-            // Count all opening and closing braces in the line
-            for (const char of currentLine) {
-              if (char === '{') braceCount++;
-              if (char === '}') braceCount--;
-            }
-
-            if (braceCount === 0) {
-              methodEnd = j;
-              break;
-            }
-          }
-
-          if (methodEnd === -1 || braceCount !== 0) {
-            throw new Error(`Unmatched opening brace for method ${methodName}`);
-          }
-
-          methods[methodName] = {
-            params: params,
-            body: classBody.slice(i + 1, methodEnd)
-          };
-
-          i = methodEnd + 1;
-          continue;
-        }
-      }
-
-      // Check for property declaration
-      if (bodyLine.startsWith('drink ')) {
-        const propMatch = bodyLine.match(/drink\s+(\w+)\s*=\s*(.+)/);
-        if (propMatch) {
-          properties.push({
-            name: propMatch[1],
-            defaultValue: propMatch[2]
-          });
-        }
-      }
-
-      i++;
-    }
-
-    // Store the class definition
-    this.interpreter.classes[className] = {
-      name: className,
-      methods: methods,
-      properties: properties,
-      line: startIndex
-    };
-
-    return blockEnd + 1;
+    throw new Error('Legacy handleFountain is deprecated. Use AST Parser.');
   }
 
   /**
-   * Handle cascade (async function) statement
-   * Syntax: cascade funcname(params) { ... }
+   * Handle cascade (async function) - DEPRECATED
+   * Legacy string-based parsing removed in favor of AST Parser.
    */
   handleCascade(lines, startIndex) {
-    const line = lines[startIndex].trim();
-    const match = line.match(/cascade\s+(\w+)\s*\(([^)]*)\)\s*{/);
-
-    if (!match) {
-      throw new Error(`Invalid cascade (async function) statement: ${line}`);
-    }
-
-    const funcName = match[1];
-    const params = match[2].split(',').map(p => p.trim()).filter(p => p);
-
-    // Find the matching closing brace
-    const blockEnd = this.interpreter.findMatchingBrace(lines, startIndex);
-
-    if (blockEnd === -1) {
-      throw new Error(`Unmatched opening brace for cascade statement at line ${startIndex + 1}`);
-    }
-
-    // Store the async function definition
-    this.interpreter.functions[funcName] = {
-      params: params,
-      body: lines.slice(startIndex + 1, blockEnd),
-      line: startIndex,
-      async: true  // Mark as async
-    };
-
-    this.interpreter.asyncFunctions.add(funcName);
-
-    return blockEnd + 1;
+    throw new Error('Legacy handleCascade is deprecated. Use AST Parser.');
   }
 
   /**
    * Handle import statement
-   * Syntax: import ModuleName from "path/to/module.thirsty"
-   *        import { func1, func2 } from "path/to/module.thirsty"
+   * Delegates to AST Parser logic in modern pipeline.
+   * Kept for legacy module bridge logic.
    */
   handleImport(line) {
-    // Pattern 1: import ModuleName from "path"
-    let match = line.match(/import\s+(\w+)\s+from\s+["']([^"']+)["']/);
-    if (match) {
-      const moduleName = match[1];
-      const modulePath = match[2];
-      const exports = this.loadModule(modulePath);
-      this.interpreter.variables[moduleName] = exports;
-      return;
-    }
+    // Rewiring to use AST-based module loading if possible
+    const { Tokenizer } = require('../engine/tokenizer');
+    const { Parser } = require('../engine/parser');
+    const tokenizer = new Tokenizer(line);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+    const node = parser.parseStatement();
 
-    // Pattern 2: import { name1, name2 } from "path"
-    match = line.match(/import\s+{([^}]+)}\s+from\s+["']([^"']+)["']/);
-    if (match) {
-      const names = match[1].split(',').map(n => n.trim());
-      const modulePath = match[2];
-      const exports = this.loadModule(modulePath);
-
-      names.forEach(name => {
+    if (node.type === 'ImportStatement') {
+      const exports = this.loadModule(node.modulePath);
+      if (node.defaultName) {
+        this.interpreter.variables[node.defaultName] = exports;
+      }
+      node.names.forEach(name => {
         if (exports.hasOwnProperty(name)) {
           const exported = exports[name];
-          // If it's a function definition, add to functions dictionary
-          if (exported && typeof exported === 'object' && exported.params && exported.body) {
+          if (exported && typeof exported === 'object' && exported.params) {
             this.interpreter.functions[name] = exported;
           } else {
-            // Otherwise add to variables
             this.interpreter.variables[name] = exported;
           }
         } else {
           throw new Error(`Module does not export '${name}'`);
         }
       });
-      return;
     }
-
-    throw new Error(`Invalid import statement: ${line}`);
   }
 
   /**
    * Handle export statement
-   * Syntax: export varname
-   *        export glass funcname() { ... }
    */
   handleExport(line) {
-    // Pattern: export varname
     const match = line.match(/export\s+(\w+)/);
     if (match) {
       const varName = match[1];
@@ -239,10 +86,7 @@ class ClassFunctionHandlers {
       } else {
         throw new Error(`Cannot export undefined identifier: ${varName}`);
       }
-      return;
     }
-
-    throw new Error(`Invalid export statement: ${line}`);
   }
 
   /**

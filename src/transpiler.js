@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Thirsty-lang Transpiler
- * Convert Thirsty-lang to JavaScript, Python, or other languages
+ * Thirsty-Lang Transpiler
+ * Convert Thirsty-Lang to JavaScript, Python, or other languages
  */
 
 const fs = require('fs');
@@ -127,7 +127,7 @@ function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.log('Thirsty-lang Transpiler');
+    console.log('Thirsty-Lang Transpiler');
     console.log('Usage: node src/transpiler.js <file.thirsty> [--target <language>] [--output <file>]');
     console.log('\nSupported target languages:');
     console.log('  javascript (default), python, go, rust, java, c');

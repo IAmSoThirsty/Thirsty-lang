@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Thirsty-lang Python REPL
-Interactive Read-Eval-Pour-Loop for Thirsty-lang
+Thirsty-Lang Python REPL
+Interactive Read-Eval-Pour-Loop for Thirsty-Lang
 """
 
 import sys
@@ -10,7 +10,7 @@ from thirsty_interpreter import ThirstyInterpreter
 
 
 class ThirstyREPL:
-    """Interactive REPL for Thirsty-lang"""
+    """Interactive REPL for Thirsty-Lang"""
     
     def __init__(self):
         self.interpreter = ThirstyInterpreter()
@@ -19,10 +19,10 @@ class ThirstyREPL:
     def run(self):
         """Start the REPL"""
         print("╔════════════════════════════════════════════════════════════╗")
-        print("║          💧 Thirsty-lang Python REPL 💧                   ║")
+        print("║          💧 Thirsty-Lang Python REPL 💧                   ║")
         print("╚════════════════════════════════════════════════════════════╝")
         print()
-        print("Welcome to Thirsty-lang Interactive Shell (Python Edition)")
+        print("Welcome to Thirsty-Lang Interactive Shell (Python Edition)")
         print("Type 'help' for help, 'exit' or Ctrl+D to quit")
         print("Type 'vars' to see current variables")
         print()
@@ -70,7 +70,7 @@ class ThirstyREPL:
     
     def _show_help(self):
         """Display help information"""
-        print("\n=== Thirsty-lang Commands ===")
+        print("\n=== Thirsty-Lang Commands ===")
         print("  drink <var> = <value>  - Declare a variable")
         print("  pour <expression>      - Print output")
         print("  sip <var>              - Get input")

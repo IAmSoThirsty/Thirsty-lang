@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Thirsty-lang Interactive Training Program
- * Learn Thirsty-lang through interactive lessons at all levels!
+ * Thirsty-Lang Interactive Training Program
+ * Learn Thirsty-Lang through interactive lessons at all levels!
  */
 
 const readline = require('readline');
@@ -16,7 +16,7 @@ const rl = readline.createInterface({
 // Training levels and lessons
 const TRAINING_LEVELS = {
   base: {
-    name: '💧 Base Thirsty-lang',
+    name: '💧 Base Thirsty-Lang',
     description: 'Learn the fundamentals',
     lessons: [
       {
@@ -109,7 +109,7 @@ class TrainingProgram {
   showWelcome() {
     console.clear();
     console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║        🌊 THIRSTY-LANG INTERACTIVE TRAINING 🌊            ║');
+    console.log('║        🌊 Thirsty-Lang INTERACTIVE TRAINING 🌊            ║');
     console.log('║                                                            ║');
     console.log('║        Learn to code while staying hydrated!               ║');
     console.log('╚════════════════════════════════════════════════════════════╝');

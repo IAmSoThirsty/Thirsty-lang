@@ -1,14 +1,14 @@
-# Thirsty-lang Security Features Guide
+# Thirsty-Lang Security Features Guide
 
 ## Overview
 
-Thirsty-lang is a unique defensive programming language designed to be combative against all known types of code threats. It provides built-in security features targeting white box, grey box, black box, and red team attack methods.
+Thirsty-Lang is a unique defensive programming language designed to be combative against all known types of code threats. It provides built-in security features targeting white box, grey box, black box, and red team attack methods.
 
 ## Core Philosophy
 
-**Defensive by Design**: Every Thirsty-lang program can be secured with minimal effort using intuitive security keywords that protect against common and advanced attack vectors.
+**Defensive by Design**: Every Thirsty-Lang program can be secured with minimal effort using intuitive security keywords that protect against common and advanced attack vectors.
 
-**Combative Posture**: Unlike traditional languages that are reactive, Thirsty-lang actively morphs, detects, and counters threats in real-time.
+**Combative Posture**: Unlike traditional languages that are reactive, Thirsty-Lang actively morphs, detects, and counters threats in real-time.
 
 ## Security Keywords
 
@@ -379,7 +379,7 @@ if (end - start > 100) {
 
 ## Counter-Strike Mode (Paranoid)
 
-When threats are detected in paranoid mode, Thirsty-lang launches countermeasures:
+When threats are detected in paranoid mode, Thirsty-Lang launches countermeasures:
 
 ### 1. Honeypot Deployment
 
@@ -511,7 +511,7 @@ shield multilayer {
 For superior security measures, integrate with Project-AI:
 
 ```javascript
-const ThirstySecure = require('@thirsty-lang/secure-interpreter');
+const ThirstySecure = require('@Thirsty-Lang/secure-interpreter');
 const ProjectAI = require('@project-ai/security');
 
 const interpreter = new ThirstySecure({
@@ -575,6 +575,6 @@ Output:
 
 ## Conclusion
 
-Thirsty-lang provides comprehensive defensive programming capabilities out of the box. Combined with Project-AI's advanced security measures, it offers unparalleled protection against all known attack vectors.
+Thirsty-Lang provides comprehensive defensive programming capabilities out of the box. Combined with Project-AI's advanced security measures, it offers unparalleled protection against all known attack vectors.
 
 **Stay hydrated and stay secure!** 💧🔒

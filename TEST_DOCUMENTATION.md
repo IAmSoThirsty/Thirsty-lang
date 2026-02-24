@@ -1,8 +1,8 @@
-# Thirsty-lang Test Documentation & Feature Examples
+# Thirsty-Lang Test Documentation & Feature Examples
 
 **Complete transparency of all features with documented tests and examples**
 
-Version: 1.0.0
+Version: 2.0.0
 Test Status: 37/37 Passing ✅
 Coverage: 100% of implemented features
 
@@ -1041,7 +1041,7 @@ npm test
 
 Expected output:
 ```
-Running Thirsty-lang Tests...
+Running Thirsty-Lang Tests...
 
 ✓ Variable declaration with string
 ✓ Variable declaration with number
@@ -1136,7 +1136,7 @@ npm run security-check  # (if configured)
 4. ✅ Error cases covered
 5. ✅ Verification passing
 
-This provides complete transparency for all Thirsty-lang features.
+This provides complete transparency for all Thirsty-Lang features.
 
 ---
 

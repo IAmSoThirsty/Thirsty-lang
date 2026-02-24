@@ -1,6 +1,6 @@
-# Thirsty-lang Implementation History
+# Thirsty-Lang Implementation History
 
-This document consolidates the implementation history and milestones of the Thirsty-lang project. It tracks the evolution from version 1.0.0 to the current production-ready state.
+This document consolidates the implementation history and milestones of the Thirsty-Lang project. It tracks the evolution from Version 2.0.0 to the current production-ready state.
 
 ---
 
@@ -8,12 +8,12 @@ This document consolidates the implementation history and milestones of the Thir
 
 ### Major Upgrade: T.A.R.L. Integration
 
-Thirsty-lang was upgraded to integrate with Project-AI's T.A.R.L. (Thirsty's Active Resistance Language) runtime, providing production-grade security enforcement, policy management, and threat detection capabilities.
+Thirsty-Lang was upgraded to integrate with Project-AI's T.A.R.L. (Thirsty's Active Resistance Language) runtime, providing production-grade security enforcement, policy management, and threat detection capabilities.
 
 #### Dual Runtime Architecture
 
 - **JavaScript/Node.js Runtime** (Primary)
-  - Interprets and executes Thirsty-lang code
+  - Interprets and executes Thirsty-Lang code
   - Manages language features and syntax
   - Provides development tools and utilities
 
@@ -77,7 +77,7 @@ A bi-directional communication bridge connects the two runtimes:
 
 ---
 
-## Version 1.0.0 - Feature Complete (January 2026)
+## Version 2.0.0 - Feature Complete (January 2026)
 
 ### Phase 1: Functions (glass keyword)
 

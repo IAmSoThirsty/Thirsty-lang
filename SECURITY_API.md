@@ -1,4 +1,4 @@
-# Thirsty-lang Security API Reference
+# Thirsty-Lang Security API Reference
 
 ## Core Modules
 

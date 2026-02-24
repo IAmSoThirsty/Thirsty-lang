@@ -161,7 +161,7 @@ function initializeStandardLibrary() {
       __builtin: true,
 
       /**
-       * Parse JSON string into Thirsty-lang value
+       * Parse JSON string into Thirsty-Lang value
        * Supports all JSON types: null, boolean, number, string, array, object
        * Handles nested structures and provides detailed error messages
        * @param {string} jsonString - JSON string to parse
@@ -183,8 +183,8 @@ function initializeStandardLibrary() {
           // Use native JSON.parse for robust parsing
           const result = JSON.parse(jsonString);
 
-          // Convert JavaScript null to Thirsty-lang null (undefined in variables)
-          // Arrays and objects are already compatible with Thirsty-lang
+          // Convert JavaScript null to Thirsty-Lang null (undefined in variables)
+          // Arrays and objects are already compatible with Thirsty-Lang
           return result;
         } catch (error) {
           // Enhance error message with position information
@@ -199,8 +199,8 @@ function initializeStandardLibrary() {
       },
 
       /**
-       * Convert Thirsty-lang value to JSON string
-       * Supports all Thirsty-lang types with configurable formatting
+       * Convert Thirsty-Lang value to JSON string
+       * Supports all Thirsty-Lang types with configurable formatting
        * Detects circular references to prevent infinite loops
        * @param {*} value - Value to stringify (null, boolean, number, string, array, object, fountain)
        * @param {Function|Array|null} replacer - Optional replacer function or whitelist array
@@ -213,7 +213,7 @@ function initializeStandardLibrary() {
         const seen = new WeakSet();
 
         /**
-         * Custom replacer that handles Thirsty-lang types and circular references
+         * Custom replacer that handles Thirsty-Lang types and circular references
          */
         const thirstyReplacer = (key, val) => {
           // Handle circular references
@@ -224,11 +224,11 @@ function initializeStandardLibrary() {
             seen.add(val);
           }
 
-          // Handle Thirsty-lang specific types
+          // Handle Thirsty-Lang specific types
 
           // Handle functions (cannot be serialized to JSON)
           if (typeof val === 'function') {
-            // Check if it's a Thirsty-lang function with metadata
+            // Check if it's a Thirsty-Lang function with metadata
             if (val.__thirstyFunction) {
               // Return function metadata instead of undefined
               return {
@@ -242,7 +242,7 @@ function initializeStandardLibrary() {
             return undefined;
           }
 
-          // Handle Thirsty-lang classes
+          // Handle Thirsty-Lang classes
           if (val && val.__thirstyClass) {
             return {
               __type: 'ThirstyClass',
@@ -286,7 +286,7 @@ function initializeStandardLibrary() {
           }
         }
 
-        // Combine user replacer with Thirsty-lang replacer
+        // Combine user replacer with Thirsty-Lang replacer
         const combinedReplacer = (key, val) => {
           const thirstyVal = thirstyReplacer(key, val);
           if (typeof replacer === 'function') {

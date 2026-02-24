@@ -1,6 +1,6 @@
-# Contributing to Thirsty-lang
+# Contributing to Thirsty-Lang
 
-Thank you for your interest in contributing to Thirsty-lang! 💧
+Thank you for your interest in contributing to Thirsty-Lang! 💧
 
 ## Code of Conduct
 
@@ -12,7 +12,7 @@ Be respectful, inclusive, and keep the community hydrated and happy!
 
 - Check if the issue already exists
 - Provide a clear description and example code
-- Include the version of Thirsty-lang you're using
+- Include the version of Thirsty-Lang you're using
 
 ### Submitting Pull Requests
 
@@ -35,8 +35,8 @@ Be respectful, inclusive, and keep the community hydrated and happy!
 ### Development Setup
 
 ```bash
-git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
-cd Thirsty-lang
+git clone https://github.com/IAmSoThirsty/Thirsty-Lang.git
+cd Thirsty-Lang
 npm install
 npm test
 ```

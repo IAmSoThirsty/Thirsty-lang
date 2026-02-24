@@ -2,9 +2,9 @@
 
 ## Prerequisites
 
-Before installing Thirsty-lang, ensure you have:
+Before installing Thirsty-Lang, ensure you have:
 
-- **Node.js** version 14.0.0 or higher
+- **Node.js** version 18.0.0 or higher
 - **npm** (comes with Node.js) or **yarn**
 - A terminal/command prompt
 - A code editor (VS Code recommended)
@@ -17,11 +17,11 @@ Before installing Thirsty-lang, ensure you have:
 
 # Clone the repository
 
-git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
+git clone https://github.com/IAmSoThirsty/Thirsty-Lang.git
 
 # Navigate to the directory
 
-cd Thirsty-lang
+cd Thirsty-Lang
 
 # Install dependencies (if any in future)
 
@@ -46,7 +46,7 @@ To use the `thirsty` command from anywhere:
 
 ```bash
 
-# In the Thirsty-lang directory
+# In the Thirsty-Lang directory
 
 npm link
 
@@ -89,7 +89,7 @@ npm run train
 
 ```bash
 
-# Create a new Thirsty-lang project
+# Create a new Thirsty-Lang project
 
 node src/thirsty-cli.js init my-first-project
 
@@ -105,7 +105,7 @@ thirsty run src/main.thirsty
 ## Installing the VS Code Extension
 
 1. Open VS Code
-2. Copy `.vscode/extensions/thirsty-lang` to your VS Code extensions folder:
+2. Copy `.vscode/extensions/Thirsty-Lang` to your VS Code extensions folder:
    - **Windows**: `%USERPROFILE%\.vscode\extensions\`
    - **macOS**: `~/.vscode/extensions/`
    - **Linux**: `~/.vscode/extensions/`
@@ -122,7 +122,7 @@ If the `thirsty` command isn't found after `npm link`:
 
 # Try running with full path
 
-node /path/to/Thirsty-lang/src/thirsty-cli.js
+node /path/to/Thirsty-Lang/src/thirsty-cli.js
 
 # Or use npm scripts
 
@@ -139,14 +139,14 @@ Check your Node.js version:
 node --version
 ```
 
-If it's below 14.0.0, upgrade Node.js from [nodejs.org](https://nodejs.org)
+If it's below 18.0.0, upgrade Node.js from [nodejs.org](https://nodejs.org)
 
 ### Tests failing
 
-Make sure you're in the Thirsty-lang directory:
+Make sure you're in the Thirsty-Lang directory:
 
 ```bash
-cd /path/to/Thirsty-lang
+cd /path/to/Thirsty-Lang
 npm test
 ```
 
@@ -166,17 +166,17 @@ After installation:
 2. 🔍 **Explore examples**: Check out the `examples/` directory
 3. 📚 **Read docs**: Browse the `docs/` directory
 4. 🎮 **Try the playground**: Open `playground/index.html` in a browser
-5. 💻 **Start coding**: Create your first Thirsty-lang program!
+5. 💻 **Start coding**: Create your first Thirsty-Lang program!
 
 ## Getting Help
 
 - 📖 Read the [FAQ](FAQ.md)
 - 📚 Check the [Quick Reference](QUICK_REFERENCE.md)
-- 🐛 Report issues on [GitHub](https://github.com/IAmSoThirsty/Thirsty-lang/issues)
+- 🐛 Report issues on [GitHub](https://github.com/IAmSoThirsty/Thirsty-Lang/issues)
 
 ## Uninstallation
 
-To remove Thirsty-lang:
+To remove Thirsty-Lang:
 
 ```bash
 
@@ -186,7 +186,7 @@ npm unlink
 
 # Remove the directory
 
-rm -rf /path/to/Thirsty-lang
+rm -rf /path/to/Thirsty-Lang
 ```
 
 Stay hydrated! 💧

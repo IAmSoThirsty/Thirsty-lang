@@ -2,15 +2,15 @@
 
 ## Overview
 
-Thirsty-lang now integrates with T.A.R.L. (Thirsty's Active Resistance Language) runtime from Project-AI, providing production-grade security enforcement, policy management, and threat detection.
+Thirsty-Lang now integrates with T.A.R.L. (Thirsty's Active Resistance Language) runtime from Project-AI, providing production-grade security enforcement, policy management, and threat detection.
 
 ## Architecture
 
 ### Dual Runtime
 
-Thirsty-lang operates with a dual runtime architecture:
+Thirsty-Lang operates with a dual runtime architecture:
 
-1. **JavaScript/Node.js Runtime**: Primary interpreter for Thirsty-lang code
+1. **JavaScript/Node.js Runtime**: Primary interpreter for Thirsty-Lang code
 2. **Python T.A.R.L. Runtime**: Policy enforcement and security core
 
 These runtimes communicate via a **Security Bridge** that provides bi-directional, async communication.
@@ -19,7 +19,7 @@ These runtimes communicate via a **Security Bridge** that provides bi-directiona
 ┌──────────────────────────────────────────┐
 │     JavaScript/Node.js Runtime           │
 │  ┌────────────────────────────────────┐  │
-│  │  Thirsty-lang Interpreter          │  │
+│  │  Thirsty-Lang Interpreter          │  │
 │  │  - Parser                          │  │
 │  │  - Evaluator                       │  │
 │  │  - Security Manager                │  │
@@ -428,7 +428,7 @@ See `examples/security/` for complete examples:
 
 ## Project-AI Compatibility
 
-This integration is fully compatible with Project-AI's T.A.R.L. runtime. Policy files can be shared between Thirsty-lang and Project-AI.
+This integration is fully compatible with Project-AI's T.A.R.L. runtime. Policy files can be shared between Thirsty-Lang and Project-AI.
 
 For more information, see the [Project-AI Documentation](https://github.com/IAmSoThirsty/Project-AI).
 

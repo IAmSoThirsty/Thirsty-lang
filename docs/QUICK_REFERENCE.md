@@ -1,4 +1,4 @@
-# Thirsty-lang Quick Reference
+# Thirsty-Lang Quick Reference
 
 ## Basic Syntax
 
@@ -25,7 +25,7 @@ pour variable_name
 
 ## Keywords
 
-### Base Thirsty-lang
+### Base Thirsty-Lang
 
 - `drink` - Declare a variable
 - `pour` - Output a value
@@ -99,17 +99,20 @@ pour sum
 
 ```thirsty
 drink temp = 30
-thirsty temp > 25
+thirsty temp > 25 {
   pour "It's hot!"
-hydrated
+}
+hydrated {
   pour "It's cool"
+}
 ```
 
 ### Function (T.A.R.L.)
 
 ```thirsty
-glass greet(name)
+glass greet(name) {
   pour "Hello, " + name
+}
 
 greet("World")
 ```
@@ -117,16 +120,19 @@ greet("World")
 ### Class (Thirsty's Shadow)
 
 ```thirsty
-fountain Person
+fountain Person {
   drink name = ""
 
-  glass init(n)
-    this.name = n
+  glass init(n) {
+    drink this.name = n
+  }
 
-  glass sayHello()
+  glass sayHello() {
     pour "Hello, I'm " + this.name
+  }
+}
 
-drink person = new Person("Alice")
+drink person = Person()
 person.sayHello()
 ```
 

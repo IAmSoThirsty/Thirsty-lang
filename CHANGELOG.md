@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Thirsty-lang will be documented in this file.
+All notable changes to Thirsty-Lang will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🎉 Major Production Features
 
-This is the **100% Real Production** release of Thirsty-lang! The language is now fully production-ready with complete packaging, CI/CD, and release infrastructure.
+This is the **100% Real Production** release of Thirsty-Lang! The language is now fully production-ready with complete packaging, CI/CD, and release infrastructure.
 
 ### Added - Production Infrastructure
 
@@ -55,7 +55,7 @@ This is the **100% Real Production** release of Thirsty-lang! The language is no
 - 🌳 **AST Generator** - Abstract Syntax Tree generation
 - 🔄 **Multi-language Transpiler** - JavaScript, Python, Go, Rust, Java, and C
 - 📦 **Package Manager** - Manage Thirsty packages
-- 🎓 **Interactive Training Program** - Learn Thirsty-lang interactively
+- 🎓 **Interactive Training Program** - Learn Thirsty-Lang interactively
 - 🌐 **Web Playground** - Try Thirsty in your browser
 - 🔌 **VS Code Extension** - Syntax highlighting and snippets
 
@@ -90,7 +90,7 @@ This is the **100% Real Production** release of Thirsty-lang! The language is no
 
 ### Added
 
-- Initial release of Thirsty-lang programming language
+- Initial release of Thirsty-Lang programming language
 - Core interpreter with water-themed syntax
 - Variable declarations using `drink`
 - Output statements using `pour`

@@ -3,17 +3,17 @@ requires = ["setuptools>=68.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "thirsty-lang"
+name = "Thirsty-Lang"
 version = "2.0.0"
 description = "A fun, water-themed programming language with defensive security features — interpreter, REPL, and toolchain"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {file = "LICENSE"}
 authors = [
-    {name = "Jeremy Karrick", email = "team@thirsty-lang.org"}
+    {name = "Jeremy Karrick", email = "team@Thirsty-Lang.org"}
 ]
 keywords = [
-    "thirsty-lang", "programming-language", "interpreter", "repl",
+    "Thirsty-Lang", "programming-language", "interpreter", "repl",
     "water", "fun", "educational", "defensive-programming", "security",
 ]
 classifiers = [

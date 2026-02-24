@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Thirsty-lang Python Interpreter
+Thirsty-Lang Python Interpreter
 ================================
 Canonical pip-installable module for the Thirsty language family.
 
@@ -31,14 +31,14 @@ class ThirstyInterpreter:
     # ── Public API ────────────────────────────────────────────────────────
 
     def interpret(self, code: str) -> List[str]:
-        """Interpret Thirsty-lang code and return output lines."""
+        """Interpret Thirsty-Lang code and return output lines."""
         self.output = []
         lines = code.strip().split("\n")
         self._execute_block(lines)
         return self.output
 
     def execute_line(self, line: str) -> None:
-        """Execute a single line of Thirsty-lang code (public interface)."""
+        """Execute a single line of Thirsty-Lang code (public interface)."""
         self._execute_single(line.strip())
 
     def get_variables(self) -> Dict[str, Any]:
@@ -503,7 +503,7 @@ class ThirstyInterpreter:
     # ── Function calls ────────────────────────────────────────────────────
 
     def _call_function(self, name: str, args_str: str) -> Any:
-        """Call a Thirsty-lang function."""
+        """Call a Thirsty-Lang function."""
         params, body = self.functions[name]
         args = [
             self._evaluate_expression(a.strip())
@@ -555,7 +555,7 @@ class ThirstyInterpreter:
 
 
 def run_file(filename: str) -> None:
-    """Run a Thirsty-lang file."""
+    """Run a Thirsty-Lang file."""
     try:
         with open(filename, "r", encoding="utf-8") as f:
             code = f.read()

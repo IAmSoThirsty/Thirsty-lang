@@ -1,5 +1,5 @@
 /**
- * Module System Tests for Thirsty-lang
+ * Module System Tests for Thirsty-Lang
  */
 
 const fs = require('fs');

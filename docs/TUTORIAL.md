@@ -1,6 +1,6 @@
 # Getting Started Tutorial
 
-Welcome to Thirsty-lang! This tutorial will guide you through your first steps.
+Welcome to Thirsty-Lang! This tutorial will guide you through your first steps.
 
 ## Lesson 1: Your First Program
 
@@ -30,7 +30,7 @@ Hello, World!
 
 ## Lesson 2: Working with Numbers
 
-Thirsty-lang can work with numbers too:
+Thirsty-Lang can work with numbers too:
 
 ```thirsty
 drink glasses_per_day = 8
@@ -147,7 +147,7 @@ This shows execution time and helps optimize your code.
 
 ## Lesson 7: Transpiling
 
-Convert your Thirsty-lang code to other languages:
+Convert your Thirsty-Lang code to other languages:
 
 ```bash
 
@@ -180,7 +180,7 @@ Then open `docs/output/index.html` in your browser!
 
 ## Lesson 9: Web Playground
 
-Try Thirsty-lang in your browser:
+Try Thirsty-Lang in your browser:
 
 1. Open `playground/index.html`
 2. Write or edit code in the editor

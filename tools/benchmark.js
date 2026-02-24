@@ -1,5 +1,5 @@
 /**
- * Thirsty-lang Benchmark Tool
+ * Thirsty-Lang Benchmark Tool
  * Compare performance across different implementations and optimizations
  */
 
@@ -97,7 +97,7 @@ class ThirstyBenchmark {
 
 async function main() {
   console.log('╔════════════════════════════════════════════════════════════╗');
-  console.log('║         💧 Thirsty-lang Benchmark Suite 💧               ║');
+  console.log('║         💧 Thirsty-Lang Benchmark Suite 💧               ║');
   console.log('╚════════════════════════════════════════════════════════════╝');
 
   const benchmark = new ThirstyBenchmark();

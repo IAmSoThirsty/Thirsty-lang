@@ -1,0 +1,184 @@
+(* ============================================================ *)
+(*  Thirsty-Lang Grammar — EBNF (ISO 14977)                     *)
+(*  Version 3.0.0                                                *)
+(*  Matches: src/engine/parser.js  (recursive-descent)           *)
+(* ============================================================ *)
+
+(* ── Program ───────────────────────────────────────────────── *)
+
+program         = { statement } ;
+
+(* ── Statements ────────────────────────────────────────────── *)
+
+statement       = var_decl
+                | reservoir_decl
+                | pour_stmt
+                | sip_stmt
+                | if_stmt
+                | while_stmt
+                | func_decl
+                | cascade_decl
+                | class_decl
+                | return_stmt
+                | throw_stmt
+                | try_catch_stmt
+                | shield_stmt
+                | sanitize_stmt
+                | armor_stmt
+                | morph_stmt
+                | detect_stmt
+                | defend_stmt
+                | import_stmt
+                | export_stmt
+                | expr_stmt ;
+
+(* ── Declarations ──────────────────────────────────────────── *)
+
+var_decl        = "drink" target "=" expression ;
+reservoir_decl  = "reservoir" IDENT "=" "[" [ expr_list ] "]" ;
+
+(* ── I/O ───────────────────────────────────────────────────── *)
+
+pour_stmt       = "pour" expression ;
+sip_stmt        = "sip" IDENT [ STRING ] ;
+
+(* ── Control Flow ──────────────────────────────────────────── *)
+
+if_stmt         = "thirsty" expression block
+                  { "hydrated" "thirsty" expression block }
+                  [ "hydrated" block ] ;
+
+while_stmt      = "refill" expression block ;
+
+(* ── Functions ─────────────────────────────────────────────── *)
+
+func_decl       = "glass" IDENT "(" [ params ] ")" block ;
+cascade_decl    = "cascade" IDENT "(" [ params ] ")" block ;
+params          = IDENT { "," IDENT } ;
+
+(* ── Classes ───────────────────────────────────────────────── *)
+
+class_decl      = "fountain" IDENT "{"
+                    { property | method }
+                  "}" ;
+property        = "drink" IDENT "=" expression ;
+method          = "glass" IDENT "(" [ params ] ")" block ;
+
+(* ── Return / Throw ────────────────────────────────────────── *)
+
+return_stmt     = "return" [ expression ] ;
+throw_stmt      = "throw" expression ;
+
+(* ── Exception Handling ────────────────────────────────────── *)
+
+try_catch_stmt  = "try" block
+                  "catch" IDENT block
+                  [ "finally" block ] ;
+
+(* ── Security ──────────────────────────────────────────────── *)
+
+shield_stmt     = "shield" IDENT block ;
+sanitize_stmt   = "sanitize" IDENT ;
+armor_stmt      = "armor" IDENT ;
+morph_stmt      = "morph" morph_config ;
+detect_stmt     = "detect" IDENT block ;
+defend_stmt     = "defend" defend_config ;
+
+morph_config    = "on:" "[" expr_list "]" ;
+defend_config   = "with:" expression ;
+
+(* ── Modules ───────────────────────────────────────────────── *)
+
+import_stmt     = "import" ( "{" ident_list "}" "from" STRING
+                           | IDENT "from" STRING ) ;
+export_stmt     = "export" IDENT ;
+ident_list      = IDENT { "," IDENT } ;
+
+(* ── Blocks ────────────────────────────────────────────────── *)
+
+block           = "{" { statement } "}" ;
+
+(* ── Expression Statement ──────────────────────────────────── *)
+
+expr_stmt       = expression ;
+
+(* ============================================================ *)
+(*  Expressions — ordered by precedence (lowest → highest)      *)
+(* ============================================================ *)
+
+expression      = assignment ;
+
+(* Precedence 1: Assignment *)
+assignment      = or_expr [ "=" assignment ] ;
+
+(* Precedence 2: Logical OR *)
+or_expr         = and_expr { "||" and_expr } ;
+
+(* Precedence 3: Logical AND *)
+and_expr        = equality { "&&" equality } ;
+
+(* Precedence 4: Equality *)
+equality        = comparison { ( "==" | "!=" ) comparison } ;
+
+(* Precedence 5: Comparison *)
+comparison      = addition { ( "<" | ">" | "<=" | ">=" ) addition } ;
+
+(* Precedence 6: Additive *)
+addition        = multiplication { ( "+" | "-" ) multiplication } ;
+
+(* Precedence 7: Multiplicative *)
+multiplication  = unary { ( "*" | "/" | "%" ) unary } ;
+
+(* Precedence 8: Unary prefix *)
+unary           = ( "-" | "!" | "await" ) unary
+                | postfix ;
+
+(* Precedence 9: Postfix — member access, indexing, calls *)
+postfix         = primary { "." IDENT
+                           | "[" expression "]"
+                           | "(" [ expr_list ] ")" } ;
+
+(* ── Primary Expressions ──────────────────────────────────── *)
+
+primary         = NUMBER
+                | STRING
+                | "true"
+                | "false"
+                | IDENT
+                | "(" expression ")"
+                | "[" [ expr_list ] "]"
+                | "new" IDENT "(" [ expr_list ] ")" ;
+
+(* ── Helpers ───────────────────────────────────────────────── *)
+
+expr_list       = expression { "," expression } ;
+target          = IDENT | postfix ;
+
+(* ============================================================ *)
+(*  Lexical Grammar (Tokens)                                    *)
+(* ============================================================ *)
+
+IDENT           = LETTER { LETTER | DIGIT | "_" } ;
+NUMBER          = DIGIT { DIGIT } [ "." DIGIT { DIGIT } ] ;
+STRING          = '"' { CHAR } '"'
+                | "'" { CHAR } "'" ;
+COMMENT         = "//" { CHAR } NEWLINE ;
+
+LETTER          = "a" | ... | "z" | "A" | ... | "Z" | "_" ;
+DIGIT           = "0" | ... | "9" ;
+CHAR            = ? any character except the enclosing quote ? ;
+NEWLINE         = ? newline character ? ;
+
+(* ============================================================ *)
+(*  Reserved Keywords                                           *)
+(* ============================================================ *)
+
+(*
+  drink   pour    sip     thirsty   hydrated   refill
+  glass   fountain  cascade  reservoir  return   throw
+  try     catch   finally  shield    sanitize   armor
+  morph   detect  defend   import    export     await
+  new     true    false    from
+*)
+
+(* ── End of Grammar ────────────────────────────────────────── *)

@@ -1,6 +1,6 @@
 /**
  * Comprehensive Performance Benchmark Suite
- * Tests performance of all major Thirsty-lang components
+ * Tests performance of all major Thirsty-Lang components
  *
  * BENCHMARK CATEGORIES:
  * 1. Interpreter Performance (execution speed, memory usage)

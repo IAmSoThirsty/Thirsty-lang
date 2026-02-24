@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Thirsty-lang REPL (Read-Eval-Pour-Loop)
- * Interactive console for Thirsty-lang
+ * Thirsty-Lang REPL (Read-Eval-Pour-Loop)
+ * Interactive console for Thirsty-Lang
  */
 
 const readline = require('readline');
@@ -45,7 +45,7 @@ class ThirstyREPL {
 
   showWelcome() {
     console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║     💧 Thirsty-lang REPL v1.0.0 - Stay Hydrated! 💧      ║');
+    console.log('║     💧 Thirsty-Lang REPL v1.0.0 - Stay Hydrated! 💧      ║');
     console.log('╚════════════════════════════════════════════════════════════╝');
     console.log('\nType .help for commands or start coding!');
     console.log('Press Ctrl+C twice or type .exit to quit\n');
@@ -119,7 +119,7 @@ class ThirstyREPL {
         return;
       }
 
-      // Execute Thirsty-lang code
+      // Execute Thirsty-Lang code
       try {
         // Capture console.log output
         const oldLog = console.log;
@@ -195,7 +195,7 @@ class ThirstyREPL {
         break;
       
       case '.version':
-        console.log('Thirsty-lang v1.0.0');
+        console.log('Thirsty-Lang v1.0.0');
         console.log('Node.js ' + process.version);
         break;
       
@@ -204,7 +204,7 @@ class ThirstyREPL {
         break;
       
       case '.docs':
-        console.log('\n📖 Documentation: https://github.com/IAmSoThirsty/Thirsty-lang/blob/main/docs/');
+        console.log('\n📖 Documentation: https://github.com/IAmSoThirsty/Thirsty-Lang/blob/main/docs/');
         break;
       
       default:

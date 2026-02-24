@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Thirsty-lang CLI
- * Command-line interface for running Thirsty-lang programs
+ * Thirsty-Lang CLI
+ * Command-line interface for running Thirsty-Lang programs
  */
 
 const fs = require('fs');
@@ -13,7 +13,7 @@ function main() {
   const args = process.argv.slice(2);
   
   if (args.length === 0) {
-    console.log('Thirsty-lang Interpreter v1.0.0');
+    console.log('Thirsty-Lang Interpreter v1.0.0');
     console.log('Usage: node src/cli.js <filename.thirsty>');
     console.log('       npm start <filename.thirsty>');
     console.log('\nStay hydrated! 💧');

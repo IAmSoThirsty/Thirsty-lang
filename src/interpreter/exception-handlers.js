@@ -12,7 +12,7 @@
  */
 
 /**
- * ThirstyError - Base error class for Thirsty-lang exceptions
+ * ThirstyError - Base error class for Thirsty-Lang exceptions
  */
 class ThirstyError extends Error {
   constructor(message, type = 'Error', context = {}) {
@@ -29,7 +29,7 @@ class ThirstyError extends Error {
   }
 
   /**
-   * Convert to Thirsty-lang error object
+   * Convert to Thirsty-Lang error object
    */
   toThirstyObject() {
     return {

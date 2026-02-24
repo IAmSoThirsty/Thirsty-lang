@@ -1,5 +1,5 @@
 /**
- * Thirsty-lang Performance Profiler
+ * Thirsty-Lang Performance Profiler
  * Measure execution time and optimize your code
  */
 
@@ -94,7 +94,7 @@ function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.log('Thirsty-lang Performance Profiler');
+    console.log('Thirsty-Lang Performance Profiler');
     console.log('Usage: node src/profiler.js <file.thirsty>');
     process.exit(0);
   }

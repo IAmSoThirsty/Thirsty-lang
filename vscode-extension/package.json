@@ -1,6 +1,6 @@
 {
-  "name": "thirsty-lang",
-  "displayName": "Thirsty-lang — The Hydration Language Family",
+  "name": "Thirsty-Lang",
+  "displayName": "Thirsty-Lang — The Hydration Language Family",
   "description": "Language support for the Thirsty language family: Thirsty-Lang, Thirst of Gods, T.A.R.L., and Thirsty's Shadow",
   "version": "1.0.0",
   "publisher": "IAmSoThirsty",
@@ -20,7 +20,7 @@
   },
   "keywords": [
     "thirsty",
-    "thirsty-lang",
+    "Thirsty-Lang",
     "thirst-of-gods",
     "tarl",
     "thirstys-shadow",
@@ -43,7 +43,7 @@
         "id": "thirsty",
         "aliases": [
           "Thirsty",
-          "thirsty-lang",
+          "Thirsty-Lang",
           "Thirst of Gods",
           "T.A.R.L.",
           "Thirsty's Shadow"

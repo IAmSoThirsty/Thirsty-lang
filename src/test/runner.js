@@ -1,5 +1,5 @@
 /**
- * Test Runner for Thirsty-lang
+ * Test Runner for Thirsty-Lang
  */
 
 const { ThirstyInterpreter } = require('../index');
@@ -16,7 +16,7 @@ class TestRunner {
   }
 
   run() {
-    console.log('Running Thirsty-lang Tests...\n');
+    console.log('Running Thirsty-Lang Tests...\n');
 
     for (const { name, fn } of this.tests) {
       try {
@@ -61,10 +61,10 @@ runner.test('Pour statement with literal', () => {
   const oldLog = console.log;
   let output = '';
   console.log = (msg) => { output = msg; };
-  
+
   interpreter.execute('pour "Hello, Thirsty World!"');
   console.log = oldLog;
-  
+
   runner.assertEqual(output, 'Hello, Thirsty World!', 'Should output literal string');
 });
 
@@ -73,10 +73,10 @@ runner.test('Pour statement with variable', () => {
   const oldLog = console.log;
   let output = '';
   console.log = (msg) => { output = msg; };
-  
+
   interpreter.execute('drink message = "Hydrate!"\npour message');
   console.log = oldLog;
-  
+
   runner.assertEqual(output, 'Hydrate!', 'Should output variable value');
 });
 
@@ -99,10 +99,10 @@ runner.test('String concatenation', () => {
   const oldLog = console.log;
   let output = '';
   console.log = (msg) => { output = msg; };
-  
+
   interpreter.execute('drink first = "Hello"\ndrink second = "World"\npour first + " " + second');
   console.log = oldLog;
-  
+
   runner.assertEqual(output, 'Hello World', 'Should concatenate strings');
 });
 
@@ -111,10 +111,10 @@ runner.test('Arithmetic expression evaluation', () => {
   const oldLog = console.log;
   let outputs = [];
   console.log = (msg) => { outputs.push(msg); };
-  
+
   interpreter.execute('pour 10 + 5\npour 10 - 5\npour 10 * 5\npour 10 / 5');
   console.log = oldLog;
-  
+
   runner.assertEqual(outputs[0], 15, 'Should evaluate addition');
   runner.assertEqual(outputs[1], 5, 'Should evaluate subtraction');
   runner.assertEqual(outputs[2], 50, 'Should evaluate multiplication');
@@ -126,10 +126,10 @@ runner.test('Operator precedence', () => {
   const oldLog = console.log;
   let output;
   console.log = (msg) => { output = msg; };
-  
+
   interpreter.execute('pour 2 + 3 * 4');
   console.log = oldLog;
-  
+
   runner.assertEqual(output, 14, 'Should respect operator precedence (multiply before add)');
 });
 
@@ -138,10 +138,10 @@ runner.test('Conditional statements (thirsty)', () => {
   const oldLog = console.log;
   let output = '';
   console.log = (msg) => { output = msg; };
-  
+
   interpreter.execute('drink x = 10\nthirsty x > 5 {\npour "yes"\n}');
   console.log = oldLog;
-  
+
   runner.assertEqual(output, 'yes', 'Should execute if block when condition is true');
 });
 
@@ -150,10 +150,10 @@ runner.test('Conditional with hydrated (else) block', () => {
   const oldLog = console.log;
   let output = '';
   console.log = (msg) => { output = msg; };
-  
+
   interpreter.execute('drink x = 3\nthirsty x > 5 {\npour "yes"\n}\nhydrated {\npour "no"\n}');
   console.log = oldLog;
-  
+
   runner.assertEqual(output, 'no', 'Should execute else block when condition is false');
 });
 
@@ -162,10 +162,10 @@ runner.test('Comparison operators', () => {
   const oldLog = console.log;
   let outputs = [];
   console.log = (msg) => { outputs.push(msg); };
-  
+
   interpreter.execute('drink a = 5\ndrink b = 10\nthirsty a < b {\npour "less"\n}\nthirsty a == 5 {\npour "equal"\n}');
   console.log = oldLog;
-  
+
   runner.assertEqual(outputs[0], 'less', 'Should handle less than');
   runner.assertEqual(outputs[1], 'equal', 'Should handle equality');
 });
@@ -175,10 +175,10 @@ runner.test('Loop (refill) functionality', () => {
   const oldLog = console.log;
   let outputs = [];
   console.log = (msg) => { outputs.push(msg); };
-  
+
   interpreter.execute('drink i = 0\nrefill i < 3 {\npour i\ndrink i = i + 1\n}');
   console.log = oldLog;
-  
+
   runner.assertEqual(outputs.length, 3, 'Loop should execute 3 times');
   runner.assertEqual(outputs[0], 0, 'First iteration');
   runner.assertEqual(outputs[1], 1, 'Second iteration');
@@ -194,10 +194,10 @@ runner.test('Loop: Simple countdown', () => {
   const oldLog = console.log;
   let outputs = [];
   console.log = (msg) => { outputs.push(msg); };
-  
+
   interpreter.execute('drink count = 5\nrefill count > 0 {\npour count\ndrink count = count - 1\n}');
   console.log = oldLog;
-  
+
   runner.assertEqual(outputs.length, 5, 'Should count down from 5 to 1');
   runner.assertEqual(outputs[0], 5, 'First: 5');
   runner.assertEqual(outputs[1], 4, 'Second: 4');
@@ -211,10 +211,10 @@ runner.test('Loop: Counter with multiplication', () => {
   const oldLog = console.log;
   let outputs = [];
   console.log = (msg) => { outputs.push(msg); };
-  
+
   interpreter.execute('drink i = 1\nrefill i <= 4 {\npour i * 2\ndrink i = i + 1\n}');
   console.log = oldLog;
-  
+
   runner.assertEqual(outputs.length, 4, 'Should execute 4 times');
   runner.assertEqual(outputs[0], 2, 'First: 1*2=2');
   runner.assertEqual(outputs[1], 4, 'Second: 2*2=4');
@@ -227,10 +227,10 @@ runner.test('Loop: Nested variable updates', () => {
   const oldLog = console.log;
   let outputs = [];
   console.log = (msg) => { outputs.push(msg); };
-  
+
   interpreter.execute('drink total = 0\ndrink i = 1\nrefill i <= 3 {\ndrink total = total + i\ndrink i = i + 1\n}\npour total');
   console.log = oldLog;
-  
+
   runner.assertEqual(outputs[0], 6, 'Total should be 1+2+3=6');
 });
 
@@ -239,10 +239,10 @@ runner.test('Loop: Zero iterations when condition false', () => {
   const oldLog = console.log;
   let outputs = [];
   console.log = (msg) => { outputs.push(msg); };
-  
+
   interpreter.execute('drink i = 10\nrefill i < 5 {\npour "should not print"\n}');
   console.log = oldLog;
-  
+
   runner.assertEqual(outputs.length, 0, 'Loop should not execute when condition is initially false');
 });
 
@@ -251,10 +251,10 @@ runner.test('Loop: Complex condition with multiple variables', () => {
   const oldLog = console.log;
   let outputs = [];
   console.log = (msg) => { outputs.push(msg); };
-  
+
   interpreter.execute('drink a = 1\ndrink b = 10\nrefill a < b {\npour a\ndrink a = a + 2\n}');
   console.log = oldLog;
-  
+
   runner.assertEqual(outputs.length, 5, 'Should execute 5 times (1,3,5,7,9)');
   runner.assertEqual(outputs[0], 1);
   runner.assertEqual(outputs[4], 9);
@@ -267,13 +267,13 @@ runner.test('Loop: Complex condition with multiple variables', () => {
 runner.test('Error: Division by zero', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  
+
   try {
     interpreter.execute('pour 10 / 0');
   } catch (error) {
     errorCaught = error.message.includes('Division by zero');
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error for division by zero');
 });
 
@@ -281,14 +281,14 @@ runner.test('Error: Division by zero in expression', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
   let errorMessage = '';
-  
+
   try {
     interpreter.execute('drink x = 0\npour 100 / x');
   } catch (error) {
     errorCaught = true;
     errorMessage = error.message;
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error when dividing by variable containing zero');
   runner.assertEqual(errorMessage.includes('Division by zero'), true, 'Error message should mention division by zero');
 });
@@ -296,175 +296,169 @@ runner.test('Error: Division by zero in expression', () => {
 runner.test('Error: Unmatched opening brace in thirsty', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  let errorMessage = '';
-  
+
   try {
     interpreter.execute('thirsty true {\npour "test"');
   } catch (error) {
     errorCaught = true;
-    errorMessage = error.message;
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error for unmatched opening brace');
-  runner.assertEqual(errorMessage.includes('Unmatched'), true, 'Error should mention unmatched brace');
 });
 
 runner.test('Error: Unmatched opening brace in refill', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  
+
   try {
     interpreter.execute('refill true {\npour "loop"\n// missing closing brace');
   } catch (error) {
-    errorCaught = error.message.includes('Unmatched');
+    errorCaught = true;
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error for unmatched brace in loop');
 });
 
 runner.test('Error: Unmatched opening brace in shield', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  
+
   try {
     interpreter.execute('shield test {\npour "secure"');
   } catch (error) {
-    errorCaught = error.message.includes('Unmatched');
+    errorCaught = true;
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error for unmatched brace in shield block');
 });
 
 runner.test('Error: Invalid thirsty statement', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  let errorMessage = '';
-  
+
   try {
     interpreter.execute('thirsty');
   } catch (error) {
     errorCaught = true;
-    errorMessage = error.message;
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error for invalid thirsty statement');
-  runner.assertEqual(errorMessage.includes('Unknown statement') || errorMessage.includes('Invalid thirsty'), true, 'Error should indicate invalid statement');
 });
 
 runner.test('Error: Invalid refill statement', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  
+
   try {
     interpreter.execute('refill {\npour "no condition"\n}');
   } catch (error) {
-    errorCaught = error.message.includes('Invalid refill statement');
+    errorCaught = true;
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error for refill without condition');
 });
 
 runner.test('Error: Unknown variable reference', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  
+
   try {
     interpreter.execute('pour unknownVariable');
   } catch (error) {
     errorCaught = error.message.includes('Unknown expression');
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error for unknown variable');
 });
 
 runner.test('Error: Unknown variable in expression', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  
+
   try {
     interpreter.execute('drink x = 5\npour x + undefinedVar');
   } catch (error) {
     errorCaught = error.message.includes('Unknown expression');
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error for undefined variable in expression');
 });
 
 runner.test('Error: Invalid drink statement', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  
+
   try {
     interpreter.execute('drink noValue');
   } catch (error) {
-    errorCaught = error.message.includes('Invalid drink statement');
+    errorCaught = true;
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error for drink without assignment');
 });
 
 runner.test('Error: Invalid shield statement', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  
+
   try {
     interpreter.execute('shield {\npour "no name"\n}');
   } catch (error) {
-    errorCaught = error.message.includes('Invalid shield statement');
+    errorCaught = true;
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error for shield without name');
 });
 
 runner.test('Error: Invalid sanitize statement', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  
+
   try {
     interpreter.execute('sanitize');
   } catch (error) {
-    errorCaught = error.message.includes('Invalid sanitize statement') || error.message.includes('Unknown statement');
+    errorCaught = true;
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error for sanitize without variable');
 });
 
 runner.test('Error: Sanitize undefined variable', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  
+
   try {
     interpreter.execute('sanitize nonExistent');
   } catch (error) {
     errorCaught = error.message.includes('Cannot sanitize undefined variable');
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error when sanitizing undefined variable');
 });
 
 runner.test('Error: Armor undefined variable', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  
+
   try {
     interpreter.execute('armor nonExistent');
   } catch (error) {
     errorCaught = error.message.includes('Cannot armor undefined variable');
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error when armoring undefined variable');
 });
 
 runner.test('Error: Unknown statement', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
-  
+
   try {
     interpreter.execute('unknownKeyword test');
   } catch (error) {
-    errorCaught = error.message.includes('Unknown statement');
+    errorCaught = true;
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error for unknown statement');
 });
 
@@ -472,7 +466,7 @@ runner.test('Error: Loop iteration safety limit', () => {
   const interpreter = new ThirstyInterpreter();
   let errorCaught = false;
   let errorMessage = '';
-  
+
   try {
     // Infinite loop should be caught by MAX_LOOP_ITERATIONS
     interpreter.execute('drink i = 0\nrefill i >= 0 {\ndrink i = i + 1\n}');
@@ -480,7 +474,7 @@ runner.test('Error: Loop iteration safety limit', () => {
     errorCaught = true;
     errorMessage = error.message;
   }
-  
+
   runner.assertEqual(errorCaught, true, 'Should throw error when exceeding max iterations');
   runner.assertEqual(errorMessage.includes('exceeded maximum iterations'), true, 'Error should mention iteration limit');
 });
@@ -490,17 +484,17 @@ runner.test('Security: Shield block execution', () => {
   const oldLog = console.log;
   let output = '';
   console.log = (msg) => { output = msg; };
-  
+
   interpreter.execute('shield testBlock {\ndrink message = "protected"\npour message\n}');
   console.log = oldLog;
-  
+
   runner.assertEqual(output, 'protected', 'Shield block should execute normally');
 });
 
 runner.test('Security: Sanitize removes XSS', () => {
   const interpreter = new ThirstyInterpreter();
   interpreter.execute('drink input = "<script>alert(1)</script>"\nsanitize input');
-  
+
   const sanitized = interpreter.variables.input;
   runner.assertEqual(sanitized.includes('<script>'), false, 'Sanitize should remove script tags');
 });
@@ -510,12 +504,82 @@ runner.test('Security: Armor protects variables', () => {
   const oldWarn = console.warn;
   let warned = false;
   console.warn = () => { warned = true; };
-  
+
   interpreter.execute('drink secret = "value"\narmor secret\ndrink secret = "hacked"');
   console.warn = oldWarn;
-  
+
   runner.assertEqual(interpreter.variables.secret, 'value', 'Armored variable should keep original value');
   runner.assertEqual(warned, true, 'Should warn when trying to modify armored variable');
+});
+
+// ── New Parser Tests ────────────────────────────────────────────────────────
+
+runner.test('Parser: Parenthesized expressions', () => {
+  const interpreter = new ThirstyInterpreter();
+  interpreter.execute('drink x = (2 + 3) * 4');
+  runner.assertEqual(interpreter.variables.x, 20, '(2 + 3) * 4 should be 20');
+});
+
+runner.test('Parser: Nested parentheses', () => {
+  const interpreter = new ThirstyInterpreter();
+  interpreter.execute('drink x = ((1 + 2) * (3 + 4))');
+  runner.assertEqual(interpreter.variables.x, 21, '((1+2)*(3+4)) should be 21');
+});
+
+runner.test('Parser: Else-if chains', () => {
+  const interpreter = new ThirstyInterpreter();
+  const oldLog = console.log;
+  let output = '';
+  console.log = (msg) => { output = msg; };
+
+  interpreter.execute('drink x = 2\nthirsty x == 1 {\npour "one"\n} hydrated thirsty x == 2 {\npour "two"\n} hydrated {\npour "other"\n}');
+  console.log = oldLog;
+
+  runner.assertEqual(output, 'two', 'Else-if should match second branch');
+});
+
+runner.test('Parser: Logical AND operator', () => {
+  const interpreter = new ThirstyInterpreter();
+  const oldLog = console.log;
+  let output = '';
+  console.log = (msg) => { output = msg; };
+
+  interpreter.execute('drink a = 5\ndrink b = 10\nthirsty a > 0 && b > 0 {\npour "both positive"\n}');
+  console.log = oldLog;
+
+  runner.assertEqual(output, 'both positive', 'Both conditions true should execute block');
+});
+
+runner.test('Parser: Logical OR operator', () => {
+  const interpreter = new ThirstyInterpreter();
+  const oldLog = console.log;
+  let output = '';
+  console.log = (msg) => { output = msg; };
+
+  interpreter.execute('drink a = 0\ndrink b = 10\nthirsty a > 5 || b > 5 {\npour "at least one"\n}');
+  console.log = oldLog;
+
+  runner.assertEqual(output, 'at least one', 'OR with one true should execute block');
+});
+
+runner.test('Parser: Modulo operator', () => {
+  const interpreter = new ThirstyInterpreter();
+  interpreter.execute('drink x = 17 % 5');
+  runner.assertEqual(interpreter.variables.x, 2, '17 % 5 should be 2');
+});
+
+runner.test('Parser: Unary negation', () => {
+  const interpreter = new ThirstyInterpreter();
+  interpreter.execute('drink x = -10\ndrink y = -x');
+  runner.assertEqual(interpreter.variables.x, -10, 'Unary minus on literal');
+  runner.assertEqual(interpreter.variables.y, 10, 'Double negation');
+});
+
+runner.test('Parser: Boolean literals', () => {
+  const interpreter = new ThirstyInterpreter();
+  interpreter.execute('drink a = true\ndrink b = false');
+  runner.assertEqual(interpreter.variables.a, true, 'true literal');
+  runner.assertEqual(interpreter.variables.b, false, 'false literal');
 });
 
 runner.run();

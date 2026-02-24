@@ -2,11 +2,11 @@
 
 ## Overview
 
-This document outlines the integration between Thirsty-lang defensive programming features and Project-AI's superior security infrastructure.
+This document outlines the integration between Thirsty-Lang defensive programming features and Project-AI's superior security infrastructure.
 
 ## Project-AI Integration Benefits
 
-Project-AI provides advanced security measures that complement Thirsty-lang's defensive programming capabilities:
+Project-AI provides advanced security measures that complement Thirsty-Lang's defensive programming capabilities:
 
 - **Superior threat detection algorithms**
 - **Advanced AI-powered attack pattern recognition**
@@ -18,10 +18,10 @@ Project-AI provides advanced security measures that complement Thirsty-lang's de
 
 ### 1. Security Module Bridge
 
-Thirsty-lang security modules will interface with Project-AI through a bridge layer:
+Thirsty-Lang security modules will interface with Project-AI through a bridge layer:
 
 ```
-Thirsty-lang (Defensive Language)
+Thirsty-Lang (Defensive Language)
     ↓
 Security Bridge Layer
     ↓
@@ -30,7 +30,7 @@ Project-AI (Advanced Security Intelligence)
 
 ### 2. Components to Integrate
 
-#### From Thirsty-lang:
+#### From Thirsty-Lang:
 
 - `src/security/threat-detector.js` - Basic threat detection
 - `src/security/code-morpher.js` - Code obfuscation capabilities
@@ -54,27 +54,27 @@ Project-AI (Advanced Security Intelligence)
 
 # In Project-AI repository
 
-git submodule add https://github.com/IAmSoThirsty/Thirsty-lang.git modules/thirsty-lang
+git submodule add https://github.com/IAmSoThirsty/Thirsty-Lang.git modules/Thirsty-Lang
 ```
 
 #### Option B: NPM Package
 
 ```bash
 
-# Publish Thirsty-lang security as package
+# Publish Thirsty-Lang security as package
 
-npm publish @thirsty-lang/security
+npm publish @Thirsty-Lang/security
 
 # Install in Project-AI
 
-npm install @thirsty-lang/security
+npm install @Thirsty-Lang/security
 ```
 
 #### Option C: Direct Import
 
 ```javascript
 // In Project-AI
-const { SecurityManager } = require('../thirsty-lang/src/security');
+const { SecurityManager } = require('../Thirsty-Lang/src/security');
 ```
 
 ### 4. API Integration Points
@@ -82,8 +82,8 @@ const { SecurityManager } = require('../thirsty-lang/src/security');
 #### Threat Detection Integration
 
 ```javascript
-// Project-AI can enhance Thirsty-lang threat detection
-const thirstySecurity = require('@thirsty-lang/security');
+// Project-AI can enhance Thirsty-Lang threat detection
+const thirstySecurity = require('@Thirsty-Lang/security');
 const projectAI = require('@project-ai/security');
 
 // Hybrid detection
@@ -119,7 +119,7 @@ const policy = {
 
 ## Migration Path
 
-### Phase 1: Current State (Thirsty-lang Standalone)
+### Phase 1: Current State (Thirsty-Lang Standalone)
 
 - ✅ Basic defensive programming features
 - ✅ Threat detection (white/grey/black/red box)
@@ -129,7 +129,7 @@ const policy = {
 
 ### Phase 2: Integration Preparation
 
-- [ ] Export Thirsty-lang security as standalone module
+- [ ] Export Thirsty-Lang security as standalone module
 - [ ] Create Project-AI bridge interfaces
 - [ ] Document API contracts
 - [ ] Set up shared types/interfaces
@@ -137,7 +137,7 @@ const policy = {
 ### Phase 3: Project-AI Integration
 
 - [ ] Clone/access Project-AI repository
-- [ ] Integrate Thirsty-lang security modules
+- [ ] Integrate Thirsty-Lang security modules
 - [ ] Enhance with Project-AI capabilities
 - [ ] Implement bi-directional communication
 
@@ -151,7 +151,7 @@ const policy = {
 
 ### Phase 5: Unified Defensive Language
 
-- [ ] Thirsty-lang becomes front-end DSL
+- [ ] Thirsty-Lang becomes front-end DSL
 - [ ] Project-AI provides security backend
 - [ ] Seamless integration for users
 - [ ] Combined threat database
@@ -159,10 +159,10 @@ const policy = {
 
 ## Code Examples
 
-### Using Thirsty-lang with Project-AI
+### Using Thirsty-Lang with Project-AI
 
 ```thirsty
-// Thirsty-lang code with Project-AI enhancement
+// Thirsty-Lang code with Project-AI enhancement
 shield {
   // Enable Project-AI advanced detection
   detect attacks {
@@ -183,7 +183,7 @@ shield {
 
 ```javascript
 // Project-AI enhanced execution
-const ThirstySecure = require('@thirsty-lang/secure-interpreter');
+const ThirstySecure = require('@Thirsty-Lang/secure-interpreter');
 const ProjectAI = require('@project-ai/security');
 
 const interpreter = new ThirstySecure({
@@ -207,16 +207,16 @@ Project-AI/
 │   ├── threat-intelligence/
 │   └── security-orchestrator/
 ├── integrations/
-│   ├── thirsty-lang/          # Thirsty-lang integration
+│   ├── Thirsty-Lang/          # Thirsty-Lang integration
 │   │   ├── bridge.js          # Bridge layer
 │   │   ├── enhanced-detector.js
 │   │   ├── ai-morpher.js
 │   │   └── unified-policy.js
 │   └── other-languages/
 ├── modules/
-│   └── thirsty-lang/          # Git submodule or symlink
+│   └── Thirsty-Lang/          # Git submodule or symlink
 └── examples/
-    └── thirsty-lang-ai/       # Combined examples
+    └── Thirsty-Lang-ai/       # Combined examples
 ```
 
 ## Next Steps
@@ -232,9 +232,9 @@ Project-AI/
    - Ensure backward compatibility
 
 3. **Migrate Features**
-   - Move Thirsty-lang security to Project-AI
+   - Move Thirsty-Lang security to Project-AI
    - Enhance with AI capabilities
-   - Maintain Thirsty-lang as DSL front-end
+   - Maintain Thirsty-Lang as DSL front-end
 
 4. **Testing & Validation**
    - Test integrated threat detection
@@ -248,7 +248,7 @@ Project-AI/
 
 ## Benefits of Integration
 
-### For Thirsty-lang Users:
+### For Thirsty-Lang Users:
 
 - ✅ Access to advanced AI-powered security
 - ✅ Real-time threat intelligence
@@ -258,7 +258,7 @@ Project-AI/
 
 ### For Project-AI Users:
 
-- ✅ Domain-specific security language (Thirsty-lang)
+- ✅ Domain-specific security language (Thirsty-Lang)
 - ✅ Easy-to-use defensive programming syntax
 - ✅ Rapid security policy prototyping
 - ✅ Educational security features
@@ -280,10 +280,10 @@ To proceed with integration:
 2. Review existing security infrastructure
 3. Design integration architecture
 4. Implement bridge layer
-5. Migrate and enhance Thirsty-lang security features
+5. Migrate and enhance Thirsty-Lang security features
 
 Repository: https://github.com/IAmSoThirsty/Project-AI
 
 ---
 
-**Note**: This integration will elevate Thirsty-lang's defensive capabilities by leveraging Project-AI's superior security measures while maintaining Thirsty-lang's unique syntax and educational value.
+**Note**: This integration will elevate Thirsty-Lang's defensive capabilities by leveraging Project-AI's superior security measures while maintaining Thirsty-Lang's unique syntax and educational value.

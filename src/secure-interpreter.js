@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Thirsty-lang Secure Interpreter
+ * Thirsty-Lang Secure Interpreter
  * Enhanced interpreter with defensive programming capabilities
  */
 
@@ -25,8 +25,8 @@ class SecureThirstyInterpreter {
   }
 
   /**
-   * Parse and execute Thirsty-lang code with security
-   * @param {string} code - The Thirsty-lang source code
+   * Parse and execute Thirsty-Lang code with security
+   * @param {string} code - The Thirsty-Lang source code
    */
   execute(code) {
     // Apply security if enabled
@@ -69,7 +69,7 @@ class SecureThirstyInterpreter {
 
   /**
    * Execute a single line of code with security checks
-   * @param {string} line - A single line of Thirsty-lang code
+   * @param {string} line - A single line of Thirsty-Lang code
    */
   executeLine(line) {
     // Security keywords

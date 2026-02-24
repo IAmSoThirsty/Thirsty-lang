@@ -1,4 +1,4 @@
-# Thirsty-lang Core Python Dependencies
+# Thirsty-Lang Core Python Dependencies
 # Python 3.8+ required
 
 # T.A.R.L. Integration Dependencies

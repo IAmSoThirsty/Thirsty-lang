@@ -1,4 +1,4 @@
-# Thirsty-lang Development Dependencies
+# Thirsty-Lang Development Dependencies
 # Additional tools for development and testing
 
 # Testing frameworks

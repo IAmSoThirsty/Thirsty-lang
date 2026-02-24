@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * Thirsty-lang Defensive Programming Demo
+ * Thirsty-Lang Defensive Programming Demo
  * Demonstrates security features in action
  */
 
 const SecureThirstyInterpreter = require('../../src/secure-interpreter');
 
 console.log('='.repeat(70));
-console.log('Thirsty-lang Defensive Programming Demo');
+console.log('Thirsty-Lang Defensive Programming Demo');
 console.log('Demonstrating combative security against all attack types');
 console.log('='.repeat(70));
 console.log();
@@ -119,7 +119,7 @@ console.log();
 
 // Summary
 console.log('='.repeat(70));
-console.log('Summary: Thirsty-lang Defensive Features');
+console.log('Summary: Thirsty-Lang Defensive Features');
 console.log('='.repeat(70));
 console.log('✅ Shield-based protection');
 console.log('✅ Real-time threat detection');
@@ -129,5 +129,5 @@ console.log('✅ Attack blocking (aggressive mode)');
 console.log('✅ Counter-strike capabilities (paranoid mode)');
 console.log('✅ Comprehensive security reporting');
 console.log();
-console.log('Thirsty-lang: Defensive by design, combative by nature! 💧🔒');
+console.log('Thirsty-Lang: Defensive by design, combative by nature! 💧🔒');
 console.log('='.repeat(70));

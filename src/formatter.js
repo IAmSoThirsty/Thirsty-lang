@@ -1,5 +1,5 @@
 /**
- * Thirsty-lang Code Formatter
+ * Thirsty-Lang Code Formatter
  * Beautify your Thirsty code!
  */
 
@@ -104,7 +104,7 @@ function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.log('Thirsty-lang Code Formatter');
+    console.log('Thirsty-Lang Code Formatter');
     console.log('Usage: node src/formatter.js <file.thirsty> [output.thirsty]');
     console.log('\nOptions:');
     console.log('  --indent-size <n>    Set indent size (default: 2)');

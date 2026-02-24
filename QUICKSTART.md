@@ -1,4 +1,4 @@
-# Thirsty-lang Quick Start Guide 🚀💧
+# Thirsty-Lang Quick Start Guide 🚀💧
 
 ## One-Line Setup
 
@@ -137,7 +137,7 @@ cat DEPENDENCIES.txt
 
 # Install Node.js from https://nodejs.org
 
-# Required: v14.0.0 or higher
+# Required: v18.0.0 or higher
 
 ```
 
@@ -221,7 +221,7 @@ npm test
 ## Directory Structure
 
 ```text
-Thirsty-lang/
+Thirsty-Lang/
 ├── examples/           # Example programs
 ├── src/               # Source code (JS + Python)
 ├── docs/              # Documentation

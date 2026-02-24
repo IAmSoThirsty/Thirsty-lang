@@ -1,12 +1,12 @@
 # Changelog
 
-All notable changes to the Thirsty-lang VS Code extension.
+All notable changes to the Thirsty-Lang VS Code extension.
 
 ## [1.0.0] - 2026-02-23
 
 ### Added
 
-- Full syntax highlighting for all Thirsty-lang keywords
+- Full syntax highlighting for all Thirsty-Lang keywords
 - Support for all four language family tiers:
   - Thirsty-Lang (`.thirsty`)
   - Thirst of Gods (`.tog`)

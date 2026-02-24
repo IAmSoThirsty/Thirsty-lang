@@ -1,4 +1,4 @@
-# Thirsty-lang: MAXIMUM ALLOWED DESIGN - Implementation Summary
+# Thirsty-Lang: MAXIMUM ALLOWED DESIGN - Implementation Summary
 
 ## Executive Summary
 
@@ -76,12 +76,12 @@ This document provides a comprehensive summary of the implementation work comple
    - Empty string and type validation
 
 2. **JSON.stringify()**
-   - All Thirsty-lang type serialization
+   - All Thirsty-Lang type serialization
    - Circular reference detection
    - Custom replacer functions
    - Whitelist array support
    - Configurable indentation (space parameter)
-   - Thirsty-lang function/class metadata handling
+   - Thirsty-Lang function/class metadata handling
 
 3. **JSON.isValid()**
    - Non-throwing validation

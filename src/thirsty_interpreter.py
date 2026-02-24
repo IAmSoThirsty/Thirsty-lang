@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Thirsty-lang Python Interpreter
-A Python implementation of the Thirsty-lang interpreter
+Thirsty-Lang Python Interpreter
+A Python implementation of the Thirsty-Lang interpreter
 """
 
 import re
@@ -10,7 +10,7 @@ from typing import Dict, Any, List, Optional
 
 
 class ThirstyInterpreter:
-    """Main interpreter class for Thirsty-lang"""
+    """Main interpreter class for Thirsty-Lang"""
     
     def __init__(self):
         self.variables: Dict[str, Any] = {}
@@ -18,10 +18,10 @@ class ThirstyInterpreter:
     
     def interpret(self, code: str) -> List[str]:
         """
-        Interpret Thirsty-lang code and return output
+        Interpret Thirsty-Lang code and return output
         
         Args:
-            code: Thirsty-lang source code as a string
+            code: Thirsty-Lang source code as a string
             
         Returns:
             List of output strings
@@ -46,11 +46,11 @@ class ThirstyInterpreter:
         return self.output
     
     def execute_line(self, line: str):
-        """Execute a single line of Thirsty-lang code (public interface)"""
+        """Execute a single line of Thirsty-Lang code (public interface)"""
         return self._execute_line(line)
     
     def _execute_line(self, line: str):
-        """Execute a single line of Thirsty-lang code"""
+        """Execute a single line of Thirsty-Lang code"""
         
         # Variable declaration: drink varname = value
         drink_match = re.match(r'drink\s+(\w+)\s*=\s*(.+)', line)
@@ -116,7 +116,7 @@ class ThirstyInterpreter:
 
 
 def run_file(filename: str):
-    """Run a Thirsty-lang file"""
+    """Run a Thirsty-Lang file"""
     try:
         with open(filename, 'r', encoding='utf-8') as f:
             code = f.read()

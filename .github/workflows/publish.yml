@@ -48,7 +48,7 @@ jobs:
         if: github.event_name == 'release'
         run: |
           npm pack
-          PKG_NAME=$(ls thirsty-lang-*.tgz)
+          PKG_NAME=$(ls Thirsty-Lang-*.tgz)
           echo "PKG_NAME=$PKG_NAME" >> $GITHUB_ENV
           echo "Created package: $PKG_NAME"
 

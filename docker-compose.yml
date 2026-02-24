@@ -1,12 +1,12 @@
 version: '3.8'
 
 services:
-  # Main Thirsty-lang service
+  # Main Thirsty-Lang service
   thirsty:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: thirsty-lang
+    container_name: Thirsty-Lang
     volumes:
       - ./examples:/app/examples
       - ./src:/app/src
@@ -27,7 +27,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: development
-    container_name: thirsty-lang-dev
+    container_name: Thirsty-Lang-dev
     volumes:
       - .:/app
       - node_modules:/app/node_modules

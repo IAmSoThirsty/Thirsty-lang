@@ -1,8 +1,8 @@
-# Thirsty-lang Complete Documentation
+# Thirsty-Lang Complete Documentation
 
 ## Enterprise-Grade Programming Language with Defensive Security
 
-Version: 1.0.0
+Version: 2.0.0
 Status: Production Ready ✅
 
 ---
@@ -24,7 +24,7 @@ Status: Production Ready ✅
 
 ## Overview
 
-Thirsty-lang is a fully operational, enterprise-grade programming language designed for:
+Thirsty-Lang is a fully operational, enterprise-grade programming language designed for:
 
 - **Defensive Programming**: Built-in security against all known attack vectors
 - **Project-AI Integration**: Optimized for AI-powered development workflows
@@ -61,7 +61,7 @@ Thirsty-lang is a fully operational, enterprise-grade programming language desig
 
 ### Prerequisites
 
-- Node.js 14 or higher
+- Node.js 18 or higher
 - npm (comes with Node.js)
 - Git
 
@@ -71,8 +71,8 @@ Thirsty-lang is a fully operational, enterprise-grade programming language desig
 
 # Clone repository
 
-git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
-cd Thirsty-lang
+git clone https://github.com/IAmSoThirsty/Thirsty-Lang.git
+cd Thirsty-Lang
 
 # Install dependencies (if any)
 
@@ -94,7 +94,7 @@ npm start hello.thirsty
 
 ### File Extension
 
-Thirsty-lang files use the `.thirsty` extension.
+Thirsty-Lang files use the `.thirsty` extension.
 
 ### Basic Structure
 
@@ -582,7 +582,7 @@ const interpreter = new ThirstyInterpreter(options);
 
 **execute(code)**
 
-- Execute Thirsty-lang code
+- Execute Thirsty-Lang code
 - Parameters: `code` (string) - The source code
 - Returns: void
 - Throws: Error on invalid syntax or runtime errors
@@ -836,7 +836,7 @@ npm start examples/security/basic-protection.thirsty
 
 ## Support
 
-- **Repository**: https://github.com/IAmSoThirsty/Thirsty-lang
+- **Repository**: https://github.com/IAmSoThirsty/Thirsty-Lang
 - **Issues**: Report bugs on GitHub Issues
 - **Documentation**: README.md, TUTORIAL.md, this file
 - **Examples**: See `examples/` directory
@@ -849,8 +849,8 @@ See LICENSE file in repository.
 
 ---
 
-**Thirsty-lang - Enterprise-Grade Security Language**
+**Thirsty-Lang - Enterprise-Grade Security Language**
 
 *Stay hydrated. Code securely. Build confidently.* 💧🔒
 
-**Version 1.0.0 - Production Ready**
+**Version 2.0.0 - Production Ready**

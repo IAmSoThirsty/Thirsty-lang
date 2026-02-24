@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Thirsty-lang Debugger
+ * Thirsty-Lang Debugger
  * Step through your code and find bugs
  */
 
@@ -30,7 +30,7 @@ class ThirstyDebugger extends ThirstyInterpreter {
       code: line.trim()
     })).filter(line => line.code && !line.code.startsWith('//'));
 
-    console.log('🐛 Thirsty-lang Debugger');
+    console.log('🐛 Thirsty-Lang Debugger');
     console.log('Type "help" for debugger commands\n');
 
     for (let i = 0; i < this.lines.length; i++) {

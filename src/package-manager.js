@@ -1,5 +1,5 @@
 /**
- * Thirsty-lang Package Manager
+ * Thirsty-Lang Package Manager
  * Manage dependencies and packages for your Thirsty projects!
  */
 
@@ -20,7 +20,7 @@ class ThirstyPackageManager {
     const config = {
       name: projectName,
       version: '1.0.0',
-      description: 'A Thirsty-lang project',
+      description: 'A Thirsty-Lang project',
       main: 'main.thirsty',
       dependencies: {},
       devDependencies: {},
@@ -142,8 +142,8 @@ class ThirstyPackageManager {
     
     // Simulated package registry
     const packages = [
-      { name: 'thirsty-http', description: 'HTTP server for Thirsty-lang', version: '1.0.0' },
-      { name: 'thirsty-db', description: 'Database adapter for Thirsty-lang', version: '1.2.0' },
+      { name: 'thirsty-http', description: 'HTTP server for Thirsty-Lang', version: '1.0.0' },
+      { name: 'thirsty-db', description: 'Database adapter for Thirsty-Lang', version: '1.2.0' },
       { name: 'thirsty-test', description: 'Testing framework', version: '2.0.0' },
       { name: 'thirsty-cli', description: 'CLI helpers', version: '1.5.0' },
       { name: 'hydration-utils', description: 'Common utilities', version: '3.0.0' }

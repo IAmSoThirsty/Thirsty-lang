@@ -1,4 +1,4 @@
-"""Allow running Thirsty-lang as a module: python -m thirsty_lang <file.thirsty>"""
+"""Allow running Thirsty-Lang as a module: python -m thirsty_lang <file.thirsty>"""
 
 from thirsty_lang.interpreter import main
 

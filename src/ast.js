@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Thirsty-lang AST (Abstract Syntax Tree) Generator
+ * Thirsty-Lang AST (Abstract Syntax Tree) Generator
  * Visualize the structure of your code
  */
 
@@ -140,7 +140,7 @@ function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.log('Thirsty-lang AST Generator');
+    console.log('Thirsty-Lang AST Generator');
     console.log('Usage: node src/ast.js <file.thirsty> [--json output.json]');
     console.log('\nGenerates and visualizes the Abstract Syntax Tree');
     process.exit(0);

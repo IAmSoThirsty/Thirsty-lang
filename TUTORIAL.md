@@ -1,6 +1,6 @@
-# Thirsty-lang Tutorial: Complete Walkthrough
+# Thirsty-Lang Tutorial: Complete Walkthrough
 
-Welcome to Thirsty-lang - an enterprise-grade programming language with built-in defensive security features!
+Welcome to Thirsty-Lang - an enterprise-grade programming language with built-in defensive security features!
 
 ## Table of Contents
 
@@ -19,8 +19,8 @@ Welcome to Thirsty-lang - an enterprise-grade programming language with built-in
 ### Installation
 
 ```bash
-git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
-cd Thirsty-lang
+git clone https://github.com/IAmSoThirsty/Thirsty-Lang.git
+cd Thirsty-Lang
 npm install
 ```
 
@@ -50,7 +50,7 @@ Hello, World!
 
 ### 1. Variables (drink)
 
-Variables in Thirsty-lang are declared using the `drink` keyword:
+Variables in Thirsty-Lang are declared using the `drink` keyword:
 
 ```thirsty
 drink name = "Alice"
@@ -96,7 +96,7 @@ drink x = 10  // Inline comment
 
 ### 4. Arithmetic Operations
 
-Thirsty-lang supports full arithmetic with proper operator precedence:
+Thirsty-Lang supports full arithmetic with proper operator precedence:
 
 ```thirsty
 drink a = 10
@@ -187,7 +187,7 @@ hydrated {
 
 ### Comparison Operators
 
-Thirsty-lang supports all standard comparison operators:
+Thirsty-Lang supports all standard comparison operators:
 
 ```thirsty
 drink a = 10
@@ -300,7 +300,7 @@ refill i >= 0 {
 
 ## Security Features
 
-Thirsty-lang is designed for defensive programming with enterprise-grade security features.
+Thirsty-Lang is designed for defensive programming with enterprise-grade security features.
 
 ### 1. Shield Blocks
 
@@ -567,7 +567,7 @@ npm test
 
 Expected output:
 ```
-Running Thirsty-lang Tests...
+Running Thirsty-Lang Tests...
 
 ✓ Variable declaration with string
 ✓ Variable declaration with number
@@ -614,7 +614,7 @@ Running Thirsty-lang Tests...
 
 ## Error Handling
 
-Thirsty-lang provides clear error messages:
+Thirsty-Lang provides clear error messages:
 
 ### Division by Zero
 
@@ -659,7 +659,7 @@ unknownKeyword test
 
 ## Support and Resources
 
-- **Repository**: https://github.com/IAmSoThirsty/Thirsty-lang
+- **Repository**: https://github.com/IAmSoThirsty/Thirsty-Lang
 - **Issues**: Report bugs or request features on GitHub
 - **Examples**: See `examples/` directory for more code samples
 - **Tests**: See `src/test/runner.js` for comprehensive test examples

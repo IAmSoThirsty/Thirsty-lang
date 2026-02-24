@@ -2,7 +2,7 @@
   "policies": [
     {
       "name": "default_security",
-      "description": "Default security policy for Thirsty-lang",
+      "description": "Default security policy for Thirsty-Lang",
       "rules": [
         {
           "condition": {

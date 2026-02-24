@@ -1,6 +1,6 @@
 # New Features Implementation Summary
 
-This document summarizes the new features added to Thirsty-lang in this release.
+This document summarizes the new features added to Thirsty-Lang in this release.
 
 ## Features Implemented
 
@@ -248,7 +248,7 @@ Potential improvements for future releases:
 
 ## Conclusion
 
-All requested features have been successfully implemented, tested, and documented. The implementation maintains backward compatibility while adding powerful new capabilities to Thirsty-lang.
+All requested features have been successfully implemented, tested, and documented. The implementation maintains backward compatibility while adding powerful new capabilities to Thirsty-Lang.
 
 **Key Achievements:**
 

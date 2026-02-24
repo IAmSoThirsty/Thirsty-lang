@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Thirsty-lang Python Utilities
-Common utility functions for Thirsty-lang Python implementation
+Thirsty-Lang Python Utilities
+Common utility functions for Thirsty-Lang Python implementation
 """
 
 import os
@@ -10,7 +10,7 @@ from typing import List, Optional
 
 
 def read_file(filename: str) -> str:
-    """Read a Thirsty-lang source file.
+    """Read a Thirsty-Lang source file.
 
     Args:
         filename: Path to the file
@@ -38,13 +38,13 @@ def get_file_extension(filename: str) -> str:
 
 
 def is_thirsty_file(filename: str) -> bool:
-    """Check if a file is a Thirsty-lang file.
+    """Check if a file is a Thirsty-Lang file.
 
     Args:
         filename: Path to the file
 
     Returns:
-        True if file has Thirsty-lang extension
+        True if file has Thirsty-Lang extension
     """
     valid_extensions = [
         ".thirsty",
@@ -56,13 +56,13 @@ def is_thirsty_file(filename: str) -> bool:
 
 
 def find_thirsty_files(directory: str) -> List[str]:
-    """Find all Thirsty-lang files in a directory.
+    """Find all Thirsty-Lang files in a directory.
 
     Args:
         directory: Path to search
 
     Returns:
-        List of Thirsty-lang file paths
+        List of Thirsty-Lang file paths
     """
     thirsty_files = []
     for root, _dirs, files in os.walk(directory):
@@ -106,7 +106,7 @@ def print_banner(title: str) -> None:
 
 
 def check_version() -> str:
-    """Get Python and Thirsty-lang version info.
+    """Get Python and Thirsty-Lang version info.
 
     Returns:
         Version string
@@ -115,10 +115,10 @@ def check_version() -> str:
     minor = sys.version_info.minor
     micro = sys.version_info.micro
     py_ver = f"{major}.{minor}.{micro}"
-    return f"Python {py_ver} | Thirsty-lang 2.0.0"
+    return f"Python {py_ver} | Thirsty-Lang 2.0.0"
 
 
 if __name__ == "__main__":
     # Test utilities
-    print_banner("Thirsty-lang Python Utilities")
+    print_banner("Thirsty-Lang Python Utilities")
     print(f"\n{check_version()}\n")

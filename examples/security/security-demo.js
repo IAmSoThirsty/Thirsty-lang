@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Simple Thirsty-lang Security Demo
+ * Simple Thirsty-Lang Security Demo
  * Shows defensive features without execution complexity
  */
 
@@ -11,7 +11,7 @@ const SecurityPolicyEngine = require('../../src/security/policy-engine');
 const { SecurityManager } = require('../../src/security/index');
 
 console.log('='.repeat(70));
-console.log('Thirsty-lang Defensive Programming - Security Module Demo');
+console.log('Thirsty-Lang Defensive Programming - Security Module Demo');
 console.log('='.repeat(70));
 console.log();
 
@@ -146,6 +146,6 @@ console.log('  • Moderate   - Warn and sanitize');
 console.log('  • Aggressive - Block threats');
 console.log('  • Paranoid   - Counter-strike with honeypots');
 console.log();
-console.log('Thirsty-lang: A unique defensive programming language');
+console.log('Thirsty-Lang: A unique defensive programming language');
 console.log('combative against all known code threats! 💧🔒');
 console.log('='.repeat(70));

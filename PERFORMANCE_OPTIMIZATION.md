@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document details the performance improvements made to the Thirsty-lang interpreter to address slow and inefficient code execution.
+This document details the performance improvements made to the Thirsty-Lang interpreter to address slow and inefficient code execution.
 
 ## Performance Bottlenecks Identified
 
@@ -187,7 +187,7 @@ All 37 existing tests pass without modifications:
 - Maintained code readability
 - Added inline comments explaining optimizations
 - No breaking changes to API
-- Backward compatible with existing Thirsty-lang code
+- Backward compatible with existing Thirsty-Lang code
 
 ## Future Optimization Opportunities
 

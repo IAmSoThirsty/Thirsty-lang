@@ -1,5 +1,5 @@
 """
-Thirsty-lang — The Hydration Language Family
+Thirsty-Lang — The Hydration Language Family
 =============================================
 
 A fun, water-themed programming language with defensive security features.
