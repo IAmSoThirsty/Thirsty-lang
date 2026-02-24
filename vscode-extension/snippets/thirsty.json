@@ -4,14 +4,21 @@
     "body": [
       "drink ${1:varname} = ${2:value}"
     ],
-    "description": "Declare a variable"
+    "description": "Declare a variable (💧 Thirsty-Lang)"
   },
   "Output": {
     "prefix": "pour",
     "body": [
       "pour ${1:expression}"
     ],
-    "description": "Output a value"
+    "description": "Output a value (💧 Thirsty-Lang)"
+  },
+  "Input": {
+    "prefix": "sip",
+    "body": [
+      "sip ${1:varname}"
+    ],
+    "description": "Read user input (💧 Thirsty-Lang)"
   },
   "Comment": {
     "prefix": "//",
@@ -23,48 +30,100 @@
   "If Statement": {
     "prefix": "thirsty",
     "body": [
-      "thirsty ${1:condition}",
+      "thirsty ${1:condition} {",
       "  ${2:// code}",
-      "hydrated",
-      "  ${3:// else code}"
+      "}",
+      "hydrated {",
+      "  ${3:// else code}",
+      "}"
     ],
-    "description": "Conditional statement (Thirsty+)"
+    "description": "Conditional statement (⚡ Thirst of Gods)"
+  },
+  "If Only": {
+    "prefix": "thirstyif",
+    "body": [
+      "thirsty ${1:condition} {",
+      "  ${2:// code}",
+      "}"
+    ],
+    "description": "If statement without else (⚡ Thirst of Gods)"
   },
   "Function": {
     "prefix": "glass",
     "body": [
-      "glass ${1:functionName}(${2:params})",
+      "glass ${1:functionName}(${2:params}) {",
       "  ${3:// function body}",
-      "  return ${4:value}"
+      "  return ${4:value}",
+      "}"
     ],
-    "description": "Define a function (T.A.R.L.)"
+    "description": "Define a function (🛡️ T.A.R.L.)"
   },
   "Loop": {
     "prefix": "refill",
     "body": [
-      "refill ${1:times} times",
-      "  ${2:// loop body}"
+      "refill ${1:condition} {",
+      "  ${2:// loop body}",
+      "}"
     ],
-    "description": "Create a loop (T.A.R.L.)"
+    "description": "Create a loop (🛡️ T.A.R.L.)"
+  },
+  "Array": {
+    "prefix": "reservoir",
+    "body": [
+      "reservoir ${1:arrayName} = [${2:items}]"
+    ],
+    "description": "Declare an array (🛡️ T.A.R.L.)"
+  },
+  "Shield Block": {
+    "prefix": "shield",
+    "body": [
+      "shield ${1:blockName} {",
+      "  ${2:// protected code}",
+      "}"
+    ],
+    "description": "Protected execution context (🛡️ T.A.R.L.)"
+  },
+  "Sanitize": {
+    "prefix": "sanitize",
+    "body": [
+      "sanitize ${1:variable}"
+    ],
+    "description": "HTML-encode a variable to prevent XSS (🛡️ T.A.R.L.)"
+  },
+  "Armor": {
+    "prefix": "armor",
+    "body": [
+      "armor ${1:variable}"
+    ],
+    "description": "Protect a variable from modification (🛡️ T.A.R.L.)"
   },
   "Class": {
     "prefix": "fountain",
     "body": [
-      "fountain ${1:ClassName}",
+      "fountain ${1:ClassName} {",
       "  drink ${2:property} = ${3:value}",
-      "  ",
-      "  glass ${4:method}()",
-      "    ${5:// method body}"
+      "",
+      "  glass ${4:method}(${5:params}) {",
+      "    ${6:// method body}",
+      "  }",
+      "}"
     ],
-    "description": "Define a class (Thirsty's Shadow)"
+    "description": "Define a class (🔮 Thirsty's Shadow)"
   },
-  "Async Function": {
-    "prefix": "cascade",
+  "Class Method": {
+    "prefix": "glassmethod",
     "body": [
-      "cascade glass ${1:functionName}(${2:params})",
-      "  drink ${3:result} = await ${4:promise}",
-      "  return ${3:result}"
+      "glass ${1:methodName}(${2:params}) {",
+      "  ${3:// method body}",
+      "}"
     ],
-    "description": "Define an async function (Thirsty's Shadow)"
+    "description": "Add a method inside a fountain class (🔮 Thirsty's Shadow)"
+  },
+  "This Property": {
+    "prefix": "this",
+    "body": [
+      "drink this.${1:property} = ${2:value}"
+    ],
+    "description": "Set a class property via this (🔮 Thirsty's Shadow)"
   }
 }
