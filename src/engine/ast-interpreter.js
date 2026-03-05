@@ -85,9 +85,9 @@ class Environment {
 
     /** Set an existing variable (walks up scope chain). */
     set(name, value) {
-        // Check armor
-        if (this.armored.has(name)) {
-            console.warn(`Warning: Cannot modify armored variable '${name}'`);
+        // Check armor in this and parent scopes
+        if (this.isArmored(name)) {
+            console.warn(`Security Warning: Cannot modify armored variable '${name}'`);
             return;
         }
         if (name in this.store) {
@@ -100,6 +100,13 @@ class Environment {
         }
         // If not found anywhere, define in current scope (global-style assignment)
         this.store[name] = value;
+    }
+
+    /** Check if a variable is armored in the current or any parent scope. */
+    isArmored(name) {
+        if (this.armored.has(name)) return true;
+        if (this.parent) return this.parent.isArmored(name);
+        return false;
     }
 
     /** Get a variable (walks up scope chain). */
@@ -457,15 +464,14 @@ class ASTInterpreter {
     execShield(node, env) {
         // Shield creates a protected execution context
         const mgr = this.host.securityManager;
-        if (mgr && typeof mgr.enterShieldedContext === 'function') {
-            mgr.enterShieldedContext(node.name);
-        }
+        this.host.activateShield(node.name);
+
         try {
-            return this.execBlock(node.body.body, env);
+            // Shields always run in a child environment
+            const shieldEnv = env.child();
+            return this.execBlock(node.body.body, shieldEnv);
         } finally {
-            if (mgr && typeof mgr.exitShieldedContext === 'function') {
-                mgr.exitShieldedContext();
-            }
+            this.host.deactivateShield();
         }
     }
 
@@ -491,9 +497,10 @@ class ASTInterpreter {
 
     execArmor(node, env) {
         if (!env.has(node.varName)) {
-            throw new Error(`Cannot armor undefined variable: ${node.varName}`);
+            throw new ThirstyError(`Cannot armor undefined variable: ${node.varName}`, 'ReferenceError');
         }
         env.armorVar(node.varName);
+        this.host.armor(node.varName); // Sync to host
         return undefined;
     }
 
@@ -585,15 +592,12 @@ class ASTInterpreter {
             for (const name of node.names) {
                 if (exports.hasOwnProperty(name)) {
                     const exported = exports[name];
-                    if (exported && typeof exported === 'object' && exported.params && exported.body) {
-                        // Legacy function definition — convert to new format
-                        this.functions[name] = {
-                            params: exported.params,
-                            bodyNode: null,      // will use legacy execution
-                            legacyBody: exported.body,
-                            isAsync: !!exported.async,
-                            closureEnv: env,
-                        };
+                    if (exported && typeof exported === 'object' && exported.params && exported.bodyNode) {
+                        // Function definition
+                        this.functions[name] = exported;
+                    } else if (exported && typeof exported === 'object' && exported.methods && exported.properties) {
+                        // Class definition
+                        this.classes[name] = exported;
                     } else {
                         env.set(name, exported);
                     }
@@ -612,6 +616,8 @@ class ASTInterpreter {
             this.host.exports[node.name] = env.get(node.name);
         } else if (this.functions[node.name]) {
             this.host.exports[node.name] = this.functions[node.name];
+        } else if (this.classes[node.name]) {
+            this.host.exports[node.name] = this.classes[node.name];
         } else {
             throw new Error(`Cannot export undefined identifier: ${node.name}`);
         }

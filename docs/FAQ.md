@@ -65,6 +65,14 @@ A: Yes! Thirsty's Shadow will support plugins and extensions.
 
 **Q: What's the difference between the language editions?**
 A:
+<<<<<<< HEAD
+=======
+
+- **Base**: Variables, output, comments
+- **Thirsty+**: Adds control flow (if/else)
+- **Thirsty++**: Adds functions, loops, data structures
+- **ThirstOfGods**: Adds classes, async/await, modules
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 - **Thirsty-Lang**: Variables, output, comments
 - **Thirst of Gods**: Adds control flow (if/else)

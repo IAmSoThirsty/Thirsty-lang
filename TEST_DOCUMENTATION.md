@@ -2,7 +2,11 @@
 
 **Complete transparency of all features with documented tests and examples**
 
+<<<<<<< HEAD
 Version: 2.0.0
+=======
+Version: 1.0.0
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 Test Status: 37/37 Passing ✅
 Coverage: 100% of implemented features
 

@@ -25,7 +25,9 @@ function initializeStandardLibrary() {
       round: (x) => Math.round(x),
       min: (...args) => Math.min(...args),
       max: (...args) => Math.max(...args),
-      random: () => Math.random()
+      random: () => Math.random(),
+      log: (x) => Math.log(x),
+      log2: (x) => Math.log2(x)
     },
 
     String: {
@@ -145,7 +147,7 @@ function initializeStandardLibrary() {
         });
       },
       // Note: fetch is added dynamically in the interpreter since it references this.variables
-      _createFetch: function(httpObj) {
+      _createFetch: function (httpObj) {
         return async (url, options = {}) => {
           const method = (options.method || 'GET').toUpperCase();
           if (method === 'POST' || method === 'PUT' || method === 'PATCH') {

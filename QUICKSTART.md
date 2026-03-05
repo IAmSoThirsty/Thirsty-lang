@@ -137,7 +137,11 @@ cat DEPENDENCIES.txt
 
 # Install Node.js from https://nodejs.org
 
+<<<<<<< HEAD
 # Required: v18.0.0 or higher
+=======
+# Required: v14.0.0 or higher
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ```
 

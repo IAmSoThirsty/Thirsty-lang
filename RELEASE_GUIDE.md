@@ -113,7 +113,11 @@ npm publish
 
 # 6. Verify installation
 
+<<<<<<< HEAD
 npm install -g Thirsty-Lang@latest
+=======
+npm install -g thirsty-lang@latest
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 thirsty --version
 ```
 
@@ -185,11 +189,19 @@ npm pack
 
 # Inspect contents
 
+<<<<<<< HEAD
 tar -tzf Thirsty-Lang-2.0.0.tgz
 
 # Test installation locally
 
 npm install -g ./Thirsty-Lang-2.0.0.tgz
+=======
+tar -tzf thirsty-lang-2.0.0.tgz
+
+# Test installation locally
+
+npm install -g ./thirsty-lang-2.0.0.tgz
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 # Test CLI commands
 
@@ -254,7 +266,11 @@ After publishing, verify the release:
 
 # Install globally
 
+<<<<<<< HEAD
 npm install -g Thirsty-Lang@latest
+=======
+npm install -g thirsty-lang@latest
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 # Check version
 
@@ -277,7 +293,11 @@ thirsty-repl
 
 # Uninstall test
 
+<<<<<<< HEAD
 npm uninstall -g Thirsty-Lang
+=======
+npm uninstall -g thirsty-lang
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 ```
 
 ## 📝 Release Notes Template

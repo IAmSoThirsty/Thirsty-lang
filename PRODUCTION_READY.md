@@ -71,7 +71,11 @@ Thirsty-Lang is now **100% Real Production Ready**! This document summarizes all
 
 ### Package Information
 
+<<<<<<< HEAD
 - **Name**: `Thirsty-Lang`
+=======
+- **Name**: `thirsty-lang`
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - **Version**: `2.0.0`
 - **Size**: 122 kB (compressed)
 - **Unpacked Size**: 465 kB
@@ -249,7 +253,11 @@ npm publish
 
 # 4. Verify
 
+<<<<<<< HEAD
 npm install -g Thirsty-Lang@latest
+=======
+npm install -g thirsty-lang@latest
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 thirsty --version
 ```
 
@@ -360,7 +368,11 @@ thirsty --version
 
 # Install globally
 
+<<<<<<< HEAD
 npm install -g Thirsty-Lang
+=======
+npm install -g thirsty-lang
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 # Create a new program
 
@@ -413,8 +425,13 @@ shield secureApp {
 
 ### Resources
 
+<<<<<<< HEAD
 - **GitHub Repository**: https://github.com/IAmSoThirsty/Thirsty-Lang
 - **NPM Package**: https://www.npmjs.com/package/Thirsty-Lang
+=======
+- **GitHub Repository**: https://github.com/IAmSoThirsty/Thirsty-lang
+- **NPM Package**: https://www.npmjs.com/package/thirsty-lang
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - **Documentation**: Complete in repository
 - **Examples**: 15+ example programs included
 - **Issues**: GitHub issue tracker

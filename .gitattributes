@@ -1,8 +1,51 @@
-# Thirsty language family files
+# ═══════════════════════════════════════════════════════════
+# Thirsty-Lang — GitHub Linguist Configuration
+# ═══════════════════════════════════════════════════════════
+#                                           [2026-03-04 12:45]
+#                                          Productivity: Active
+#
+# UNIVERSAL THIRSTY FAMILY (UTF) — Language Recognition
+#   1. Thirsty-Lang       — Main Language
+#   2. Thirst of Gods     — Higher Functions
+#   3. T.A.R.L.           — Defensive Programming Language
+#   4. Shadow Thirst      — Dual Plane
+#   5. TSCG               — Thirsty's Symbolic Compression Grammar
+#   6. TSCG-B             — TSCG (Binary)
+
+# 1. Thirsty-Lang (Main)
 *.thirsty linguist-language=Thirsty-lang linguist-detectable
+
+# 2. Thirst of Gods (Higher Functions)
+*.thirstofgods linguist-language=Thirsty-lang linguist-detectable
 *.tog linguist-language=Thirsty-lang linguist-detectable
+
+# 3. T.A.R.L. (Defensive Programming)
 *.tarl linguist-language=Thirsty-lang linguist-detectable
+
+# 4. Shadow Thirst (Dual Plane)
 *.shadow linguist-language=Thirsty-lang linguist-detectable
+
+# 5. TSCG (Symbolic Compression Grammar)
+*.tscg linguist-language=Thirsty-lang linguist-detectable
+
+# 6. TSCG-B (Binary)
+*.tscgb linguist-language=Thirsty-lang linguist-detectable
+
+# ───────────────────────────────────────────────────────────
+# Ensure examples count in language statistics
+# ───────────────────────────────────────────────────────────
+examples/** linguist-vendored=false
+src/examples/** linguist-vendored=false
+playground/** linguist-vendored=false
 
 # Documentation
 *.md linguist-documentation
+docs/** linguist-documentation
+
+# Vendored
+node_modules/** linguist-vendored
+.venv/** linguist-vendored
+__pycache__/** linguist-vendored
+dist/** linguist-vendored
+build/** linguist-vendored
+vscode-extension/** linguist-vendored

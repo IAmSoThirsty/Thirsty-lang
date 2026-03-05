@@ -205,7 +205,11 @@ console.log('Policy decision:', result.verdict);
 
 # Copy to production
 
+<<<<<<< HEAD
 cp policies/production-policy.yaml /etc/Thirsty-Lang/policies/
+=======
+cp policies/production-policy.yaml /etc/thirsty-lang/policies/
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 # Reload in running application
 

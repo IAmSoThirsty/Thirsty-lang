@@ -372,7 +372,11 @@ source .venv/bin/activate
 
 # Make sure you're in the right directory
 
+<<<<<<< HEAD
 cd /path/to/Thirsty-Lang
+=======
+cd /path/to/Thirsty-lang
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 # Make sure venv is activated
 

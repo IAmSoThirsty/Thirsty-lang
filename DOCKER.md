@@ -24,6 +24,7 @@ docker-compose up -d
 ### Using Docker Directly
 
 ```bash
+<<<<<<< HEAD
 
 # Build the image
 
@@ -36,13 +37,31 @@ docker run --rm -v $(pwd)/examples:/app/examples Thirsty-Lang node src/cli.js ex
 # Run the REPL
 
 docker run -it --rm Thirsty-Lang npm run repl
+=======
+
+# Build the image
+
+docker build -t thirsty-lang .
+
+# Run a Thirsty-lang program
+
+docker run --rm -v $(pwd)/examples:/app/examples thirsty-lang node src/cli.js examples/hello.thirsty
+
+# Run the REPL
+
+docker run -it --rm thirsty-lang npm run repl
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 ```
 
 ## Available Services
 
 ### 1. thirsty (Production)
 
+<<<<<<< HEAD
 Main production service for running Thirsty-Lang programs.
+=======
+Main production service for running Thirsty-lang programs.
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ```bash
 docker-compose up thirsty
@@ -50,7 +69,11 @@ docker-compose up thirsty
 
 **Use cases:**
 
+<<<<<<< HEAD
 - Running Thirsty-Lang programs
+=======
+- Running Thirsty-lang programs
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - Production deployment
 - CLI tool usage
 
@@ -71,7 +94,11 @@ docker-compose up thirsty-dev
 
 ### 3. repl (Node.js REPL)
 
+<<<<<<< HEAD
 Interactive Node.js REPL for Thirsty-Lang.
+=======
+Interactive Node.js REPL for Thirsty-lang.
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ```bash
 docker-compose run --rm repl
@@ -85,7 +112,11 @@ docker-compose run --rm repl
 
 ### 4. python-repl (Python REPL)
 
+<<<<<<< HEAD
 Interactive Python REPL for Thirsty-Lang.
+=======
+Interactive Python REPL for Thirsty-lang.
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ```bash
 docker-compose run --rm python-repl
@@ -107,7 +138,11 @@ docker-compose run --rm training
 
 **Use cases:**
 
+<<<<<<< HEAD
 - Learning Thirsty-Lang
+=======
+- Learning Thirsty-lang
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - Interactive tutorials
 - Skill progression
 
@@ -139,7 +174,11 @@ docker-compose run --rm thirsty node src/cli.js examples/hello.thirsty
 
 # Using Docker directly
 
+<<<<<<< HEAD
 docker run --rm -v $(pwd)/examples:/app/examples Thirsty-Lang node src/cli.js examples/hello.thirsty
+=======
+docker run --rm -v $(pwd)/examples:/app/examples thirsty-lang node src/cli.js examples/hello.thirsty
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 ```
 
 ### Start Interactive REPL
@@ -361,11 +400,19 @@ docker-compose up --build
 
 # Build only base stage
 
+<<<<<<< HEAD
 docker build --target node-base -t Thirsty-Lang:base .
 
 # Build development stage
 
 docker build --target development -t Thirsty-Lang:dev .
+=======
+docker build --target node-base -t thirsty-lang:base .
+
+# Build development stage
+
+docker build --target development -t thirsty-lang:dev .
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 ```
 
 ### Running with Custom Network
@@ -390,7 +437,11 @@ docker run --network thirsty-net Thirsty-Lang
 
 # Build production image
 
+<<<<<<< HEAD
 docker build -t thirsty-lang:2.0.0 .
+=======
+docker build -t thirsty-lang:1.0.0 .
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 # Run in production
 
@@ -437,6 +488,7 @@ docker-compose -f docker-compose.yml up -d thirsty
 
 - name: Build Docker image
 
+<<<<<<< HEAD
   run: docker build -t Thirsty-Lang .
 
 - name: Run tests in Docker
@@ -446,6 +498,17 @@ docker-compose -f docker-compose.yml up -d thirsty
 - name: Push to registry
 
   run: docker push Thirsty-Lang:latest
+=======
+  run: docker build -t thirsty-lang .
+
+- name: Run tests in Docker
+
+  run: docker run thirsty-lang npm test
+
+- name: Push to registry
+
+  run: docker push thirsty-lang:latest
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 ```
 
 ## Support

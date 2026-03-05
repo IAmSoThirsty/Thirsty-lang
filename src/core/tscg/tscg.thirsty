@@ -1,0 +1,163 @@
+// Thirsty's Symbolic Compression Grammar (TSCG)
+// Core Implementation in Thirsty-lang
+
+fountain TSCG {
+    drink version = "1.0"
+    reservoir symbols = [
+        "SEL", "COG", "Δ", "Δ_NT", "SHD", "INV", "CAP", "QRM", "COM", "ANC", "RFX", "ESC", "SAFE", "MUT", "LED", "ING"
+    ]
+    reservoir semantics = [
+        "Selection pressure", "Cognition (proposal only)", "Mutation proposal", "Non-trivial mutation", 
+        "Deterministic shadow", "Invariant engine", "Capability authorization", "Quorum", "Commit canonical", 
+        "Anchor extension", "Reflex containment", "Escalation ladder", "SAFE-HALT", "Mutation control law", 
+        "Ledger", "Ingress"
+    ]
+
+    glass getSemantic(symbol) {
+        drink i = 0
+        refill i < this.symbols.length {
+            thirsty this.symbols[i] == symbol {
+                return this.semantics[i]
+            }
+            drink i = i + 1
+        }
+        return symbol // Return symbol if not in dictionary (e.g. operators)
+    }
+
+    glass getSymbol(semantic) {
+        drink i = 0
+        refill i < this.semantics.length {
+            thirsty this.semantics[i] == semantic {
+                return this.symbols[i]
+            }
+            drink i = i + 1
+        }
+        return semantic // Return name if not in dictionary (e.g. operators)
+    }
+}
+
+fountain TSCGEncoder {
+    drink tscg = TSCG()
+
+    // Encodes a single term with optional parameters and classes
+    glass encodeTerm(term) {
+        drink symbol = this.tscg.getSymbol(term.name)
+        drink result = symbol
+        
+        thirsty term.classes.length > 0 {
+            drink result = result + "[" + term.classes.join(",") + "]"
+        }
+        
+        thirsty term.parameters.length > 0 {
+            drink result = result + "(" + term.parameters.join(",") + ")"
+        }
+        
+        return result
+    }
+
+    // Encodes a list of semantic steps into a TSCG flow
+    glass encodeFlow(steps) {
+        reservoir encoded = []
+        drink i = 0
+        refill i < steps.length {
+            drink term = steps[i]
+            thirsty typeof(term) == "string" {
+                encoded.push(term)
+            }
+            hydrated {
+                encoded.push(this.encodeTerm(term))
+            }
+            drink i = i + 1
+        }
+        return encoded.join(" ")
+    }
+}
+
+fountain TSCGDecoder {
+    drink tscg = TSCG()
+    reservoir definitions = []
+
+    // Decodes a single term
+    glass decodeTerm(symbolicTerm) {
+        drink openParen = String.indexOf(symbolicTerm, "(")
+        drink openBracket = String.indexOf(symbolicTerm, "[")
+        
+        drink symbol = symbolicTerm
+        reservoir params = []
+        reservoir classes = []
+        
+        thirsty openParen > -1 {
+            drink symbol = String.substring(symbolicTerm, 0, openParen)
+            drink closeParen = String.indexOf(symbolicTerm, ")")
+            drink paramStr = String.substring(symbolicTerm, openParen + 1, closeParen)
+            reservoir params = String.split(paramStr, ",")
+        }
+        
+        thirsty openBracket > -1 {
+            thirsty openParen == -1 || openBracket < openParen {
+                drink symbol = String.substring(symbolicTerm, 0, openBracket)
+            }
+            drink closeBracket = String.indexOf(symbolicTerm, "]")
+            drink classStr = String.substring(symbolicTerm, openBracket + 1, closeBracket)
+            reservoir classes = String.split(classStr, ",")
+        }
+        
+        return {
+            name: this.tscg.getSemantic(symbol),
+            parameters: params,
+            classes: classes
+        }
+    }
+
+    // Decodes a TSCG flow into a list of semantic steps
+    glass decodeFlow(expression) {
+        reservoir tokens = String.split(expression, " ")
+        reservoir steps = []
+        drink i = 0
+        refill i < tokens.length {
+            drink token = String.trim(tokens[i])
+            thirsty token == "→" || token == "∧" || token == "∨" || token == "||" || token == "¬" || token == ":=" || token == "→" {
+                steps.push(token)
+            }
+            hydrated {
+                thirsty token.length > 0 {
+                    steps.push(this.decodeTerm(token))
+                }
+            }
+            drink i = i + 1
+        }
+        return steps
+    }
+
+    glass addDefinition(line) {
+        drink parts = String.split(line, " := ")
+        thirsty parts.length == 2 {
+            this.definitions.push({
+                name: String.trim(parts[0]),
+                expression: String.trim(parts[1])
+            })
+        }
+    }
+
+    glass decodeProgram(program) {
+        reservoir lines = String.split(program, "\n")
+        reservoir results = []
+        drink i = 0
+        refill i < lines.length {
+            drink line = String.trim(lines[i])
+            thirsty String.indexOf(line, ":=") > -1 {
+                this.addDefinition(line)
+            }
+            hydrated {
+                thirsty line.length > 0 {
+                    results.push(this.decodeFlow(line))
+                }
+            }
+            drink i = i + 1
+        }
+        return results
+    }
+}
+
+// Global Exports
+export { TSCG, TSCGEncoder, TSCGDecoder }

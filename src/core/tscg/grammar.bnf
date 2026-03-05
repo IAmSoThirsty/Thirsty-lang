@@ -1,0 +1,38 @@
+Program        ::= Statement | Statement "||" Program
+
+Statement      ::= Flow | Definition | Constraint
+
+Flow           ::= Term "→" Term
+                |  Term "→" Term "→" Flow
+
+Definition     ::= Identifier ":=" Expression
+
+Constraint     ::= Expression
+
+Expression     ::= Term
+                |  Term Operator Term
+                |  "(" Expression ")"
+
+Term           ::= Identifier
+                |  Identifier "(" ParameterList ")"
+                |  Identifier "[" ClassList "]"
+
+ParameterList  ::= Parameter
+                |  Parameter "," ParameterList
+
+ClassList      ::= Identifier
+                |  Identifier "," ClassList
+
+Parameter      ::= Identifier
+                |  Identifier "=" Value
+                |  Value
+
+Identifier     ::= UppercaseWord | GreekSymbol | CustomID
+
+Operator       ::= "∧" | "∨" | "¬" | "=" | "≥" | "<" | "∈"
+
+UppercaseWord  ::= [A-Z0-9_]+
+GreekSymbol    ::= λ | τ | Δ | μ | Δ_NT
+CustomID       ::= [A-Za-z_0-9]+
+
+Value          ::= Number | Identifier

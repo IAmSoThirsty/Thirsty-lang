@@ -1,0 +1,34 @@
+{
+    "version": "1.0",
+    "symbols": {
+        "SEL": "Selection pressure",
+        "COG": "Cognition (proposal only)",
+        "Δ": "Mutation proposal",
+        "Δ_NT": "Non-trivial mutation",
+        "SHD": "Deterministic shadow",
+        "INV": "Invariant engine",
+        "CAP": "Capability authorization",
+        "QRM": "Quorum",
+        "COM": "Commit canonical",
+        "ANC": "Anchor extension",
+        "RFX": "Reflex containment",
+        "ESC": "Escalation ladder",
+        "SAFE": "SAFE-HALT",
+        "MUT": "Mutation control law",
+        "LED": "Ledger",
+        "ING": "Ingress"
+    },
+    "operators": {
+        "→": "Sequential pipeline",
+        "∧": "Logical AND",
+        "∨": "Logical OR",
+        "¬": "Negation",
+        "⊣": "Constrains / guards",
+        "||": "Parallel / independent planes",
+        ":=": "Definition",
+        "=": "Equality",
+        "∈": "Membership",
+        "≥": "Threshold",
+        "<": "Inequality"
+    }
+}

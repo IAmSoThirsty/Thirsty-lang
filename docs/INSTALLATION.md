@@ -17,11 +17,19 @@ Before installing Thirsty-Lang, ensure you have:
 
 # Clone the repository
 
+<<<<<<< HEAD
 git clone https://github.com/IAmSoThirsty/Thirsty-Lang.git
 
 # Navigate to the directory
 
 cd Thirsty-Lang
+=======
+git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
+
+# Navigate to the directory
+
+cd Thirsty-lang
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 # Install dependencies (if any in future)
 
@@ -46,7 +54,11 @@ To use the `thirsty` command from anywhere:
 
 ```bash
 
+<<<<<<< HEAD
 # In the Thirsty-Lang directory
+=======
+# In the Thirsty-lang directory
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 npm link
 
@@ -89,7 +101,11 @@ npm run train
 
 ```bash
 
+<<<<<<< HEAD
 # Create a new Thirsty-Lang project
+=======
+# Create a new Thirsty-lang project
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 node src/thirsty-cli.js init my-first-project
 
@@ -122,7 +138,11 @@ If the `thirsty` command isn't found after `npm link`:
 
 # Try running with full path
 
+<<<<<<< HEAD
 node /path/to/Thirsty-Lang/src/thirsty-cli.js
+=======
+node /path/to/Thirsty-lang/src/thirsty-cli.js
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 # Or use npm scripts
 
@@ -186,7 +206,11 @@ npm unlink
 
 # Remove the directory
 
+<<<<<<< HEAD
 rm -rf /path/to/Thirsty-Lang
+=======
+rm -rf /path/to/Thirsty-lang
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 ```
 
 Stay hydrated! 💧

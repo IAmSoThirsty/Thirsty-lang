@@ -2,7 +2,11 @@
 
 ## Enterprise-Grade Programming Language with Defensive Security
 
+<<<<<<< HEAD
 Version: 2.0.0
+=======
+Version: 1.0.0
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 Status: Production Ready ✅
 
 ---
@@ -71,8 +75,13 @@ Thirsty-Lang is a fully operational, enterprise-grade programming language desig
 
 # Clone repository
 
+<<<<<<< HEAD
 git clone https://github.com/IAmSoThirsty/Thirsty-Lang.git
 cd Thirsty-Lang
+=======
+git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
+cd Thirsty-lang
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 # Install dependencies (if any)
 
@@ -582,7 +591,11 @@ const interpreter = new ThirstyInterpreter(options);
 
 **execute(code)**
 
+<<<<<<< HEAD
 - Execute Thirsty-Lang code
+=======
+- Execute Thirsty-lang code
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - Parameters: `code` (string) - The source code
 - Returns: void
 - Throws: Error on invalid syntax or runtime errors

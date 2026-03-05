@@ -41,10 +41,14 @@ class ThirstyInterpreter {
 
     // Security features
     this.securityEnabled = options.security !== false;
+    // Bypass T.A.R.L. bridge on Windows (sandbox-exec is macOS-only)
+    const useTarl = this.securityEnabled && process.platform !== 'win32';
+
     this.securityManager = new SecurityManager({
       enabled: this.securityEnabled,
       mode: options.securityMode || 'defensive',
       policy: { securityLevel: options.securityLevel || 'moderate' },
+      useTarl: useTarl
     });
     this.shieldActive = false;
     this.shieldContext = null;
@@ -56,6 +60,37 @@ class ThirstyInterpreter {
 
     // Initialize standard library
     this.initializeStandardLibrary();
+  }
+
+  /**
+   * Define a variable in the global environment
+   */
+  define(name, value) {
+    this.variables[name] = value;
+  }
+
+  /**
+   * Armor a variable to prevent further modification
+   */
+  armor(name) {
+    this.armoredVariables.add(name);
+  }
+
+  /**
+   * Activate a shield block
+   */
+  activateShield(name, context = {}) {
+    this.shieldActive = true;
+    this.shieldContext = { name, ...context };
+    this.logger.info(`Shield '${name}' activated`);
+  }
+
+  /**
+   * Deactivate current shield block
+   */
+  deactivateShield() {
+    this.shieldActive = false;
+    this.shieldContext = null;
   }
 
   /**

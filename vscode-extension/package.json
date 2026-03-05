@@ -42,17 +42,21 @@
       {
         "id": "thirsty",
         "aliases": [
-          "Thirsty",
-          "Thirsty-Lang",
+          "Thirsty-lang",
           "Thirst of Gods",
           "T.A.R.L.",
-          "Thirsty's Shadow"
+          "Shadow Thirst",
+          "TSCG",
+          "TSCG-B"
         ],
         "extensions": [
           ".thirsty",
+          ".thirstofgods",
           ".tog",
           ".tarl",
-          ".shadow"
+          ".shadow",
+          ".tscg",
+          ".tscgb"
         ],
         "configuration": "./language-configuration.json"
       }

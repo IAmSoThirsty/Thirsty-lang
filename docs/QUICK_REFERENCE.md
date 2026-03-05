@@ -25,20 +25,32 @@ pour variable_name
 
 ## Keywords
 
+<<<<<<< HEAD
 ### Base Thirsty-Lang
+=======
+### Base Thirsty-lang
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 - `drink` - Declare a variable
 - `pour` - Output a value
 - `sip` - Input (future)
 
+<<<<<<< HEAD
 ### Thirst of Gods
+=======
+### Thirsty+ (Plus)
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 - `thirsty` - If statement
 - `hydrated` - Else statement
 - `parched` - Boolean true
 - `quenched` - Boolean false
 
+<<<<<<< HEAD
 ### T.A.R.L
+=======
+### Thirsty++ (Plus Plus)
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 - `glass` - Function declaration
 - `refill` - Loop
@@ -46,7 +58,11 @@ pour variable_name
 - `bottle` - Object
 - `return` - Return from function
 
+<<<<<<< HEAD
 ### Thirsty's Shadow
+=======
+### ThirstOfGods
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 - `fountain` - Class declaration
 - `cascade` - Async function
@@ -95,7 +111,11 @@ drink sum = a + b
 pour sum
 ```
 
+<<<<<<< HEAD
 ### Conditional (Thirst of Gods)
+=======
+### Conditional (Thirsty+)
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ```thirsty
 drink temp = 30
@@ -107,17 +127,38 @@ hydrated {
 }
 ```
 
+<<<<<<< HEAD
 ### Function (T.A.R.L.)
+=======
+### Function (Thirsty++)
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ```thirsty
 glass greet(name) {
   pour "Hello, " + name
+<<<<<<< HEAD
 }
+=======
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 greet("World")
 ```
 
+<<<<<<< HEAD
 ### Class (Thirsty's Shadow)
+=======
+### Class (ThirstOfGods)
+
+```thirsty
+fountain Person
+  drink name = ""
+
+  glass init(n)
+    this.name = n
+
+  glass sayHello()
+    pour "Hello, I'm " + this.name
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ```thirsty
 fountain Person {

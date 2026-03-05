@@ -4,12 +4,33 @@
 
 ## The Hydration Language Family
 
+<<<<<<< HEAD
 | Tier | Extension | Description |
 |---|---|---|
 | **Thirsty-Lang** | `.thirsty` | Core water-themed programming |
 | **Thirst of Gods** | `.tog` | Divine-tier capabilities |
 | **T.A.R.L.** | `.tarl` | Tactical security & analysis |
 | **Thirsty's Shadow** | `.shadow` | Shadow computing & dual-reality |
+=======
+### Manual Installation
+
+1. Copy this entire `vscode-extension` folder
+2. Paste it into your VS Code extensions directory:
+   - **Windows**: `%USERPROFILE%\.vscode\extensions\thirsty-lang\`
+   - **macOS**: `~/.vscode/extensions/thirsty-lang/`
+   - **Linux**: `~/.vscode/extensions/thirsty-lang/`
+3. Reload VS Code
+4. Open any `.thirsty` file to see syntax highlighting!
+
+### Alternative: Symlink (Advanced)
+
+```bash
+
+# From the Thirsty-lang directory
+
+ln -s "$(pwd)/vscode-extension" ~/.vscode/extensions/thirsty-lang
+```
+>>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ## Features
 
