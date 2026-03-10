@@ -1,4 +1,7 @@
+#                                           [2026-03-03 13:45]
+#                                          Productivity: Active
 """TARL Specification - Decision types and verdicts"""
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -6,6 +9,7 @@ from typing import Any
 
 class TarlVerdict(Enum):
     """Policy verdict types"""
+
     ALLOW = "allow"
     DENY = "deny"
     ESCALATE = "escalate"
@@ -14,6 +18,7 @@ class TarlVerdict(Enum):
 @dataclass(frozen=True)
 class TarlDecision:
     """Policy decision with verdict, reason, and metadata"""
+
     verdict: TarlVerdict
     reason: str
     metadata: dict[str, Any] | None = None

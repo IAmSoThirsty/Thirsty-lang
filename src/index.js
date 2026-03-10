@@ -1,4 +1,6 @@
-#!/usr/bin/env node
+//                                           [2026-03-03 13:45]
+//                                          Productivity: Active
+// removed shebang for module loading in build environment
 
 /**
  * Thirsty-lang Interpreter
@@ -24,22 +26,22 @@ class ThirstyInterpreter {
     this.callStack = []; // Track function calls for debugging
     this.MAX_LOOP_ITERATIONS = 10000; // Safety limit for loops
     this.MAX_CALL_DEPTH = 100; // Prevent stack overflow
-    
+
     // Module system
     this.modules = {}; // Cache for loaded modules
     this.exports = {}; // Exports from current module
     this.currentFile = options.currentFile || null; // Current file being executed
-    
+
     // Async/await support
     this.asyncFunctions = new Set(); // Track async functions
     this.pendingPromises = []; // Track pending promises
-    
+
     // Security features
     this.securityEnabled = options.security !== false;
     this.securityManager = new SecurityManager({
       enabled: this.securityEnabled,
       mode: options.securityMode || 'defensive',
-      policy: { securityLevel: options.securityLevel || 'moderate' }
+      policy: { securityLevel: options.securityLevel || 'moderate' },
     });
     this.shieldActive = false;
     this.shieldContext = null;
@@ -64,7 +66,7 @@ class ThirstyInterpreter {
     // Initialize standard library
     this.initializeStandardLibrary();
   }
-  
+
   /**
    * Initialize the standard library with built-in functions
    */
@@ -106,7 +108,7 @@ class ThirstyInterpreter {
         i++;
         continue;
       }
-      
+
       // Handle module imports/exports
       if (line.startsWith('import ')) {
         this.handleImport(line);
@@ -117,13 +119,13 @@ class ThirstyInterpreter {
         i++;
         continue;
       }
-      
+
       // Handle async function declarations (cascade keyword)
       if (line.startsWith('cascade ')) {
         i = this.handleCascade(lines, i);
         continue;
       }
-      
+
       // Handle control flow
       if (line === 'try {' || line.startsWith('try {')) {
         i = this.handleTry(lines, i);
@@ -152,7 +154,7 @@ class ThirstyInterpreter {
         i++;
       }
     }
-    
+
     return i;
   }
 
@@ -225,7 +227,7 @@ class ThirstyInterpreter {
       // Handle class instance methods
       if (obj && typeof obj === 'object' && obj.__class && obj.__methods) {
         const args = argsStr ? this.parseArguments(argsStr) : [];
-        const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+        const evaluatedArgs = args.map((arg) => this.evaluateExpression(arg));
         this.callInstanceMethod(obj, methodName, evaluatedArgs);
         return;
       }
@@ -239,7 +241,7 @@ class ThirstyInterpreter {
       const funcName = funcCallMatch[1];
       const argsStr = funcCallMatch[2].trim();
       const args = argsStr ? this.parseArguments(argsStr) : [];
-      const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+      const evaluatedArgs = args.map((arg) => this.evaluateExpression(arg));
       this.callFunction(funcName, evaluatedArgs);
     } else {
       throw new Error(`Unknown statement: ${line}`);
@@ -338,56 +340,56 @@ class ThirstyInterpreter {
       const objName = propMatch[1];
       const propName = propMatch[2];
       const valueExpr = propMatch[3];
-      
+
       if (!this.variables.hasOwnProperty(objName)) {
         throw new Error(`Unknown variable: ${objName}`);
       }
-      
+
       const obj = this.variables[objName];
       const value = this.evaluateExpression(valueExpr);
-      
+
       // Handle 'this' reference (which is mapped to instance properties)
       if (typeof obj === 'object' && obj !== null) {
         obj[propName] = value;
       } else {
         throw new Error(`Cannot set property '${propName}' on non-object variable '${objName}'`);
       }
-      
+
       return;
     }
-    
+
     // Check for array element assignment
     const arrayMatch = line.match(/drink\s+(\w+)\[(.+)\]\s*=\s*(.+)/);
     if (arrayMatch) {
       const varName = arrayMatch[1];
       const indexExpr = arrayMatch[2];
       const valueExpr = arrayMatch[3];
-      
+
       const index = this.evaluateExpression(indexExpr);
       const value = this.evaluateExpression(valueExpr);
-      
+
       if (!this.variables.hasOwnProperty(varName) || !Array.isArray(this.variables[varName])) {
         throw new Error(`Variable '${varName}' is not an array`);
       }
-      
+
       this.variables[varName][index] = value;
       return;
     }
-    
+
     // Regular variable assignment
     const match = line.match(/drink\s+(\w+)\s*=\s*(.+)/);
     if (!match) {
       throw new Error(`Invalid drink statement: ${line}`);
     }
-    
+
     const varName = match[1];
-    
+
     // Check if variable is armored (protected)
     if (this.armoredVariables.has(varName) && this.variables.hasOwnProperty(varName)) {
       console.warn(`Warning: Attempt to modify armored variable '${varName}' blocked`);
       return;
     }
-    
+
     const value = this.evaluateExpression(match[2]);
     this.variables[varName] = value;
   }
@@ -400,14 +402,14 @@ class ThirstyInterpreter {
     if (!match) {
       throw new Error(`Invalid reservoir statement: ${line}`);
     }
-    
+
     const varName = match[1];
     const elementsStr = match[2].trim();
-    
+
     // Parse array elements
     const elements = elementsStr ? this.parseArguments(elementsStr) : [];
-    const evaluatedElements = elements.map(elem => this.evaluateExpression(elem));
-    
+    const evaluatedElements = elements.map((elem) => this.evaluateExpression(elem));
+
     // Store as a regular variable with array value
     this.variables[varName] = evaluatedElements;
   }
@@ -428,7 +430,7 @@ class ThirstyInterpreter {
     const match = line.match(/sip\s+"([^"]+)"/);
     if (match) {
       // For now, return empty string - in production this would use readline
-      return "";
+      return '';
     }
     // Placeholder for input functionality
     console.log('Input functionality not yet implemented');

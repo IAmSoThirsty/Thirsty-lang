@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+//                                           [2026-03-03 13:45]
+//                                          Productivity: Active
 
 /**
  * Thirsty-lang Security Module
@@ -19,7 +20,7 @@ class SecurityManager {
   constructor(options = {}) {
     this.enabled = options.enabled !== false;
     this.mode = options.mode || 'defensive';
-    
+
     // Initialize T.A.R.L. bridge if enabled
     this.useTarl = options.useTarl !== false;
     this.bridge = null;
@@ -41,12 +42,12 @@ class SecurityManager {
     try {
       this.bridge = new SecurityBridge();
       await this.bridge.initialize();
-      
+
       this.threatDetector = new ThreatDetector(this.bridge);
       this.codeMorpher = new CodeMorpher(this.bridge);
       this.defenseCompiler = new DefenseCompiler(this.bridge);
       this.policyEngine = new PolicyEngine(this.bridge);
-      
+
       this.initialized = true;
       console.log('T.A.R.L. security integration initialized');
     } catch (err) {
@@ -64,11 +65,11 @@ class SecurityManager {
     }
 
     const sanitized = this.sanitizeHTML(String(input));
-    
+
     return {
       original: input,
       sanitized,
-      modified: input !== sanitized
+      modified: input !== sanitized,
     };
   }
 
@@ -154,5 +155,5 @@ module.exports = {
   ThreatDetector,
   CodeMorpher,
   DefenseCompiler,
-  PolicyEngine
+  PolicyEngine,
 };
