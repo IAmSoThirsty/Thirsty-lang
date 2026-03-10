@@ -1,0 +1,22 @@
+# GitHub Linguist Language Definition for Thirsty-lang
+# This file defines the Thirsty-lang programming language for GitHub Linguist
+# See: https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
+
+Thirsty:
+  type: programming
+  color: "#00bfff"
+  aliases:
+    - thirsty-lang
+    - thirsty
+  extensions:
+    - .thirsty
+    - .thirstyplus
+    - .thirstyplusplus
+    - .thirstofgods
+  tm_scope: source.thirsty
+  ace_mode: text
+  language_id: 1001001001
+  interpreters:
+    - thirsty
+  filenames: []
+  primary_extension: .thirsty

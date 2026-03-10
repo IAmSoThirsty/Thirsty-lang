@@ -6,3 +6,14 @@
 
 # Documentation
 *.md linguist-documentation
+
+# Exclude vendored and generated files from language stats
+examples/* linguist-vendored=false
+samples/* linguist-vendored=false
+node_modules/* linguist-vendored
+playground/* linguist-documentation
+tools/* linguist-vendored=false
+vscode-extension/* linguist-vendored=false
+
+# Mark Python implementation as part of the project
+src/*.py linguist-vendored=false

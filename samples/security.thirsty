@@ -1,0 +1,28 @@
+// Security features in Thirsty-lang
+// Demonstrates shield, sanitize, and armor keywords
+
+pour "=== Security Example ==="
+
+// Shield block - protected execution context
+shield secureApp {
+  pour "Inside secure shield block"
+
+  // Sanitize user input to prevent XSS
+  drink userInput = "<script>alert('xss')</script>"
+  pour "Before sanitize: " + userInput
+
+  sanitize userInput
+  pour "After sanitize: " + userInput
+
+  // Armor - protect variables from modification
+  drink apiKey = "secret-key-12345"
+  armor apiKey
+
+  pour "API key protected with armor"
+
+  // Attempt to modify protected variable (will be blocked)
+  drink apiKey = "hacked-key"
+  pour "After modification attempt: " + apiKey
+}
+
+pour "Shield block completed"

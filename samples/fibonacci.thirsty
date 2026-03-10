@@ -1,0 +1,29 @@
+// Fibonacci sequence calculator using Thirsty-lang
+// Demonstrates functions, loops, and arithmetic
+
+glass fibonacci(n) {
+  thirsty n <= 1 {
+    return n
+  }
+
+  drink a = 0
+  drink b = 1
+  drink i = 2
+
+  refill i <= n {
+    drink temp = a + b
+    drink a = b
+    drink b = temp
+    drink i = i + 1
+  }
+
+  return b
+}
+
+pour "Fibonacci sequence:"
+drink n = 0
+refill n <= 10 {
+  drink fib = fibonacci(n)
+  pour "F(" + n + ") = " + fib
+  drink n = n + 1
+}

@@ -1,0 +1,53 @@
+// Object-Oriented Calculator in Thirsty-lang
+// Demonstrates the 'fountain' keyword for classes
+
+fountain Calculator {
+  drink version = "1.0"
+  drink lastResult = 0
+
+  glass add(a, b) {
+    drink this.lastResult = a + b
+    return this.lastResult
+  }
+
+  glass subtract(a, b) {
+    drink this.lastResult = a - b
+    return this.lastResult
+  }
+
+  glass multiply(a, b) {
+    drink this.lastResult = a * b
+    return this.lastResult
+  }
+
+  glass divide(a, b) {
+    thirsty b == 0 {
+      pour "Error: Division by zero!"
+      return 0
+    }
+    drink this.lastResult = a / b
+    return this.lastResult
+  }
+
+  glass getLastResult() {
+    return this.lastResult
+  }
+}
+
+pour "=== Thirsty Calculator v1.0 ==="
+drink calc = Calculator()
+
+drink sum = calc.add(15, 7)
+pour "15 + 7 = " + sum
+
+drink difference = calc.subtract(20, 8)
+pour "20 - 8 = " + difference
+
+drink product = calc.multiply(6, 9)
+pour "6 * 9 = " + product
+
+drink quotient = calc.divide(100, 4)
+pour "100 / 4 = " + quotient
+
+drink last = calc.getLastResult()
+pour "Last result: " + last

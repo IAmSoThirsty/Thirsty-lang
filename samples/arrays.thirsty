@@ -1,0 +1,41 @@
+// Array operations in Thirsty-lang
+// Demonstrates the 'reservoir' keyword for arrays
+
+pour "=== Array Examples ==="
+
+// Create an array
+reservoir fruits = ["apple", "banana", "orange"]
+pour "Initial fruits: " + fruits.join(", ")
+
+// Add elements
+fruits.push("mango")
+fruits.push("grape")
+pour "After adding fruits: " + fruits.join(", ")
+
+// Remove elements
+drink lastFruit = fruits.pop()
+pour "Removed: " + lastFruit
+pour "Remaining: " + fruits.join(", ")
+
+// Array with numbers
+reservoir numbers = [5, 2, 8, 1, 9, 3]
+pour ""
+pour "Numbers: " + numbers.join(", ")
+
+// Find elements
+drink index = numbers.indexOf(8)
+pour "Index of 8: " + index
+
+drink hasNine = numbers.includes(9)
+pour "Contains 9: " + hasNine
+
+// Array methods
+reservoir sorted = numbers.sort()
+pour "Sorted: " + sorted.join(", ")
+
+reservoir reversed = numbers.reverse()
+pour "Reversed: " + reversed.join(", ")
+
+// Slice array
+reservoir slice = numbers.slice(1, 4)
+pour "Slice [1:4]: " + slice.join(", ")
