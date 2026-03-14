@@ -2,11 +2,8 @@
 
 ## Overview
 
-<<<<<<< HEAD
 This document details the performance improvements made to the Thirsty-Lang interpreter to address slow and inefficient code execution.
-=======
 This document details the performance improvements made to the Thirsty-lang interpreter to address slow and inefficient code execution.
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ## Performance Bottlenecks Identified
 

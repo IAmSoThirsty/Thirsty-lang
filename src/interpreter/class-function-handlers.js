@@ -111,8 +111,8 @@ class ClassFunctionHandlers {
 
     const code = fs.readFileSync(absolutePath, 'utf8');
 
-    // Create new interpreter instance for module
-    const ThirstyInterpreter = require('../index');
+    // Create new interpreter instance for module using the same class as parent
+    const ThirstyInterpreter = this.interpreter.constructor;
     const moduleInterpreter = new ThirstyInterpreter({
       currentFile: absolutePath,
       security: this.interpreter.securityEnabled,

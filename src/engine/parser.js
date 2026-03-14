@@ -28,6 +28,7 @@ const NodeType = Object.freeze({
     NumberLiteral: 'NumberLiteral',
     StringLiteral: 'StringLiteral',
     BooleanLiteral: 'BooleanLiteral',
+    NullLiteral: 'NullLiteral',
     ArrayLiteral: 'ArrayLiteral',
     // Expressions
     Identifier: 'Identifier',
@@ -60,6 +61,7 @@ const NodeType = Object.freeze({
     CascadeDeclaration: 'CascadeDeclaration',
     ExpressionStatement: 'ExpressionStatement',
     BlockStatement: 'BlockStatement',
+    ObjectLiteral: 'ObjectLiteral',
 });
 
 // ── Parser ───────────────────────────────────────────────────────────────────
@@ -313,14 +315,18 @@ class Parser {
         const name = this.expect(TokenType.IDENTIFIER).value;
         this.expect(TokenType.PUNCTUATION, '{');
 
-        const methods = [];
+        const methods = {};
         const properties = [];
 
         while (!this.check(TokenType.PUNCTUATION, '}') && !this.isAtEnd()) {
             if (this.check(TokenType.KEYWORD, 'glass')) {
-                methods.push(this.parseFunctionDeclaration());
-            } else if (this.check(TokenType.KEYWORD, 'drink')) {
-                const propTok = this.expect(TokenType.KEYWORD, 'drink');
+                const method = this.parseFunctionDeclaration();
+                if (!method.name) {
+                    this.error('Class methods must have a name', method);
+                }
+                methods[method.name] = method;
+            } else if (this.check(TokenType.KEYWORD, 'drink') || this.check(TokenType.KEYWORD, 'define')) {
+                const propTok = this.advance(); // consume drink or define
                 const propName = this.expect(TokenType.IDENTIFIER).value;
                 this.expect(TokenType.OPERATOR, '=');
                 const defaultValue = this.parseExpression();
@@ -718,28 +724,32 @@ class Parser {
         // Number literal
         if (tok.type === TokenType.NUMBER) {
             this.advance();
-            return { type: NodeType.NumberLiteral, value: tok.value };
+            return { type: NodeType.NumberLiteral, value: tok.value, line: tok.line, column: tok.column };
         }
 
         // String literal
         if (tok.type === TokenType.STRING) {
             this.advance();
-            return { type: NodeType.StringLiteral, value: tok.value };
+            return { type: NodeType.StringLiteral, value: tok.value, line: tok.line, column: tok.column };
         }
 
         // Boolean literals
         if (tok.type === TokenType.KEYWORD && tok.value === 'true') {
-            this.advance();
-            return { type: NodeType.BooleanLiteral, value: true };
+            const t = this.advance();
+            return { type: NodeType.BooleanLiteral, value: true, line: t.line, column: t.column };
         }
         if (tok.type === TokenType.KEYWORD && tok.value === 'false') {
-            this.advance();
-            return { type: NodeType.BooleanLiteral, value: false };
+            const t = this.advance();
+            return { type: NodeType.BooleanLiteral, value: false, line: t.line, column: t.column };
+        }
+        if (tok.type === TokenType.KEYWORD && tok.value === 'null') {
+            const t = this.advance();
+            return { type: NodeType.NullLiteral, value: null, line: t.line, column: t.column };
         }
 
         // 'new' keyword for class instantiation — treat as function call
         if (tok.type === TokenType.KEYWORD && tok.value === 'new') {
-            this.advance();
+            const startTok = this.advance();
             const className = this.expect(TokenType.IDENTIFIER).value;
             const args = this.parseArgList();
             return {
@@ -747,26 +757,27 @@ class Parser {
                 callee: { type: NodeType.Identifier, name: className },
                 arguments: args,
                 isNew: true,
+                line: startTok.line, column: startTok.column
             };
         }
 
         // await expression inside an expression context
         if (tok.type === TokenType.KEYWORD && tok.value === 'await') {
-            this.advance();
+            const startTok = this.advance();
             const expr = this.parseUnary();
-            return { type: NodeType.UnaryExpression, operator: 'await', operand: expr };
+            return { type: NodeType.UnaryExpression, operator: 'await', operand: expr, line: startTok.line, column: startTok.column };
         }
 
         // Identifiers (variable names, function names)
         if (tok.type === TokenType.IDENTIFIER) {
-            this.advance();
-            return { type: NodeType.Identifier, name: tok.value };
+            const t = this.advance();
+            return { type: NodeType.Identifier, name: t.value, line: t.line, column: t.column };
         }
 
         // 'this' keyword (treated as identifier)
         if (tok.type === TokenType.KEYWORD && tok.value === 'this') {
-            this.advance();
-            return { type: NodeType.Identifier, name: 'this' };
+            const t = this.advance();
+            return { type: NodeType.Identifier, name: 'this', line: t.line, column: t.column };
         }
 
         // Grouped expression: ( expr )
@@ -775,6 +786,25 @@ class Parser {
             const expr = this.parseExpression();
             this.expect(TokenType.PUNCTUATION, ')');
             return expr;
+        }
+
+        // Anonymous function expression: glass(args) { ... }
+        if (tok.type === TokenType.KEYWORD && (tok.value === 'glass' || tok.value === 'cascade')) {
+            const isAsync = tok.value === 'cascade';
+            const startTok = this.advance();
+            
+            // If next is Identifier, it's a statement handled by parseStatement
+            // But if we're here, we're in parsePrimary (expression context)
+            // So we treat it as an anonymous function
+            const params = this.parseParamList();
+            const body = this.parseBlock();
+            return {
+                type: isAsync ? NodeType.CascadeDeclaration : NodeType.FunctionDeclaration,
+                name: null, // Anonymous
+                params,
+                body,
+                line: startTok.line, column: startTok.column
+            };
         }
 
         // Array literal: [elem, ...]

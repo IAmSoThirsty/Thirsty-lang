@@ -1,0 +1,42 @@
+{
+  "name": "thirsty-lang-sovereign",
+  "displayName": "Thirsty-Lang: Sovereign Layer",
+  "description": "Official support for the Universal Thirsty Family (UTF) and TSCG.",
+  "version": "1.0.0",
+  "publisher": "ThirstyProjects",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "thirsty",
+        "aliases": ["Thirsty-Lang", "thirsty"],
+        "extensions": [".thirsty", ".thirst", ".tog"],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "tscg",
+        "aliases": ["Symbolic Compression", "tscg"],
+        "extensions": [".tscg", ".tscgb"]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "thirsty",
+        "scopeName": "source.thirsty",
+        "path": "./syntaxes/thirsty.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "thirsty",
+        "path": "./snippets/thirsty.json"
+      }
+    ]
+  }
+}

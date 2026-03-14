@@ -377,10 +377,11 @@ class ASTInterpreter {
 
     execClassDecl(node, env) {
         const methods = {};
-        for (const m of node.methods) {
-            methods[m.name] = {
+        for (const [mName, m] of Object.entries(node.methods)) {
+            methods[mName] = {
                 params: m.params,
                 bodyNode: m.body,
+                closureEnv: env, // Methods should capture module environment
             };
         }
 
@@ -536,7 +537,11 @@ class ASTInterpreter {
                 if (obj.__class && obj.__properties) {
                     obj.__properties[prop] = value;
                 } else {
-                    obj[prop] = value;
+                    if (value && typeof value === 'object' && value.__thirsty_function) {
+                        obj[prop] = this.wrapThirstyFunction(value);
+                    } else {
+                        obj[prop] = value;
+                    }
                 }
             }
         } else if (target.type === NodeType.IndexExpression) {
@@ -631,6 +636,7 @@ class ASTInterpreter {
             case NodeType.NumberLiteral: return node.value;
             case NodeType.StringLiteral: return node.value;
             case NodeType.BooleanLiteral: return node.value;
+            case NodeType.NullLiteral: return null;
             case NodeType.ArrayLiteral: return node.elements.map(el => this.evalExpr(el, env));
             case NodeType.ObjectLiteral: return this.evalObjectLiteral(node, env);
             case NodeType.Identifier: return this.evalIdentifier(node, env);
@@ -640,6 +646,15 @@ class ASTInterpreter {
             case NodeType.MemberExpression: return this.evalMember(node, env);
             case NodeType.IndexExpression: return this.evalIndex(node, env);
             case NodeType.AssignmentExpression: return this.evalAssignment(node, env);
+            case NodeType.FunctionDeclaration:
+            case NodeType.CascadeDeclaration:
+                return {
+                    params: node.params,
+                    bodyNode: node.body,
+                    isAsync: node.type === NodeType.CascadeDeclaration,
+                    closureEnv: env,
+                    __thirsty_function: true
+                };
             default:
                 throw new Error(`Unknown expression node: ${node.type}`);
         }
@@ -721,28 +736,74 @@ class ASTInterpreter {
             return this.evalMethodCall(node.callee, args, env);
         }
 
-        // Class instantiation
-        if (node.isNew || this.classes[node.callee.name]) {
-            return this.instantiateClass(node.callee.name, args, env);
-        }
+        // Regular function/class/lambda call
+        let callable;
+        let funcName = null;
 
-        // Regular function call
-        const funcName = node.callee.name;
-
-        // Check user-defined functions
-        if (this.functions[funcName]) {
-            return this.callFunction(funcName, args, env);
-        }
-
-        // Check if it's a variable holding a callable (stdlib, etc.)
-        if (env.has(funcName)) {
-            const val = env.get(funcName);
-            if (typeof val === 'function') {
-                return val(...args);
+        if (node.callee.type === NodeType.Identifier) {
+            funcName = node.callee.name;
+            if (this.functions[funcName]) {
+                callable = this.functions[funcName];
+            } else if (this.classes[funcName]) {
+                return this.instantiateClass(funcName, args, env);
+            } else if (env.has(funcName)) {
+                callable = env.get(funcName);
             }
+        } else {
+            callable = this.evalExpr(node.callee, env);
         }
 
-        throw new Error(`Undefined class or function: ${funcName}`);
+        if (!callable) {
+            throw new ThirstyError(`Undefined identifier or non-callable: ${funcName || 'anonymous'}`, 'ReferenceError');
+        }
+
+        // If it's a Thirsty function object (named or anonymous)
+        if (typeof callable === 'object' && (callable.__thirsty_function || callable.params)) {
+             return this.executeFunction(callable, args, funcName);
+        }
+
+        // If it's a native JS function (stdlib, etc.)
+        if (typeof callable === 'function') {
+            return callable(...args);
+        }
+
+        throw new Error(`Cannot call non-function: ${funcName || 'anonymous'}`);
+    }
+
+    /**
+     * Internal helper to execute a Thirsty function object (closure-ready)
+     */
+    executeFunction(func, args, funcName = "anonymous", thisValue = null) {
+        if (this.callStack.length >= this.MAX_CALL_DEPTH) {
+            throw new ThirstyError(`Maximum call depth exceeded (${this.MAX_CALL_DEPTH})`, 'StackOverflow');
+        }
+
+        if (args.length !== (func.params ? func.params.length : 0)) {
+            throw new Error(`Function ${funcName} expects ${func.params ? func.params.length : 0} arguments, got ${args.length}`);
+        }
+
+        // Create a new scope parented to the closure environment (lexical scope)
+        const funcEnv = (func.closureEnv || this.globalEnv).child();
+        for (let i = 0; i < (func.params ? func.params.length : 0); i++) {
+            funcEnv.define(func.params[i], args[i]);
+        }
+
+        // Bind 'this' if provided
+        if (thisValue) {
+            funcEnv.define('this', thisValue);
+        }
+
+        this.callStack.push({ function: funcName });
+
+        try {
+            const result = this.execBlock(func.bodyNode.body, funcEnv);
+            this.callStack.pop();
+            if (result instanceof ReturnSignal) return result.value;
+            return undefined;
+        } catch (e) {
+            this.callStack.pop();
+            throw e;
+        }
     }
 
     // ── Method call ────────────────────────────────────────────────────────────
@@ -766,17 +827,20 @@ class ASTInterpreter {
             return this.callInstanceMethod(obj, methodName, args, env);
         }
 
-        // Built-in library methods (Math, etc.)
+        // Built-in library methods (Math, Http, etc.) or assigned properties
         if (obj && typeof obj === 'object' && obj.__builtin) {
-            if (typeof obj[methodName] === 'function') {
-                return obj[methodName](...args);
+            const func = obj[methodName];
+            if (typeof func === 'function') {
+                const wrappedArgs = args.map(a => this.wrapThirstyFunction(a));
+                return func.apply(obj, wrappedArgs);
             }
-            throw new Error(`Built-in method '${methodName}' not found`);
+            throw new Error(`Built-in method or property '${methodName}' not found or not callable on ${obj}`);
         }
 
         // Generic object method
         if (obj && typeof obj === 'object' && typeof obj[methodName] === 'function') {
-            return obj[methodName](...args);
+            const wrappedArgs = args.map(a => this.wrapThirstyFunction(a));
+            return obj[methodName](...wrappedArgs);
         }
 
         throw new Error(`Method '${methodName}' not supported`);
@@ -787,7 +851,7 @@ class ASTInterpreter {
     handleArrayMethod(arr, methodName, args, arrNode, env) {
         switch (methodName) {
             case 'push':
-                for (const a of args) arr.push(a);
+                for (const a of args) arr.push(this.wrapThirstyFunction(a));
                 return arr.length;
             case 'pop':
                 if (arr.length === 0) throw new Error(`Cannot pop from empty array`);
@@ -902,18 +966,6 @@ class ASTInterpreter {
         throw new ThirstyError(`Cannot index into ${typeof obj}`, 'TypeError');
     }
 
-    // ── Assignment (a = b) ─────────────────────────────────────────────────────
-
-    evalAssignment(node, env) {
-        const value = this.evalExpr(node.right, env);
-        if (node.left.type === NodeType.Identifier) {
-            env.set(node.left.name, value);
-        } else if (node.left.type === NodeType.MemberExpression) {
-            const obj = this.evalExpr(node.left.object, env);
-            obj[node.left.property] = value;
-        }
-        return value;
-    }
 
     // ── Function calling ───────────────────────────────────────────────────────
 
@@ -975,9 +1027,10 @@ class ASTInterpreter {
             instance.__methods[name] = method;
         }
 
-        // Call constructor (named 'fountain')
-        if (classDef.methods.fountain) {
-            this.callInstanceMethod(instance, 'fountain', args, env);
+        // Call constructor (named 'fountain' or 'constructor')
+        const ctor = instance.__methods.fountain || instance.__methods.constructor;
+        if (ctor) {
+            this.executeFunction(ctor, args, 'constructor', instance.__properties);
         }
 
         return instance;
@@ -991,31 +1044,32 @@ class ASTInterpreter {
         }
 
         const method = instance.__methods[methodName];
-
-        if (args.length !== method.params.length) {
-            throw new ThirstyError(`Method ${methodName} expects ${method.params.length} arguments, got ${args.length}`, 'TypeError');
-        }
-
-        const methodEnv = this.globalEnv.child();
-        for (let i = 0; i < method.params.length; i++) {
-            methodEnv.define(method.params[i], args[i]);
-        }
-        // Bind 'this' to instance properties
-        methodEnv.define('this', instance.__properties);
-
-        try {
-            const result = this.execBlock(method.bodyNode.body, methodEnv);
-            if (result instanceof ReturnSignal) return result.value;
-            return undefined;
-        } catch (e) {
-            throw e;
-        }
+        return this.executeFunction(method, args, methodName, instance.__properties);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     isTruthy(value) {
         return Boolean(value);
+    }
+
+    wrapThirstyFunction(thirstyFunc) {
+        if (!thirstyFunc || typeof thirstyFunc !== 'object' || !thirstyFunc.__thirsty_function) {
+            return thirstyFunc;
+        }
+        const self = this;
+        // Optimization: preserve JS functions that were already wrapped
+        if (typeof thirstyFunc === 'function') return thirstyFunc;
+
+        if (thirstyFunc.isAsync) {
+            return async function(...args) {
+                return await self.executeFunction(thirstyFunc, args, 'callback');
+            };
+        } else {
+            return function(...args) {
+                return self.executeFunction(thirstyFunc, args, 'callback');
+            };
+        }
     }
 }
 

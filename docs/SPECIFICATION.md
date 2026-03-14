@@ -467,7 +467,6 @@ pour secret  // "classified"
 ```ebnf
 program         = { statement } ;
 
-<<<<<<< HEAD
 statement       = var_decl
                 | reservoir_decl
                 | pour_stmt
@@ -489,7 +488,6 @@ statement       = var_decl
                 | import_stmt
                 | export_stmt
                 | expr_stmt ;
-=======
 Commands:
 
 - `break <line>`, `b` - Set breakpoint
@@ -500,7 +498,6 @@ Commands:
 - `eval <expr>`, `e` - Evaluate expression
 - `stack` - Show call stack
 - `list`, `l` - Show code listing
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 var_decl        = "drink" target "=" expression ;
 reservoir_decl  = "reservoir" IDENT "=" "[" [ expression { "," expression } ] "]" ;
@@ -557,7 +554,6 @@ target          = IDENT | postfix ;
 
 ## Error Handling
 
-<<<<<<< HEAD
 The parser provides precise error messages with line and column numbers:
 
 - Syntax errors (unexpected tokens, missing braces)
@@ -626,14 +622,12 @@ calc.add(5)
 calc.multiply(3)
 pour "Result: " + calc.result  // 15
 ```
-=======
 The interpreter will report errors for:
 
 - Unknown statements
 - Invalid syntax
 - Undefined variables
 - Type mismatches (in future versions)
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ## Conclusion
 

@@ -1,0 +1,37 @@
+{
+  "Sovereign Header": {
+    "prefix": "!!master",
+    "body": [
+      "# 💧 THIRSTY-LANG & UTF: THE MASTER SPECIFICATION (v3.5)",
+      "// $CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE $CURRENT_HOUR:$CURRENT_MINUTE | Status: Active",
+      "",
+      "![Sovereignty: Absolute](https://img.shields.io/badge/Sovereignty-Absolute-gold?style=for-the-badge&labelColor=black)",
+      "![Maturity: Master-Tier](https://img.shields.io/badge/Maturity-Master--Tier-red?style=for-the-badge&labelColor=black)",
+      "",
+      "---",
+      "",
+      "$0"
+    ],
+    "description": "Generate the Sovereign Master-Tier header"
+  },
+  "Shield Block": {
+    "prefix": "shield",
+    "body": [
+      "shield ${1:context_name} {",
+      "\tsanitize ${2:input};",
+      "\t$0",
+      "}"
+    ],
+    "description": "Create a protected execution context"
+  },
+  "Cascade Function": {
+    "prefix": "glass",
+    "body": [
+      "glass ${1:name}(${2:params}) {",
+      "\t$0",
+      "\treturn ${3:result};",
+      "}"
+    ],
+    "description": "Standard function declaration"
+  }
+}

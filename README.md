@@ -1,28 +1,39 @@
-# Thirsty-Lang 💧
+<!-- # ============================================================================ # -->
+<!-- # STATUS: ACTIVE | TIER: MASTER | DATE: 2026-03-12 | TIME: 11:51               # -->
+<!-- # COMPLIANCE: Sovereign-Native / Thirsty-Lang v3.5.0                            # -->
+<!-- # ============================================================================ # -->
 
-[![NPM Version](https://img.shields.io/npm/v/Thirsty-Lang.svg)](https://www.npmjs.com/package/Thirsty-Lang)
-[![CI](https://github.com/IAmSoThirsty/Thirsty-Lang/actions/workflows/ci.yml/badge.svg)](https://github.com/IAmSoThirsty/Thirsty-Lang/actions/workflows/ci.yml)
+# Thirsty-Lang
+
+![Sovereignty: Absolute](https://img.shields.io/badge/Sovereignty-Absolute-gold?style=for-the-badge&labelColor=black&logo=securitymetrics)
+![Maturity: Master-Tier](https://img.shields.io/badge/Maturity-Master--Tier-red?style=for-the-badge&labelColor=black)
+![Architecture: Triumvirate](https://img.shields.io/badge/Architecture-Triumvirate-blue?style=for-the-badge&labelColor=black)
+![Compliance: Hardened](https://img.shields.io/badge/Compliance-Hardened-green?style=for-the-badge&labelColor=black)
+
+
+[![NPM Version](https://img.shields.io/npm/v/thirsty-lang.svg)](https://www.npmjs.com/package/thirsty-lang)
+[![Language: Thirsty-Native](https://img.shields.io/badge/Language-Thirsty--Native-blueviolet?style=for-the-badge)](./src/foundation/THIRSTY_LANG_SPEC.thirsty)
 [![License](https://img.shields.io/badge/license-Custom-blue.svg)](LICENSE)
+
 
 > A water-themed programming language for anyone and everyone who is Thirsty — featuring four tiers, defensive programming, and T.A.R.L. security integration.
 
 ## Quick Start
 
-<<<<<<< HEAD
+
 ```bash
-# npm
-npm install -g Thirsty-Lang
+# Install globally
+npm install -g thirsty-lang
+
+# Run a program
 thirsty examples/hello.thirsty
 
-# pip
-pip install Thirsty-Lang
-python -m thirsty_lang examples/hello.thirsty
-
-# From source
-node src/cli.js examples/hello.thirsty
+# Start REPL
+thirsty-repl
 ```
 
 ## The Four Tiers
+
 
 Thirsty-Lang is a **language family** with four tiers, each building on the previous:
 
@@ -34,8 +45,8 @@ Thirsty-Lang is a **language family** with four tiers, each building on the prev
 | 🔮 **Thirsty's Shadow** | `.shadow` | Master | Classes (`fountain`), OOP, `this` keyword, Methods, Properties |
 
 See [docs/EXPANSIONS.md](docs/EXPANSIONS.md) for the full tier specification.
-=======
-**Thirsty-lang v2.0.0** is now **100% Real Production Ready**! This release includes:
+
+**Thirsty-lang v3.5.0 (Sovereign-Native)** is now **100% Real Production Ready**! This release includes:
 
 - ✅ Complete NPM package configuration for publishing
 - ✅ Automated CI/CD pipeline with GitHub Actions
@@ -45,15 +56,15 @@ See [docs/EXPANSIONS.md](docs/EXPANSIONS.md) for the full tier specification.
 - ✅ Multi-platform support (Node.js, Python, Docker)
 - ✅ Complete developer toolchain
 
-**Install globally:** `npm install -g thirsty-lang`
-
 See [RELEASE_GUIDE.md](RELEASE_GUIDE.md) for release and publishing instructions.
 
 ## About
 
+
 Thirsty-lang is a unique, expressive programming language designed to be **defensive and combative** against all known code threats. It combines fun water-themed syntax with enterprise-grade security features.
 
 ### 🚀 NEW: T.A.R.L. Integration
+
 
 Thirsty-lang now integrates with **T.A.R.L. (Thirsty's Active Resistance Language)** from Project-AI, providing:
 
@@ -67,7 +78,9 @@ See [T.A.R.L. Integration Guide](./TARL_INTEGRATION.md) and [Security API Refere
 
 ## Features
 
+
 ### ✅ Fully Implemented & Functional
+
 
 - ✨ Simple and intuitive syntax
 - 📥 Variable assignment (`drink`)
@@ -263,19 +276,13 @@ npm start examples/hello.thirsty
 ### Running Tests
 
 ```bash
-npm test
-
-# Run security tests
-
-node src/test/security-tests.js
+npm run test:all
 ```
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ## Language Syntax
 
 ### Core Keywords
 
-<<<<<<< HEAD
 | Keyword | Purpose | Example |
 | ------- | ------- | ------- |
 | `drink` | Variable declaration | `drink water = "Hello"` |
@@ -287,15 +294,6 @@ node src/test/security-tests.js
 | `glass` | Function declaration | `glass greet(name) { ... }` |
 | `reservoir` | Array declaration | `reservoir items = [1, 2, 3]` |
 | `fountain` | Class declaration | `fountain MyClass { ... }` |
-=======
-- `drink` - Variable declaration
-- `pour` - Output/print statement
-- `sip` - Input statement
-- `thirsty` - If statement
-- `hydrated` - Else statement
-- `refill` - Loop statement
-- `glass` - Function declaration
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ### Security Keywords
 
@@ -311,16 +309,6 @@ node src/test/security-tests.js
 ### Examples
 
 #### Hello World
-
-<<<<<<< HEAD
-```thirsty
-drink message = "Hello, Thirsty World!"
-pour message
-```
-
-#### Control Flow (Thirst of Gods)
-=======
-#### Basic Program
 
 ```thirsty
 drink water = "Hello, World!"
@@ -343,7 +331,9 @@ pour message
 ```thirsty
 reservoir fruits = ["apple", "banana", "orange"]
 pour "Fruits: " + fruits.join(", ")
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
+```
+
+#### Control Flow (Thirst of Gods)
 
 ```thirsty
 drink temperature = 35
@@ -356,7 +346,7 @@ hydrated {
 }
 ```
 
-<<<<<<< HEAD
+
 #### Functions and Arrays (T.A.R.L.)
 
 ```thirsty
@@ -370,18 +360,12 @@ reservoir log = [2.0, 1.5, 2.5, 3.0]
 pour "Hydration log: " + log.join(", ")
 ```
 
-#### Classes (Thirsty's Shadow)
+#### Classes and OOP (Thirsty's Shadow)
 
 ```thirsty
 fountain Calculator {
-=======
-#### Object-Oriented Programming
+  drink version = "3.5"
 
-```thirsty
-fountain Calculator {
-  drink version = "1.0"
-
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
   glass add(a, b) {
     return a + b
   }
@@ -395,112 +379,41 @@ drink calc = Calculator()
 pour "10 + 5 = " + calc.add(10, 5)
 ```
 
-<<<<<<< HEAD
-#### Security Features
+
+#### Advanced Language Features (T.A.R.L. & Thirsty's Shadow)
 
 ```thirsty
-shield mySecureApp {
-  drink userData = "<script>alert('xss')</script>"
-  sanitize userData
-
-  drink secretKey = "my-secret-123"
-  armor secretKey
-
-  pour "Safe output: " + userData
-=======
-#### Using Standard Library
-
-```thirsty
+// Standard Library
 drink radius = 5
 drink area = Math.PI * Math.pow(radius, 2)
 pour "Circle area: " + area
 
-drink text = "  hello world  "
-drink formatted = String.toUpperCase(String.trim(text))
-pour "Formatted: " + formatted
-```
-
-#### Using Modules (Import/Export)
-
-```thirsty
-// math-utils.thirsty
-glass square(n) {
-  return n * n
-}
-export square
-
-// main.thirsty
+// Modules
 import { square } from "math-utils.thirsty"
-drink result = square(5)
-pour "5 squared is: " + result
-```
+pour "5 squared: " + square(5)
 
-#### Async/Await with Cascade
-
-```thirsty
-// Define async function with cascade keyword
+// Async Cascade
 cascade fetchData(url) {
   drink response = await Http.get(url)
   return response.body
 }
 
-// Use async file I/O
-cascade saveData(filename, content) {
-  drink success = await File.writeAsync(filename, content)
-  return success
-}
+// File I/O
+drink success = File.write("data.txt", "Hello, Sovereign!")
+pour "File written: " + File.read("data.txt")
 ```
 
-#### File I/O Operations
-
-```thirsty
-// Write to a file
-drink success = File.write("data.txt", "Hello, Thirsty!")
-pour "File written: " + success
-
-// Read from a file
-drink content = File.read("data.txt")
-pour "File content: " + content
-
-// Check if file exists
-drink exists = File.exists("data.txt")
-pour "File exists: " + exists
-
-// Delete file
-drink deleted = File.delete("data.txt")
-```
-
-#### Network Utilities (HTTP Requests)
-
-```thirsty
-// Note: These examples use async functions
-cascade getData() {
-  // HTTP GET request
-  drink response = await Http.get("https://api.example.com/data")
-  pour "Status: " + response.status
-  pour "Body: " + response.body
-
-  // HTTP POST request
-  drink postData = await Http.post("https://api.example.com/submit", "data")
-
-  // Using fetch
-  drink result = await Http.fetch("https://api.example.com/endpoint")
-  return result
-}
-```
-
-#### Secure Program with Basic Protection
+#### Security Features (The Triumvirate)
 
 ```thirsty
 shield mySecureApp {
   drink userData = "<script>alert('xss')</script>"
-  sanitize userData  // Removes XSS with HTML encoding
+  sanitize userData  // Removes XSS
 
   drink secretKey = "my-secret-123"
   armor secretKey    // Protects from modification
 
-  pour "Hello, " + userData  // Safe output
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
+  pour "Safe output: " + userData
 }
 ```
 
@@ -510,8 +423,8 @@ See more examples in [`examples/`](examples/) and [`examples/advanced/`](example
 
 ### Node.js (Primary Runtime)
 
-<<<<<<< HEAD
-=======
+
+
 Thirsty-lang includes basic security features for educational purposes:
 
 ### What Actually Works
@@ -558,18 +471,15 @@ See the `examples/security/` directory for working examples.
 
 #### REPL (Read-Eval-Pour-Loop)
 
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
+
 ```bash
 npm install -g Thirsty-Lang    # Global install
 thirsty examples/hello.thirsty # Run a program
 thirsty-repl                   # Interactive REPL
 ```
 
-<<<<<<< HEAD
 ### Python (Alternative Runtime)
-=======
 #### CLI Runner
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ```bash
 pip install Thirsty-Lang
@@ -635,10 +545,8 @@ See [TARL_INTEGRATION.md](TARL_INTEGRATION.md) and [SECURITY_API.md](SECURITY_AP
 
 ## Feature Matrix
 
-<<<<<<< HEAD
 ### 💧 Thirsty-Lang (`.thirsty`)
 
-=======
 **✅ Web Playground** (`playground/index.html`) - Try Thirsty in your browser
 ```bash
 
@@ -690,32 +598,27 @@ Thirsty-lang comes in four flavors, each building on the previous:
 
 #### 💧 Base Thirsty-lang
 
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - ✅ Variable declaration (`drink`)
 - ✅ Output statements (`pour`)
 - ✅ Input statements (`sip`)
 - ✅ Comments (`//`)
 - ✅ String and number literals
 
-<<<<<<< HEAD
 ### ⚡ Thirst of Gods (`.tog`)
 
 All Thirsty-Lang features, plus:
 
 - ✅ Conditionals (`thirsty`/`hydrated`)
-=======
 #### 💧+ Thirsty Plus
 
 **All Base features, plus:**
 
 - ✅ Conditional statements (`thirsty`/`hydrated`)
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - ✅ Comparison operators (`>`, `<`, `>=`, `<=`, `==`, `!=`)
 - ✅ Arithmetic (`+`, `-`, `*`, `/`)
 - ✅ String concatenation
 - ✅ Boolean values
 
-<<<<<<< HEAD
 ### 🛡️ T.A.R.L. (`.tarl`)
 
 All Thirst of Gods features, plus:
@@ -731,7 +634,6 @@ All Thirst of Gods features, plus:
 All T.A.R.L. features, plus:
 
 - ✅ Classes (`fountain`) with properties and methods
-=======
 #### 💧++ Thirsty Plus Plus
 
 **All Thirsty+ features, plus:**
@@ -752,12 +654,9 @@ All T.A.R.L. features, plus:
 **All Thirsty++ features, plus:**
 
 - ✅ Class declarations (`fountain`)
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - ✅ Object instantiation
 - ✅ `this` keyword for property access
-<<<<<<< HEAD
 - ✅ State mutation (`drink this.x = ...`)
-=======
 - ✅ Object-oriented programming
 
 **Note:** All features are currently available in the standard interpreter. Future versions may introduce edition-specific runtime modes.
@@ -791,24 +690,20 @@ Full language specification and documentation can be found in the `docs/` direct
 - [DEPENDENCIES.txt](DEPENDENCIES.txt) - Dependency information
 - [VERSION.txt](VERSION.txt) - Current version
 - [LICENSE](LICENSE) - License terms
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ## VS Code Extension
 
 Syntax highlighting, bracket matching, and snippets for all four file types.
 
-<<<<<<< HEAD
 ```
 Install: Copy vscode-extension/ to your VS Code extensions directory
 Supports: .thirsty, .tog, .tarl, .shadow
 ```
-=======
 To install:
 
 1. Copy the `vscode-extension` folder to your VS Code extensions directory
 2. Reload VS Code
 3. Enjoy syntax highlighting for `.thirsty` files!
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 See [vscode-extension/README.md](vscode-extension/README.md) for details.
 
@@ -904,3 +799,11 @@ Created by someone who believes coding should be refreshing! 💧
 - ⭐ [Star on GitHub](https://github.com/IAmSoThirsty/Thirsty-Lang)
 
 Stay hydrated and happy coding! 💧✨
+
+---
+
+## 🏛️ Project-AI Core Integration *(Galactic Substrate Level 5)*
+**Status: Absolute Alignment**
+
+This repository, regardless of its standalone operational capabilities, is structurally, architecturally, and philosophically integrated into **Project-AI** at the core level. It serves as a foundational component of the supreme Sovereign ecosystem.
+

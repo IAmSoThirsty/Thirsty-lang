@@ -1,0 +1,48 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Thirsty-Lang",
+  "scopeName": "source.thirsty",
+  "patterns": [
+    { "include": "#keywords" },
+    { "include": "#security" },
+    { "include": "#strings" },
+    { "include": "#comments" },
+    { "include": "#operators" }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [{
+        "name": "keyword.control.thirsty",
+        "match": "\\b(thirsty|hydrated|refill|return|try|catch|finally|glass|fountain|cascade|await|new|this|import|export|from)\\b"
+      },
+      {
+        "name": "storage.type.thirsty",
+        "match": "\\b(drink|reservoir|sacred)\\b"
+      }]
+    },
+    "security": {
+      "patterns": [{
+        "name": "keyword.other.security.thirsty",
+        "match": "\\b(shield|sanitize|armor|morph|defend|spillage|cleanup)\\b"
+      }]
+    },
+    "operators": {
+      "patterns": [{
+        "name": "keyword.operator.sovereign.thirsty",
+        "match": "(->|:=|==|!=|&&|\\|\\|)"
+      }]
+    },
+    "strings": {
+      "name": "string.quoted.double.thirsty",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [{ "name": "constant.character.escape.thirsty", "match": "\\\\." }]
+    },
+    "comments": {
+      "patterns": [
+        { "name": "comment.line.double-slash.thirsty", "match": "//.*" },
+        { "name": "comment.block.thirsty", "begin": "/\\*", "end": "\\*/" }
+      ]
+    }
+  }
+}

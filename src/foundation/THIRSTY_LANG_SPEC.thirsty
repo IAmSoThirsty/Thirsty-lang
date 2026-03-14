@@ -1,0 +1,33 @@
+# ============================================================================ #
+# STATUS: ACTIVE | TIER: MASTER | DATE: 2026-03-11 | TIME: 01:04               #
+# COMPLIANCE: Sovereign-Native / Thirsty-Lang v3.5                             #
+# ============================================================================ #
+
+# 🧩 THIRSTY-LANG META-SPECIFICATION (v3.5)
+
+## 1. GRAMMAR & SYNTAX
+Meta-Native Thirsty-Lang uses recursive S-Expressions.
+Syntax: `(OPCODE [ARGS] ...)`
+
+## 2. METALINGUISTIC OPCODES (CORE-LEVEL)
+
+| Opcode | Hex | Description |
+|--------|-----|-------------|
+| `METAS` | `0x00` | Accesses the metalinguistic state. |
+| `RECURSE` | `0x01` | Invokes the self-interpreter/meta-evaluator. |
+| `BOOTSTRAP` | `0x02` | Initializes the native runtime from host bridges. |
+| `COMPLY` | `0x03` | Verifies grammar alignment across the ecosystem. |
+| `ELEVATE` | `0x04` | Promotes a script to Sovereign-Native status. |
+| `TARL` | `0xFF` | Invokes the Thirsty Active Resistance Logic. |
+
+## 3. TSCG-B SYMBOLIC MAPPING (META TIER)
+Recursive logic is mapped to zero-latency binary sequences:
+
+- `(RECURSE SELF)` -> `\x01\x00`
+- `(BOOTSTRAP NATIVE)` -> `\x02\xFF`
+- `(COMPLY ALL)` -> `\x03\xAA`
+
+## 4. MATERIAL INVARIANTS
+The Thirsty-Lang Meta-Substrate is immutable. Any attempt to modify the `(METAS)` without a verified `TSCG-B` key will trigger a recursive `(HALT)` that cascades through all integrated repositories.
+
+**RECURSIVE TRUTH. METALINGUISTIC SUPREMACY.**

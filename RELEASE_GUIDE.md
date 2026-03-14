@@ -1,4 +1,11 @@
+<!-- # ============================================================================ # -->
+<!-- # STATUS: ACTIVE | TIER: MASTER | DATE: 2026-03-12 | TIME: 11:58               # -->
+<!-- # COMPLIANCE: Sovereign-Native / Thirsty-Lang v3.5.0                            # -->
+<!-- # ============================================================================ # -->
+
 # Release Guide - Thirsty-Lang
+
+![Sovereignty: Absolute](https://img.shields.io/badge/Sovereignty-Absolute-gold?style=for-the-badge&labelColor=black&logo=securitymetrics)
 
 This guide explains how to prepare, package, and release Thirsty-Lang for production use.
 
@@ -113,11 +120,7 @@ npm publish
 
 # 6. Verify installation
 
-<<<<<<< HEAD
 npm install -g Thirsty-Lang@latest
-=======
-npm install -g thirsty-lang@latest
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 thirsty --version
 ```
 
@@ -187,21 +190,13 @@ The project includes GitHub Actions workflows:
 
 npm pack
 
-# Inspect contents
+# Inspect contents (example for v3.5.0)
 
-<<<<<<< HEAD
-tar -tzf Thirsty-Lang-2.0.0.tgz
-
-# Test installation locally
-
-npm install -g ./Thirsty-Lang-2.0.0.tgz
-=======
-tar -tzf thirsty-lang-2.0.0.tgz
+tar -tzf Thirsty-Lang-3.5.0.tgz
 
 # Test installation locally
 
-npm install -g ./thirsty-lang-2.0.0.tgz
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
+npm install -g ./Thirsty-Lang-3.5.0.tgz
 
 # Test CLI commands
 
@@ -266,17 +261,11 @@ After publishing, verify the release:
 
 # Install globally
 
-<<<<<<< HEAD
 npm install -g Thirsty-Lang@latest
-=======
-npm install -g thirsty-lang@latest
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 # Check version
 
 thirsty --version
-
-# Should output: 2.0.0 (or current version)
 
 # Test commands
 
@@ -285,19 +274,9 @@ thirsty-repl
 thirsty-debug
 thirsty-pkg init
 
-# Test REPL
-
-thirsty-repl
-> drink x = 5
-> pour x
-
 # Uninstall test
 
-<<<<<<< HEAD
 npm uninstall -g Thirsty-Lang
-=======
-npm uninstall -g thirsty-lang
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 ```
 
 ## 📝 Release Notes Template

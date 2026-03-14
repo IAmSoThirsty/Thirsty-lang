@@ -30,11 +30,8 @@ Project-AI (Advanced Security Intelligence)
 
 ### 2. Components to Integrate
 
-<<<<<<< HEAD
 #### From Thirsty-Lang:
-=======
 #### From Thirsty-lang:
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 - `src/security/threat-detector.js` - Basic threat detection
 - `src/security/code-morpher.js` - Code obfuscation capabilities
@@ -58,18 +55,14 @@ Project-AI (Advanced Security Intelligence)
 
 # In Project-AI repository
 
-<<<<<<< HEAD
 git submodule add https://github.com/IAmSoThirsty/Thirsty-Lang.git modules/Thirsty-Lang
-=======
 git submodule add https://github.com/IAmSoThirsty/Thirsty-lang.git modules/thirsty-lang
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 ```
 
 #### Option B: NPM Package
 
 ```bash
 
-<<<<<<< HEAD
 # Publish Thirsty-Lang security as package
 
 npm publish @Thirsty-Lang/security
@@ -77,7 +70,6 @@ npm publish @Thirsty-Lang/security
 # Install in Project-AI
 
 npm install @Thirsty-Lang/security
-=======
 # Publish Thirsty-lang security as package
 
 npm publish @thirsty-lang/security
@@ -85,7 +77,6 @@ npm publish @thirsty-lang/security
 # Install in Project-AI
 
 npm install @thirsty-lang/security
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 ```
 
 #### Option C: Direct Import
@@ -137,11 +128,8 @@ const policy = {
 
 ## Migration Path
 
-<<<<<<< HEAD
 ### Phase 1: Current State (Thirsty-Lang Standalone)
-=======
 ### Phase 1: Current State (Thirsty-lang Standalone)
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 - ✅ Basic defensive programming features
 - ✅ Threat detection (white/grey/black/red box)
@@ -151,11 +139,8 @@ const policy = {
 
 ### Phase 2: Integration Preparation
 
-<<<<<<< HEAD
 - [ ] Export Thirsty-Lang security as standalone module
-=======
 - [ ] Export Thirsty-lang security as standalone module
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - [ ] Create Project-AI bridge interfaces
 - [ ] Document API contracts
 - [ ] Set up shared types/interfaces
@@ -177,11 +162,8 @@ const policy = {
 
 ### Phase 5: Unified Defensive Language
 
-<<<<<<< HEAD
 - [ ] Thirsty-Lang becomes front-end DSL
-=======
 - [ ] Thirsty-lang becomes front-end DSL
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - [ ] Project-AI provides security backend
 - [ ] Seamless integration for users
 - [ ] Combined threat database
@@ -278,11 +260,8 @@ Project-AI/
 
 ## Benefits of Integration
 
-<<<<<<< HEAD
 ### For Thirsty-Lang Users:
-=======
 ### For Thirsty-lang Users:
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 - ✅ Access to advanced AI-powered security
 - ✅ Real-time threat intelligence
@@ -292,11 +271,8 @@ Project-AI/
 
 ### For Project-AI Users:
 
-<<<<<<< HEAD
 - ✅ Domain-specific security language (Thirsty-Lang)
-=======
 - ✅ Domain-specific security language (Thirsty-lang)
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - ✅ Easy-to-use defensive programming syntax
 - ✅ Rapid security policy prototyping
 - ✅ Educational security features

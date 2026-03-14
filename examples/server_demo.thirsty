@@ -1,0 +1,25 @@
+// Sovereign Server Demo
+// Demonstrates usage of the server.thirsty library.
+
+import { SovereignServer } from "c:/Users/Quencher/.gemini/antigravity/scratch/sovereign-repos/Thirsty-Lang/src/lib/server.thirsty"
+
+// Initialize Server on Port 8080
+drink app = new SovereignServer({ port: 11111 })
+
+// Register a JSON Route
+app.route("/api/status", glass(req) {
+    return {
+        status: 200,
+        body: {
+            service: "Sovereign-Demo",
+            uptime: Process.uptime(),
+            load: 0.15
+        }
+    }
+})
+
+// Launch the Server
+app.start()
+
+// The server remains active until Process.exit() or interruption.
+// Stay hydrated! 💧

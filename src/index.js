@@ -98,13 +98,20 @@ class ThirstyInterpreter {
    */
   initializeStandardLibrary() {
     const stdlib = initializeStandardLibrary();
+    const { initializeDB } = require('./interpreter/db');
+    const db = initializeDB();
 
     // Add all stdlib objects to variables
     this.variables.Math = stdlib.Math;
     this.variables.String = stdlib.String;
+    this.variables.Console = stdlib.Console;
+    this.variables.Process = stdlib.Process;
+    this.variables.Crypto = stdlib.Crypto;
+    this.variables.Time = stdlib.Time;
     this.variables.File = stdlib.File;
     this.variables.Http = stdlib.Http;
     this.variables.JSON = stdlib.JSON;
+    this.variables.Db = db;
 
     // Add the fetch method that needs access to this.variables
     this.variables.Http.fetch = stdlib.Http._createFetch(this.variables.Http);

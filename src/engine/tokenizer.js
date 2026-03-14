@@ -33,7 +33,7 @@ const KEYWORDS = new Set([
     // Functions & loops (T.A.R.L.)
     'glass', 'refill', 'reservoir', 'return',
     // Classes & advanced (Thirsty's Shadow)
-    'fountain', 'cascade', 'sacred', 'new',
+    'fountain', 'cascade', 'sacred', 'new', 'define',
     // Security
     'shield', 'sanitize', 'armor', 'morph', 'detect', 'defend',
     // Modules
@@ -42,8 +42,8 @@ const KEYWORDS = new Set([
     'throw', 'try', 'catch', 'finally',
     // Async
     'await',
-    // Boolean literals (treated as keywords, evaluated as values)
-    'true', 'false',
+    // Boolean & Null literals (treated as keywords, evaluated as values)
+    'true', 'false', 'null',
 ]);
 
 // ── Multi-character operators (checked longest-first) ────────────────────────

@@ -1,18 +1,15 @@
-/**
- * Standard Library Module
- * Provides built-in Math, String, File, and Http utilities
- */
-
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
+const crypto = require('crypto');
+const path = require('path');
+const { WebSocketServer } = require('ws');
 
 /**
  * Initialize and return standard library objects
- * @returns {Object} Object containing Math, String, File, and Http utilities
  */
 function initializeStandardLibrary() {
-  return {
+  const stdlib = {
     Math: {
       __builtin: true,
       PI: 3.14159265359,
@@ -38,75 +35,93 @@ function initializeStandardLibrary() {
       split: (str, separator) => String(str).split(separator),
       replace: (str, search, replacement) => String(str).replace(search, replacement),
       charAt: (str, index) => String(str).charAt(index),
-      substring: (str, start, end) => String(str).substring(start, end)
+      substring: (str, start, end) => String(str).substring(start, end),
+      length: (str) => String(str).length,
+      includes: (str, search) => String(str).includes(search)
+    },
+
+    Console: {
+      __builtin: true,
+      log: (...args) => console.log(...args),
+      warn: (...args) => console.warn('\x1b[33m%s\x1b[0m', ...args),
+      error: (...args) => console.error('\x1b[31m%s\x1b[0m', ...args),
+      info: (...args) => console.info('\x1b[36m%s\x1b[0m', ...args),
+      clear: () => console.clear(),
+      table: (data) => console.table(data)
+    },
+
+    Process: {
+      __builtin: true,
+      args: process.argv,
+      env: process.env,
+      exit: (code = 0) => process.exit(code),
+      cwd: () => process.cwd(),
+      platform: process.platform,
+      version: process.version,
+      uptime: () => process.uptime()
+    },
+
+    Crypto: {
+      __builtin: true,
+      sha256: (data) => crypto.createHash('sha256').update(String(data)).digest('hex'),
+      hmac: (key, data) => crypto.createHmac('sha256', key).update(String(data)).digest('hex'),
+      uuid: () => crypto.randomUUID(),
+      randomBytes: (size) => crypto.randomBytes(size).toString('hex')
+    },
+
+    Time: {
+      __builtin: true,
+      now: () => Date.now(),
+      iso: () => new Date().toISOString(),
+      format: (ts) => new Date(ts).toLocaleString(),
+      sleep: (ms) => new Promise(resolve => setTimeout(resolve, ms))
     },
 
     File: {
       __builtin: true,
-      read: (filePath) => {
-        try {
-          return fs.readFileSync(filePath, 'utf8');
-        } catch (err) {
-          throw new Error(`Failed to read file: ${err.message}`);
-        }
-      },
+      read: (filePath) => fs.readFileSync(path.resolve(filePath), 'utf8'),
       write: (filePath, content) => {
-        try {
-          fs.writeFileSync(filePath, String(content), 'utf8');
-          return true;
-        } catch (err) {
-          throw new Error(`Failed to write file: ${err.message}`);
-        }
+        fs.writeFileSync(path.resolve(filePath), String(content), 'utf8');
+        return true;
       },
-      exists: (filePath) => {
-        return fs.existsSync(filePath);
-      },
+      exists: (filePath) => fs.existsSync(path.resolve(filePath)),
       delete: (filePath) => {
-        try {
-          fs.unlinkSync(filePath);
-          return true;
-        } catch (err) {
-          throw new Error(`Failed to delete file: ${err.message}`);
-        }
+        fs.unlinkSync(path.resolve(filePath));
+        return true;
       },
-      readAsync: async (filePath) => {
-        return new Promise((resolve, reject) => {
-          fs.readFile(filePath, 'utf8', (err, data) => {
-            if (err) reject(new Error(`Failed to read file: ${err.message}`));
-            else resolve(data);
-          });
+      mkdir: (dirPath) => fs.mkdirSync(path.resolve(dirPath), { recursive: true }),
+      rmdir: (dirPath) => fs.rmSync(path.resolve(dirPath), { recursive: true, force: true }),
+      stats: (filePath) => {
+        const s = fs.statSync(path.resolve(filePath));
+        return {
+          size: s.size,
+          isDirectory: s.isDirectory(),
+          isFile: s.isFile(),
+          mode: s.mode,
+          atime: s.atime,
+          mtime: s.mtime,
+          ctime: s.ctime,
+          birthtime: s.birthtime
+        };
+      },
+      watch: (targetPath, callback) => {
+        return fs.watch(path.resolve(targetPath), { recursive: true }, (event, filename) => {
+          if (typeof callback === 'function') callback(event, filename);
         });
       },
-      writeAsync: async (filePath, content) => {
-        return new Promise((resolve, reject) => {
-          fs.writeFile(filePath, String(content), 'utf8', (err) => {
-            if (err) reject(new Error(`Failed to write file: ${err.message}`));
-            else resolve(true);
-          });
-        });
-      }
+      list: (dirPath) => fs.readdirSync(path.resolve(dirPath))
     },
 
     Http: {
       __builtin: true,
       get: (url) => {
         return new Promise((resolve, reject) => {
-          const urlObj = new URL(url);
-          const protocol = urlObj.protocol === 'https:' ? https : http;
-
+          const protocol = url.startsWith('https') ? https : http;
           protocol.get(url, (res) => {
             let data = '';
             res.on('data', (chunk) => { data += chunk; });
-            res.on('end', () => {
-              resolve({
-                status: res.statusCode,
-                headers: res.headers,
-                body: data
-              });
-            });
-          }).on('error', (err) => {
-            reject(new Error(`HTTP GET failed: ${err.message}`));
-          });
+            res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: data }));
+          }).on('error', (err) => reject(new Error(`HTTP GET failed: ${err.message}`)));
         });
       },
       post: (url, postData) => {
@@ -114,7 +129,6 @@ function initializeStandardLibrary() {
           const urlObj = new URL(url);
           const protocol = urlObj.protocol === 'https:' ? https : http;
           const data = typeof postData === 'string' ? postData : JSON.stringify(postData);
-
           const options = {
             hostname: urlObj.hostname,
             port: urlObj.port,
@@ -125,248 +139,86 @@ function initializeStandardLibrary() {
               'Content-Length': Buffer.byteLength(data)
             }
           };
-
           const req = protocol.request(options, (res) => {
             let responseData = '';
             res.on('data', (chunk) => { responseData += chunk; });
-            res.on('end', () => {
-              resolve({
-                status: res.statusCode,
-                headers: res.headers,
-                body: responseData
-              });
-            });
+            res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: responseData }));
           });
-
-          req.on('error', (err) => {
-            reject(new Error(`HTTP POST failed: ${err.message}`));
-          });
-
+          req.on('error', (err) => reject(new Error(`HTTP POST failed: ${err.message}`)));
           req.write(data);
           req.end();
         });
       },
-      // Note: fetch is added dynamically in the interpreter since it references this.variables
-      _createFetch: function (httpObj) {
-        return async (url, options = {}) => {
-          const method = (options.method || 'GET').toUpperCase();
-          if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
-            return httpObj.post(url, options.body || '');
-          } else {
-            return httpObj.get(url);
+      createServer: (options = {}) => {
+        const server = http.createServer();
+        let wss = null;
+        const ThirstyServer = {
+          __builtin: true,
+          onHandle: null,
+          onWebSocket: null,
+          listen: (port, callback) => {
+            server.on('request', async (req, res) => {
+              if (typeof ThirstyServer.onHandle === 'function') {
+                let body = '';
+                req.on('data', chunk => { body += chunk; });
+                req.on('end', async () => {
+                  const request = { method: req.method, url: req.url, headers: req.headers, body: body };
+                  const response = await ThirstyServer.onHandle(request);
+                  res.writeHead(response.status || 200, response.headers || { 'Content-Type': 'text/plain' });
+                  res.end(typeof response.body === 'string' ? response.body : JSON.stringify(response.body));
+                });
+              } else {
+                res.writeHead(200);
+                res.end('Thirsty-Lang Sovereign Server Active');
+              }
+            });
+            wss = new WebSocketServer({ server });
+            wss.on('connection', (ws, req) => {
+              if (typeof ThirstyServer.onWebSocket === 'function') {
+                const client = {
+                  send: (data) => ws.send(typeof data === 'string' ? data : JSON.stringify(data)),
+                  onMessage: null,
+                  onClose: null
+                };
+                ws.on('message', (msg) => {
+                  if (typeof client.onMessage === 'function') client.onMessage(msg.toString());
+                });
+                ws.on('close', () => {
+                  if (typeof client.onClose === 'function') client.onClose();
+                });
+                ThirstyServer.onWebSocket(client, { url: req.url, headers: req.headers });
+              }
+            });
+            server.listen(port, callback);
+          },
+          stop: () => {
+            if (wss) wss.close();
+            server.close();
           }
+        };
+        return ThirstyServer;
+      },
+      _createFetch: (Http) => {
+        return (url, options = {}) => {
+          if (options.method === 'POST') return Http.post(url, options.body);
+          return Http.get(url);
         };
       }
     },
 
     JSON: {
       __builtin: true,
-
-      /**
-       * Parse JSON string into Thirsty-Lang value
-       * Supports all JSON types: null, boolean, number, string, array, object
-       * Handles nested structures and provides detailed error messages
-       * @param {string} jsonString - JSON string to parse
-       * @returns {*} Parsed value (null, boolean, number, string, array, or object)
-       * @throws {Error} If JSON is malformed or invalid
-       */
-      parse: (jsonString) => {
-        // Validate input type
-        if (typeof jsonString !== 'string') {
-          throw new Error(`JSON.parse expects a string, got ${typeof jsonString}`);
-        }
-
-        // Handle empty string
-        if (jsonString.trim() === '') {
-          throw new Error('JSON.parse cannot parse empty string');
-        }
-
-        try {
-          // Use native JSON.parse for robust parsing
-          const result = JSON.parse(jsonString);
-
-          // Convert JavaScript null to Thirsty-Lang null (undefined in variables)
-          // Arrays and objects are already compatible with Thirsty-Lang
-          return result;
-        } catch (error) {
-          // Enhance error message with position information
-          const match = error.message.match(/position (\d+)/);
-          if (match) {
-            const pos = parseInt(match[1], 10);
-            const context = jsonString.substring(Math.max(0, pos - 20), Math.min(jsonString.length, pos + 20));
-            throw new Error(`JSON.parse failed at position ${pos}: ${error.message}\nContext: ...${context}...`);
-          }
-          throw new Error(`JSON.parse failed: ${error.message}`);
-        }
-      },
-
-      /**
-       * Convert Thirsty-Lang value to JSON string
-       * Supports all Thirsty-Lang types with configurable formatting
-       * Detects circular references to prevent infinite loops
-       * @param {*} value - Value to stringify (null, boolean, number, string, array, object, fountain)
-       * @param {Function|Array|null} replacer - Optional replacer function or whitelist array
-       * @param {string|number} space - Optional indentation (number of spaces or string)
-       * @returns {string} JSON string representation
-       * @throws {Error} If value contains circular references or unsupported types
-       */
-      stringify: (value, replacer = null, space = undefined) => {
-        // Track visited objects for circular reference detection
-        const seen = new WeakSet();
-
-        /**
-         * Custom replacer that handles Thirsty-Lang types and circular references
-         */
-        const thirstyReplacer = (key, val) => {
-          // Handle circular references
-          if (val !== null && typeof val === 'object') {
-            if (seen.has(val)) {
-              throw new Error(`JSON.stringify cannot serialize circular references (found at key "${key}")`);
-            }
-            seen.add(val);
-          }
-
-          // Handle Thirsty-Lang specific types
-
-          // Handle functions (cannot be serialized to JSON)
-          if (typeof val === 'function') {
-            // Check if it's a Thirsty-Lang function with metadata
-            if (val.__thirstyFunction) {
-              // Return function metadata instead of undefined
-              return {
-                __type: 'ThirstyFunction',
-                name: val.__name || 'anonymous',
-                params: val.__params || [],
-                body: val.__body || ''
-              };
-            }
-            // Regular functions become undefined in JSON
-            return undefined;
-          }
-
-          // Handle Thirsty-Lang classes
-          if (val && val.__thirstyClass) {
-            return {
-              __type: 'ThirstyClass',
-              name: val.__className || 'anonymous',
-              properties: Object.keys(val).filter(k => !k.startsWith('__'))
-            };
-          }
-
-          // Handle undefined (convert to null for JSON compatibility)
-          if (val === undefined) {
-            return null;
-          }
-
-          // Handle built-in markers
-          if (val && val.__builtin) {
-            return '[Built-in Object]';
-          }
-
-          // Apply user-provided replacer if exists
-          if (typeof replacer === 'function') {
-            return replacer(key, val);
-          }
-
-          return val;
-        };
-
-        // Handle whitelist array replacer
-        if (Array.isArray(replacer)) {
-          const whitelist = replacer;
-          const whitelistReplacer = (key, val) => {
-            if (key === '' || whitelist.includes(key)) {
-              return thirstyReplacer(key, val);
-            }
-            return undefined;
-          };
-
-          try {
-            return JSON.stringify(value, whitelistReplacer, space);
-          } catch (error) {
-            throw new Error(`JSON.stringify failed: ${error.message}`);
-          }
-        }
-
-        // Combine user replacer with Thirsty-Lang replacer
-        const combinedReplacer = (key, val) => {
-          const thirstyVal = thirstyReplacer(key, val);
-          if (typeof replacer === 'function') {
-            return replacer(key, thirstyVal);
-          }
-          return thirstyVal;
-        };
-
-        try {
-          return JSON.stringify(value, combinedReplacer, space);
-        } catch (error) {
-          // Provide more helpful error messages
-          if (error.message.includes('circular')) {
-            throw error; // Already handled by our custom logic
-          }
-          throw new Error(`JSON.stringify failed: ${error.message}`);
-        }
-      },
-
-      /**
-       * Check if a string is valid JSON
-       * Non-throwing validation method
-       * @param {string} jsonString - String to validate
-       * @returns {boolean} True if valid JSON, false otherwise
-       */
+      parse: (jsonString) => JSON.parse(jsonString),
+      stringify: (value, replacer = null, space = 2) => JSON.stringify(value, replacer, space),
       isValid: (jsonString) => {
-        if (typeof jsonString !== 'string') {
-          return false;
-        }
-
-        if (jsonString.trim() === '') {
-          return false;
-        }
-
-        try {
-          JSON.parse(jsonString);
-          return true;
-        } catch (error) {
-          return false;
-        }
-      },
-
-      /**
-       * Deep clone a value using JSON serialization
-       * Warning: Loses functions, symbols, and other non-JSON-serializable data
-       * @param {*} value - Value to clone
-       * @returns {*} Deep cloned value
-       * @throws {Error} If value contains circular references
-       */
-      clone: (value) => {
-        try {
-          // Simple deep clone via JSON round-trip
-          // Note: This loses functions and other non-serializable data
-          const jsonStr = JSON.stringify(value);
-          return JSON.parse(jsonStr);
-        } catch (error) {
-          throw new Error(`JSON.clone failed: ${error.message}`);
-        }
-      },
-
-      /**
-       * Compare two values for deep equality using JSON serialization
-       * @param {*} a - First value
-       * @param {*} b - Second value
-       * @returns {boolean} True if values are deeply equal
-       */
-      equals: (a, b) => {
-        try {
-          // Use JSON serialization for deep comparison
-          // Note: This may not work correctly for objects with different key orders
-          return JSON.stringify(a) === JSON.stringify(b);
-        } catch (error) {
-          // If serialization fails, fall back to reference equality
-          return a === b;
-        }
+        try { JSON.parse(jsonString); return true; } catch { return false; }
       }
     }
   };
+
+  return stdlib;
 }
+
+module.exports = { initializeStandardLibrary };
 
 module.exports = { initializeStandardLibrary };

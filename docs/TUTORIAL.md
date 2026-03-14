@@ -105,11 +105,8 @@ pour b
 pour c
 ```
 
-<<<<<<< HEAD
 1. Run the debugger:
-=======
 2. Run the debugger:
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ```bash
 npm run debug debug_example.thirsty
@@ -209,17 +206,14 @@ npm run train
 
 This interactive program guides you through:
 
-<<<<<<< HEAD
 1. Thirsty-Lang fundamentals
 2. Thirst of Gods control flow
 3. T.A.R.L. functions, loops, and security
 4. Thirsty's Shadow advanced features
-=======
 1. Base Thirsty-lang fundamentals
 2. Thirsty+ control flow
 3. Thirsty++ functions and loops
 4. ThirstOfGods advanced features
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 
 ## Practice Exercises
 

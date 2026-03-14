@@ -6,11 +6,8 @@ Thirsty-Lang comes in four tiers to suit different levels of thirst! 💧
 
 The core language with fundamental features:
 
-<<<<<<< HEAD
-=======
 The core language with basic features:
 
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - Variable declaration (`drink`)
 - Output (`pour`)
 - Comments
@@ -35,15 +32,12 @@ Enhanced features for intermediate users:
 - `parched` - Boolean true
 - `quenched` - Boolean false
 
-<<<<<<< HEAD
 ### Thirst of Gods Example
 
 ```thirsty
-=======
 ### Example
 
 ```thirstyplus
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 drink temperature = 25
 thirsty temperature > 20
   pour "It's warm! Drink more water!"
@@ -67,11 +61,8 @@ Advanced features for power users — Tactical Analysis & Response Language:
 
 ### T.A.R.L. Keywords
 
-<<<<<<< HEAD
-=======
 ### Keywords
 
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - `refill condition` - While loop
 - `glass name(params)` - Function definition
 - `sip` - Input from user
@@ -81,15 +72,12 @@ Advanced features for power users — Tactical Analysis & Response Language:
 - `sanitize` - Input cleaning
 - `armor` - Memory protection
 
-<<<<<<< HEAD
 ### T.A.R.L. Example
 
 ```thirsty
-=======
 ### Example
 
 ```thirstyplusplus
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 glass calculateHydration(weight) {
   drink dailyWater = weight * 0.033
   return dailyWater
@@ -134,25 +122,19 @@ The most powerful tier with shadow-realm capabilities:
 
 ### Shadow Keywords
 
-<<<<<<< HEAD
-=======
 ### Keywords
 
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 - `fountain ClassName` - Class declaration
 - `this` - Reference to instance properties
 - `cascade` - Async function
 - `morph` - Code obfuscation
 
-<<<<<<< HEAD
 ### Shadow Example
 
 ```thirsty
-=======
 ### Example
 
 ```thirstofgods
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 fountain HydrationTracker {
   drink totalWater = 0
   drink goal = 2000
@@ -204,13 +186,10 @@ tracker.checkGoal()
 All tiers are currently available in the standard Thirsty-Lang interpreter:
 
 ```bash
-<<<<<<< HEAD
 # Run any Thirsty-Lang program
-=======
 
 # Run any Thirsty-lang program
 
->>>>>>> 6adac05eb16ea0a433fc45859d939d6b5ee167f6
 npm start examples/hello.thirsty
 npm start examples/functions.thirsty
 npm start examples/arrays.thirsty
