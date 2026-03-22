@@ -1,0 +1,24 @@
+{
+  "grammars": [
+    {
+      "name": "utf",
+      "camelcase": "UTF",
+      "scope": "source.thirsty",
+      "file-types": [
+        "thirsty",
+        "thirstyplus",
+        "thirstyplusplus",
+        "thirstofgods",
+        "tog",
+        "tarl",
+        "shadow",
+        "tscg",
+        "tscgb"
+      ],
+      "highlights": "queries/highlights.scm",
+      "tags": "queries/tags.scm",
+      "locals": "queries/locals.scm",
+      "injection-regex": "utf|thirsty|tarl|tscg"
+    }
+  ]
+}

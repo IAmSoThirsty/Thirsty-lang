@@ -12,29 +12,88 @@
 #   5. TSCG               — Thirsty's Symbolic Compression Grammar
 #   6. TSCG-B             — TSCG (Binary)
 #
-Thirsty-lang:
+Thirsty-Lang:
   type: programming
   color: "#00BFFF"
   aliases:
     - thirsty
     - thirsty-lang
-    - thirst-of-gods
-    - tarl
-    - shadow-thirst
-    - tscg
-    - tscg-b
   extensions:
     - ".thirsty"
-    - ".thirstofgods"
-    - ".tog"
-    - ".tarl"
-    - ".shadow"
-    - ".tscg"
-    - ".tscgb"
+    - ".thirstyplus"
+    - ".thirstyplusplus"
   tm_scope: source.thirsty
   ace_mode: text
   language_id: 472923847
   interpreters:
     - node
     - python3
-  group: Thirsty-lang
+
+Thirst of Gods:
+  type: programming
+  color: "#4FC3F7"
+  aliases:
+    - thirst-of-gods
+    - tog
+  extensions:
+    - ".thirstofgods"
+    - ".tog"
+  tm_scope: source.thirsty
+  ace_mode: text
+  language_id: 472923848
+  interpreters:
+    - node
+    - python3
+
+T.A.R.L.:
+  type: programming
+  color: "#0077B6"
+  aliases:
+    - tarl
+    - thirstys-active-resistance-language
+  extensions:
+    - ".tarl"
+  tm_scope: source.thirsty
+  ace_mode: text
+  language_id: 472923849
+  interpreters:
+    - python3
+
+Shadow Thirst:
+  type: programming
+  color: "#4B5D67"
+  aliases:
+    - shadow-thirst
+    - thirstys-shadow
+  extensions:
+    - ".shadow"
+  tm_scope: source.thirsty
+  ace_mode: text
+  language_id: 472923850
+  interpreters:
+    - node
+    - python3
+
+TSCG:
+  type: programming
+  color: "#2A9D8F"
+  aliases:
+    - tscg
+    - thirstys-symbolic-compression-grammar
+  extensions:
+    - ".tscg"
+  tm_scope: source.thirsty
+  ace_mode: text
+  language_id: 472923851
+
+TSCG-B:
+  type: programming
+  color: "#264653"
+  aliases:
+    - tscg-b
+    - tscgb
+  extensions:
+    - ".tscgb"
+  tm_scope: source.thirsty
+  ace_mode: text
+  language_id: 472923852

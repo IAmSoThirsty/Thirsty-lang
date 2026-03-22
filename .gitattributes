@@ -13,23 +13,25 @@
 #   6. TSCG-B             — TSCG (Binary)
 
 # 1. Thirsty-Lang (Main)
-*.thirsty linguist-language=Thirsty-lang linguist-detectable
+*.thirsty linguist-language=thirsty-lang linguist-detectable
+*.thirstyplus linguist-language=thirsty-lang linguist-detectable
+*.thirstyplusplus linguist-language=thirsty-lang linguist-detectable
 
 # 2. Thirst of Gods (Higher Functions)
-*.thirstofgods linguist-language=Thirsty-lang linguist-detectable
-*.tog linguist-language=Thirsty-lang linguist-detectable
+*.thirstofgods linguist-language=thirst-of-gods linguist-detectable
+*.tog linguist-language=thirst-of-gods linguist-detectable
 
 # 3. T.A.R.L. (Defensive Programming)
-*.tarl linguist-language=Thirsty-lang linguist-detectable
+*.tarl linguist-language=tarl linguist-detectable
 
 # 4. Shadow Thirst (Dual Plane)
-*.shadow linguist-language=Thirsty-lang linguist-detectable
+*.shadow linguist-language=shadow-thirst linguist-detectable
 
 # 5. TSCG (Symbolic Compression Grammar)
-*.tscg linguist-language=Thirsty-lang linguist-detectable
+*.tscg linguist-language=tscg linguist-detectable
 
 # 6. TSCG-B (Binary)
-*.tscgb linguist-language=Thirsty-lang linguist-detectable
+*.tscgb linguist-language=tscg-b linguist-detectable
 
 # ───────────────────────────────────────────────────────────
 # Ensure examples count in language statistics
@@ -49,3 +51,4 @@ __pycache__/** linguist-vendored
 dist/** linguist-vendored
 build/** linguist-vendored
 vscode-extension/** linguist-vendored
+thirsty-extension/** linguist-vendored

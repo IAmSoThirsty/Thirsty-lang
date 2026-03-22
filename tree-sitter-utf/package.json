@@ -1,0 +1,24 @@
+{
+  "name": "tree-sitter-utf",
+  "version": "0.1.0",
+  "description": "Tree-sitter grammar scaffold for the Universal Thirsty Family",
+  "license": "MIT",
+  "keywords": [
+    "tree-sitter",
+    "utf",
+    "thirsty-lang",
+    "thirst-of-gods",
+    "tarl",
+    "shadow-thirst",
+    "tscg",
+    "tscg-b"
+  ],
+  "files": [
+    "grammar.js",
+    "queries",
+    "tree-sitter.json"
+  ],
+  "devDependencies": {
+    "tree-sitter-cli": "^0.22.6"
+  }
+}

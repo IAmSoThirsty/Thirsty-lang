@@ -1,15 +1,23 @@
-# Thirsty-Lang for VS Code 💧
+# ============================================================================ #
+#                                           [2026-03-18 20:20]
+#                                          Productivity: Active
+# STATUS: ACTIVE | TIER: MASTER | DATE: 2026-03-18 | TIME: 20:20             #
+# COMPLIANCE: Sovereign Substrate / Integrated Service: thirsty-lang-engine / README.md
+# ============================================================================ #
+# UTF for VS Code
 
-**Full language support for the [Thirsty language family](https://github.com/IAmSoThirsty/Thirsty-Lang)** — syntax highlighting, code snippets, and language configuration for all four tiers.
+**Full language support for the Universal Thirsty Family (UTF)** — syntax highlighting, snippets, and language configuration for the six official UTF languages.
 
-## The Hydration Language Family
+## The Universal Thirsty Family
 
 | Tier | Extension | Description |
 |---|---|---|
-| **Thirsty-Lang** | `.thirsty` | Core water-themed programming |
-| **Thirst of Gods** | `.tog` | Divine-tier capabilities |
-| **T.A.R.L.** | `.tarl` | Tactical security & analysis |
-| **Thirsty's Shadow** | `.shadow` | Shadow computing & dual-reality |
+| **Thirsty-Lang** | `.thirsty`, `.thirstyplus`, `.thirstyplusplus` | Core water-themed programming |
+| **Thirst of Gods** | `.thirstofgods`, `.tog` | Divine-tier orchestration |
+| **T.A.R.L.** | `.tarl` | Tactical security and resistance logic |
+| **Shadow Thirst** | `.shadow` | Dual-plane and shadow execution |
+| **TSCG** | `.tscg` | Thirsty's Symbolic Compression Grammar |
+| **TSCG-B** | `.tscgb` | Binary framing layer for TSCG |
 ### Manual Installation
 
 1. Copy this entire `vscode-extension` folder
@@ -31,10 +39,10 @@ ln -s "$(pwd)/vscode-extension" ~/.vscode/extensions/thirsty-lang
 
 ## Features
 
-- 🎨 **Syntax Highlighting** — Full TextMate grammar for all Thirsty-Lang keywords
+- 🎨 **Syntax Highlighting** — Shared TextMate grammar across the full UTF stack
 - ✂️ **Code Snippets** — Quick templates for common patterns
 - 📝 **Language Configuration** — Auto-closing brackets, comment toggling, indentation rules
-- 📁 **All Four Tiers** — `.thirsty`, `.tog`, `.tarl`, and `.shadow` files recognized
+- 📁 **Six Official Languages** — `.thirsty`, `.thirstofgods`, `.tog`, `.tarl`, `.shadow`, `.tscg`, and `.tscgb` files recognized
 
 ## Syntax Preview
 
@@ -87,7 +95,7 @@ refill glasses < 8 {
 
 1. Open VS Code
 2. Press `Ctrl+Shift+X` (Extensions)
-3. Search for **"Thirsty-Lang"**
+3. Search for **"UTF Language Support"**
 4. Click **Install**
 
 ### From VSIX
@@ -106,6 +114,7 @@ code --install-extension Thirsty-Lang-1.0.0.vsix
 - [Language Specification](https://github.com/IAmSoThirsty/Thirsty-Lang/blob/main/docs/SPECIFICATION.md)
 - [npm Package](https://www.npmjs.com/package/Thirsty-Lang)
 - [PyPI Package](https://pypi.org/project/Thirsty-Lang/)
+- [Recognition Guide](../UTF_RECOGNITION.md)
 
 ## License
 
@@ -113,4 +122,4 @@ MIT — See [LICENSE](LICENSE)
 
 ---
 
-**Stay hydrated and happy coding! 💧**
+**Stay hydrated and ship sovereign languages.**

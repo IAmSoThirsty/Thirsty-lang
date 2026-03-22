@@ -1,0 +1,87 @@
+{
+  "family_name": "Universal Thirsty Family",
+  "shared_tm_scope": "source.thirsty",
+  "languages": [
+    {
+      "name": "Thirsty-Lang",
+      "vscode_id": "thirsty-lang",
+      "gitattributes_alias": "thirsty-lang",
+      "sample_dir": "Thirsty-lang",
+      "aliases": [
+        "thirsty",
+        "thirsty-lang"
+      ],
+      "extensions": [
+        ".thirsty",
+        ".thirstyplus",
+        ".thirstyplusplus"
+      ]
+    },
+    {
+      "name": "Thirst of Gods",
+      "vscode_id": "thirst-of-gods",
+      "gitattributes_alias": "thirst-of-gods",
+      "sample_dir": "Thirst of Gods",
+      "aliases": [
+        "thirst-of-gods",
+        "tog"
+      ],
+      "extensions": [
+        ".thirstofgods",
+        ".tog"
+      ]
+    },
+    {
+      "name": "T.A.R.L.",
+      "vscode_id": "tarl",
+      "gitattributes_alias": "tarl",
+      "sample_dir": "T.A.R.L",
+      "aliases": [
+        "tarl",
+        "thirstys-active-resistance-language"
+      ],
+      "extensions": [
+        ".tarl"
+      ]
+    },
+    {
+      "name": "Shadow Thirst",
+      "vscode_id": "shadow-thirst",
+      "gitattributes_alias": "shadow-thirst",
+      "sample_dir": "Shadow Thirst",
+      "aliases": [
+        "shadow-thirst",
+        "thirstys-shadow"
+      ],
+      "extensions": [
+        ".shadow"
+      ]
+    },
+    {
+      "name": "TSCG",
+      "vscode_id": "tscg",
+      "gitattributes_alias": "tscg",
+      "sample_dir": "TSCG",
+      "aliases": [
+        "tscg",
+        "thirstys-symbolic-compression-grammar"
+      ],
+      "extensions": [
+        ".tscg"
+      ]
+    },
+    {
+      "name": "TSCG-B",
+      "vscode_id": "tscg-b",
+      "gitattributes_alias": "tscg-b",
+      "sample_dir": "TSCG-B",
+      "aliases": [
+        "tscg-b",
+        "tscgb"
+      ],
+      "extensions": [
+        ".tscgb"
+      ]
+    }
+  ]
+}

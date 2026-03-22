@@ -1,7 +1,7 @@
 {
-  "name": "Thirsty-Lang",
-  "displayName": "Thirsty-Lang — The Hydration Language Family",
-  "description": "Language support for the Thirsty language family: Thirsty-Lang, Thirst of Gods, T.A.R.L., and Thirsty's Shadow",
+  "name": "thirsty-lang-utf",
+  "displayName": "UTF Language Support",
+  "description": "Language support for the Universal Thirsty Family: Thirsty-Lang, Thirst of Gods, T.A.R.L., Shadow Thirst, TSCG, and TSCG-B",
   "version": "1.0.0",
   "publisher": "IAmSoThirsty",
   "icon": "icon.png",
@@ -23,7 +23,10 @@
     "Thirsty-Lang",
     "thirst-of-gods",
     "tarl",
-    "thirstys-shadow",
+    "shadow-thirst",
+    "utf",
+    "tscg",
+    "tscg-b",
     "programming-language",
     "water",
     "hydration",
@@ -40,22 +43,73 @@
   "contributes": {
     "languages": [
       {
-        "id": "thirsty",
+        "id": "thirsty-lang",
         "aliases": [
-          "Thirsty-lang",
-          "Thirst of Gods",
-          "T.A.R.L.",
-          "Shadow Thirst",
-          "TSCG",
-          "TSCG-B"
+          "Thirsty-Lang",
+          "thirsty"
         ],
         "extensions": [
           ".thirsty",
+          ".thirstyplus",
+          ".thirstyplusplus"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "thirst-of-gods",
+        "aliases": [
+          "Thirst of Gods",
+          "thirst-of-gods",
+          "tog"
+        ],
+        "extensions": [
           ".thirstofgods",
-          ".tog",
-          ".tarl",
-          ".shadow",
-          ".tscg",
+          ".tog"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "tarl",
+        "aliases": [
+          "T.A.R.L.",
+          "TARL",
+          "tarl"
+        ],
+        "extensions": [
+          ".tarl"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "shadow-thirst",
+        "aliases": [
+          "Shadow Thirst",
+          "shadow-thirst"
+        ],
+        "extensions": [
+          ".shadow"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "tscg",
+        "aliases": [
+          "TSCG",
+          "tscg"
+        ],
+        "extensions": [
+          ".tscg"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "tscg-b",
+        "aliases": [
+          "TSCG-B",
+          "tscg-b",
+          "tscgb"
+        ],
+        "extensions": [
           ".tscgb"
         ],
         "configuration": "./language-configuration.json"
@@ -63,14 +117,59 @@
     ],
     "grammars": [
       {
-        "language": "thirsty",
+        "language": "thirsty-lang",
+        "scopeName": "source.thirsty",
+        "path": "./syntaxes/thirsty.tmLanguage.json"
+      },
+      {
+        "language": "thirst-of-gods",
+        "scopeName": "source.thirsty",
+        "path": "./syntaxes/thirsty.tmLanguage.json"
+      },
+      {
+        "language": "tarl",
+        "scopeName": "source.thirsty",
+        "path": "./syntaxes/thirsty.tmLanguage.json"
+      },
+      {
+        "language": "shadow-thirst",
+        "scopeName": "source.thirsty",
+        "path": "./syntaxes/thirsty.tmLanguage.json"
+      },
+      {
+        "language": "tscg",
+        "scopeName": "source.thirsty",
+        "path": "./syntaxes/thirsty.tmLanguage.json"
+      },
+      {
+        "language": "tscg-b",
         "scopeName": "source.thirsty",
         "path": "./syntaxes/thirsty.tmLanguage.json"
       }
     ],
     "snippets": [
       {
-        "language": "thirsty",
+        "language": "thirsty-lang",
+        "path": "./snippets/thirsty.json"
+      },
+      {
+        "language": "thirst-of-gods",
+        "path": "./snippets/thirsty.json"
+      },
+      {
+        "language": "tarl",
+        "path": "./snippets/thirsty.json"
+      },
+      {
+        "language": "shadow-thirst",
+        "path": "./snippets/thirsty.json"
+      },
+      {
+        "language": "tscg",
+        "path": "./snippets/thirsty.json"
+      },
+      {
+        "language": "tscg-b",
         "path": "./snippets/thirsty.json"
       }
     ]
