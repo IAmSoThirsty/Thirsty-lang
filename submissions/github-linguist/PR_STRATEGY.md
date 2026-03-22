@@ -37,6 +37,22 @@ Upstream strategy truth:
 That is not surrendering the architecture.
 It is sequencing recognition so the public ecosystem can ingest UTF in stages.
 
+## Confirmed Local Commit Series
+
+The local Linguist mirror now confirms this staging is not hypothetical.
+There is already a Phase 1 commit on the mirror's `main` branch:
+
+- `60d0b314` `Add support for Thirsty-lang`
+
+And the UTF family expansion is the next layer on top:
+
+- `b8475fab` `Add UTF language entries and sample corpus`
+
+That makes the filing sequence concrete:
+
+1. upstream Phase 1 first
+2. upstream Phase 2 only after the ecosystem and evidence justify it
+
 ## Phase 1 Candidate
 
 The Phase 1 ask should most likely be:

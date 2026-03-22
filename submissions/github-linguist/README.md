@@ -16,6 +16,8 @@ It is designed to answer four practical questions:
 - [SEARCH_QUERIES.md](./SEARCH_QUERIES.md)
 - [SAMPLE_INDEX.md](./SAMPLE_INDEX.md)
 - [build_submission_bundle.py](./build_submission_bundle.py)
+- [UPSTREAM_SERIES.md](./UPSTREAM_SERIES.md)
+- [export_upstream_series.py](./export_upstream_series.py)
 
 ## What Is Ready
 
@@ -47,3 +49,14 @@ python build_submission_bundle.py --phase phase-2
 
 `phase-1` builds the safer umbrella-language bundle.
 `phase-2` builds the full six-language UTF bundle for later filing rounds.
+
+To export the actual Linguist patch series discovered in the local mirror:
+
+```bash
+python export_upstream_series.py
+```
+
+That will emit:
+
+- the Phase 1 upstream patch: `origin/main -> main`
+- the Phase 2 follow-on patch: `main -> codex/utf-recognition-submission`
