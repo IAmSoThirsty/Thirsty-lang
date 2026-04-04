@@ -118,8 +118,8 @@ This is the **100% Real Production** release of Thirsty-lang! The language is no
 ### Language Features
 
 - 💧 **Base Thirsty-lang**: Core features for beginners
-- 💧+ **Thirst of Gods**: Control flow and conditionals
-- 💧++ **T.A.R.L.**: Functions, loops, and arrays
+- 💧 **Thirst of Gods**: Control flow and conditionals
+- 💧 **T.A.R.L.**: Functions, loops, and arrays
 - ⚡ **Shadow Thirst**: Advanced OOP and async features
 
 ### Tools & Infrastructure

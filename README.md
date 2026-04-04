@@ -226,8 +226,8 @@ npm run train
 The training program includes:
 
 - 💧 **Base Thirsty-lang**: Fundamentals for beginners
-- 💧+ **Thirst of Gods**: Control flow and logic
-- 💧++ **T.A.R.L.**: Functions and loops
+- 💧 **Thirst of Gods**: Control flow and logic
+- 💧 **T.A.R.L.**: Functions and loops
 - ⚡ **Shadow Thirst**: Advanced OOP and async features
 
 ### Running Thirsty-lang Programs
@@ -563,8 +563,8 @@ Thirsty-lang comes in six tiers as part of the Universal Thirsty Family (UTF):
 | Edition | Tier | Features | Status |
 |---------|-------|----------|--------|
 | 💧 **Base** | Tier 1 | Variables (`drink`), Output (`pour`), Comments | ✅ Implemented |
-| 💧+ **Thirst of Gods** | Tier 2 | Control flow (`thirsty`/`hydrated`), Loops (`refill`), Operators | ✅ Implemented |
-| 💧++ **T.A.R.L.** | Tier 3 | Functions (`glass`), Arrays (`reservoir`), Standard Library, Security | ✅ Implemented |
+| 💧 **Thirst of Gods** | Tier 2 | Control flow (`thirsty`/`hydrated`), Loops (`refill`), Operators | ✅ Implemented |
+| 💧 **T.A.R.L.** | Tier 3 | Functions (`glass`), Arrays (`reservoir`), Standard Library, Security | ✅ Implemented |
 | ⚡ **Shadow Thirst** | Tier 4 | Classes (`fountain`), OOP, Advanced Data Structures, Async/Await | ✅ Implemented |
 | 🗜️ **TSCG** | Tier 5 | Symbolic Compression Grammar - Code compression and tokenization | ✅ Implemented |
 | 📦 **TSCG-B** | Tier 6 | Binary Encoding - Ultra-compact binary format (~20 byte payloads) | ✅ Implemented |
@@ -608,7 +608,7 @@ See [docs/TSCG.md](docs/TSCG.md) for complete TSCG documentation.
 - ✅ Comments (`//`)
 - ✅ Basic string and number literals
 
-#### 💧+ Thirst of Gods
+#### 💧 Thirst of Gods
 
 **All Base features, plus:**
 
@@ -618,7 +618,7 @@ See [docs/TSCG.md](docs/TSCG.md) for complete TSCG documentation.
 - ✅ String concatenation
 - ✅ Boolean values
 
-#### 💧++ T.A.R.L.
+#### 💧 T.A.R.L.
 
 **All Thirst of Gods features, plus:**
 
