@@ -16,7 +16,7 @@
  *   import <input> <output>    Import JSON to TSCG-B
  */
 
-const TSCGManager = require('./index');
+const TSCGManager = require('./tscg/index');
 const path = require('path');
 
 // Parse command line arguments
