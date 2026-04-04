@@ -1,6 +1,6 @@
+#!/usr/bin/env node
 //                                           [2026-03-03 13:45]
 //                                          Productivity: Active
-#!/usr/bin/env node
 
 /**
  * Security Bridge Integration Tests
@@ -87,12 +87,12 @@ async function runTests() {
     console.log('\nTest 5: Get bridge metrics');
     try {
       const metrics = bridge.getBridgeMetrics();
-      
-      if (metrics && metrics.requests !== undefined) {
+
+      if (metrics && metrics.bridge && metrics.bridge.requests !== undefined) {
         console.log('✓ Bridge metrics retrieved');
-        console.log('  Requests:', metrics.requests);
-        console.log('  Successes:', metrics.successes);
-        console.log('  Avg response time:', metrics.avgResponseTime.toFixed(2), 'ms');
+        console.log('  Requests:', metrics.bridge.requests);
+        console.log('  Successes:', metrics.bridge.successes);
+        console.log('  Avg response time:', metrics.bridge.avgResponseTime.toFixed(2), 'ms');
         passed++;
       } else {
         console.log('✗ Bridge metrics failed');

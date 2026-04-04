@@ -1,6 +1,6 @@
+#!/usr/bin/env node
 //                                           [2026-03-03 13:45]
 //                                          Productivity: Active
-#!/usr/bin/env node
 
 /**
  * Security Bridge - Connects JavaScript runtime to Python T.A.R.L. runtime
