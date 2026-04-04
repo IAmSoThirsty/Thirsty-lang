@@ -7,7 +7,8 @@
     "thirsty": "./src/thirsty-cli.js",
     "thirsty-repl": "./src/repl.js",
     "thirsty-debug": "./src/debugger.js",
-    "thirsty-pkg": "./src/package-manager.js"
+    "thirsty-pkg": "./src/package-manager.js",
+    "thirsty-compress": "./src/tscg-cli.js"
   },
   "scripts": {
     "start": "node src/cli.js",
@@ -17,7 +18,8 @@
     "test:base": "node src/test/runner.js",
     "test:security": "node src/test/security-integration-tests.js",
     "test:bridge": "node src/test/bridge-tests.js",
-    "test:all": "npm test && npm run test:security && npm run test:bridge",
+    "test:tscg": "node src/test/tscg-tests.js",
+    "test:all": "npm test && npm run test:security && npm run test:bridge && npm run test:tscg",
     "test:plus": "echo 'Thirst of Gods tests coming soon'",
     "test:plusplus": "echo 'T.A.R.L. tests coming soon'",
     "test:gods": "echo 'Shadow Thirst tests coming soon'",
@@ -55,7 +57,11 @@
     "tarl",
     "defensive-programming",
     "threat-detection",
-    "policy-engine"
+    "policy-engine",
+    "compression",
+    "tscg",
+    "binary-encoding",
+    "symbolic-compression"
   ],
   "author": "IAmSoThirsty",
   "license": "SEE LICENSE IN LICENSE",

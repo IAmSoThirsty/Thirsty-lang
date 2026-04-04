@@ -558,14 +558,45 @@ See [PYTHON_SETUP.md](PYTHON_SETUP.md) for detailed Python setup and usage.
 
 ## Language Editions
 
-Thirsty-lang comes in four flavors, each building on the previous:
+Thirsty-lang comes in six tiers as part of the Universal Thirsty Family (UTF):
 
-| Edition | Level | Features | Status |
+| Edition | Tier | Features | Status |
 |---------|-------|----------|--------|
-| 💧 **Base** | Beginner | Variables (`drink`), Output (`pour`), Comments | ✅ Implemented |
-| 💧+ **Thirst of Gods** | Intermediate | Control flow (`thirsty`/`hydrated`), Loops (`refill`), Operators | ✅ Implemented |
-| 💧++ **T.A.R.L.** | Advanced | Functions (`glass`), Arrays (`reservoir`), Standard Library | ✅ Implemented |
-| ⚡ **Shadow Thirst** | Master | Classes (`fountain`), OOP, Advanced Data Structures | ✅ Implemented |
+| 💧 **Base** | Tier 1 | Variables (`drink`), Output (`pour`), Comments | ✅ Implemented |
+| 💧+ **Thirst of Gods** | Tier 2 | Control flow (`thirsty`/`hydrated`), Loops (`refill`), Operators | ✅ Implemented |
+| 💧++ **T.A.R.L.** | Tier 3 | Functions (`glass`), Arrays (`reservoir`), Standard Library, Security | ✅ Implemented |
+| ⚡ **Shadow Thirst** | Tier 4 | Classes (`fountain`), OOP, Advanced Data Structures, Async/Await | ✅ Implemented |
+| 🗜️ **TSCG** | Tier 5 | Symbolic Compression Grammar - Code compression and tokenization | ✅ Implemented |
+| 📦 **TSCG-B** | Tier 6 | Binary Encoding - Ultra-compact binary format (~20 byte payloads) | ✅ Implemented |
+
+### Tier 5 & 6: TSCG Compression
+
+**TSCG (Thirsty Symbolic Compression Grammar)** provides repository-wide compression capabilities:
+
+```bash
+# Compress entire repository
+thirsty-compress compress . my-repo.tscg
+
+# Decompress repository
+thirsty-compress decompress my-repo.tscg ./restored
+
+# Create micro payload for single file
+thirsty-compress micro hello.thirsty hello.tscg
+
+# Verify compressed file
+thirsty-compress verify my-repo.tscg
+```
+
+**Features:**
+- Symbolic tokenization and compression (Tier 5)
+- Binary encoding with variable-length integers (Tier 6)
+- Hash-stable compression for verification
+- Git-aware file scanning with .gitignore support
+- Compress entire repositories or single files
+- Export/import to JSON for inspection
+- Target: ~20 byte payloads for micro compression
+
+See [docs/TSCG.md](docs/TSCG.md) for complete TSCG documentation.
 
 ### Feature Matrix by Edition
 
