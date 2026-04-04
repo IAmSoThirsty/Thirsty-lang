@@ -1,3 +1,5 @@
+<!--                                         [2026-03-03 13:45] -->
+<!--                                        Productivity: Active -->
 # VS Code Extension for Thirsty-lang
 
 This directory contains the VS Code extension for Thirsty-lang with syntax highlighting and code snippets.

@@ -1,4 +1,7 @@
+#                                           [2026-03-03 13:45]
+#                                          Productivity: Active
 """TARL Policy - Policy evaluation framework"""
+
 from collections.abc import Callable
 from typing import Any
 
@@ -7,6 +10,7 @@ from .spec import TarlDecision
 
 class TarlPolicy:
     """Policy with name and evaluation rule"""
+
     def __init__(self, name: str, rule: Callable[[dict[str, Any]], TarlDecision]):
         self.name = name
         self.rule = rule
