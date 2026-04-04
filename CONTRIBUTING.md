@@ -52,9 +52,9 @@ npm start examples/hello.thirsty
 We welcome contributions to all language variants:
 
 - **Thirsty-lang**: The base language
-- **Thirsty+**: Enhanced features
-- **Thirsty++**: Advanced features
-- **ThirstOfGods**: Ultimate power features
+- **Thirst of Gods**: Enhanced features
+- **T.A.R.L.**: Advanced features
+- **Shadow Thirst**: Ultimate power features
 
 ## Testing
 

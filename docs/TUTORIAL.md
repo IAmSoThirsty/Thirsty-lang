@@ -202,9 +202,9 @@ npm run train
 This interactive program guides you through:
 
 1. Base Thirsty-lang fundamentals
-2. Thirsty+ control flow
-3. Thirsty++ functions and loops
-4. ThirstOfGods advanced features
+2. Thirst of Gods control flow
+3. T.A.R.L. functions and loops
+4. Shadow Thirst advanced features
 
 ## Practice Exercises
 
@@ -243,7 +243,7 @@ For your hydration tracker:
 ## Next Steps
 
 - 📚 Read the [Language Specification](SPECIFICATION.md)
-- 🚀 Explore [Expansions](EXPANSIONS.md) (Thirsty+, Thirsty++, ThirstOfGods)
+- 🚀 Explore [Expansions](EXPANSIONS.md) (Thirst of Gods, T.A.R.L., Shadow Thirst)
 - 💡 Check [Advanced Examples](../examples/advanced/)
 - 🤝 Read [Contributing Guidelines](../CONTRIBUTING.md)
 

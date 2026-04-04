@@ -12,7 +12,7 @@ The core language with basic features:
 
 **Use when**: You're just starting your hydration journey.
 
-## Thirsty+ (Thirsty Plus)
+## Thirst of Gods (Tier 2)
 
 Enhanced features for intermediate users:
 
@@ -42,7 +42,7 @@ hydrated
 
 **Use when**: You need basic logic and control flow.
 
-## Thirsty++ (Thirsty Plus Plus)
+## T.A.R.L. (Tier 3)
 
 Advanced features for power users:
 
@@ -87,7 +87,7 @@ pour "Circle area: " + area
 
 **Use when**: Building complex applications with functions and data structures.
 
-## ThirstOfGods (Ultimate Edition)
+## Shadow Thirst (Tier 4)
 
 The most powerful variant with divine capabilities:
 
@@ -145,8 +145,8 @@ tracker.checkGoal()
 
 ## Choosing Your Edition
 
-| Feature | Base | Thirsty+ | Thirsty++ | ThirstOfGods |
-|---------|------|----------|-----------|--------------|
+| Feature | Base | Thirst of Gods | T.A.R.L. | Shadow Thirst |
+|---------|------|----------------|----------|---------------|
 | Variables | ✓ | ✓ | ✓ | ✓ |
 | Output | ✓ | ✓ | ✓ | ✓ |
 | Control Flow | ✗ | ✓ | ✓ | ✓ |
@@ -180,8 +180,8 @@ npm start examples/stdlib.thirsty
 Start with base Thirsty-lang and upgrade as your thirst grows! Each edition is backward compatible with the previous one.
 
 1. **Start with Base**: Learn variables and output
-2. **Move to Thirsty+**: Add control flow and conditionals
-3. **Advance to Thirsty++**: Master functions, arrays, and the standard library
-4. **Ascend to ThirstOfGods**: Embrace object-oriented programming
+2. **Move to Thirst of Gods**: Add control flow and conditionals
+3. **Advance to T.A.R.L.**: Master functions, arrays, and the standard library
+4. **Ascend to Shadow Thirst**: Embrace object-oriented programming
 
 Stay hydrated at every level! 💧✨

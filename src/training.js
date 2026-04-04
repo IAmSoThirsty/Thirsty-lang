@@ -49,39 +49,39 @@ const TRAINING_LEVELS = {
     ]
   },
   plus: {
-    name: '💧+ Thirsty Plus',
+    name: '💧+ Thirst of Gods',
     description: 'Add control flow and logic',
     lessons: [
       {
         title: 'Lesson 1: Conditional Statements',
         instruction: 'Use "thirsty" for if statements (coming soon!).\nExample: thirsty temperature > 30\n  pour "Drink more water!"',
-        hint: 'This feature will be available in the full Thirsty+ release',
+        hint: 'This feature will be available in the full Thirst of Gods release',
         expectedPattern: /.*/,
         validation: () => true
       }
     ]
   },
   plusplus: {
-    name: '💧++ Thirsty Plus Plus',
+    name: '💧++ T.A.R.L.',
     description: 'Master functions and loops',
     lessons: [
       {
         title: 'Lesson 1: Functions',
         instruction: 'Use "glass" to define functions (coming soon!).\nExample: glass hydrate(amount)\n  pour amount',
-        hint: 'This feature will be available in the full Thirsty++ release',
+        hint: 'This feature will be available in the full T.A.R.L. release',
         expectedPattern: /.*/,
         validation: () => true
       }
     ]
   },
   gods: {
-    name: '⚡ ThirstOfGods',
+    name: '⚡ Shadow Thirst',
     description: 'Achieve ultimate mastery',
     lessons: [
       {
         title: 'Lesson 1: Classes and OOP',
         instruction: 'Use "fountain" to create classes (coming soon!).\nExample: fountain WaterBottle',
-        hint: 'This feature will be available in the full ThirstOfGods release',
+        hint: 'This feature will be available in the full Shadow Thirst release',
         expectedPattern: /.*/,
         validation: () => true
       }
@@ -119,9 +119,9 @@ class TrainingProgram {
   async showMainMenu() {
     console.log('\n📚 Select Your Training Level:\n');
     console.log('  1. 💧 Base Thirsty-lang (Beginner)');
-    console.log('  2. 💧+ Thirsty Plus (Intermediate)');
-    console.log('  3. 💧++ Thirsty Plus Plus (Advanced)');
-    console.log('  4. ⚡ ThirstOfGods (Master)');
+    console.log('  2. 💧+ Thirst of Gods (Intermediate)');
+    console.log('  3. 💧++ T.A.R.L. (Advanced)');
+    console.log('  4. ⚡ Shadow Thirst (Master)');
     console.log('  5. 📊 View Progress');
     console.log('  6. ❌ Exit\n');
 

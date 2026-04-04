@@ -34,9 +34,9 @@ ln -s "$(pwd)/vscode-extension" ~/.vscode/extensions/thirsty-lang
 ## Supported File Extensions
 
 - `.thirsty` - Base Thirsty-lang
-- `.thirstyplus` - Thirsty+ edition
-- `.thirstyplusplus` - Thirsty++ edition
-- `.thirstofgods` - ThirstOfGods edition
+- `.thirstyplus` - Thirst of Gods edition (Tier 2)
+- `.thirstyplusplus` - T.A.R.L. edition (Tier 3)
+- `.thirstofgods` - Shadow Thirst edition (Tier 4)
 
 ## Available Snippets
 
@@ -45,11 +45,11 @@ Type these prefixes and press Tab:
 - `drink` - Variable declaration
 - `pour` - Output statement
 - `//` - Comment
-- `thirsty` - If statement (Thirsty+)
-- `glass` - Function declaration (Thirsty++)
-- `refill` - Loop (Thirsty++)
-- `fountain` - Class declaration (ThirstOfGods)
-- `cascade` - Async function (ThirstOfGods)
+- `thirsty` - If statement (Thirst of Gods)
+- `glass` - Function declaration (T.A.R.L.)
+- `refill` - Loop (T.A.R.L.)
+- `fountain` - Class declaration (Shadow Thirst)
+- `cascade` - Async function (Shadow Thirst)
 
 ## Troubleshooting
 

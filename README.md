@@ -83,7 +83,7 @@ See [T.A.R.L. Integration Guide](./TARL_INTEGRATION.md) and [Security API Refere
 - 📚 **Arrays and Data Structures** (`reservoir` keyword) - Dynamic arrays with rich methods
 - 🎯 **Classes and OOP** (`fountain` keyword) - Object-oriented programming with classes, methods, and properties
 - 🌍 **Standard Library** - Built-in Math and String utilities for common operations
-- 🎓 **Language Editions** - Four-tier progression system (Base, Plus, PlusPlus, ThirstOfGods)
+- 🎓 **Language Editions** - Four-tier progression system (Base, Thirst of Gods, T.A.R.L., Shadow Thirst)
 - 📦 **Modules and imports** (`import`/`export` keywords) - Code organization across multiple files
 - ⚡ **Async/await support** (`cascade`/`await` keywords) - Asynchronous programming with promises
 - 🌐 **Network utilities** (`Http` built-in) - HTTP requests and API interactions (GET, POST, fetch)
@@ -224,9 +224,9 @@ npm run train
 The training program includes:
 
 - 💧 **Base Thirsty-lang**: Fundamentals for beginners
-- 💧+ **Thirsty Plus**: Control flow and logic
-- 💧++ **Thirsty Plus Plus**: Functions and loops
-- ⚡ **ThirstOfGods**: Advanced OOP and async features
+- 💧+ **Thirst of Gods**: Control flow and logic
+- 💧++ **T.A.R.L.**: Functions and loops
+- ⚡ **Shadow Thirst**: Advanced OOP and async features
 
 ### Running Thirsty-lang Programs
 
@@ -561,9 +561,9 @@ Thirsty-lang comes in four flavors, each building on the previous:
 | Edition | Level | Features | Status |
 |---------|-------|----------|--------|
 | 💧 **Base** | Beginner | Variables (`drink`), Output (`pour`), Comments | ✅ Implemented |
-| 💧+ **Thirsty+** | Intermediate | Control flow (`thirsty`/`hydrated`), Loops (`refill`), Operators | ✅ Implemented |
-| 💧++ **Thirsty++** | Advanced | Functions (`glass`), Arrays (`reservoir`), Standard Library | ✅ Implemented |
-| ⚡ **ThirstOfGods** | Master | Classes (`fountain`), OOP, Advanced Data Structures | ✅ Implemented |
+| 💧+ **Thirst of Gods** | Intermediate | Control flow (`thirsty`/`hydrated`), Loops (`refill`), Operators | ✅ Implemented |
+| 💧++ **T.A.R.L.** | Advanced | Functions (`glass`), Arrays (`reservoir`), Standard Library | ✅ Implemented |
+| ⚡ **Shadow Thirst** | Master | Classes (`fountain`), OOP, Advanced Data Structures | ✅ Implemented |
 
 ### Feature Matrix by Edition
 
@@ -575,7 +575,7 @@ Thirsty-lang comes in four flavors, each building on the previous:
 - ✅ Comments (`//`)
 - ✅ Basic string and number literals
 
-#### 💧+ Thirsty Plus
+#### 💧+ Thirst of Gods
 
 **All Base features, plus:**
 
@@ -585,9 +585,9 @@ Thirsty-lang comes in four flavors, each building on the previous:
 - ✅ String concatenation
 - ✅ Boolean values
 
-#### 💧++ Thirsty Plus Plus
+#### 💧++ T.A.R.L.
 
-**All Thirsty+ features, plus:**
+**All Thirst of Gods features, plus:**
 
 - ✅ Function declarations (`glass`)
 - ✅ Function calls with parameters
@@ -600,9 +600,9 @@ Thirsty-lang comes in four flavors, each building on the previous:
   - Math utilities (PI, E, abs, sqrt, pow, floor, ceil, round, min, max, random)
   - String methods (toUpperCase, toLowerCase, trim, split, replace, charAt, substring)
 
-#### ⚡ ThirstOfGods
+#### ⚡ Shadow Thirst
 
-**All Thirsty++ features, plus:**
+**All T.A.R.L. features, plus:**
 
 - ✅ Class declarations (`fountain`)
 - ✅ Object instantiation

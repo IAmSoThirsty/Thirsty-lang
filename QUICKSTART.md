@@ -100,9 +100,9 @@ pour userName
 ## File Extensions
 
 - `.thirsty` - Base edition
-- `.thirstyplus` - Plus edition
-- `.thirstyplusplus` - PlusPlus edition
-- `.thirstofgods` - ThirstOfGods edition
+- `.thirstyplus` - Thirst of Gods edition (Tier 2)
+- `.thirstyplusplus` - T.A.R.L. edition (Tier 3)
+- `.thirstofgods` - Shadow Thirst edition (Tier 4)
 
 ## Help & Documentation
 
