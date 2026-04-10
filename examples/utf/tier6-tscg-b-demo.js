@@ -44,12 +44,13 @@ console.log(`Round-trip match: ${restored === source ? '✅ PASS' : '❌ FAIL'}`
 
 // File round-trip demo
 const outFile = path.join(__dirname, '_demo_output.tscgb');
-tscgb.encodeToFile(compressed.compressed, outFile);
-console.log(`\nWritten to file: ${outFile}`);
-const fromFile = tscgb.decodeFromFile(outFile);
-const restoredFromFile = tscg.decompress(fromFile);
-console.log(`File round-trip match: ${restoredFromFile === source ? '✅ PASS' : '❌ FAIL'}`);
-
-// Cleanup
-if (fs.existsSync(outFile)) fs.unlinkSync(outFile);
-console.log('Cleanup complete.');
+try {
+  tscgb.encodeToFile(compressed.compressed, outFile);
+  console.log(`\nWritten to file: ${outFile}`);
+  const fromFile = tscgb.decodeFromFile(outFile);
+  const restoredFromFile = tscg.decompress(fromFile);
+  console.log(`File round-trip match: ${restoredFromFile === source ? '✅ PASS' : '❌ FAIL'}`);
+} finally {
+  if (fs.existsSync(outFile)) fs.unlinkSync(outFile);
+  console.log('Cleanup complete.');
+}

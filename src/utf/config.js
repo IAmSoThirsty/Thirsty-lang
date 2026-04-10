@@ -10,8 +10,8 @@ class UTFConfig {
       2: { name: 'thirst-of-gods', enabled: options.tier2 !== false, options: options.tier2 || {} },
       3: { name: 'tarl', enabled: options.tier3 !== false, options: options.tier3 || {} },
       4: { name: 'shadow-thirsty', enabled: options.tier4 !== false, options: options.tier4 || {} },
-      5: { name: 'tscg', enabled: options.tier5 !== false, options: options.tscg || {} },
-      6: { name: 'tscg-b', enabled: options.tier6 !== false, options: options.tscgb || {} },
+      5: { name: 'tscg', enabled: options.tier5 !== false, options: options.tier5 || {} },
+      6: { name: 'tscg-b', enabled: options.tier6 !== false, options: options.tier6 || {} },
     };
     this.contracts = options.contracts || {};
   }

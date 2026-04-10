@@ -4,6 +4,12 @@
  * Compressed symbols use the format: §<id>
  */
 
+// Minimum frequency and length thresholds for pattern learning
+const MIN_TOKEN_FREQUENCY = 3;
+const MIN_TOKEN_LENGTH = 5;
+// Minimum pattern length for compression substitution
+const MIN_PATTERN_LENGTH = 3;
+
 class TSCG {
   constructor(options = {}) {
     this.tier = 5;
@@ -44,7 +50,7 @@ class TSCG {
       .sort((a, b) => b.length - a.length);
 
     for (const pattern of patterns) {
-      if (pattern.length < 3) continue;
+      if (pattern.length < MIN_PATTERN_LENGTH) continue;
       const sym = this._symbolTable.get(pattern);
       compressed = compressed.split(pattern).join(sym);
     }
@@ -71,7 +77,7 @@ class TSCG {
       freq.set(tok, (freq.get(tok) || 0) + 1);
     }
     for (const [tok, count] of freq) {
-      if (count >= 3 && tok.length >= 5) {
+      if (count >= MIN_TOKEN_FREQUENCY && tok.length >= MIN_TOKEN_LENGTH) {
         this._registerSymbol(tok);
       }
     }

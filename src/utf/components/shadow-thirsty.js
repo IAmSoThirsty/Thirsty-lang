@@ -10,6 +10,9 @@ class ShadowThirsty {
     this.tier = 4;
     this.name = 'Shadow Thirsty';
     this.options = options;
+    // NOTE: Auto-generated secrets are not portable across ShadowThirsty instances.
+    // Provide a stable `options.secret` if compiled artifacts must be verified by
+    // a different instance (e.g., across process restarts or distributed systems).
     this._secret = options.secret || crypto.randomBytes(32).toString('hex');
   }
 
