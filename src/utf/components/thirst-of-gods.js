@@ -1,46 +1,55 @@
 /**
  * Tier 2 - Thirst of Gods
  * OOP/async language processor extending Thirsty-Lang.
- * Adds: fountain inheritance, cascade async, await, import/export, floodmap, poolset, spring interfaces.
+ * Adds: fountain inheritance, cascade async, await, import/export,
+ *       floodmap, poolset, spring interfaces, spillage exception blocks,
+ *       and a ThirstyInstance registry.
  */
 
 const path = require('path');
-const fs = require('fs');
+const fs   = require('fs');
 const { ThirstyInterpreter } = require(path.join(__dirname, '..', '..', 'index'));
 
 class ThirstOfGods extends ThirstyInterpreter {
   constructor(options = {}) {
     super(options);
-    this.tier = 2;
-    this.name = 'Thirst of Gods';
-    this.interfaces = {};
-    this.exports = {};
-    this.importedModules = {};
-    this._pendingExports = [];
-    this._pendingExtends = null;
+    this.tier    = 2;
+    this.name    = 'Thirst of Gods';
+    this.interfaces       = {};
+    this.exports          = {};
+    this.importedModules  = {};
+    this._pendingExports  = [];
+    this._pendingExtends  = null;
+    this._instanceRegistry = new Map(); // instanceId → { className, created }
+    this._instanceCounter  = 0;
   }
 
   execute(code) {
     const preprocessed = this._preprocess(code);
     super.execute(preprocessed);
-    // Resolve pending exports after execution
+
+    // Resolve pending exports after execution.
     for (const varName of this._pendingExports) {
       if (this.variables[varName] !== undefined) {
         this.exports[varName] = this.variables[varName];
       }
     }
     this._pendingExports = [];
-    // Apply inheritance if needed
+
+    // Apply inheritance if needed.
     if (this._pendingExtends) {
       const { child, parent } = this._pendingExtends;
       this._pendingExtends = null;
       if (this.classes && this.classes[parent] && this.classes[child]) {
         const parentMethods = this.classes[parent].methods || {};
-        const childMethods = this.classes[child].methods || {};
+        const childMethods  = this.classes[child].methods  || {};
         this.classes[child].methods = { ...parentMethods, ...childMethods };
-        this.classes[child].parent = parent;
+        this.classes[child].parent  = parent;
       }
     }
+
+    // Register any `new ClassName()` instantiations found in the code.
+    this._trackInstantiations(preprocessed);
   }
 
   executeFile(filePath) {
@@ -50,12 +59,21 @@ class ThirstOfGods extends ThirstyInterpreter {
   }
 
   _preprocess(code) {
-    const lines = code.split('\n');
+    const lines     = code.split('\n');
     const processed = [];
     let i = 0;
+
     while (i < lines.length) {
-      const line = lines[i];
+      const line    = lines[i];
       const trimmed = line.trim();
+
+      // spillage { ... } catch (...) { ... } finally { ... }
+      // Translate 'spillage {' → 'try {' for exception handling.
+      if (/^spillage\s*\{/.test(trimmed)) {
+        processed.push(line.replace(/^(\s*)spillage\s*\{/, '$1try {'));
+        i++;
+        continue;
+      }
 
       // spring interface Name { ... }
       if (/^spring\s+interface\s+\w+/.test(trimmed)) {
@@ -100,9 +118,8 @@ class ThirstOfGods extends ThirstyInterpreter {
           const [, name, modPath] = match;
           try {
             this.importedModules[name] = require(modPath);
-            this.variables[name] = this.importedModules[name];
+            this.variables[name]       = this.importedModules[name];
           } catch (e) {
-            // Module unavailable in this environment; record failure for debugging.
             if (!this._failedImports) this._failedImports = [];
             this._failedImports.push({ name, path: modPath, error: e.message });
             if (this.options && this.options.verbose) {
@@ -132,13 +149,30 @@ class ThirstOfGods extends ThirstyInterpreter {
       processed.push(line);
       i++;
     }
+
     return processed.join('\n');
+  }
+
+  /**
+   * Scans code for `new ClassName()` expressions and registers instances.
+   * @param {string} code
+   */
+  _trackInstantiations(code) {
+    const re = /\bnew\s+([A-Z][a-zA-Z0-9_]*)\s*\(/g;
+    let m;
+    while ((m = re.exec(code)) !== null) {
+      const id = ++this._instanceCounter;
+      this._instanceRegistry.set(id, {
+        className: m[1],
+        created:   Date.now(),
+      });
+    }
   }
 
   evaluateExpression(expr) {
     const trimmed = (expr || '').trim();
     if (trimmed === 'floodmap()') return {};
-    if (trimmed === 'poolset()') return [];
+    if (trimmed === 'poolset()')  return [];
     return super.evaluateExpression(expr);
   }
 
@@ -152,6 +186,14 @@ class ThirstOfGods extends ThirstyInterpreter {
 
   getInterfaces() {
     return { ...this.interfaces };
+  }
+
+  /**
+   * Returns all registered ThirstyInstance records.
+   * @returns {Map<number, { className: string, created: number }>}
+   */
+  getInstanceRegistry() {
+    return new Map(this._instanceRegistry);
   }
 }
 
