@@ -1,39 +1,74 @@
-<!--                                         [2026-03-03 13:45] -->
-<!--                                        Productivity: Active -->
 # Thirsty-lang 💧🔒
 
+[![CI](https://github.com/IAmSoThirsty/Thirsty-lang/actions/workflows/ci.yml/badge.svg)](https://github.com/IAmSoThirsty/Thirsty-lang/actions/workflows/ci.yml)
+[![Coverage Status](https://coveralls.io/repos/github/IAmSoThirsty/Thirsty-lang/badge.svg?branch=main)](https://coveralls.io/github/IAmSoThirsty/Thirsty-lang?branch=main)
+[![Latest Release](https://img.shields.io/github/v/release/IAmSoThirsty/Thirsty-lang?sort=semver&label=release)](https://github.com/IAmSoThirsty/Thirsty-lang/releases)
 [![NPM Version](https://img.shields.io/npm/v/thirsty-lang.svg)](https://www.npmjs.com/package/thirsty-lang)
-[![Node.js CI](https://github.com/IAmSoThirsty/Thirsty-lang/workflows/Thirsty-lang%20CI/badge.svg)](https://github.com/IAmSoThirsty/Thirsty-lang/actions)
-[![License](https://img.shields.io/badge/license-Custom-blue.svg)](LICENSE)
-[![Production Ready](https://img.shields.io/badge/status-100%25%20Real%20Production-success.svg)](RELEASE_GUIDE.md)
+[![License: MIT](https://img.shields.io/github/license/IAmSoThirsty/Thirsty-lang)](https://github.com/IAmSoThirsty/Thirsty-lang/blob/main/LICENSE)
+[![Top Language](https://img.shields.io/github/languages/top/IAmSoThirsty/Thirsty-lang)](https://github.com/IAmSoThirsty/Thirsty-lang)
+[![Last Commit](https://img.shields.io/github/last-commit/IAmSoThirsty/Thirsty-lang)](https://github.com/IAmSoThirsty/Thirsty-lang/commits/main)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen)](https://nodejs.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-This is my Language for anyone and everyone who is Thirsty - now with **Defensive Programming** capabilities and **T.A.R.L. Integration**!
+Thirsty-lang is a fun, expressive, and **production-grade** programming language for everyone who is Thirsty — now with **Defensive Programming** capabilities, **T.A.R.L. Integration**, and the full **Universal Thirsty Family (UTF)** 6-tier architecture.
+
+---
 
 ## 🚀 Production Ready
 
-**Thirsty-lang v2.0.0** is now **100% Real Production Ready**! This release includes:
+**Thirsty-lang v2.0.0** is **100% Production Ready**:
 
-- ✅ Complete NPM package configuration for publishing
-- ✅ Automated CI/CD pipeline with GitHub Actions
-- ✅ Full test coverage (37 tests passing)
-- ✅ Comprehensive documentation and guides
-- ✅ Production-grade security with T.A.R.L. integration
-- ✅ Multi-platform support (Node.js, Python, Docker)
-- ✅ Complete developer toolchain
+| Status | Detail |
+|--------|--------|
+| ✅ NPM Package | Published & globally installable |
+| ✅ CI/CD | Automated GitHub Actions pipeline |
+| ✅ Test Coverage | 37+ tests passing across all tiers |
+| ✅ Documentation | Comprehensive guides and API reference |
+| ✅ Security | Production-grade T.A.R.L. integration |
+| ✅ Multi-Platform | Node.js ≥14, Python ≥3.8, Docker |
+| ✅ Developer Toolchain | REPL, Debugger, Linter, Formatter, Profiler, Transpiler |
 
-**Install globally:** `npm install -g thirsty-lang`
+```bash
+# Install globally from npm
+npm install -g thirsty-lang
+thirsty --version
+```
 
-See [RELEASE_GUIDE.md](RELEASE_GUIDE.md) for release and publishing instructions.
+See [RELEASE_GUIDE.md](RELEASE_GUIDE.md) for full release and publishing instructions.
 
-## About
+---
 
-Thirsty-lang is a unique, expressive programming language designed to be **defensive and combative** against all known code threats. It combines fun water-themed syntax with enterprise-grade security features.
+## 📖 About
 
-### 🚀 NEW: T.A.R.L. Integration
+Thirsty-lang is a unique, expressive programming language designed to be **defensive and combative** against all known code threats. It combines water-themed syntax with enterprise-grade security features, making it approachable for beginners while powerful enough for production systems.
 
-Thirsty-lang now integrates with **T.A.R.L. (Thirsty's Active Resistance Language)** from Project-AI, providing:
+**Core goals:**
+- Offer an intuitive, memorable syntax through water-themed keywords
+- Provide built-in, first-class security primitives (`shield`, `sanitize`, `armor`)
+- Support a progressive learning path from beginner to master via the UTF tier system
+- Be extensible through modules, OOP, async/await, and a rich standard library
+- Ship with a complete developer toolchain out of the box
 
-- **Dual Runtime Architecture**: JavaScript/Node.js + Python T.A.R.L. runtime
+### 🏛️ Universal Thirsty Family (UTF) — 6-Tier Architecture
+
+Thirsty-lang is the foundation of the **Universal Thirsty Family**, a mathematically-fused, 6-tier language system deeply integrated with **Project-AI**:
+
+| Tier | Name | Description | File Extension |
+|------|------|-------------|----------------|
+| 1 | **Thirsty-lang** | Core language — variables, control flow, security primitives | `.thirsty` |
+| 2 | **Thirst of Gods** | OOP, async/await, advanced data structures | `.thirstofgods` |
+| 3 | **T.A.R.L.** | Defensive policy VM, function/array tier | `.thirstyplusplus` |
+| 4 | **Shadow Thirst** | Dual-plane verified compiler | `.thirstyplus` |
+| 5 | **TSCG** | Symbolic compression engine | — |
+| 6 | **TSCG-B** | Binary encoding layer | — |
+
+Each tier builds upon all previous tiers. The UTF is the definitive architecture for Project-AI and cannot be decoupled from Thirsty-lang.
+
+### 🔗 T.A.R.L. Integration
+
+Thirsty-lang integrates directly with **T.A.R.L. (Thirsty's Active Resistance Language)** from Project-AI:
+
+- **Dual Runtime Architecture**: JavaScript/Node.js primary + Python T.A.R.L. runtime
 - **Production-Grade Security**: Advanced threat detection, code morphing, defensive compilation
 - **Policy-Driven Enforcement**: Live-reloadable YAML/JSON security policies
 - **Bi-Directional Bridge**: Async JS ↔ Python communication with metrics
@@ -41,83 +76,95 @@ Thirsty-lang now integrates with **T.A.R.L. (Thirsty's Active Resistance Languag
 
 See [T.A.R.L. Integration Guide](./TARL_INTEGRATION.md) and [Security API Reference](./SECURITY_API.md) for complete documentation.
 
-## Features
+---
 
-### ✅ Fully Implemented & Functional
+## ✨ Features
 
-- ✨ Simple and intuitive syntax
+### Core Language
+
 - 📥 Variable assignment (`drink`)
 - 📤 Output statements (`pour`)
 - 📨 Input statements (`sip`)
-- 🔄 Control flow (if/else with `thirsty`/`hydrated`)
+- 🔄 Control flow — `thirsty` (if) / `hydrated` (else)
 - 🔁 Loops (`refill` keyword)
-- ➕ Arithmetic operations (+, -, *, /) with proper precedence
+- ➕ Full arithmetic with operator precedence (+, -, *, /)
 - 🔗 String concatenation
 - 🔀 Comparison operators (>, <, >=, <=, ==, !=)
-- 🔒 **Enhanced Security Features with T.A.R.L.:**
-  - 🛡️ Shield blocks - Protected execution contexts
-  - 🧹 Sanitize - HTML encoding to prevent XSS injection
-  - 🔐 Armor - Variable protection against modification
-  - 🔍 **NEW: Advanced Threat Detection** - Pattern-based threat analysis
-  - 🔄 **NEW: Code Morphing** - Dynamic code transformation and obfuscation
-  - 🛡️ **NEW: Defense Compiler** - Defensive compilation with security guards
-  - 📋 **NEW: Policy Engine** - YAML/JSON policy management with hot-reload
-  - 🔗 **NEW: Security Bridge** - JS ↔ Python T.A.R.L. runtime integration
-  - 📊 **NEW: Security Metrics** - Performance and threat tracking
-- 🔍 Built-in REPL for experimenting
-- 🐍 **Python implementation included**
-- 🐳 **Docker and Docker Compose support**
-- 🔒 **Virtual environment setup**
-- 🐛 **Full-featured debugger**
-- 📊 **Performance profiler**
-- 🎨 **Code formatter and linter**
-- 📚 **Automatic documentation generator**
-- 🌐 **Web playground**
-- 🔄 **Transpiler to JavaScript, Python, Go, Rust, Java, and C**
-- 📦 **Package manager**
-- 🌳 **AST generator**
-- 🎓 **Interactive training program**
-- 🔌 **VS Code extension**
+- 💬 Boolean literals — `parched` (true) / `quenched` (false)
 
-### ✅ Recently Implemented Features
+### Advanced Language Features
 
-- 🧩 **Functions** (`glass` keyword) - Declare and call functions with parameters and return values
-- 📚 **Arrays and Data Structures** (`reservoir` keyword) - Dynamic arrays with rich methods
-- 🎯 **Classes and OOP** (`fountain` keyword) - Object-oriented programming with classes, methods, and properties
-- 🌍 **Standard Library** - Built-in Math and String utilities for common operations
-- 🎓 **Language Editions** - Four-tier progression system (Base, Plus, PlusPlus, ThirstOfGods)
-- 📦 **Modules and imports** (`import`/`export` keywords) - Code organization across multiple files
-- ⚡ **Async/await support** (`cascade`/`await` keywords) - Asynchronous programming with promises
-- 🌐 **Network utilities** (`Http` built-in) - HTTP requests and API interactions (GET, POST, fetch)
-- 💾 **File I/O operations** (`File` built-in) - Read, write, check existence, and delete files
-- 🔧 **Enhanced debugging tools** - Advanced breakpoints, variable inspection, expression evaluation, and call stack viewing
+- 🧩 **Functions** (`glass` keyword) — parameters, return values
+- 📚 **Arrays** (`reservoir` keyword) — dynamic arrays with rich methods
+- 🎯 **Classes & OOP** (`fountain` keyword) — full object-oriented programming
+- 📦 **Modules** (`import`/`export`) — multi-file code organisation
+- ⚡ **Async/Await** (`cascade`/`await`) — promise-based asynchronous programming
+- 🌐 **HTTP Client** (`Http` built-in) — GET, POST, fetch
+- 💾 **File I/O** (`File` built-in) — read, write, check, delete
+- 🌍 **Standard Library** — Math and String utilities
+- ⚠️ **Exception Handling** (`try`/`catch`/`finally`) — robust error recovery
+- 🗂️ **JSON Support** — native parsing and serialisation
 
-### 📋 Planned Features (Future Releases)
+### Security Features (T.A.R.L. Powered)
 
-- 🔄 **Error handling** (`try`/`catch` keywords) - Exception handling and error recovery
-- 📊 **JSON support** - Native JSON parsing and serialization
+- 🛡️ **Shield Blocks** — isolated, protected execution contexts
+- 🧹 **Sanitize** — HTML encoding to prevent XSS injection
+- 🔐 **Armor** — variable protection against modification
+- 🔍 **Threat Detection** — pattern-based threat analysis
+- 🔄 **Code Morphing** — dynamic transformation and obfuscation
+- 🛡️ **Defense Compiler** — defensive compilation with security guards
+- 📋 **Policy Engine** — YAML/JSON policy management with hot-reload
+- 🔗 **Security Bridge** — JS ↔ Python T.A.R.L. runtime communication
+- 📊 **Security Metrics** — performance and threat tracking
 
-## Getting Started
+### Developer Toolchain
+
+| Tool | Command | Description |
+|------|---------|-------------|
+| REPL | `npm run repl` | Interactive Read-Eval-Pour-Loop |
+| Debugger | `node src/debugger.js` | Breakpoints, variable inspection, call stack |
+| Formatter | `node src/formatter.js` | Code beautification |
+| Linter | `node src/linter.js` | Style and quality checks |
+| Profiler | `node src/profiler.js` | Performance analysis |
+| Doc Generator | `node src/doc-generator.js` | Auto-generate documentation |
+| AST Generator | `node src/ast.js` | Abstract Syntax Tree output |
+| Transpiler | `node src/transpiler.js` | Transpile to JS, Python, Go, Rust, Java, C |
+| Package Manager | `node src/package-manager.js` | Manage Thirsty packages |
+| Training | `npm run train` | Interactive learning program |
+| Web Playground | `playground/index.html` | Browser-based IDE |
+| VS Code Extension | `vscode-extension/` | Syntax highlighting & snippets |
+
+---
+
+## 🛠️ Getting Started
 
 ### Prerequisites
 
-**Choose your runtime:**
+Choose your runtime:
 
-- **Node.js** (Primary): 14 or higher
-- **Python** (Alternative): 3.8 or higher
-- **Docker** (Optional): For containerized execution
+| Runtime | Version | Notes |
+|---------|---------|-------|
+| **Node.js** | ≥ 14.0.0 | Primary runtime (recommended) |
+| **Python** | ≥ 3.8.0 | Alternative runtime |
+| **Docker** | Any | Containerised execution |
 
 ### Installation
 
-#### NPM Installation (Recommended for Production)
+#### 📦 NPM — Global Install (Recommended for Production)
 
 ```bash
-
 # Install globally
-
 npm install -g thirsty-lang
 
 # Verify installation
+thirsty --version
+
+# Run a program
+thirsty examples/hello.thirsty
+
+# Start REPL
+thirsty-repl
+```
 
 thirsty --version
 
@@ -130,37 +177,34 @@ thirsty examples/hello.thirsty
 thirsty-repl
 ```
 
-#### Node.js Setup (Development)
+#### 🖥️ Node.js — Development Setup
 
 ```bash
+git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
+cd Thirsty-lang
 npm install
+npm test
 ```
 
-#### Python Setup (Alternative)
+#### 🐍 Python — Alternative Runtime
 
 ```bash
-
 # Automated setup
-
 ./setup_venv.sh
 
 # Manual setup
-
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-#### Docker Setup (Optional)
+#### 🐳 Docker — Containerised Setup
 
 ```bash
-
 # Build and run with Docker Compose
-
 docker-compose up
 
 # Or build Docker image directly
-
 docker build -t thirsty-lang .
 ```
 
@@ -168,67 +212,56 @@ See [DOCKER.md](DOCKER.md) for detailed Docker instructions and [PYTHON_SETUP.md
 
 ### Quick Start
 
-#### Using Node.js
+#### Node.js
 
 ```bash
-
 # Run a program
-
 npm start examples/hello.thirsty
 
 # Or use the unified CLI
-
 node src/thirsty-cli.js run examples/hello.thirsty
 ```
 
-#### Using Python
+#### Python
 
 ```bash
-
-# Activate virtual environment (if using)
-
+# Activate virtual environment
 source .venv/bin/activate
 
 # Run a program
-
 python3 src/thirsty_interpreter.py examples/hello.thirsty
 
 # Start Python REPL
-
 python3 src/thirsty_repl.py
 ```
 
-#### Using Docker
+#### Docker
 
 ```bash
-
 # Run a program
-
 docker-compose run --rm thirsty node src/cli.js examples/hello.thirsty
 
 # Start Node.js REPL
-
 docker-compose run --rm repl
 
 # Start Python REPL
-
 docker-compose run --rm python-repl
 ```
 
 ### Interactive Training Program 🎓
 
-Learn Thirsty-lang interactively with our built-in training program:
+Learn Thirsty-lang interactively with the built-in training program:
 
 ```bash
 npm run train
 ```
 
-The training program includes:
-
-- 💧 **Base Thirsty-lang**: Fundamentals for beginners
-- 💧+ **Thirsty Plus**: Control flow and logic
-- 💧++ **Thirsty Plus Plus**: Functions and loops
-- ⚡ **ThirstOfGods**: Advanced OOP and async features
+| Module | Level | Topics |
+|--------|-------|--------|
+| 💧 Base Thirsty-lang | Beginner | Variables, output, input, comments |
+| 💧+ Thirsty Plus | Intermediate | Control flow, operators, booleans |
+| 💧++ Thirsty Plus Plus | Advanced | Functions, arrays, standard library |
+| ⚡ ThirstOfGods | Master | OOP, async/await, modules |
 
 ### Running Thirsty-lang Programs
 
@@ -239,35 +272,52 @@ npm start examples/hello.thirsty
 ### Running Tests
 
 ```bash
+# Base test suite
 npm test
 
-# Run security tests
+# Security integration tests
+npm run test:security
 
-node src/test/security-tests.js
+# Security bridge tests
+npm run test:bridge
+
+# Full suite (all of the above)
+npm run test:all
 ```
 
-## Language Syntax
+---
+
+## 📝 Language Syntax
 
 ### Core Keywords (Water-Themed)
 
-- `drink` - Variable declaration
-- `pour` - Output/print statement
-- `sip` - Input statement
-- `thirsty` - If statement
-- `hydrated` - Else statement
-- `refill` - Loop statement
-- `glass` - Function declaration
+| Keyword | Purpose |
+|---------|---------|
+| `drink` | Variable declaration |
+| `pour` | Output / print |
+| `sip` | Input from stdin |
+| `thirsty` | If statement |
+| `hydrated` | Else statement |
+| `refill` | Loop statement |
+| `glass` | Function declaration |
+| `fountain` | Class declaration |
+| `reservoir` | Array declaration |
+| `cascade` | Async function |
+| `parched` | Boolean `true` |
+| `quenched` | Boolean `false` |
 
 ### Security Keywords (Defensive Programming)
 
-- `shield` - Mark code blocks for protection
-- `morph` - Enable dynamic code mutation
-- `detect` - Set up threat monitoring
-- `defend` - Automatic countermeasures
-- `sanitize` - Input/output cleaning
-- `armor` - Memory protection
+| Keyword | Purpose |
+|---------|---------|
+| `shield` | Protected execution context |
+| `morph` | Dynamic code mutation flag |
+| `detect` | Threat monitoring configuration |
+| `defend` | Automatic countermeasures |
+| `sanitize` | HTML-encode variable (XSS prevention) |
+| `armor` | Lock variable against modification |
 
-### Example Programs
+### 💡 Example Programs
 
 #### Basic Program
 
@@ -416,9 +466,11 @@ shield mySecureApp {
 
 See more examples in the `examples/` and `examples/security/` directories.
 
-## Basic Security Features
+---
 
-Thirsty-lang includes basic security features for educational purposes:
+## 🔒 Security Features
+
+Thirsty-lang includes battle-tested security features for both educational and production use:
 
 ### What Actually Works
 
@@ -458,7 +510,9 @@ These do not provide actual threat detection or countermeasures, they're placeho
 
 See the `examples/security/` directory for working examples.
 
-## Available Tools
+---
+
+## 🧰 Available Tools
 
 ### ✅ Working Tools
 
@@ -529,9 +583,11 @@ node src/package-manager.js init
 
 All tools have been tested and are fully functional.
 
-## Implementation Support
+---
 
-Thirsty-lang includes two complete implementations:
+## ⚙️ Architecture & Implementation
+
+Thirsty-lang ships a monolithic, config-driven design with two complete runtime implementations:
 
 ### Node.js Implementation (Primary)
 
@@ -556,9 +612,11 @@ See [PYTHON_SETUP.md](PYTHON_SETUP.md) for detailed Python setup and usage.
 - Pre-configured services for all tools
 - See [DOCKER.md](DOCKER.md) for complete Docker guide
 
-## Language Editions
+---
 
-Thirsty-lang comes in four flavors, each building on the previous:
+## 🎓 Language Editions (UTF Tiers 1–4)
+
+Thirsty-lang ships four progressive editions corresponding to UTF Tiers 1–4, each building on the last:
 
 | Edition | Level | Features | Status |
 |---------|-------|----------|--------|
@@ -617,9 +675,11 @@ Thirsty-lang comes in four flavors, each building on the previous:
 
 See [docs/EXPANSIONS.md](docs/EXPANSIONS.md) for detailed information and examples.
 
-## Documentation
+---
 
-Full language specification and documentation can be found in the `docs/` directory and root:
+## 📚 Documentation
+
+Full language specification and reference docs are in the `docs/` directory:
 
 ### Core Documentation
 
@@ -645,7 +705,9 @@ Full language specification and documentation can be found in the `docs/` direct
 - [VERSION.txt](VERSION.txt) - Current version
 - [LICENSE](LICENSE) - License terms
 
-## VS Code Extension
+---
+
+## 🔌 VS Code Extension
 
 Syntax highlighting and code snippets are available in `vscode-extension/`.
 
@@ -657,7 +719,9 @@ To install:
 
 See [vscode-extension/README.md](vscode-extension/README.md) for detailed installation instructions.
 
-## Project Structure
+---
+
+## 🗂️ Project Structure
 
 ```
 Thirsty-lang/
@@ -701,22 +765,57 @@ Thirsty-lang/
 └── .github/workflows/          # CI/CD
 ```
 
-## Contributing
+---
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+## 🤝 Contributing
 
-## License
+Contributions are welcome from everyone! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the full code of conduct and pull request process.
 
-This project is licensed under the terms in the LICENSE file.
+### Quick Contribution Guide
 
-## Author
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/my-feature`
+3. **Commit** your changes: `git commit -m 'feat: add amazing feature'`
+4. **Push** the branch: `git push origin feature/my-feature`
+5. **Open** a Pull Request
 
-Created by someone who believes coding should be refreshing! 💧
+### Coding Standards
 
-## Stay Connected
+- Use clear, descriptive names aligned with water-themed conventions
+- Comment complex logic
+- Follow existing code style (see `.eslintrc` if present)
+- Add or update tests for all new features (`npm test`)
+- Update documentation as needed
 
-- 🐛 [Report Issues](https://github.com/IAmSoThirsty/Thirsty-lang/issues)
-- 💡 [Request Features](https://github.com/IAmSoThirsty/Thirsty-lang/issues/new)
-- ⭐ [Star on GitHub](https://github.com/IAmSoThirsty/Thirsty-lang)
+### Reporting Issues
 
-Stay hydrated and happy coding! 💧✨
+- Search existing issues before opening a new one
+- Include your Node.js/Python version and OS
+- Provide a minimal reproducing example
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+© 2025 Jeremy Karrick
+
+---
+
+## 👤 Author & Support
+
+Created by **IAmSoThirsty** — someone who believes coding should be refreshing! 💧
+
+| Channel | Link |
+|---------|------|
+| 🐛 Bug Reports | [Open an Issue](https://github.com/IAmSoThirsty/Thirsty-lang/issues) |
+| 💡 Feature Requests | [Request a Feature](https://github.com/IAmSoThirsty/Thirsty-lang/issues/new) |
+| ⭐ Star the Project | [GitHub Repository](https://github.com/IAmSoThirsty/Thirsty-lang) |
+| 📦 NPM Package | [thirsty-lang on npm](https://www.npmjs.com/package/thirsty-lang) |
+| 📖 Changelog | [CHANGELOG.md](CHANGELOG.md) |
+| 🤝 Contributing | [CONTRIBUTING.md](CONTRIBUTING.md) |
+
+---
+
+*Stay hydrated and happy coding!* 💧✨
