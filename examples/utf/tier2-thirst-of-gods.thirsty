@@ -1,0 +1,36 @@
+// Tier 2: Thirst of Gods — OOP/Async Example
+
+fountain Animal {
+  drink name = "Unknown"
+  drink sound = "..."
+
+  glass speak() {
+    pour this.name + " says: " + this.sound
+  }
+
+  glass getName() {
+    return this.name
+  }
+}
+
+fountain Dog extends Animal {
+  drink sound = "Woof!"
+
+  glass fetch(item) {
+    pour this.name + " fetches the " + item
+  }
+}
+
+drink myDog = Dog()
+myDog.name = "Buddy"
+myDog.speak()
+myDog.fetch("ball")
+
+// Async function with cascade
+cascade loadData(source) {
+  pour "Loading data from: " + source
+  return "data loaded"
+}
+
+drink data = loadData("stream://hydration")
+pour data

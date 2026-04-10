@@ -1,189 +1,164 @@
 <!--                                         [2026-03-03 13:45] -->
 <!--                                        Productivity: Active -->
-# Thirsty-lang Expansions
+# Universal Thirsty Family (UTF) — Architecture
 
-Thirsty-lang comes in multiple flavors to suit different levels of thirst! 💧
+The **Universal Thirsty Family** is the definitive 6-tier language architecture of Thirsty-lang. Each tier is a superset of all previous tiers and cannot be decoupled from the system.
 
-## Base: Thirsty-lang
+## Tier Overview
 
-The core language with basic features:
+| Tier | Name | Description | File Extension |
+|------|------|-------------|----------------|
+| 1 | **Thirsty-Lang** | Core language — variables, control flow, security primitives | `.thirsty` |
+| 2 | **Thirst of Gods** | OOP, async/await, advanced data structures | `.thirstofgods` |
+| 3 | **T.A.R.L.** | Defensive policy VM | — |
+| 4 | **Shadow Thirsty** | Dual-plane verified compiler | — |
+| 5 | **TSCG** | Symbolic compression engine | — |
+| 6 | **TSCG-B** | Binary encoding layer | — |
 
+---
+
+## Tier 1 — Thirsty-Lang
+
+The foundation. All other tiers build on Tier 1.
+
+**Features:**
 - Variable declaration (`drink`)
 - Output (`pour`)
-- Comments
+- Input (`sip`)
+- Comments (`//`)
+- Conditionals (`thirsty` / `hydrated`)
+- Loops (`refill`)
+- Functions (`glass`)
+- Arrays (`reservoir`)
+- Classes (`fountain`)
+- Standard Library (Math, String)
+- T.A.R.L. security primitives (`shield`, `armored`)
 
-**Use when**: You're just starting your hydration journey.
+**Use when:** Running standard `.thirsty` programs.
 
-## Thirsty+ (Thirsty Plus)
+---
 
-Enhanced features for intermediate users:
+## Tier 2 — Thirst of Gods
 
-### Additional Features
+Extends Tier 1 with advanced object-oriented and async capabilities.
 
-- **Control Flow**: `thirsty` (if) and `hydrated` (else)
-- **Arithmetic**: Basic math operations (+, -, *, /)
-- **Comparison**: equals, greater than, less than
-- **String concatenation**: Join strings with `+`
+**Additional Features:**
+- `fountain ClassName extends BaseClass` — class inheritance
+- `cascade funcName(params)` — async function declaration
+- `await expr` — async expression (runs synchronously in sync contexts)
+- `import Name from "path"` — module imports
+- `export varName` — module exports
+- `floodmap()` — create a map (plain object)
+- `poolset()` — create a set (array)
+- `spring interface Name { }` — interface declaration
 
-### New Keywords
+**File extension:** `.thirstofgods`
 
-- `thirsty condition` - If statement
-- `hydrated` - Else statement
-- `parched` - Boolean true
-- `quenched` - Boolean false
+---
 
-### Example
+## Tier 3 — T.A.R.L. (Thirsty's Active Resistance Language)
 
-```thirstyplus
-drink temperature = 25
-thirsty temperature > 20
-  pour "It's warm! Drink more water!"
-hydrated
-  pour "Stay hydrated anyway!"
+A JavaScript policy VM that evaluates security policies against execution contexts.
+
+**Built-in Policies:**
+- `input-sanitization` — blocks dangerous inputs (`<script>`, `eval()`, `__proto__`, etc.)
+- `rate-limiting` — enforces request rate limits per key/window
+- `access-control` — role-based access control (admin/user/guest)
+
+**API:**
+```javascript
+const { TARL } = require('./src/utf/components/tarl');
+const tarl = new TARL();
+const result = await tarl.evaluate({ input: 'safe', role: 'user', resource: 'file', action: 'read' });
+// → { verdict: 'ALLOW', results: [...] }
 ```
 
-**Use when**: You need basic logic and control flow.
+Custom policies can be added with `tarl.addPolicy(name, fn)`.
 
-## Thirsty++ (Thirsty Plus Plus)
+---
 
-Advanced features for power users:
+## Tier 4 — Shadow Thirsty
 
-### ✅ Implemented Features
+A dual-plane compiler that produces two independent representations of any Thirsty-lang source. Execution is only permitted if both planes agree (tamper detection).
 
-- **Loops**: `refill` for iteration
-- **Functions**: `glass` for function declarations with parameters and return values
-- **Arrays**: `reservoir` for dynamic collections
-- **Standard Library**: Built-in Math and String utilities
+**Planes:**
+- **Plane A (Surface):** Tokenized representation with SHA-256 checksum
+- **Plane B (Shadow):** HMAC-signed, per-token hashed representation
 
-### Keywords
-
-- `refill condition` - While loop
-- `glass name(params)` - Function definition
-- `sip` - Input from user
-- `reservoir` - Array declaration
-- `return` - Return from function
-
-### Example
-
-```thirstyplusplus
-glass calculateHydration(weight) {
-  drink dailyWater = weight * 0.033
-  return dailyWater
-}
-
-drink myWeight = 70
-drink needed = calculateHydration(myWeight)
-pour needed
-
-reservoir drinks = ["water", "juice", "tea"]
-drink i = 0
-refill i < drinks.length {
-  pour drinks[i]
-  drink i = i + 1
-}
-
-// Using standard library
-drink area = Math.PI * Math.pow(5, 2)
-pour "Circle area: " + area
+**API:**
+```javascript
+const { ShadowThirsty } = require('./src/utf/components/shadow-thirsty');
+const shadow = new ShadowThirsty();
+const compiled = shadow.compile(sourceCode);
+const result = shadow.verify(compiled); // { valid: true, checksum: '...' }
+shadow.execute(compiled);               // throws if tampered
 ```
 
-**Use when**: Building complex applications with functions and data structures.
+---
 
-## ThirstOfGods (Ultimate Edition)
+## Tier 5 — TSCG (Thirsty's Symbolic Compression Grammar)
 
-The most powerful variant with divine capabilities:
+A symbol table-based source compressor that maps recurring tokens to short `§<id>` symbols.
 
-### ✅ Implemented Features
-
-- **Classes**: `fountain` for object-oriented programming
-- **Object Instantiation**: Create instances of classes
-- **Class Methods**: Define and call methods on instances
-- **Class Properties**: Instance variables with default values
-- **this keyword**: Access instance properties within methods
-
-### 🔮 Future Features (Planned)
-
-- **Async/Await**: `cascade` and `await` for asynchronous operations
-- **Modules**: `import` and `export` for code organization
-- **Error Handling**: `spillage` (try) and `cleanup` (catch)
-
-### Keywords
-
-- `fountain ClassName` - Class declaration
-- `this` - Reference to instance properties
-
-### Example
-
-```thirstofgods
-fountain HydrationTracker {
-  drink totalWater = 0
-  drink goal = 2000
-
-  glass addWater(amount) {
-    drink this.totalWater = this.totalWater + amount
-    pour "Added " + amount + "ml. Total: " + this.totalWater + "ml"
-  }
-
-  glass checkGoal() {
-    thirsty this.totalWater >= this.goal {
-      pour "Goal reached! Great hydration!"
-      return true
-    }
-    hydrated {
-      drink remaining = this.goal - this.totalWater
-      pour "Still need " + remaining + "ml to reach goal"
-      return false
-    }
-  }
-}
-
-drink tracker = HydrationTracker()
-tracker.addWater(500)
-tracker.addWater(800)
-tracker.checkGoal()
+**API:**
+```javascript
+const { TSCG } = require('./src/utf/components/tscg');
+const tscg = new TSCG();
+const result = tscg.compress(sourceCode);
+// → { compressed, originalLength, compressedLength, ratio, symbolCount }
+const restored = tscg.decompress(result.compressed);
 ```
 
-**Use when**: Building enterprise-level applications with object-oriented design.
+---
 
-## Choosing Your Edition
+## Tier 6 — TSCG-B (Binary Encoding)
 
-| Feature | Base | Thirsty+ | Thirsty++ | ThirstOfGods |
-|---------|------|----------|-----------|--------------|
-| Variables | ✓ | ✓ | ✓ | ✓ |
-| Output | ✓ | ✓ | ✓ | ✓ |
-| Control Flow | ✗ | ✓ | ✓ | ✓ |
-| Operators | ✗ | ✓ | ✓ | ✓ |
-| Loops | ✗ | ✓ | ✓ | ✓ |
-| Functions | ✗ | ✗ | ✓ | ✓ |
-| Arrays | ✗ | ✗ | ✓ | ✓ |
-| Standard Library | ✗ | ✗ | ✓ | ✓ |
-| Classes | ✗ | ✗ | ✗ | ✓ |
-| OOP | ✗ | ✗ | ✗ | ✓ |
+Encodes TSCG-compressed output into a binary format with a magic header (`0x54534347` = `TSCG`), version field, and length-prefixed content.
 
-## Running Your Code
+**Format:** `magic(4) + version(2) + flags(2) + contentLength(4) + content`
 
-All editions are currently available in the standard Thirsty-lang interpreter:
+**API:**
+```javascript
+const { TSCGB } = require('./src/utf/components/tscg-b');
+const tscgb = new TSCGB();
+const binary = tscgb.encode(compressedString); // → Buffer
+const decoded = tscgb.decode(binary);           // → string
+tscgb.encodeToFile(compressedString, path);
+const content = tscgb.decodeFromFile(path);
+```
+
+---
+
+## UTF Registry
+
+The `UTFRegistry` class provides a unified factory for all 6 tiers:
+
+```javascript
+const { UTFRegistry } = require('./src/utf');
+const registry = new UTFRegistry();
+
+const t1 = registry.create(1);                  // ThirstyLang
+const t2 = registry.create('thirst-of-gods');   // ThirstOfGods
+const t3 = registry.create('tarl');             // TARL
+const t4 = registry.create('shadow-thirsty');   // ShadowThirsty
+const t5 = registry.create('tscg');             // TSCG
+const t6 = registry.create('tscg-b');           // TSCGB
+```
+
+---
+
+## UTF CLI
 
 ```bash
+node src/utf/cli.js [options] [file]
 
-# Run any Thirsty-lang program
-
-npm start examples/hello.thirsty
-npm start examples/functions.thirsty
-npm start examples/arrays.thirsty
-npm start examples/classes.thirsty
-npm start examples/stdlib.thirsty
+Options:
+  --tier <name>   Select UTF tier
+  --compress      TSCG compress a file
+  --verify        Shadow Thirsty verify a file
+  --help          Show help
 ```
 
-**Note:** All features from all editions are available by default. The edition system is designed as a progressive learning path rather than separate runtime modes.
+---
 
-## Migration Path
-
-Start with base Thirsty-lang and upgrade as your thirst grows! Each edition is backward compatible with the previous one.
-
-1. **Start with Base**: Learn variables and output
-2. **Move to Thirsty+**: Add control flow and conditionals
-3. **Advance to Thirsty++**: Master functions, arrays, and the standard library
-4. **Ascend to ThirstOfGods**: Embrace object-oriented programming
-
-Stay hydrated at every level! 💧✨
+See `examples/utf/` for working examples of all 6 tiers.

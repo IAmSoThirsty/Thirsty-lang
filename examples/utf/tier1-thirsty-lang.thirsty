@@ -1,0 +1,21 @@
+// Tier 1: Thirsty-Lang — Core Language Example
+drink greeting = "Hello from Thirsty-Lang!"
+pour greeting
+
+drink x = 10
+drink y = 20
+drink sum = x + y
+pour "Sum: " + sum
+
+thirsty sum > 25 {
+  pour "Sum is greater than 25"
+}
+hydrated {
+  pour "Sum is 25 or less"
+}
+
+glass square(n) {
+  return n * n
+}
+drink result = square(7)
+pour "7 squared = " + result
