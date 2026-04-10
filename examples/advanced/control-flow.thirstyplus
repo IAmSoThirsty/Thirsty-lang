@@ -28,7 +28,7 @@ hydrated {
   pour "Great job! You're well hydrated!"
 }
 
-// Boolean values
+// Boolean values (parched = true, quenched = false)
 drink is_thirsty = parched
 
 thirsty is_thirsty {

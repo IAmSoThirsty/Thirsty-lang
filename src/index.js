@@ -164,17 +164,24 @@ class ThirstyInterpreter {
    * Optimized with first-character checks to reduce string comparisons
    */
   executeLine(line) {
-    // Handle this.property = expression (inside class methods)
+    // Handle this.property = expression (inside class methods).
+    // Parse by splitting on the first '=' to avoid ReDoS-prone regex backtracking.
     if (line.startsWith('this.')) {
-      const thisAssignMatch = line.match(/^this\.(\w+)\s*=\s*(.+)$/);
-      if (thisAssignMatch) {
-        const propName = thisAssignMatch[1];
-        const expr = thisAssignMatch[2].trim();
-        const value = this.evaluateExpression(expr);
-        if (this.variables.this && typeof this.variables.this === 'object') {
-          this.variables.this[propName] = value;
+      const eqIdx = line.indexOf('=');
+      if (eqIdx !== -1) {
+        const lhs = line.substring(0, eqIdx).trim();
+        const lhsMatch = lhs.match(/^this\.(\w+)$/);
+        if (lhsMatch) {
+          const propName = lhsMatch[1];
+          const expr = line.substring(eqIdx + 1).trim();
+          if (expr) {
+            const value = this.evaluateExpression(expr);
+            if (this.variables.this && typeof this.variables.this === 'object') {
+              this.variables.this[propName] = value;
+            }
+            return;
+          }
         }
-        return;
       }
     }
 

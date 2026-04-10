@@ -241,12 +241,20 @@ class SecurityPolicyEngine {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#x27;');
     } else {
-      // aggressive - strip tags and dangerous keywords entirely
+      // aggressive - HTML-encode all special characters first to neutralize tags,
+      // then remove residual dangerous identifiers and URL schemes.
       sanitized = input
-        .replace(/<[^>]*>/g, '')
-        .replace(/\bscript\b/gi, '')
-        .replace(/javascript:/gi, '')
-        .replace(/on\w+\s*=/gi, '');
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+        // Remove dangerous keyword 'script' even after encoding
+        .replace(/script/gi, '')
+        // Strip any residual dangerous URL schemes (javascript:, data:, vbscript:)
+        .replace(/\b(javascript|data|vbscript)\s*:/gi, '')
+        // Strip event handler attributes (onclick=, onload=, etc.)
+        .replace(/\bon\w+\s*=/gi, '');
     }
 
     return { original, sanitized, modified: original !== sanitized };
