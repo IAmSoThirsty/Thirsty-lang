@@ -166,17 +166,6 @@ thirsty examples/hello.thirsty
 thirsty-repl
 ```
 
-thirsty --version
-
-# Run a program
-
-thirsty examples/hello.thirsty
-
-# Start REPL
-
-thirsty-repl
-```
-
 #### 🖥️ Node.js — Development Setup
 
 ```bash
