@@ -83,8 +83,8 @@ class TSCG {
     }
   }
 
-  decompress(compressed) {
-    let source = typeof compressed === 'string' ? compressed : compressed.compressed;
+  decompress(input) {
+    let source = typeof input === 'string' ? input : input.compressed;
     if (!source) throw new TypeError('Expected a compressed string or TSCG result object');
 
     const entries = Array.from(this._reverseTable.entries())

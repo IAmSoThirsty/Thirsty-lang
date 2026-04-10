@@ -13,6 +13,12 @@ class ShadowThirsty {
     // NOTE: Auto-generated secrets are not portable across ShadowThirsty instances.
     // Provide a stable `options.secret` if compiled artifacts must be verified by
     // a different instance (e.g., across process restarts or distributed systems).
+    if (!options.secret) {
+      process.emitWarning(
+        'ShadowThirsty: using auto-generated secret. Compiled artifacts cannot be verified across instances. Pass options.secret for portability.',
+        'ShadowThirstyWarning'
+      );
+    }
     this._secret = options.secret || crypto.randomBytes(32).toString('hex');
   }
 

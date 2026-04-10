@@ -21,6 +21,7 @@ class TARL {
     };
     this._bridge = null;
     this._bridgeAvailable = false;
+    this._rateLimitState = new Map();
 
     this._registerBuiltinPolicies();
   }
@@ -52,7 +53,6 @@ class TARL {
         const limit = context.limit || 100;
         const windowMs = context.windowMs || 60000;
         const now = Date.now();
-        if (!this._rateLimitState) this._rateLimitState = new Map();
         const state = this._rateLimitState.get(key) || { count: 0, windowStart: now };
         if (now - state.windowStart > windowMs) {
           state.count = 0;

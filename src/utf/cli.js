@@ -56,7 +56,11 @@ async function main() {
   const registry = new UTFRegistry();
 
   if (compress) {
-    const source = file ? fs.readFileSync(file, 'utf8') : '';
+    if (!file) {
+      console.error('Error: --compress requires a file argument.');
+      process.exit(1);
+    }
+    const source = fs.readFileSync(file, 'utf8');
     const tscg = new TSCG();
     const result = tscg.compress(source);
     console.log(`TSCG Compression Results:`);
@@ -69,7 +73,11 @@ async function main() {
   }
 
   if (verify) {
-    const source = file ? fs.readFileSync(file, 'utf8') : '';
+    if (!file) {
+      console.error('Error: --verify requires a file argument.');
+      process.exit(1);
+    }
+    const source = fs.readFileSync(file, 'utf8');
     const shadow = new ShadowThirsty();
     const compiled = shadow.compile(source);
     const result = shadow.verify(compiled);
