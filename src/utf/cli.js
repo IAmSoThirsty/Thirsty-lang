@@ -49,7 +49,15 @@ async function main() {
   const compress = args.includes('--compress');
   const verify = args.includes('--verify');
   const tierIndex = args.indexOf('--tier');
-  const tierName = tierIndex !== -1 ? args[tierIndex + 1] : null;
+  let tierName = null;
+  if (tierIndex !== -1) {
+    const candidate = args[tierIndex + 1];
+    if (!candidate || candidate.startsWith('--')) {
+      console.error('Error: --tier requires a tier name (e.g. thirsty-lang, thirst-of-gods, tarl, shadow-thirsty, tscg, tscg-b).');
+      process.exit(1);
+    }
+    tierName = candidate;
+  }
 
   const file = args.find(a => !a.startsWith('--') && a !== tierName);
 

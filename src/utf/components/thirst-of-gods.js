@@ -102,8 +102,12 @@ class ThirstOfGods extends ThirstyInterpreter {
             this.importedModules[name] = require(modPath);
             this.variables[name] = this.importedModules[name];
           } catch (e) {
-            // Module unavailable in this environment; import is skipped silently
-            // to allow .thirstofgods files to run without all Node.js modules present
+            // Module unavailable in this environment; record failure for debugging.
+            if (!this._failedImports) this._failedImports = [];
+            this._failedImports.push({ name, path: modPath, error: e.message });
+            if (this.options && this.options.verbose) {
+              process.stderr.write(`[ThirstOfGods] import '${name}' from '${modPath}' failed: ${e.message}\n`);
+            }
           }
         }
         i++;

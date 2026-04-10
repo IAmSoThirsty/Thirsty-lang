@@ -292,41 +292,52 @@ test('UTFRegistry.getTierInfo returns 6 tiers', () => {
 });
 
 // ─── Async tests then summary ────────────────────────────────────────────────
-Promise.resolve()
-  .then(() => testAsync('TARL evaluate ALLOW (async)', async () => {
-    const tarl = new TARL();
-    tarl.policies.clear();
-    tarl.addPolicy('allow-all', () => ({ verdict: 'ALLOW', reason: 'ok' }));
-    const r = await tarl.evaluate({ input: 'safe' });
-    assertEqual(r.verdict, 'ALLOW', 'verdict');
-  }))
-  .then(() => testAsync('TARL evaluate ALLOW for valid context', async () => {
-    const tarl = new TARL();
-    tarl.policies.clear();
-    tarl.addPolicy('access-control', (ctx) => {
-      if (ctx.role === 'admin') return { verdict: 'ALLOW', reason: 'admin' };
-      return { verdict: 'DENY', reason: 'no access' };
-    });
-    const result = await tarl.evaluate({ role: 'admin', resource: 'file', action: 'read' });
-    assertEqual(result.verdict, 'ALLOW', 'verdict');
-  }))
-  .then(() => testAsync('TARL evaluate DENY for dangerous input', async () => {
-    const tarl = new TARL();
-    tarl.policies.clear();
-    tarl.policies.set('input-sanitization', {
-      name: 'input-sanitization',
-      evaluate: (ctx) => {
-        if (typeof ctx.input === 'string' && /<script/i.test(ctx.input)) {
-          return { verdict: 'DENY', reason: 'XSS detected' };
+async function runAsyncTests() {
+  const asyncTests = [
+    async () => testAsync('TARL evaluate ALLOW (async)', async () => {
+      const tarl = new TARL();
+      tarl.policies.clear();
+      tarl.addPolicy('allow-all', () => ({ verdict: 'ALLOW', reason: 'ok' }));
+      const r = await tarl.evaluate({ input: 'safe' });
+      assertEqual(r.verdict, 'ALLOW', 'verdict');
+    }),
+    async () => testAsync('TARL evaluate ALLOW for valid context', async () => {
+      const tarl = new TARL();
+      tarl.policies.clear();
+      tarl.addPolicy('access-control', (ctx) => {
+        if (ctx.role === 'admin') return { verdict: 'ALLOW', reason: 'admin' };
+        return { verdict: 'DENY', reason: 'no access' };
+      });
+      const result = await tarl.evaluate({ role: 'admin', resource: 'file', action: 'read' });
+      assertEqual(result.verdict, 'ALLOW', 'verdict');
+    }),
+    async () => testAsync('TARL evaluate DENY for dangerous input', async () => {
+      const tarl = new TARL();
+      tarl.policies.clear();
+      tarl.policies.set('input-sanitization', {
+        name: 'input-sanitization',
+        evaluate: (ctx) => {
+          if (typeof ctx.input === 'string' && /<script/i.test(ctx.input)) {
+            return { verdict: 'DENY', reason: 'XSS detected' };
+          }
+          return { verdict: 'ALLOW', reason: 'OK' };
         }
-        return { verdict: 'ALLOW', reason: 'OK' };
-      }
-    });
-    const result = await tarl.evaluate({ input: '<script>alert(1)</script>' });
-    assertEqual(result.verdict, 'DENY', 'verdict');
-  }))
-  .then(() => {
-    console.log(`\n${'─'.repeat(50)}`);
-    console.log(`Results: ${passed} passed, ${failed} failed`);
-    if (failed > 0) process.exit(1);
-  });
+      });
+      const result = await tarl.evaluate({ input: '<script>alert(1)</script>' });
+      assertEqual(result.verdict, 'DENY', 'verdict');
+    }),
+  ];
+
+  for (const fn of asyncTests) {
+    await fn();
+  }
+
+  console.log(`\n${'─'.repeat(50)}`);
+  console.log(`Results: ${passed} passed, ${failed} failed`);
+  if (failed > 0) process.exit(1);
+}
+
+runAsyncTests().catch(err => {
+  console.error('Async test runner failed:', err);
+  process.exit(1);
+});
