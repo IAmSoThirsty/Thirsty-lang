@@ -1,0 +1,17 @@
+// Tier 3: T.A.R.L. — Policy Enforcement Example
+// This example shows how TARL policies protect code execution
+
+// Activate defensive shield
+shield on
+
+// Safe variable declaration
+drink safeInput = "Hello World"
+armored drink protectedValue = 42
+
+// TARL-protected operations
+pour "T.A.R.L. policies active"
+pour "Input validated: " + safeInput
+pour "Protected value: " + protectedValue
+
+shield off
+pour "TARL enforcement complete"

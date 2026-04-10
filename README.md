@@ -57,8 +57,8 @@ Thirsty-lang is the foundation of the **Universal Thirsty Family**, a mathematic
 |------|------|-------------|----------------|
 | 1 | **Thirsty-lang** | Core language — variables, control flow, security primitives | `.thirsty` |
 | 2 | **Thirst of Gods** | OOP, async/await, advanced data structures | `.thirstofgods` |
-| 3 | **T.A.R.L.** | Defensive policy VM, function/array tier | `.thirstyplusplus` |
-| 4 | **Shadow Thirst** | Dual-plane verified compiler | `.thirstyplus` |
+| 3 | **T.A.R.L.** | Defensive policy VM, function/array tier | — |
+| 4 | **Shadow Thirsty** | Dual-plane verified compiler | — |
 | 5 | **TSCG** | Symbolic compression engine | — |
 | 6 | **TSCG-B** | Binary encoding layer | — |
 
@@ -247,10 +247,10 @@ npm run train
 
 | Module | Level | Topics |
 |--------|-------|--------|
-| 💧 Base Thirsty-lang | Beginner | Variables, output, input, comments |
-| 💧+ Thirsty Plus | Intermediate | Control flow, operators, booleans |
-| 💧++ Thirsty Plus Plus | Advanced | Functions, arrays, standard library |
-| ⚡ ThirstOfGods | Master | OOP, async/await, modules |
+| 💧 Tier 1 — Thirsty-Lang | Beginner | Variables, output, input, comments |
+| ⚡ Tier 2 — Thirst of Gods | Advanced | OOP, async/await, modules, data structures |
+| 🛡️ Tier 3 — T.A.R.L. | Security | Policy VM, defensive programming |
+| 🔒 Tier 4 — Shadow Thirsty | Expert | Dual-plane compilation, verification |
 
 ### Running Thirsty-lang Programs
 
@@ -603,69 +603,6 @@ See [PYTHON_SETUP.md](PYTHON_SETUP.md) for detailed Python setup and usage.
 
 ---
 
-## 🎓 Language Editions (UTF Tiers 1–4)
-
-Thirsty-lang ships four progressive editions corresponding to UTF Tiers 1–4, each building on the last:
-
-| Edition | Level | Features | Status |
-|---------|-------|----------|--------|
-| 💧 **Base** | Beginner | Variables (`drink`), Output (`pour`), Comments | ✅ Implemented |
-| 💧+ **Thirsty+** | Intermediate | Control flow (`thirsty`/`hydrated`), Loops (`refill`), Operators | ✅ Implemented |
-| 💧++ **Thirsty++** | Advanced | Functions (`glass`), Arrays (`reservoir`), Standard Library | ✅ Implemented |
-| ⚡ **ThirstOfGods** | Master | Classes (`fountain`), OOP, Advanced Data Structures | ✅ Implemented |
-
-### Feature Matrix by Edition
-
-#### 💧 Base Thirsty-lang
-
-- ✅ Variable declaration (`drink`)
-- ✅ Output statements (`pour`)
-- ✅ Input statements (`sip`)
-- ✅ Comments (`//`)
-- ✅ Basic string and number literals
-
-#### 💧+ Thirsty Plus
-
-**All Base features, plus:**
-
-- ✅ Conditional statements (`thirsty`/`hydrated`)
-- ✅ Comparison operators (`>`, `<`, `>=`, `<=`, `==`, `!=`)
-- ✅ Arithmetic operations (`+`, `-`, `*`, `/`)
-- ✅ String concatenation
-- ✅ Boolean values
-
-#### 💧++ Thirsty Plus Plus
-
-**All Thirsty+ features, plus:**
-
-- ✅ Function declarations (`glass`)
-- ✅ Function calls with parameters
-- ✅ Return statements
-- ✅ Array declarations (`reservoir`)
-- ✅ Array indexing and element access
-- ✅ Array methods (push, pop, shift, unshift, indexOf, includes, join, slice, reverse, sort)
-- ✅ Loops with iteration (`refill`)
-- ✅ Standard Library:
-  - Math utilities (PI, E, abs, sqrt, pow, floor, ceil, round, min, max, random)
-  - String methods (toUpperCase, toLowerCase, trim, split, replace, charAt, substring)
-
-#### ⚡ ThirstOfGods
-
-**All Thirsty++ features, plus:**
-
-- ✅ Class declarations (`fountain`)
-- ✅ Object instantiation
-- ✅ Class methods
-- ✅ Class properties
-- ✅ `this` keyword for property access
-- ✅ Object-oriented programming
-
-**Note:** All features are currently available in the standard interpreter. Future versions may introduce edition-specific runtime modes.
-
-See [docs/EXPANSIONS.md](docs/EXPANSIONS.md) for detailed information and examples.
-
----
-
 ## 📚 Documentation
 
 Full language specification and reference docs are in the `docs/` directory:
@@ -674,7 +611,7 @@ Full language specification and reference docs are in the `docs/` directory:
 
 - [README.md](README.md) - Main documentation (this file)
 - [Language Specification](docs/SPECIFICATION.md) - Complete syntax and semantics
-- [Expansions Guide](docs/EXPANSIONS.md) - Multi-tier language editions
+- [Expansions Guide](docs/EXPANSIONS.md) - UTF 6-tier architecture details
 - [Tutorial](docs/TUTORIAL.md) - Step-by-step learning guide
 - [Quick Reference](docs/QUICK_REFERENCE.md) - Syntax cheat sheet
 - [FAQ](docs/FAQ.md) - Frequently asked questions

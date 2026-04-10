@@ -7,6 +7,39 @@ All notable changes to Thirsty-lang will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-03-03 - 🌊 Universal Thirsty Family (UTF)
+
+### 🎉 UTF 6-Tier Architecture
+
+This release introduces the **Universal Thirsty Family (UTF)** — the definitive 6-tier programming language system.
+
+### Added
+
+- ✅ **Tier 1 — Thirsty-Lang** (`src/utf/components/thirsty-lang.js`) — Core language wrapper
+- ✅ **Tier 2 — Thirst of Gods** (`src/utf/components/thirst-of-gods.js`) — OOP/async with `fountain extends`, `cascade`, `floodmap`, `poolset`, `spring interface`
+- ✅ **Tier 3 — T.A.R.L.** (`src/utf/components/tarl.js`) — Policy VM with built-in input-sanitization, rate-limiting, and access-control policies
+- ✅ **Tier 4 — Shadow Thirsty** (`src/utf/components/shadow-thirsty.js`) — Dual-plane (A/B) compiler with SHA-256 checksum and HMAC tamper detection
+- ✅ **Tier 5 — TSCG** (`src/utf/components/tscg.js`) — Symbolic compression grammar using `§<id>` symbols
+- ✅ **Tier 6 — TSCG-B** (`src/utf/components/tscg-b.js`) — Binary encoding with `0x54534347` magic header
+- ✅ **UTF Registry** (`src/utf/index.js`) — Unified factory for all 6 tiers
+- ✅ **UTF CLI** (`src/utf/cli.js`) — Command-line interface for all tiers
+- ✅ **UTF Tests** (`src/test/utf-tests.js`) — 35-test suite covering all tiers
+- ✅ **UTF Examples** (`examples/utf/`) — Working examples for all 6 tiers
+
+### Changed
+
+- Bumped version to 3.0.0
+- Updated description to reflect UTF architecture
+- Removed deprecated `test:plus`, `test:plusplus`, `test:gods`, `thirstyplus`, `thirstyplusplus`, `thirstofgods` scripts
+- Added `test:utf`, `example:utf`, `utf` scripts
+- Fixed shebang placement: CLI entrypoints have `#!/usr/bin/env node` on line 1; module files have no shebang
+- Renamed `examples/advanced/control-flow.thirstyplus` → `control-flow.thirstofgods`
+- Renamed `examples/advanced/functions.thirstyplusplus` → `functions.thirstofgods`
+- Updated `docs/EXPANSIONS.md` to document the UTF 6-tier architecture
+- Fixed UTF architecture table in README (rows 3 & 4: no file extensions, "Shadow Thirsty" spelling)
+
+---
+
 ## [2.0.0] - 2026-02-12 - 🚀 100% REAL PRODUCTION RELEASE
 
 ### 🎉 Major Production Features

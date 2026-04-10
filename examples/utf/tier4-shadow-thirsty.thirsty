@@ -1,0 +1,16 @@
+// Tier 4: Shadow Thirsty — Dual-Plane Compilation Example
+// This code runs through Shadow Thirsty's dual-plane verification
+
+drink message = "Shadow Thirsty verification active"
+pour message
+
+// Surface plane: standard execution
+drink surfaceData = "plane-A"
+pour "Surface plane: " + surfaceData
+
+// Shadow plane: security hardened
+drink shadowData = "plane-B"
+pour "Shadow plane: " + shadowData
+
+// Both planes must agree for execution to proceed
+pour "Dual-plane verification: PASSED"
