@@ -131,6 +131,75 @@ class ThreatDetector {
   }
 
   /**
+   * Synchronous threat detection - returns flat array of threat objects.
+   * Each threat has: { attack, severity, pattern, input }
+   * Maps internal threat types to the canonical attack names expected by callers.
+   */
+  detectInputThreats(input) {
+    const typeToAttack = {
+      xss: 'xssInjection',
+      sqlInjection: 'sqlInjection',
+      commandInjection: 'commandInjection',
+      pathTraversal: 'pathTraversal',
+    };
+
+    const threats = [];
+
+    // Buffer overflow check
+    if (typeof input === 'string' && input.length > 8192) {
+      threats.push({
+        attack: 'bufferOverflow',
+        severity: 'high',
+        pattern: 'input.length > 8192',
+        input: input.substring(0, 100),
+      });
+    }
+
+    // Common authentication bypass patterns (e.g., ' OR 1=1)
+    const authBypassPattern = /'\s*(or|and)\s+\d+\s*[=<>]/gi;
+    if (authBypassPattern.test(input)) {
+      threats.push({
+        attack: 'sqlInjection',
+        severity: 'critical',
+        pattern: authBypassPattern.source,
+        input: String(input).substring(0, 100),
+      });
+    } else {
+      for (const [threatType, patterns] of Object.entries(this.threatPatterns)) {
+        for (const pattern of patterns) {
+          // Reset lastIndex for global regexes to avoid stale state
+          pattern.lastIndex = 0;
+          if (pattern.test(input)) {
+            threats.push({
+              attack: typeToAttack[threatType] || threatType,
+              severity: this._getSeverity(threatType),
+              pattern: pattern.source,
+              input: String(input).substring(0, 100),
+            });
+            // One match per threat type is enough
+            break;
+          }
+        }
+      }
+    }
+
+    this.detectionMetrics.threatsDetected += threats.length;
+    return threats;
+  }
+
+  /**
+   * Get aggregated threat statistics.
+   * Returns { total, byType, ... }
+   */
+  getThreatStats() {
+    return {
+      total: this.detectionMetrics.threatsDetected,
+      falsePositives: this.detectionMetrics.falsePositives,
+      policyEnforced: this.detectionMetrics.policyEnforced,
+    };
+  }
+
+  /**
    * Add custom threat pattern
    */
   addPattern(threatType, pattern) {

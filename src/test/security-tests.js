@@ -7,10 +7,10 @@
  * Tests for Thirsty-lang defensive programming capabilities
  */
 
-const ThreatDetector = require('../security/threat-detector');
-const CodeMorpher = require('../security/code-morpher');
-const SecurityPolicyEngine = require('../security/policy-engine');
-const DefenseCompiler = require('../security/defense-compiler');
+const { ThreatDetector } = require('../security/threat-detector');
+const { CodeMorpher } = require('../security/code-morpher');
+const { SecurityPolicyEngine } = require('../security/policy-engine');
+const { DefenseCompiler } = require('../security/defense-compiler');
 const { SecurityManager } = require('../security/index');
 
 // Test results

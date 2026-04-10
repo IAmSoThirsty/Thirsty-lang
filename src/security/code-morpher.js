@@ -23,9 +23,49 @@ class CodeMorpher {
   }
 
   /**
-   * Morph code based on security policy
+   * Synchronous morph - returns transformed code string.
+   * Options: { identifierMorphing, deadCodeInjection, antiDebugChecks, rename, obfuscate }
    */
-  async morph(code, context = {}) {
+  morph(code, options = {}) {
+    let result = code;
+
+    const useRename = options.identifierMorphing !== undefined
+      ? options.identifierMorphing
+      : this.morphStrategies.rename;
+    const useDead = options.deadCodeInjection !== undefined
+      ? options.deadCodeInjection
+      : false;
+    const useAntiDebug = options.antiDebugChecks !== undefined
+      ? options.antiDebugChecks
+      : false;
+    const useObfuscate = options.obfuscate !== undefined
+      ? options.obfuscate
+      : this.morphStrategies.obfuscate;
+
+    if (useObfuscate) {
+      result = this._obfuscateStrings(result);
+    }
+
+    if (useRename) {
+      result = this._renameVariables(result);
+    }
+
+    if (useDead) {
+      result = this._injectDeadCode(result);
+    }
+
+    if (useAntiDebug) {
+      result = this._addAntiDebugChecks(result);
+    }
+
+    this.morphMetrics.transformations++;
+    return result;
+  }
+
+  /**
+   * Async morph (for bridge-integrated use) - returns full result object.
+   */
+  async morphAsync(code, context = {}) {
     // Check policy before morphing
     if (this.bridge) {
       try {
@@ -108,12 +148,46 @@ class CodeMorpher {
   }
 
   /**
+   * Inject dead code to confuse static analysis
+   */
+  _injectDeadCode(code) {
+    const deadSnippets = [
+      '// Security layer alpha\ndrink _sec_a = 0\ndrink _sec_b = _sec_a + 1\n',
+      '// Security layer beta\ndrink _sec_x = "dead"\ndrink _sec_y = "code"\n',
+      '// Security layer gamma\ndrink _sec_i = 100\ndrink _sec_j = _sec_i * 0\n',
+    ];
+    const prefix = deadSnippets.join('');
+    return prefix + code + '\n// Security layer omega\ndrink _sec_end = parched\n';
+  }
+
+  /**
+   * Add anti-debug checks
+   */
+  _addAntiDebugChecks(code) {
+    const antiDebug = `// Anti-Debug Layer
+// debugger;
+drink _debugCheck = "Debug protection active"
+`;
+    return antiDebug + code;
+  }
+
+  /**
    * Shuffle statement order (safe operations only)
    */
   _shuffleStatements(code) {
     // Simple implementation - just return code
     // Real implementation would analyze dependencies and reorder
     return code;
+  }
+
+  /**
+   * Get morph statistics (alias for getMetrics with totalMorphs key)
+   */
+  getMorphStats() {
+    return {
+      totalMorphs: this.morphMetrics.transformations,
+      policyChecks: this.morphMetrics.policyChecks,
+    };
   }
 
   /**

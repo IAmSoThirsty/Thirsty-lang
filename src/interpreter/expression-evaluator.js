@@ -24,6 +24,25 @@ class ExpressionEvaluator {
   evaluateExpression(expr) {
     expr = expr.trim();
 
+    // Strip outer parentheses if the entire expression is wrapped in them
+    if (expr.startsWith('(') && expr.endsWith(')')) {
+      let depth = 0;
+      let isWrapped = true;
+      for (let i = 0; i < expr.length - 1; i++) {
+        if (expr[i] === '(') depth++;
+        else if (expr[i] === ')') {
+          depth--;
+          if (depth === 0) {
+            isWrapped = false;
+            break;
+          }
+        }
+      }
+      if (isWrapped) {
+        return this.evaluateExpression(expr.slice(1, -1).trim());
+      }
+    }
+
     // Handle addition and subtraction (lowest precedence)
     // Only split if there's a + or - NOT inside a higher precedence operation
     for (let i = expr.length - 1; i >= 0; i--) {
@@ -87,9 +106,9 @@ class ExpressionEvaluator {
       return expr.slice(1, -1);
     }
 
-    // Boolean literals
-    if (expr === 'true') return true;
-    if (expr === 'false') return false;
+    // Boolean literals (including Thirsty-lang water-themed aliases)
+    if (expr === 'true' || expr === 'parched') return true;
+    if (expr === 'false' || expr === 'quenched') return false;
 
     // Number literal (including negative numbers)
     if (!isNaN(expr)) {

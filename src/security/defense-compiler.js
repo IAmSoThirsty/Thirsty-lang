@@ -11,21 +11,91 @@ const { ThreatDetector } = require('./threat-detector');
 const { CodeMorpher } = require('./code-morpher');
 
 class DefenseCompiler {
-  constructor(securityBridge) {
-    this.bridge = securityBridge;
-    this.threatDetector = new ThreatDetector(securityBridge);
-    this.codeMorpher = new CodeMorpher(securityBridge);
+  /**
+   * Constructor accepts either a SecurityBridge instance (legacy) or an options object.
+   * Options: { defenseEnabled, morphingEnabled, policy: { securityLevel } }
+   */
+  constructor(bridgeOrOptions) {
+    // Support both bridge instance and plain options object
+    if (bridgeOrOptions && typeof bridgeOrOptions.evaluatePolicy === 'function') {
+      // Legacy: SecurityBridge passed directly
+      this.bridge = bridgeOrOptions;
+      this.defenseEnabled = true;
+      this.morphingEnabled = true;
+      this.policy = { securityLevel: 'moderate' };
+    } else {
+      const opts = bridgeOrOptions || {};
+      this.bridge = null;
+      this.defenseEnabled = opts.defenseEnabled !== false;
+      this.morphingEnabled = opts.morphingEnabled !== false;
+      this.policy = opts.policy || { securityLevel: 'moderate' };
+    }
+
+    this.threatDetector = new ThreatDetector(this.bridge);
+    this.codeMorpher = new CodeMorpher(this.bridge);
     this.compileMetrics = {
       compilations: 0,
+      successfulCompilations: 0,
       threatsBlocked: 0,
-      transformations: 0
+      transformations: 0,
     };
   }
 
   /**
-   * Compile code with defensive measures
+   * Synchronous compile - wraps code with security layers.
+   * Returns { code, original, securityLayers, threats, transformations }
    */
-  async compile(code, options = {}) {
+  compile(code, options = {}) {
+    this.compileMetrics.compilations++;
+
+    const threats = this.threatDetector.detectInputThreats(code);
+    const securityLayers = [];
+
+    let compiled = code;
+
+    if (this.defenseEnabled) {
+      // Add Security runtime header
+      compiled = `// Security: Defense compiler active (level: ${this.policy.securityLevel})\n` + compiled;
+      securityLayers.push('SecurityHeader');
+
+      if (this.morphingEnabled && options.morph !== false) {
+        compiled = this.codeMorpher.morph(compiled, { obfuscate: false, rename: false });
+        securityLayers.push('CodeMorph');
+        this.compileMetrics.transformations++;
+      }
+
+      compiled = this._addRuntimeGuards(compiled);
+      securityLayers.push('RuntimeGuards');
+    }
+
+    this.compileMetrics.successfulCompilations++;
+
+    return {
+      code: compiled,
+      original: code,
+      threats,
+      securityLayers,
+      transformations: securityLayers,
+      metrics: this.getCompilationStats(),
+    };
+  }
+
+  /**
+   * Get compilation statistics
+   */
+  getCompilationStats() {
+    return {
+      totalCompilations: this.compileMetrics.compilations,
+      successfulCompilations: this.compileMetrics.successfulCompilations,
+      threatsBlocked: this.compileMetrics.threatsBlocked,
+      transformations: this.compileMetrics.transformations,
+    };
+  }
+
+  /**
+   * Async compile (for bridge-integrated use)
+   */
+  async compileAsync(code, options = {}) {
     this.compileMetrics.compilations++;
 
     const context = {
@@ -75,7 +145,7 @@ class DefenseCompiler {
 
     if (options.morph !== false) {
       try {
-        const morphResult = await this.codeMorpher.morph(code, context);
+        const morphResult = await this.codeMorpher.morphAsync(code, context);
         compiled = morphResult.code;
         transformations.push(...morphResult.transformations);
         this.compileMetrics.transformations++;
@@ -139,8 +209,9 @@ const __SECURITY_CONTEXT__ = {
   resetMetrics() {
     this.compileMetrics = {
       compilations: 0,
+      successfulCompilations: 0,
       threatsBlocked: 0,
-      transformations: 0
+      transformations: 0,
     };
     this.threatDetector.resetMetrics();
     this.codeMorpher.resetMetrics ? this.codeMorpher.resetMetrics() : null;

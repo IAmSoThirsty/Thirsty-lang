@@ -270,7 +270,7 @@ class ClassFunctionHandlers {
     const code = fs.readFileSync(absolutePath, 'utf8');
 
     // Create new interpreter instance for module
-    const ThirstyInterpreter = require('../index');
+    const { ThirstyInterpreter } = require('../index');
     const moduleInterpreter = new ThirstyInterpreter({
       currentFile: absolutePath,
       security: this.interpreter.securityEnabled,

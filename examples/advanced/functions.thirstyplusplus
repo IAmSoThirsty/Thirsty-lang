@@ -1,13 +1,13 @@
 // Advanced T.A.R.L. Example
-// This demonstrates future features
+// This demonstrates defensive programming features
 
 // Function to calculate daily water intake
-glass calculateWaterIntake(weight, activity_level)
+glass calculateWaterIntake(weight, activity_level) {
   drink base_intake = weight * 0.033
   drink activity_multiplier = activity_level * 0.5
   drink total = base_intake + activity_multiplier
   return total
-
+}
 // Main program
 drink my_weight = 70
 drink my_activity = 2
@@ -18,11 +18,17 @@ pour "Daily water intake:"
 pour daily_water
 pour "liters"
 
-// Array example (future feature)
+// Hydration log using a loop
 reservoir hydration_log = [2.0, 1.5, 2.5, 3.0]
 
-// Loop through log (future feature)
-refill 4 times
-  pour hydration_log[index]
+drink total_consumed = 0
+drink i = 0
+refill i < 4 {
+  drink total_consumed = total_consumed + hydration_log[i]
+  drink i = i + 1
+}
+
+pour "Total consumed:"
+pour total_consumed
 
 // Stay hydrated! 💧

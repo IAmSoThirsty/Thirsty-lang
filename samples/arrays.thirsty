@@ -30,12 +30,12 @@ drink hasNine = numbers.includes(9)
 pour "Contains 9: " + hasNine
 
 // Array methods
-reservoir sorted = numbers.sort()
+drink sorted = numbers.sort()
 pour "Sorted: " + sorted.join(", ")
 
-reservoir reversed = numbers.reverse()
+drink reversed = numbers.reverse()
 pour "Reversed: " + reversed.join(", ")
 
 // Slice array
-reservoir slice = numbers.slice(1, 4)
+drink slice = numbers.slice(1, 4)
 pour "Slice [1:4]: " + slice.join(", ")

@@ -101,14 +101,13 @@ class ExceptionHandlers {
     let nextIdx = tryBlockEnd;
 
     // Check for catch block - could be on same line as closing brace or next line
-    let catchLine = lines[nextIdx].trim();
+    let currentLine = lines[nextIdx].trim();
 
     // Check if catch is on the closing brace line (e.g., "} catch (e) {")
-    const inlineCatchMatch = catchLine.match(/}\s*catch\s*\((\w+)\)\s*{$/);
+    const inlineCatchMatch = currentLine.match(/}\s*catch\s*\((\w+)\)\s*{$/);
     if (inlineCatchMatch) {
       catchVar = inlineCatchMatch[1];
       catchStart = nextIdx + 1;
-      // Find the catch block's closing brace using a custom search
       catchEnd = this.findNextMatchingBrace(lines, nextIdx);
 
       if (catchEnd === -1) {
@@ -116,14 +115,17 @@ class ExceptionHandlers {
       }
 
       nextIdx = catchEnd;
-    } else {
+      currentLine = lines[nextIdx].trim();
+    } else if (!currentLine.match(/}\s*finally\s*{$/)) {
+      // Only advance if this line is not an inline finally (e.g., "} finally {")
       // Check next line for catch
-      nextIdx = tryBlockEnd + 1;
-      if (nextIdx < lines.length) {
-        catchLine = lines[nextIdx].trim();
-        const catchMatch = catchLine.match(/^catch\s*\((\w+)\)\s*{$/);
+      const peekIdx = tryBlockEnd + 1;
+      if (peekIdx < lines.length) {
+        const peekedLine = lines[peekIdx].trim();
+        const catchMatch = peekedLine.match(/^catch\s*\((\w+)\)\s*{$/);
 
         if (catchMatch) {
+          nextIdx = peekIdx;
           catchVar = catchMatch[1];
           catchStart = nextIdx + 1;
           catchEnd = this.interpreter.findMatchingBrace(lines, nextIdx);
@@ -133,15 +135,14 @@ class ExceptionHandlers {
           }
 
           nextIdx = catchEnd;
+          currentLine = lines[nextIdx].trim();
         }
       }
     }
 
     // Check for finally block - could be on same line as closing brace or next line
-    let finallyLine = lines[nextIdx].trim();
-
-    // Check if finally is on the closing brace line (e.g., "} finally {")
-    const inlineFinallyMatch = finallyLine.match(/}\s*finally\s*{$/);
+    // Check if finally is on the current closing brace line (e.g., "} finally {")
+    const inlineFinallyMatch = currentLine.match(/}\s*finally\s*{$/);
     if (inlineFinallyMatch) {
       finallyStart = nextIdx + 1;
       finallyEnd = this.findNextMatchingBrace(lines, nextIdx);
@@ -153,11 +154,12 @@ class ExceptionHandlers {
       nextIdx = finallyEnd;
     } else {
       // Check next line for finally
-      nextIdx = nextIdx + 1;
-      if (nextIdx < lines.length) {
-        finallyLine = lines[nextIdx].trim();
+      const finallyPeekIdx = nextIdx + 1;
+      if (finallyPeekIdx < lines.length) {
+        const finallyLine = lines[finallyPeekIdx].trim();
 
         if (finallyLine === 'finally {') {
+          nextIdx = finallyPeekIdx;
           finallyStart = nextIdx + 1;
           finallyEnd = this.interpreter.findMatchingBrace(lines, nextIdx);
 
@@ -284,8 +286,10 @@ class ExceptionHandlers {
       throw caughtError;
     }
 
-    // Return index after all blocks
-    return nextIdx;
+    // Return index of first line AFTER the entire try/catch/finally structure.
+    // nextIdx currently points to the closing brace of the last block;
+    // adding 1 lets executeBlock continue with the next statement.
+    return nextIdx + 1;
   }
 
   /**
@@ -347,8 +351,12 @@ class ExceptionHandlers {
   }
 
   /**
-   * Find matching brace for inline catch/finally blocks
-   * Starts from a line that contains both } and { (e.g., "} catch (e) {")
+   * Find matching brace for inline catch/finally blocks.
+   * Starts from a line that contains both } and { (e.g., "} catch (e) {").
+   *
+   * Key rule: "} catch/finally {" is treated as closing OUR block only when
+   * we are at depth 1 (braceCount === 1). When nested deeper (braceCount > 1),
+   * it is a sibling transition inside an inner block and has net effect of 0.
    */
   findNextMatchingBrace(lines, startIndex) {
     let braceCount = 1;
@@ -357,14 +365,22 @@ class ExceptionHandlers {
     while (i < lines.length && braceCount > 0) {
       const currentLine = lines[i].trim();
 
-      // Count all opening braces
-      const openCount = (currentLine.match(/{/g) || []).length;
-      const closeCount = (currentLine.match(/}/g) || []).length;
-
-      braceCount += openCount - closeCount;
-
-      if (braceCount === 0) {
-        return i;
+      if (currentLine.includes('} catch') || currentLine.includes('} finally')) {
+        if (braceCount === 1) {
+          // At the top level of the block we're scanning: this closes our block.
+          braceCount--;
+          if (braceCount === 0) {
+            return i;
+          }
+        }
+        // else: this } catch/finally is inside a nested block — net 0, skip.
+      } else {
+        const openCount = (currentLine.match(/{/g) || []).length;
+        const closeCount = (currentLine.match(/}/g) || []).length;
+        braceCount += openCount - closeCount;
+        if (braceCount === 0) {
+          return i;
+        }
       }
 
       i++;

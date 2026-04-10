@@ -10,7 +10,7 @@ const { SecurityBridge } = require('./bridge');
 const { ThreatDetector } = require('./threat-detector');
 const { CodeMorpher } = require('./code-morpher');
 const { DefenseCompiler } = require('./defense-compiler');
-const { PolicyEngine } = require('./policy-engine');
+const { PolicyEngine, SecurityPolicyEngine } = require('./policy-engine');
 
 /**
  * SecurityManager - Provides HTML sanitization and variable protection
@@ -114,6 +114,36 @@ class SecurityManager {
   }
 
   /**
+   * Synchronous secure execution - compiles code with defense layers.
+   * Returns { code, original, securityLayers, threats }
+   */
+  secureExecute(code, options = {}) {
+    const compiler = new DefenseCompiler({
+      defenseEnabled: this.enabled,
+      morphingEnabled: false,
+      policy: options.policy || { securityLevel: this.mode === 'offensive' ? 'aggressive' : 'moderate' },
+    });
+    return compiler.compile(code, options);
+  }
+
+  /**
+   * Get a full security status report.
+   * Returns { enabled, mode, threats, policy }
+   */
+  getSecurityReport() {
+    const threatDetector = new ThreatDetector();
+    const policyEngine = new SecurityPolicyEngine({ securityLevel: 'moderate' });
+
+    return {
+      enabled: this.enabled,
+      mode: this.mode,
+      initialized: this.initialized,
+      threats: threatDetector.getThreatStats(),
+      policy: policyEngine.getPolicyConfig(),
+    };
+  }
+
+  /**
    * Compile code with defensive measures
    */
   async compileSecure(code, options = {}) {
@@ -156,4 +186,5 @@ module.exports = {
   CodeMorpher,
   DefenseCompiler,
   PolicyEngine,
+  SecurityPolicyEngine,
 };

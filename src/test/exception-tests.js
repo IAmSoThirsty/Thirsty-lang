@@ -402,22 +402,24 @@ test('Error in catch block is propagated', () => {
 // Test 13: Finally after return
 test('Finally executes after return', () => {
   const interpreter = new ThirstyInterpreter();
+  // Verify finally runs by checking the pour output it produces.
+  // (Function scope is isolated in Thirsty-lang, so outer variables
+  //  are not modified; we observe the finally via its pour statement.)
   const code = `
-    drink finallyRan = "no"
     glass testFunc() {
       try {
         return "value"
       } finally {
-        drink finallyRan = "yes"
+        pour "finally ran"
       }
     }
     drink result = testFunc()
-    pour finallyRan
+    pour result
   `;
 
   let output = '';
   const originalLog = console.log;
-  console.log = (msg) => { output += msg; };
+  console.log = (msg) => { output += msg + '\n'; };
 
   try {
     interpreter.execute(code);
@@ -425,8 +427,11 @@ test('Finally executes after return', () => {
     console.log = originalLog;
   }
 
-  if (!output.includes('yes')) {
-    throw new Error(`Expected "yes", got: ${output}`);
+  if (!output.includes('finally ran')) {
+    throw new Error(`Expected "finally ran" in output, got: ${output}`);
+  }
+  if (!output.includes('value')) {
+    throw new Error(`Expected "value" in output, got: ${output}`);
   }
 });
 

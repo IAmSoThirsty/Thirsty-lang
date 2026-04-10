@@ -208,4 +208,92 @@ class PolicyEngine extends EventEmitter {
   }
 }
 
-module.exports = { PolicyEngine };
+/**
+ * SecurityPolicyEngine - Standalone synchronous policy engine for
+ * input sanitization and threat response without a T.A.R.L. bridge.
+ * This is the public-facing, synchronous counterpart to PolicyEngine.
+ */
+class SecurityPolicyEngine {
+  constructor(options = {}) {
+    this.securityLevel = options.securityLevel || 'moderate';
+    this._levelOrder = ['passive', 'moderate', 'aggressive'];
+  }
+
+  /**
+   * Sanitize input according to the current security level.
+   * Returns { original, sanitized, modified }
+   */
+  applyInputPolicy(input) {
+    const original = input;
+    let sanitized = input;
+
+    if (this.securityLevel === 'passive') {
+      // Only HTML-encode the most dangerous characters
+      sanitized = input
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    } else if (this.securityLevel === 'moderate') {
+      sanitized = input
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+    } else {
+      // aggressive - strip tags and dangerous keywords entirely
+      sanitized = input
+        .replace(/<[^>]*>/g, '')
+        .replace(/\bscript\b/gi, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '');
+    }
+
+    return { original, sanitized, modified: original !== sanitized };
+  }
+
+  /**
+   * Determine the appropriate response action for a given threat.
+   * Returns { action: 'allow' | 'warn' | 'block' }
+   */
+  handleThreat(threat) {
+    const levelIdx = this._levelOrder.indexOf(this.securityLevel);
+    const severityMap = { low: 0, medium: 1, high: 2, critical: 3 };
+    const severity = severityMap[threat.severity] !== undefined
+      ? severityMap[threat.severity]
+      : 1;
+
+    if (this.securityLevel === 'passive') {
+      return { action: 'allow', reason: 'Passive mode - log only' };
+    } else if (this.securityLevel === 'moderate') {
+      return severity >= 3
+        ? { action: 'block', reason: 'Critical threat blocked' }
+        : { action: 'warn', reason: 'Threat detected - warning issued' };
+    } else {
+      return { action: 'block', reason: 'Aggressive mode - all threats blocked' };
+    }
+  }
+
+  /**
+   * Change the security level at runtime.
+   */
+  setSecurityLevel(level) {
+    if (this._levelOrder.includes(level)) {
+      this.securityLevel = level;
+    } else {
+      throw new Error(`Unknown security level: ${level}. Valid: ${this._levelOrder.join(', ')}`);
+    }
+  }
+
+  /**
+   * Return the current policy configuration.
+   */
+  getPolicyConfig() {
+    return {
+      securityLevel: this.securityLevel,
+      availableLevels: [...this._levelOrder],
+    };
+  }
+}
+
+module.exports = { PolicyEngine, SecurityPolicyEngine };
