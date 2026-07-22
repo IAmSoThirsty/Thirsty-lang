@@ -199,7 +199,7 @@ Add another login step in the workflow:
 
 ```yaml
 - name: Log in to Docker Hub
-  uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+  uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
   with:
     registry: docker.io
     username: ${{ secrets.DOCKER_HUB_USERNAME }}
@@ -216,10 +216,10 @@ The current workflow builds only for `linux/amd64`. To support ARM64 (M1/M2 Macs
 
 ```yaml
 - name: Set up QEMU
-  uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+  uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
 
 - name: Build and push
-  uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+  uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
   with:
     platforms: linux/amd64,linux/arm64
     # ... rest of config
