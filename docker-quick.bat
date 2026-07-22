@@ -4,7 +4,7 @@ REM Usage: docker-quick.bat [command]
 
 setlocal enabledelayedexpansion
 
-set "IMAGE_NAME=thirsty-lang:0.8.3"
+set "IMAGE_NAME=thirsty-lang:0.8.4"
 set "PROJECT_PATH=%~dp0"
 set "COMMAND=%1"
 

@@ -35,7 +35,7 @@ git push tp v<version>
 ### 3. Anyone Can Use It:
 
 ```bash
-docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.3 run --demo
+docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.4 run --demo
 ```
 
 ---
@@ -95,7 +95,7 @@ However, if you want to push images manually:
 docker login ghcr.io -u <your-github-username> -p <your-github-token>
 
 # Then push manually
-docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.3
+docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.4
 ```
 
 ---
@@ -120,7 +120,7 @@ docker run --rm ghcr.io/iamsothirsty/thirsty-lang:latest run --demo
 Once pushed, your image is available at:
 
 ```
-ghcr.io/iamsothirsty/thirsty-lang:0.8.3    (specific version)
+ghcr.io/iamsothirsty/thirsty-lang:0.8.4    (specific version)
 ghcr.io/iamsothirsty/thirsty-lang:latest   (always latest)
 ```
 
@@ -150,7 +150,7 @@ git tag v<version>
 git push tp v<version>
 
 # 6. Everyone has it
-docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.3
+docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.4
 ```
 
 ---

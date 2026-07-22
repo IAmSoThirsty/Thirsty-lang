@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.4] - 2026-07-22
+
+### Fixed
+- Pinned GitHub Actions workflows to full-length commit SHAs so the repository's
+  Actions policy allows CI, release, and Docker workflows to start.
+- Updated Docker workflow action pins to current major versions and verified the
+  multi-architecture GHCR publish workflow on `master`.
+- Refreshed package metadata, README badges, Docker labels, signing notes, and
+  release docs to point at `IAmSoThirsty/Thirsty-lang`.
+- Added line-ending policy for Docker helper scripts so Bash and Windows batch
+  helpers remain usable on their native platforms.
+
 ## [0.8.3] - 2026-07-15
 
 ### Added
