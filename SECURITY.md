@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Thirsty-Lang is currently in alpha (v0.8.4). Security updates will be applied to the latest release only.
+Thirsty-Lang is currently in alpha (v0.8.5). Security updates will be applied to the latest release only.
 
 | Version | Supported          |
 | ------- | ------------------ |

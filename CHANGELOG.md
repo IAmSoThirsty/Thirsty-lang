@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.5] - 2026-07-22
+
+### Fixed
+- Switched the PyPI release workflow from an empty token-secret path to PyPI
+  Trusted Publishing via GitHub OIDC.
+- Added a release metadata check before PyPI upload so invalid distributions fail
+  before publish.
+
 ## [0.8.4] - 2026-07-22
 
 ### Fixed

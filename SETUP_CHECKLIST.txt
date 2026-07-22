@@ -13,7 +13,7 @@
   - SHIPPING.md (release workflow and next steps)
 
 ✓ IMAGE BUILT & TESTED LOCALLY:
-  - Image: thirsty-lang:0.8.4 (255MB)
+  - Image: thirsty-lang:0.8.5 (255MB)
   - All 1212 tests pass inside build
   - Demo executes: "hello, thirsty world!"
   - CLI works: thirsty, thirst-of-gods, tarl, tscg, tscg-b, shadow-thirst
@@ -50,8 +50,8 @@
 
 4. VERIFY RELEASE:
    Once workflow completes, test the published image:
-   docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.4
-   docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.4 run --demo
+   docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.5
+   docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.5 run --demo
 
 ================================================================================
   LOCAL DEVELOPMENT COMMANDS
@@ -99,8 +99,8 @@ git push tp v<version>
   ✓ Generates release summary
 
 Anyone can then use:
-  docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.4
-  docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.4 run --demo
+  docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.5
+  docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.5 run --demo
 
 ================================================================================
   KEY GUARANTEES

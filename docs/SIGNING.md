@@ -44,11 +44,11 @@ gpg --send-keys <YOUR_KEY_ID> --keyserver keyserver.ubuntu.com
 python -m build
 
 # Sign wheel
-gpg --detach-sign --armor dist/thirsty_lang-0.8.4-py3-none-any.whl
-# Creates: thirsty_lang-0.8.4-py3-none-any.whl.asc
+gpg --detach-sign --armor dist/thirsty_lang-0.8.5-py3-none-any.whl
+# Creates: thirsty_lang-0.8.5-py3-none-any.whl.asc
 
 # Upload both files to PyPI
-twine upload dist/thirsty_lang-0.8.4* --sign --identity <YOUR_KEY_ID>
+twine upload dist/thirsty_lang-0.8.5* --sign --identity <YOUR_KEY_ID>
 ```
 
 ### Automated Signing (GitHub Actions)
@@ -89,7 +89,7 @@ curl -O https://keyserver.ubuntu.com/pks/lookup?op=get&search=<KEY_ID>
 gpg --import public_key.asc
 
 # Verify signature
-gpg --verify thirsty_lang-0.8.4-py3-none-any.whl.asc thirsty_lang-0.8.4-py3-none-any.whl
+gpg --verify thirsty_lang-0.8.5-py3-none-any.whl.asc thirsty_lang-0.8.5-py3-none-any.whl
 ```
 
 ## Best Practices
@@ -101,15 +101,17 @@ gpg --verify thirsty_lang-0.8.4-py3-none-any.whl.asc thirsty_lang-0.8.4-py3-none
 5. **Document key fingerprint** in project security policy
 6. **Test verification** before publicizing signatures
 
-## Future: Cryptographic Attestation
+## PyPI Trusted Publishing
 
-Python now supports PEP 740 trusted publishing attestations. Future versions may use:
+The release workflow publishes with PyPI Trusted Publishing through GitHub OIDC.
+Configure the PyPI project publisher with:
 
-- Sigstore/Fulcio for keyless signing (no key management needed)
-- OIDC tokens tied to GitHub release events
-- Automatic signature verification on PyPI
+- Owner: `IAmSoThirsty`
+- Repository: `Thirsty-lang`
+- Workflow: `release.yml`
 
-This provides stronger security without managing GPG keys.
+This avoids storing a PyPI API token as a GitHub secret. PEP 740 attestations can
+be layered onto this workflow in a future release.
 
 ## References
 

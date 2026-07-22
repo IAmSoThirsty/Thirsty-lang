@@ -35,7 +35,7 @@ git push tp v<version>
 ### 3. Anyone Can Use It:
 
 ```bash
-docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.4 run --demo
+docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.5 run --demo
 ```
 
 ---
@@ -95,7 +95,7 @@ However, if you want to push images manually:
 docker login ghcr.io -u <your-github-username> -p <your-github-token>
 
 # Then push manually
-docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.4
+docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.5
 ```
 
 ---
@@ -120,7 +120,7 @@ docker run --rm ghcr.io/iamsothirsty/thirsty-lang:latest run --demo
 Once pushed, your image is available at:
 
 ```
-ghcr.io/iamsothirsty/thirsty-lang:0.8.4    (specific version)
+ghcr.io/iamsothirsty/thirsty-lang:0.8.5    (specific version)
 ghcr.io/iamsothirsty/thirsty-lang:latest   (always latest)
 ```
 
@@ -150,7 +150,7 @@ git tag v<version>
 git push tp v<version>
 
 # 6. Everyone has it
-docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.4
+docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.5
 ```
 
 ---
@@ -161,6 +161,7 @@ Your release workflow does **both**:
 
 1. **PyPI** (existing workflow: `release.yml`)
    - `pip install thirsty-lang`
+   - Uses PyPI Trusted Publishing for `IAmSoThirsty/Thirsty-lang` and `.github/workflows/release.yml`
 
 2. **Docker** (new workflow: `docker.yml`)
    - `docker run ghcr.io/.../thirsty-lang:latest`
@@ -179,6 +180,7 @@ Common causes:
 - A test failed (intentional — no broken images ship)
 - Missing Dockerfile
 - GHCR registry permissions
+- PyPI Trusted Publishing is not configured for this repository/workflow
 
 ### "Permission denied" on GHCR
 

@@ -45,7 +45,7 @@ def test_version_fallback(monkeypatch):
 
     monkeypatch.setattr(md, "version", boom)
     importlib.reload(tl)
-    assert tl.__version__ == "0.8.4"
+    assert tl.__version__ == "0.8.5"
     monkeypatch.undo()
     importlib.reload(tl)  # restore real metadata version
 

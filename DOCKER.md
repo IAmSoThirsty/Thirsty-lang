@@ -117,17 +117,17 @@ ghcr.io/iamsothirsty/thirsty-lang:latest
 
 ```bash
 # Build locally
-docker build -t thirsty-lang:0.8.4 .
+docker build -t thirsty-lang:0.8.5 .
 
 # Tag for registry
-docker tag thirsty-lang:0.8.4 ghcr.io/iamsothirsty/thirsty-lang:0.8.4
-docker tag thirsty-lang:0.8.4 ghcr.io/iamsothirsty/thirsty-lang:latest
+docker tag thirsty-lang:0.8.5 ghcr.io/iamsothirsty/thirsty-lang:0.8.5
+docker tag thirsty-lang:0.8.5 ghcr.io/iamsothirsty/thirsty-lang:latest
 
 # Log in (first time only)
 docker login ghcr.io
 
 # Push
-docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.4
+docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.5
 docker push ghcr.io/iamsothirsty/thirsty-lang:latest
 ```
 
