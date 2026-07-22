@@ -38,8 +38,8 @@ When reporting, please include:
 
 ```bash
 # Clone the repository
-git clone https://github.com/TP-IAmSoThirsty/TP-Thirsty-Lang-Official.git
-cd TP-Thirsty-Lang-Official
+git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
+cd Thirsty-lang
 
 # Create virtual environment
 python3.11 -m venv venv

@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for Thirsty-Lang
 # Stage 1: Test & Build
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
@@ -69,5 +69,5 @@ CMD ["--help"]
 # Metadata
 LABEL org.opencontainers.image.title="Thirsty-Lang" \
       org.opencontainers.image.description="A governance-first programming language family" \
-      org.opencontainers.image.version="0.8.2" \
-      org.opencontainers.image.source="https://github.com/TP-IAmSoThirsty/TP-Thirsty-Lang-Official"
+      org.opencontainers.image.version="0.8.3" \
+      org.opencontainers.image.source="https://github.com/IAmSoThirsty/Thirsty-lang"

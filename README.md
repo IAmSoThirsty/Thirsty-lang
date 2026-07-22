@@ -3,9 +3,9 @@
 [![PyPI](https://img.shields.io/pypi/v/thirsty-lang?style=for-the-badge&label=PyPI&color=0ea5e9)](https://pypi.org/project/thirsty-lang/)
 [![Python](https://img.shields.io/pypi/pyversions/thirsty-lang?style=for-the-badge&label=Python&color=2563eb)](https://pypi.org/project/thirsty-lang/)
 [![License](https://img.shields.io/pypi/l/thirsty-lang?style=for-the-badge&label=License&color=16a34a)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/TP-IAmSoThirsty/TP-Thirsty-Lang-Official/smoke.yml?branch=master&style=for-the-badge&label=CI&color=0891b2)](https://github.com/TP-IAmSoThirsty/TP-Thirsty-Lang-Official/actions/workflows/smoke.yml)
-[![Release](https://img.shields.io/github/actions/workflow/status/TP-IAmSoThirsty/TP-Thirsty-Lang-Official/release.yml?style=for-the-badge&label=Release&color=7c3aed)](https://github.com/TP-IAmSoThirsty/TP-Thirsty-Lang-Official/actions/workflows/release.yml)
-[![Docker](https://img.shields.io/github/actions/workflow/status/TP-IAmSoThirsty/TP-Thirsty-Lang-Official/docker.yml?style=for-the-badge&label=Docker&color=0284c7)](https://github.com/TP-IAmSoThirsty/TP-Thirsty-Lang-Official/actions/workflows/docker.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/IAmSoThirsty/Thirsty-lang/smoke.yml?branch=master&style=for-the-badge&label=CI&color=0891b2)](https://github.com/IAmSoThirsty/Thirsty-lang/actions/workflows/smoke.yml)
+[![Release](https://img.shields.io/github/actions/workflow/status/IAmSoThirsty/Thirsty-lang/release.yml?style=for-the-badge&label=Release&color=7c3aed)](https://github.com/IAmSoThirsty/Thirsty-lang/actions/workflows/release.yml)
+[![Docker](https://img.shields.io/github/actions/workflow/status/IAmSoThirsty/Thirsty-lang/docker.yml?style=for-the-badge&label=Docker&color=0284c7)](https://github.com/IAmSoThirsty/Thirsty-lang/actions/workflows/docker.yml)
 
 ```text
        ~ ~ ~        THIRSTY-LANG        ~ ~ ~
@@ -66,8 +66,8 @@ pip install thirsty-lang==0.8.3
 From source:
 
 ```bash
-git clone https://github.com/TP-IAmSoThirsty/TP-Thirsty-Lang-Official.git
-cd TP-Thirsty-Lang-Official
+git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
+cd Thirsty-lang
 pip install -e .
 ```
 ---

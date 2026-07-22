@@ -4,7 +4,7 @@ The image is published to two public registries (multi-arch: `linux/amd64` +
 `linux/arm64`):
 
 - **Docker Hub:** `thirstyoftp/thirsty-lang`
-- **GHCR:** `ghcr.io/tp-iamsothirsty/thirsty-lang`
+- **GHCR:** `ghcr.io/iamsothirsty/thirsty-lang`
 
 Use whichever you prefer; the examples below use GHCR.
 
@@ -16,19 +16,19 @@ Use whichever you prefer; the examples below use GHCR.
 # Docker Hub
 docker run --rm thirstyoftp/thirsty-lang:latest run --demo
 # …or GHCR
-docker run --rm ghcr.io/tp-iamsothirsty/thirsty-lang:latest run --demo
+docker run --rm ghcr.io/iamsothirsty/thirsty-lang:latest run --demo
 ```
 
 ### Interactive REPL
 
 ```bash
-docker run -it --rm ghcr.io/tp-iamsothirsty/thirsty-lang:latest repl
+docker run -it --rm ghcr.io/iamsothirsty/thirsty-lang:latest repl
 ```
 
 ### Run a Script
 
 ```bash
-docker run --rm -v $(pwd):/scripts ghcr.io/tp-iamsothirsty/thirsty-lang:latest run /scripts/myfile.thirsty
+docker run --rm -v $(pwd):/scripts ghcr.io/iamsothirsty/thirsty-lang:latest run /scripts/myfile.thirsty
 ```
 
 ---
@@ -103,32 +103,32 @@ On every tag push, GitHub Actions automatically:
 **Trigger a release:**
 
 ```bash
-git tag v0.9.0
-git push tp v0.9.0
+git tag v<version>
+git push tp v<version>
 ```
 
 The image will be available at:
 ```
-ghcr.io/tp-iamsothirsty/thirsty-lang:0.9.0
-ghcr.io/tp-iamsothirsty/thirsty-lang:latest
+ghcr.io/iamsothirsty/thirsty-lang:<version>
+ghcr.io/iamsothirsty/thirsty-lang:latest
 ```
 
 ### Manual Build & Push
 
 ```bash
 # Build locally
-docker build -t thirsty-lang:0.9.0 .
+docker build -t thirsty-lang:0.8.3 .
 
 # Tag for registry
-docker tag thirsty-lang:0.9.0 ghcr.io/tp-iamsothirsty/thirsty-lang:0.9.0
-docker tag thirsty-lang:0.9.0 ghcr.io/tp-iamsothirsty/thirsty-lang:latest
+docker tag thirsty-lang:0.8.3 ghcr.io/iamsothirsty/thirsty-lang:0.8.3
+docker tag thirsty-lang:0.8.3 ghcr.io/iamsothirsty/thirsty-lang:latest
 
 # Log in (first time only)
 docker login ghcr.io
 
 # Push
-docker push ghcr.io/tp-iamsothirsty/thirsty-lang:0.9.0
-docker push ghcr.io/tp-iamsothirsty/thirsty-lang:latest
+docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.3
+docker push ghcr.io/iamsothirsty/thirsty-lang:latest
 ```
 
 ---
@@ -198,7 +198,7 @@ Run with governance flags:
 
 ```bash
 docker run --rm -v $(pwd):/app \
-  ghcr.io/tp-iamsothirsty/thirsty-lang:latest \
+  ghcr.io/iamsothirsty/thirsty-lang:latest \
   run /app/program.thirsty \
   --thirst-level governed \
   --policy /app/policy.tarl \
@@ -214,7 +214,7 @@ docker run --rm -v $(pwd):/app \
 Ensure you're pulling from GHCR:
 
 ```bash
-docker pull ghcr.io/tp-iamsothirsty/thirsty-lang:latest
+docker pull ghcr.io/iamsothirsty/thirsty-lang:latest
 ```
 
 ### Tests fail during build
@@ -226,7 +226,7 @@ The Dockerfile includes a test gate: if any test fails, the build fails. This is
 The container runs as non-root user `thirsty:1000`. Mount volumes with proper permissions:
 
 ```bash
-docker run --rm -v $(pwd)/src:/app/src:rw ghcr.io/tp-iamsothirsty/thirsty-lang:latest fmt
+docker run --rm -v $(pwd)/src:/app/src:rw ghcr.io/iamsothirsty/thirsty-lang:latest fmt
 ```
 
 ---

@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Image version tag (e.g. 0.8.2). Defaults to 'latest' only."
+        description: "Image version tag (e.g. 0.8.3). Defaults to 'latest' only."
         required: false
         default: ""
 
@@ -32,16 +32,16 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -50,7 +50,7 @@ jobs:
       # Docker Hub leg requires repo secrets DOCKERHUB_USERNAME / DOCKERHUB_TOKEN.
       - name: Log in to Docker Hub
         if: ${{ env.DOCKERHUB_TOKEN != '' }}
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: docker.io
           username: ${{ env.DOCKERHUB_USERNAME }}
@@ -63,9 +63,9 @@ jobs:
           GHCR="ghcr.io/${OWNER}/thirsty-lang"
           HUB="docker.io/${DOCKERHUB_NAMESPACE}/thirsty-lang"
           if [ "${{ github.ref_type }}" = "tag" ]; then
-            REF="${GITHUB_REF#refs/tags/}"   # v0.8.2 | docker-v0.8.2
-            REF="${REF#docker-}"             # v0.8.2
-            VERSION="${REF#v}"               # 0.8.2
+            REF="${GITHUB_REF#refs/tags/}"   # v0.8.3 | docker-v0.8.3
+            REF="${REF#docker-}"             # v0.8.3
+            VERSION="${REF#v}"               # 0.8.3
           else
             VERSION="${{ github.event.inputs.version }}"
           fi
@@ -85,7 +85,7 @@ jobs:
           echo "Building: ${TAGS}"
 
       - name: Build and push (multi-arch)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: ./Dockerfile

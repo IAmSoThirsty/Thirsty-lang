@@ -4,7 +4,7 @@ REM Usage: docker-quick.bat [command]
 
 setlocal enabledelayedexpansion
 
-set "IMAGE_NAME=thirsty-lang:0.8.0"
+set "IMAGE_NAME=thirsty-lang:0.8.3"
 set "PROJECT_PATH=%~dp0"
 set "COMMAND=%1"
 
@@ -64,7 +64,7 @@ if "%COMMAND%"=="version" (
 if "%COMMAND%"=="clean" (
     echo 🧹 Cleaning up containers and images...
     docker compose -f "%PROJECT_PATH%docker-compose.yml" down -v
-    docker rmi %IMAGE_NAME% 2>nul || true
+    docker rmi %IMAGE_NAME% 2>nul
     echo ✓ Cleanup complete
     goto :end
 )

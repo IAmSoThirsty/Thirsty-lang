@@ -23,7 +23,7 @@ pypi-publish:
   stage: publish
   image: python:3.11-slim
   script:
-    - pip install build twine setuptools==68.2.2 --quiet
+    - pip install build twine "setuptools>=77.0" --quiet
     - python -m build
     - python -m twine upload dist/* --username __token__ --password "$PYPI_API_TOKEN"
   only:

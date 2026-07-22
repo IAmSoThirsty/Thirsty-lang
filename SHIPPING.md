@@ -20,8 +20,8 @@ This guide walks you through shipping your first Thirsty-Lang release as a produ
 
 ```bash
 # Locally, bump your version
-git tag v0.9.0
-git push tp v0.9.0
+git tag v<version>
+git push tp v<version>
 ```
 
 ### 2. GitHub Actions Automatically:
@@ -35,7 +35,7 @@ git push tp v0.9.0
 ### 3. Anyone Can Use It:
 
 ```bash
-docker run --rm ghcr.io/tp-iamsothirsty/thirsty-lang:0.9.0 run --demo
+docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.3 run --demo
 ```
 
 ---
@@ -66,15 +66,15 @@ git push tp master
 ### Step 3: Create Release Tag
 
 ```bash
-git tag v0.8.0
-git push tp v0.8.0
+git tag v<version>
+git push tp v<version>
 ```
 
 **That's it.** GitHub Actions takes it from here.
 
 ### Step 4: Monitor the Workflow
 
-Visit: `https://github.com/TP-IAmSoThirsty/TP-Thirsty-Lang-Official/actions`
+Visit: `https://github.com/IAmSoThirsty/Thirsty-lang/actions`
 
 Watch the **"Build and Push Docker Image"** workflow run. It will:
 - Build the image (~2-3 minutes)
@@ -95,7 +95,7 @@ However, if you want to push images manually:
 docker login ghcr.io -u <your-github-username> -p <your-github-token>
 
 # Then push manually
-docker push ghcr.io/tp-iamsothirsty/thirsty-lang:0.8.0
+docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.3
 ```
 
 ---
@@ -106,11 +106,11 @@ After your first release, test that anyone can pull and run it:
 
 ```bash
 # Pull the image (simulates what users see)
-docker pull ghcr.io/tp-iamsothirsty/thirsty-lang:latest
+docker pull ghcr.io/iamsothirsty/thirsty-lang:latest
 
 # Run it
-docker run --rm ghcr.io/tp-iamsothirsty/thirsty-lang:latest --version
-docker run --rm ghcr.io/tp-iamsothirsty/thirsty-lang:latest run --demo
+docker run --rm ghcr.io/iamsothirsty/thirsty-lang:latest --version
+docker run --rm ghcr.io/iamsothirsty/thirsty-lang:latest run --demo
 ```
 
 ---
@@ -120,8 +120,8 @@ docker run --rm ghcr.io/tp-iamsothirsty/thirsty-lang:latest run --demo
 Once pushed, your image is available at:
 
 ```
-ghcr.io/tp-iamsothirsty/thirsty-lang:0.8.0    (specific version)
-ghcr.io/tp-iamsothirsty/thirsty-lang:latest   (always latest)
+ghcr.io/iamsothirsty/thirsty-lang:0.8.3    (specific version)
+ghcr.io/iamsothirsty/thirsty-lang:latest   (always latest)
 ```
 
 ---
@@ -146,11 +146,11 @@ git commit -m "feat: add new feature"
 git push tp master
 
 # 5. Release
-git tag v0.9.0
-git push tp v0.9.0
+git tag v<version>
+git push tp v<version>
 
 # 6. Everyone has it
-docker pull ghcr.io/.../thirsty-lang:0.9.0
+docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.3
 ```
 
 ---
@@ -199,7 +199,7 @@ Add another login step in the workflow:
 
 ```yaml
 - name: Log in to Docker Hub
-  uses: docker/login-action@v3
+  uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
   with:
     registry: docker.io
     username: ${{ secrets.DOCKER_HUB_USERNAME }}
@@ -216,10 +216,10 @@ The current workflow builds only for `linux/amd64`. To support ARM64 (M1/M2 Macs
 
 ```yaml
 - name: Set up QEMU
-  uses: docker/setup-qemu-action@v3
+  uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
 
 - name: Build and push
-  uses: docker/build-push-action@v5
+  uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
   with:
     platforms: linux/amd64,linux/arm64
     # ... rest of config
@@ -239,6 +239,4 @@ You now have:
 4. ✓ **Global access** — Anyone does `docker run ghcr.io/.../thirsty-lang:latest`
 5. ✓ **PyPI + Docker** — Users pick their distribution
 
-From "I never wrote code before" 8 months ago to shipping a governance language to the world in a container. That's the move.
-
-Let me know if you need anything else.
+From source release to container release, the same commit now carries the package, Docker image, and CI evidence.
