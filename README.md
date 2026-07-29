@@ -1,55 +1,66 @@
-# Thirsty-Lang
+<div align="center">
 
-[![PyPI](https://img.shields.io/pypi/v/thirsty-lang?style=for-the-badge&label=PyPI&color=0ea5e9)](https://pypi.org/project/thirsty-lang/)
-[![Python](https://img.shields.io/pypi/pyversions/thirsty-lang?style=for-the-badge&label=Python&color=2563eb)](https://pypi.org/project/thirsty-lang/)
-[![License](https://img.shields.io/pypi/l/thirsty-lang?style=for-the-badge&label=License&color=16a34a)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/IAmSoThirsty/Thirsty-lang/smoke.yml?branch=master&style=for-the-badge&label=CI&color=0891b2)](https://github.com/IAmSoThirsty/Thirsty-lang/actions/workflows/smoke.yml)
-[![Release](https://img.shields.io/github/actions/workflow/status/IAmSoThirsty/Thirsty-lang/release.yml?style=for-the-badge&label=Release&color=7c3aed)](https://github.com/IAmSoThirsty/Thirsty-lang/actions/workflows/release.yml)
-[![Docker](https://img.shields.io/github/actions/workflow/status/IAmSoThirsty/Thirsty-lang/docker.yml?style=for-the-badge&label=Docker&color=0284c7)](https://github.com/IAmSoThirsty/Thirsty-lang/actions/workflows/docker.yml)
+# 💧 Thirsty-Lang 💧
+
+### *The world's first governance-first programming language family*
 
 ```text
-       ~ ~ ~        THIRSTY-LANG        ~ ~ ~
-   source -> verdict -> proof -> audit -> governed effect
-       no policy        no authority        no silent downgrade
-                 DENY is the default current
+  source  →  verdict  →  proof  →  audit  →  governed effect
+
+  no policy  ·  no authority  ·  no silent downgrade
+  DENY is the default  ·  governance IS the runtime
+
+  ~ ~ ~  Code that has to justify itself before it acts.  ~ ~ ~
 ```
 
-**A governance-first programming language family for code that has to justify
-itself before it acts.**
+[![PyPI](https://img.shields.io/pypi/v/thirsty-lang?style=for-the-badge&label=PyPI&color=0ea5e9&logo=pypi&logoColor=white)](https://pypi.org/project/thirsty-lang/)
+[![Python](https://img.shields.io/pypi/pyversions/thirsty-lang?style=for-the-badge&label=Python&color=2563eb&logo=python&logoColor=white)](https://pypi.org/project/thirsty-lang/)
+[![License](https://img.shields.io/pypi/l/thirsty-lang?style=for-the-badge&label=License&color=16a34a)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/IAmSoThirsty/Thirsty-lang/smoke.yml?branch=master&style=for-the-badge&label=CI&color=0891b2&logo=githubactions&logoColor=white)](https://github.com/IAmSoThirsty/Thirsty-lang/actions/workflows/smoke.yml)
+[![Release](https://img.shields.io/github/actions/workflow/status/IAmSoThirsty/Thirsty-lang/release.yml?style=for-the-badge&label=Release&color=7c3aed&logo=githubactions&logoColor=white)](https://github.com/IAmSoThirsty/Thirsty-lang/actions/workflows/release.yml)
+[![Docker](https://img.shields.io/github/actions/workflow/status/IAmSoThirsty/Thirsty-lang/docker.yml?style=for-the-badge&label=Docker&color=0284c7&logo=docker&logoColor=white)](https://github.com/IAmSoThirsty/Thirsty-lang/actions/workflows/docker.yml)
+[![GitHub Stars](https://img.shields.io/github/stars/IAmSoThirsty/Thirsty-lang?style=for-the-badge&color=f59e0b&logo=github&logoColor=white)](https://github.com/IAmSoThirsty/Thirsty-lang/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/IAmSoThirsty/Thirsty-lang?style=for-the-badge&color=ef4444&logo=github&logoColor=white)](https://github.com/IAmSoThirsty/Thirsty-lang/issues)
 
-The programming language wars are not over. Governance is just getting started.
+</div>
 
-Thirsty-Lang is not trying to be a prettier Python syntax. It is a defensive
-runtime and language stack where execution, side effects, policy, proof,
-authority, audit, mutation, symbolic constraints, and build outputs are treated
-as governable surfaces.
+---
 
-The core posture is simple:
+## What Is Thirsty-Lang?
 
-- 🌊 no policy means deny
-- 🔐 no authority means deny
-- 🧾 no proof means no governed-execution claim
-- ⚡ no side effect before a verdict
-- 🧱 no silent downgrade when a governed path cannot be preserved
+The programming language wars are not over. **Governance is just getting started.**
 
-## Current Map
+Thirsty-Lang is not a prettier Python syntax. It is a **defensive runtime and
+language stack** where execution, side effects, policy, proof, authority, audit,
+mutation, symbolic constraints, and build outputs are all treated as governable
+surfaces — not as afterthoughts bolted on after deployment.
 
-```mermaid
-flowchart LR
-    Source[".thirsty source"] --> Parse["Parse + check"]
-    Parse --> Mode{"core or governed?"}
-    Mode -->|core| Run["ordinary runtime"]
-    Mode -->|governed| Contracts["requires / ensures / invariant"]
-    Contracts --> Policy["T.A.R.L. policy"]
-    Policy --> Verdict{"ALLOW / DENY / ESCALATE"}
-    Verdict -->|ALLOW| Effect["brokered effect"]
-    Verdict -->|DENY| Refuse["fail closed"]
-    Verdict -->|ESCALATE| Quorum["signed quorum path"]
-    Effect --> Proof["proof record"]
-    Refuse --> Proof
-    Quorum --> Proof
-    Proof --> Audit["hash-linked audit"]
-```
+Every other language asks: *can this code run?*
+Thirsty-Lang asks a harder question: *should this code run, under the current
+authority, policy, and context — and can it produce cryptographic proof that it
+did so correctly?*
+
+Instead of treating governance as documentation, middleware, or operational
+policy applied after deployment, Thirsty-Lang treats **governance as part of
+the execution model itself**. Sensitive operations require policy evaluation,
+authority verification, proof generation, and audit recording before producing
+governed effects.
+
+The result is a language designed to make execution not only programmable, but
+**explainable, attributable, and defensible** — by construction, not by
+convention.
+
+The core posture is non-negotiable:
+
+| Principle | Consequence |
+|---|---|
+| 🌊 No policy | **DENY** |
+| 🔐 No authority | **DENY** |
+| 🧾 No proof | No governed-execution claim |
+| ⚡ No verdict | No side effect |
+| 🧱 Governance loss | Must be explicitly confessed — never silently dropped |
+
+---
 
 ## Install
 
@@ -70,23 +81,10 @@ git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
 cd Thirsty-lang
 pip install -e .
 ```
----
-## Why Thirsty-Lang? ##
-
-*Traditional programming languages answer one question well:*
-
-Can this code execute?
-
-*Thirsty-Lang asks an additional question:*
-
-Should this code execute under the current authority, policy, and context?
-
-*Instead of treating governance as documentation, middleware, or operational policy applied after deployment, Thirsty-Lang treats governance as part of the execution model itself. Sensitive operations can require policy evaluation, authority verification, proof generation, and audit recording before producing governed effects.*
-
-The result is a language designed to make execution not only programmable, but explainable, attributable, and defensible.
 
 ---
-## A First Thirsty Program ##
+
+## Quick Start
 
 ```thirsty
 module hello: core
@@ -99,14 +97,73 @@ drink message = greet("governed world")
 pour message
 ```
 
-Run it:
-
 ```bash
 thirsty run hello.thirsty
 ```
 
-The welcoming syntax is only the surface. The language becomes more interesting
-when the program asks to touch something real.
+The welcoming syntax is only the surface. The power appears when your program
+needs to touch something real — a file, a network call, a database write — and
+the runtime demands a proof before it lets that happen.
+
+---
+
+## Architecture Map
+
+```mermaid
+flowchart LR
+    Source[".thirsty source"] --> Parse["Parse + check"]
+    Parse --> Mode{"core or governed?"}
+    Mode -->|core| Run["ordinary runtime"]
+    Mode -->|governed| Contracts["requires / ensures / invariant"]
+    Contracts --> Policy["T.A.R.L. policy"]
+    Policy --> Verdict{"ALLOW / DENY / ESCALATE"}
+    Verdict -->|ALLOW| Effect["brokered effect"]
+    Verdict -->|DENY| Refuse["fail closed"]
+    Verdict -->|ESCALATE| Quorum["signed quorum path"]
+    Effect --> Proof["proof record"]
+    Refuse --> Proof
+    Quorum --> Proof
+    Proof --> Audit["hash-linked audit"]
+```
+
+---
+
+## Why Thirsty-Lang?
+
+Most languages answer one question well: *can this code execute?*
+
+Thirsty-Lang asks harder questions:
+
+- Who is acting?
+- What authority was proven?
+- Which policy allowed it?
+- What exact context was evaluated?
+- What proof was produced?
+- Can the audit chain detect tampering?
+- Can a build target preserve governance, or does it have to confess the loss?
+- Can an agent or tool adapter reach a side effect without crossing the broker?
+
+That is the war surface now. Syntax still matters. Performance still matters.
+Ergonomics still matter. But **governance is becoming part of the language
+runtime**, not a document stapled to the side.
+
+```text
+        source
+          |
+       parser
+          |
+   contracts + policy
+          |
+    ALLOW / DENY / ESCALATE
+          |
+       proof
+          |
+       audit
+          |
+   only then: effect
+```
+
+---
 
 ## Governed Execution
 
@@ -130,6 +187,8 @@ Runtime enforcement includes:
 - 🛑 non-swallowable `GovernanceViolation` denials
 - 🧯 fail-closed parsing for governed modules
 - 📦 build refusal when a target would drop governance unless the loss is explicitly disclosed
+
+---
 
 ## T.A.R.L.: Policy As Resistance
 
@@ -156,6 +215,8 @@ Implemented policy surfaces include:
 - 🔁 replay, freshness, revocation, context, and policy-hash checks
 - ⛓️ hash-linked audit archives with chain verification
 
+---
+
 ## Resistance Flow
 
 ```mermaid
@@ -181,6 +242,8 @@ sequenceDiagram
     end
 ```
 
+---
+
 ## Defensive Capabilities
 
 Thirsty-Lang's defensive model is designed for hostile or ambiguous execution
@@ -204,6 +267,8 @@ The offensive challenge catalog is maintained in
 [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md). The feature matrix is maintained
 in [`docs/STATUS.md`](docs/STATUS.md).
 
+---
+
 ## The Six-Tier Stack
 
 ```mermaid
@@ -226,6 +291,8 @@ flowchart TB
 | 4 | 🌑 | Shadow Thirst | Mutation analysis, determinism checks, plane isolation, purity checks, resource estimation, and promotion blocking |
 | 5 | 🧬 | TSCG | Symbolic constraint grammar with canonicalized constraint expressions |
 | 6 | 📡 | TSCG-B | Binary frame protocol with CRC32 and SHA-256 integrity checks |
+
+---
 
 ## Unique Language Features
 
@@ -262,6 +329,8 @@ fountain Counter {
 drink c = new Counter()
 times 3 { pour c.increment() }
 ```
+
+---
 
 ## CLI Surface
 
@@ -330,6 +399,8 @@ T.A.R.L. verification is secure by default: `tarl verify` and
 inspection. `tarl eval` refuses temporal policy windows and `CURRENT_*`
 builtins unless `--now` supplies the trusted evaluation time.
 
+---
+
 ## Evidence-First Claims
 
 This project keeps defensive claims tied to files that can be inspected:
@@ -356,40 +427,7 @@ mypy -p utf
 python -m build
 ```
 
-## Why This Exists
-
-Most languages ask: can this code run?
-
-Thirsty-Lang asks harder questions:
-
-- Who is acting?
-- What authority was proven?
-- Which policy allowed it?
-- What exact context was evaluated?
-- What proof was produced?
-- Can the audit chain detect tampering?
-- Can a build target preserve governance, or does it have to confess the loss?
-- Can an agent or tool adapter reach a side effect without crossing the broker?
-
-That is the war surface now. Syntax still matters. Performance still matters.
-Ergonomics still matter. But governance is becoming part of the language
-runtime, not a document stapled to the side.
-
-```text
-        source
-          |
-       parser
-          |
-   contracts + policy
-          |
-    ALLOW / DENY / ESCALATE
-          |
-       proof
-          |
-       audit
-          |
-   only then: effect
-```
+---
 
 ## License
 
