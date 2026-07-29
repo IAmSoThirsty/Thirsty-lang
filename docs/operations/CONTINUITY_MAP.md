@@ -5,6 +5,78 @@ Updated: 2026-07-01
 Branch: `master`
 Workspace: `thirsty_lang_exploration_0754`
 
+---
+
+## 2026-07-29 Sync and Release Fix Workstream
+
+Workstream: **Upstream README Sync + PyPI Trusted Publisher Fix**
+Branch: `iamsothirsty-sync-and-fix-release`
+
+### What Was Read
+
+- Local HEAD at `d64e7ff` (Release 0.8.5: repair PyPI publishing).
+- GitHub master ahead by 7 commits (`d35d179` through `2317dcc`); all README
+  documentation/cosmetic changes via PR #22.
+- Remote tag `v0.8.5` = `1da4a9735d06811ec82a10554ef5695cbc601df4` matches
+  local tag exactly. Public v0.8.5 implementation is verified correct.
+- `.github/workflows/release.yml` had `permissions: id-token: write` and used
+  `pypa/gh-action-pypi-publish` but had **no `environment:` field on the job**.
+- GitHub repo environments API: only `copilot` environment exists; no `IAmSoThirsty`
+  environment was previously configured.
+- GitHub Actions run log for `29914952475` (v0.8.5 release, failed):
+  `invalid-publisher: valid token, but no corresponding publisher` and
+  `environment: MISSING`. This is the definitive root cause.
+
+### What Was Changed
+
+- `.github/workflows/release.yml`: added `environment: IAmSoThirsty` to the
+  `pypi-publish` job. The OIDC token will now include the `environment: IAmSoThirsty`
+  claim, which must match the environment name configured in the PyPI trusted
+  publisher settings.
+- `README.md`: fast-forwarded from upstream master via `git merge FETCH_HEAD`.
+  132 insertions / 94 deletions — cosmetic hero-banner and badge additions only.
+  No logic or API change.
+- `docs/operations/CONTINUITY_MAP.md`: this update.
+
+### Verified
+
+- `git merge FETCH_HEAD` completed as fast-forward. Working tree clean.
+- `release.yml` confirmed correct after edit (all existing steps preserved;
+  `environment: IAmSoThirsty` added as single-line field on the job; confirmed
+  by user to match the PyPI trusted publisher environment name.
+
+### Not Verified / Requires User Action
+
+1. ~~**PyPI environment name**~~ — **Resolved.** User confirmed the PyPI trusted
+   publisher environment name is `IAmSoThirsty`. `release.yml` updated accordingly.
+2. **GitHub environment creation**: A GitHub Actions environment named `IAmSoThirsty`
+   must exist in the repository settings (`Settings → Environments → New
+   environment`). Currently the repo has only `copilot`. Until `IAmSoThirsty` is
+   created, the workflow will fail at the environment-gate step.
+3. **Re-tag and push**: The v0.8.5 tag already exists on PyPI's side with
+   failed publish. To re-publish, the user must either push a new tag (e.g.
+   v0.8.5.post1 if PyPI allows it) or delete/re-create the GitHub release and
+   retag if the PyPI release slot is still empty. Check PyPI project page first.
+4. **Commit and push this fix**: This session's changes are uncommitted.
+   The user must commit `.github/workflows/release.yml` and `README.md` and
+   push to master (or merge this branch), then tag the next release.
+
+### Recommended Next Steps
+
+1. ~~Verify PyPI trusted publisher environment name~~ — Resolved: `IAmSoThirsty`.
+2. Create `IAmSoThirsty` GitHub environment (`Settings → Environments`) matching PyPI.
+3. Commit: `git add .github/workflows/release.yml README.md docs/operations/CONTINUITY_MAP.md`
+4. Push to master and create a new release tag (or re-trigger v0.8.5 if PyPI
+   slot is still vacant).
+
+### Open Issues
+
+- PyPI still shows stale metadata for `thirsty-lang`; v0.8.5 never published.
+- No packaging validation ran (no dist artifacts in worktree; existing tests
+  not re-run since no source code changed).
+
+---
+
 ## Baseline
 
 - Starting branch: `master`.
