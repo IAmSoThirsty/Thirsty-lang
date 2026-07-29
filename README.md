@@ -1,20 +1,16 @@
 <div align="center">
 
+# 💧 Thirsty-Lang 💧
+
+### *The world's first governance-first programming language family*
+
 ```text
-  ╔══════════════════════════════════════════════════════════════════╗
-  ║                                                                  ║
-  ║                  💧  T H I R S T Y - L A N G  💧                   ║
-  ║                                                                  ║
-  ║    source  →  verdict  →  proof  →  audit  →  governed effect    ║
-  ║                                                                  ║
-  ║    no policy  ·  no authority  ·  no silent downgrade           ║
-  ║    DENY is the default  ·  governance IS the runtime            ║
-  ║                                                                  ║
-  ║          ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~               ║
-  ║      The world's first governance-first language family.        ║
-  ║      Code that has to justify itself before it acts.            ║
-  ║          ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~               ║
-  ╚══════════════════════════════════════════════════════════════════╝
+  source  →  verdict  →  proof  →  audit  →  governed effect
+
+  no policy  ·  no authority  ·  no silent downgrade
+  DENY is the default  ·  governance IS the runtime
+
+  ~ ~ ~  Code that has to justify itself before it acts.  ~ ~ ~
 ```
 
 [![PyPI](https://img.shields.io/pypi/v/thirsty-lang?style=for-the-badge&label=PyPI&color=0ea5e9&logo=pypi&logoColor=white)](https://pypi.org/project/thirsty-lang/)
