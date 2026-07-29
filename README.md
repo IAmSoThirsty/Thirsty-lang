@@ -254,7 +254,7 @@ Thirsty-Lang's defensive model is designed for hostile or ambiguous execution
 contexts: agents, plugins, generated code, local scripts, imports, and tool
 adapters.
 
-| Status | Capability | Defensive effect |
+| Current | Capability | Defensive effect |
 |---|---|---|
 | 🌊 | Default-deny governed mode | Missing policy, authority, proof, or audit state refuses execution instead of granting it |
 | 🚪 | Capability broker | External effects such as FFI/native calls and tool invocations can be mediated before execution |
@@ -287,7 +287,7 @@ flowchart TB
     T6 --> T5 --> T4 --> T3 --> T2 --> T1
 ```
 
-| Tier | Status | Name | What it contributes |
+| Tier | Current | Name | What it contributes |
 |---:|---|---|---|
 | 1 | 💧 | Thirsty-Lang | Lexer, parser, checker, interpreter, formatter, CLI, module system, JS build target, contracts, and core syntax |
 | 2 | ⚡ | Thirst of Gods | Object-oriented, async, and structured-error validation over the real AST |
@@ -303,7 +303,7 @@ flowchart TB
 Thirsty-Lang uses its own vocabulary, but the names map to concrete execution
 behavior:
 
-| Syntax | Status | Meaning |
+| Syntax | Current | Meaning |
 |---|---|---|
 | `drink` | 💧 | declares bindings |
 | `pour` | 🌊 | outputs through the runtime |
@@ -363,7 +363,7 @@ tscg-b --help
 thirst-of-gods --help
 ```
 
-| Command | Status | Surface |
+| Command | Current | Surface |
 |---|---|---|
 | `thirsty` | 🌊 | run, format, build, static proof-obligation reports, denial explanations, govern, LSP, docs |
 | `tarl` | 🛡️ | evaluate policies, verify proofs, inspect audits |
