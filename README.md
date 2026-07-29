@@ -3,9 +3,9 @@
 ```text
   ╔══════════════════════════════════════════════════════════════════╗
   ║                                                                  ║
-  ║    💧  T H I R S T Y - L A N G  💧                              ║
+  ║                  💧  T H I R S T Y - L A N G  💧                   ║
   ║                                                                  ║
-  ║    source  →  verdict  →  proof  →  audit  →  governed effect   ║
+  ║    source  →  verdict  →  proof  →  audit  →  governed effect    ║
   ║                                                                  ║
   ║    no policy  ·  no authority  ·  no silent downgrade           ║
   ║    DENY is the default  ·  governance IS the runtime            ║
