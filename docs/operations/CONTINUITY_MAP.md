@@ -21,18 +21,22 @@ Branch: `iamsothirsty-sync-and-fix-release`
   local tag exactly. Public v0.8.5 implementation is verified correct.
 - `.github/workflows/release.yml` had `permissions: id-token: write` and used
   `pypa/gh-action-pypi-publish` but had **no `environment:` field on the job**.
-- GitHub repo environments API: only `copilot` environment exists; no `IAmSoThirsty`
-  environment was previously configured.
+- GitHub repo environments API: only `copilot` environment exists; no `release`
+  or `IAmSoThirsty` environment was previously configured on 2026-07-29 start.
+  By end of session: `release` environment exists (user-created), containing
+  secret `IAMSOTHIRSTY` (PyPI API token). `IAmSoThirsty` environment was
+  auto-created by GitHub during the failed OIDC run and is now unused.
 - GitHub Actions run log for `29914952475` (v0.8.5 release, failed):
   `invalid-publisher: valid token, but no corresponding publisher` and
   `environment: MISSING`. This is the definitive root cause.
 
 ### What Was Changed
 
-- `.github/workflows/release.yml`: added `environment: IAmSoThirsty` to the
-  `pypi-publish` job. The OIDC token will now include the `environment: IAmSoThirsty`
-  claim, which must match the environment name configured in the PyPI trusted
-  publisher settings.
+- `.github/workflows/release.yml`: corrected `environment: release` (was
+  `IAmSoThirsty`). Added `user: __token__` and `password: ${{ secrets.IAMSOTHIRSTY }}`
+  to the publish step. Auth method is token-based (PyPI API token stored in the
+  `release` environment secret `IAMSOTHIRSTY`); OIDC trusted publishing is not
+  used despite `id-token: write` remaining in the top-level permissions.
 - `README.md`: fast-forwarded from upstream master via `git merge FETCH_HEAD`.
   132 insertions / 94 deletions — cosmetic hero-banner and badge additions only.
   No logic or API change.
@@ -42,17 +46,17 @@ Branch: `iamsothirsty-sync-and-fix-release`
 
 - `git merge FETCH_HEAD` completed as fast-forward. Working tree clean.
 - `release.yml` confirmed correct after edit (all existing steps preserved;
-  `environment: IAmSoThirsty` added as single-line field on the job; confirmed
-  by user to match the PyPI trusted publisher environment name.
+  `environment: release` + token credentials added; confirmed `release`
+  environment exists with secret `IAMSOTHIRSTY`.
 
 ### Not Verified / Requires User Action
 
-1. ~~**PyPI environment name**~~ — **Resolved.** User confirmed the PyPI trusted
-   publisher environment name is `IAmSoThirsty`. `release.yml` updated accordingly.
-2. **GitHub environment creation**: A GitHub Actions environment named `IAmSoThirsty`
-   must exist in the repository settings (`Settings → Environments → New
-   environment`). Currently the repo has only `copilot`. Until `IAmSoThirsty` is
-   created, the workflow will fail at the environment-gate step.
+1. ~~**PyPI environment name**~~ — **Resolved.** Auth method is token-based.
+   GitHub Actions environment is `release`. PyPI API token is stored as secret
+   `IAMSOTHIRSTY` in the `release` environment. Workflow passes `user: __token__`
+   and `password: ${{ secrets.IAMSOTHIRSTY }}`.
+2. ~~**GitHub environment creation**~~ — **Resolved.** `release` environment
+   exists (created 2026-07-29T14:09:14Z).
 3. **Re-tag and push**: The v0.8.5 tag already exists on PyPI's side with
    failed publish. To re-publish, the user must either push a new tag (e.g.
    v0.8.5.post1 if PyPI allows it) or delete/re-create the GitHub release and
@@ -63,8 +67,8 @@ Branch: `iamsothirsty-sync-and-fix-release`
 
 ### Recommended Next Steps
 
-1. ~~Verify PyPI trusted publisher environment name~~ — Resolved: `IAmSoThirsty`.
-2. Create `IAmSoThirsty` GitHub environment (`Settings → Environments`) matching PyPI.
+1. ~~Verify PyPI trusted publisher environment name~~ — Resolved: token-based auth.
+2. ~~Create `IAmSoThirsty` GitHub environment~~ — Resolved: `release` environment exists.
 3. Commit: `git add .github/workflows/release.yml README.md docs/operations/CONTINUITY_MAP.md`
 4. Push to master and create a new release tag (or re-trigger v0.8.5 if PyPI
    slot is still vacant).
