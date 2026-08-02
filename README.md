@@ -71,7 +71,7 @@ pip install thirsty-lang
 Pinned release:
 
 ```bash
-pip install thirsty-lang==0.8.5
+pip install thirsty-lang==0.8.6
 ```
 
 From source:
@@ -204,6 +204,12 @@ when user.ip in blacklist => DENY
 when true => DENY
 ```
 
+Dotted names are paths into nested JSON. The policy above expects
+`{"user":{"role":"admin"}}`; a flat key such as
+`{"user.role":"admin"}` is rejected. Missing, malformed, duplicate, and mixed
+flat/nested representations fail closed and never become the ordinary boolean
+value `false`.
+
 Implemented policy surfaces include:
 
 - 🌊 first-match-wins rule evaluation
@@ -260,7 +266,7 @@ adapters.
 | ⛓️ | Hash-linked audit | Proof archives can detect edits, deletions, and reordering |
 | ⏱️ | Trusted clock | Temporal policy can use signed time instead of the host clock |
 | 🗺️ | Path guard | Filesystem roots can be canonicalized and confined against traversal and symlink escape |
-| 🗳️ | Policy lint and quorum | Broad `ALLOW` rules can be flagged, and `ESCALATE` can require distinct signed approvals |
+| 🗳️ | Policy lint and quorum | Broad `ALLOW` rules are flagged; `ESCALATE` promotion requires a verified policy/schema-bound proof plus distinct digest-bound approvals |
 | 🧯 | Parser fail-closed path | Governed parse errors discard recovered executable statements instead of running partial code |
 
 The offensive challenge catalog is maintained in
@@ -349,8 +355,9 @@ thirsty lsp
 
 tarl --help
 tarl eval policy.tarl --context '{"role":"admin"}'
+tarl eval dotted-policy.tarl --context '{"user":{"role":"admin"}}'
 tarl eval temporal-policy.tarl --context '{"role":"admin"}' --now 2026-07-01T12:00:00Z
-tarl verify proof.json --ed25519-only
+tarl verify proof.json --ed25519-only --context '{"user":{"role":"admin"}}'
 tarl audit verify-chain audit.db
 
 shadow-thirst --help
@@ -393,11 +400,63 @@ The compact schema shape is:
 {"fields": {"user.role": "string", "risk": {"kind": "number", "required": false}}}
 ```
 
+Schema field names and TARL expressions use the same dotted-path notation over
+the authoritative nested representation. Generated schemas declare that
+representation explicitly and request no silent normalization. Positive proofs
+bind the original and evaluated context hashes, representation identifier,
+transformation algorithm/version, and conflict status.
+
+A plain evaluator may return `ALLOW` without an attached schema, but that result
+is not load-bearing advancement authority. `CapabilityBroker` and the governed
+interpreter require a context-coherent positive proof whose explicit or complete
+derived schema passed against the exact evaluated representation; otherwise
+they replace the result with a fail-closed denial.
+
+Expression integrity is eager. Both sides of `and`/`or` and every element of an
+`ALL`/`ANY` quantifier are validated before their combined result is accepted,
+so short-circuit order cannot hide a missing, malformed, or type-invalid value.
+Empty quantifier collections fail closed instead of authorizing through vacuous
+truth. Comparisons are type-strict: integers and floats interoperate, but strings
+never coerce to numbers. Numeric operands and arithmetic results must be finite,
+and quantifier binders beginning with the reserved `__tarl_` prefix are rejected.
+
+When a runtime is using a derived schema and evaluates a different
+`policy_text` override, it derives and proof-binds the schema for that exact
+override. An incomplete override derivation fails closed; a base policy's
+derived schema is never silently reused for another policy.
+
+Registered sources are the only supported context transformation. Caller input
+cannot contain reserved `source:*` fields. A source-dependent positive proof
+preserves both the original request and source-enriched evaluated hashes, and
+verification requires `--context` plus the exact `--evaluated-context`. Removing
+the top-level `source:<name>` additions must reproduce the original context.
+
 T.A.R.L. verification is secure by default: `tarl verify` and
 `ProofVerifier()` reject unsigned proofs unless `--allow-unsigned` or
 `ProofVerifier(require_signature=False)` is used explicitly for local
-inspection. `tarl eval` refuses temporal policy windows and `CURRENT_*`
-builtins unless `--now` supplies the trusted evaluation time.
+inspection. Signed proofs require one canonical lowercase hexadecimal
+signature encoding, and replay identity binds the complete proof semantics,
+signing key, algorithm, and decoded signature bytes. `tarl eval` refuses
+temporal policy windows, time-bound verdicts,
+`CURRENT_*`, and `ELAPSED_SINCE` unless `--now` supplies an explicitly zoned
+trusted evaluation time. A configured runtime clock that is missing, naive, or
+fails verification denies; it never falls back to the host clock. Temporal
+metadata and durations parse strictly, `on_expiry` cannot grant `ALLOW`, and
+matched decisions/proofs expire at the earliest exclusive policy or rule
+cutoff.
+
+Quorum promotion is proof-bound, not a vote over an unverified decision.
+`QuorumResolver` requires an independently verified `ESCALATE` proof bound to
+the exact policy and a passed authoritative context schema; the proof must have
+a cryptographically verified signature even if the supplied verifier permits
+unsigned inspection elsewhere. Each counted approval is Ed25519-signed over the
+digest of the complete proof artifact, approver identity and public-key material
+must both be distinct, and a time-bound promotion retains its signed expiry.
+The resolver also requires the exact original request context, an explicit
+timezone-aware trusted clock, and a verifier configured with a maximum proof age
+and replay guard. Registered-source proofs additionally require the exact
+source-enriched evaluated context. Any missing binding or control leaves the
+decision at `ESCALATE`.
 
 ---
 
@@ -411,7 +470,7 @@ This project keeps defensive claims tied to files that can be inspected:
 - grammar: [`docs/GRAMMAR.md`](docs/GRAMMAR.md)
 - language specification: [`docs/LANGUAGE_SPEC.md`](docs/LANGUAGE_SPEC.md)
 - production acceptance tests: [`tests/test_production_acceptance.py`](tests/test_production_acceptance.py)
-- offensive threat suites: [`tests/test_threat_model_broker.py`](tests/test_threat_model_broker.py), [`tests/test_threat_model_authority.py`](tests/test_threat_model_authority.py), [`tests/test_threat_model_audit_chain.py`](tests/test_threat_model_audit_chain.py), [`tests/test_threat_model_failclosed.py`](tests/test_threat_model_failclosed.py)
+- offensive threat suites: [`tests/test_threat_model_broker.py`](tests/test_threat_model_broker.py), [`tests/test_threat_model_authority.py`](tests/test_threat_model_authority.py), [`tests/test_threat_model_audit_chain.py`](tests/test_threat_model_audit_chain.py), [`tests/test_threat_model_failclosed.py`](tests/test_threat_model_failclosed.py), [`tests/test_threat_model_lint_quorum.py`](tests/test_threat_model_lint_quorum.py), [`tests/test_tarl_context_resolution_integrity.py`](tests/test_tarl_context_resolution_integrity.py), [`tests/test_tarl_context_security_boundaries.py`](tests/test_tarl_context_security_boundaries.py)
 
 Run the main validation suite:
 

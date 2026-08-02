@@ -1,0 +1,54 @@
+{
+  "format": "tarl.context-coherence-matrix.v1",
+  "authoritative_context_representation": "nested-json-v1",
+  "cases": [
+    {
+      "id": "flat-dotted-key-only",
+      "policy": "dotted-context.tarl",
+      "context": {"user.role": "admin"},
+      "expected": "DENY"
+    },
+    {
+      "id": "nested-object-only",
+      "policy": "dotted-context.tarl",
+      "context": {"user": {"role": "admin"}},
+      "expected": "ALLOW"
+    },
+    {
+      "id": "simple-identifier-allow",
+      "policy": "simple-context.tarl",
+      "context": {"role": "admin"},
+      "expected": "ALLOW"
+    },
+    {
+      "id": "simple-identifier-deny",
+      "policy": "simple-context.tarl",
+      "context": {"role": "guest"},
+      "expected": "DENY"
+    },
+    {
+      "id": "flat-and-nested-equal",
+      "policy": "dotted-context.tarl",
+      "context": {"user.role": "admin", "user": {"role": "admin"}},
+      "expected": "DENY"
+    },
+    {
+      "id": "flat-and-nested-conflicting",
+      "policy": "dotted-context.tarl",
+      "context": {"user.role": "guest", "user": {"role": "admin"}},
+      "expected": "DENY"
+    },
+    {
+      "id": "missing-intermediate-object",
+      "policy": "dotted-context.tarl",
+      "context": {},
+      "expected": "DENY"
+    },
+    {
+      "id": "wrong-intermediate-type",
+      "policy": "dotted-context.tarl",
+      "context": {"user": "admin"},
+      "expected": "DENY"
+    }
+  ]
+}

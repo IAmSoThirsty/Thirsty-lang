@@ -56,7 +56,13 @@ class TimeAuthority:
         )
 
     def stamp(self, now: datetime.datetime | None = None) -> SignedTime:
-        now = now or datetime.datetime.now(datetime.UTC)
+        if now is None:
+            now = datetime.datetime.now(datetime.UTC)
+        if not isinstance(now, datetime.datetime):
+            raise TypeError("time authority value must be a datetime")
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("time authority requires a timezone-aware datetime")
+        now = now.astimezone(datetime.UTC)
         signed = SignedTime(
             timestamp=now.isoformat(timespec="seconds"), key_id=self.key_id
         )
@@ -110,10 +116,22 @@ class TrustedClock:
             )
         except ValueError:
             return None
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=datetime.UTC)
+        if dt.tzinfo is None or dt.utcoffset() is None:
+            return None
+        dt = dt.astimezone(datetime.UTC)
         if self.max_skew_seconds is not None:
-            local = local_now or datetime.datetime.now(datetime.UTC)
+            local = (
+                local_now
+                if local_now is not None
+                else datetime.datetime.now(datetime.UTC)
+            )
+            if (
+                not isinstance(local, datetime.datetime)
+                or local.tzinfo is None
+                or local.utcoffset() is None
+            ):
+                return None
+            local = local.astimezone(datetime.UTC)
             if abs((local - dt).total_seconds()) > self.max_skew_seconds:
                 return None
         return dt

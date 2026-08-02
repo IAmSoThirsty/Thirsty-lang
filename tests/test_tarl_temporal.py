@@ -7,12 +7,14 @@ Covers:
   5c  Policy succession (if_unresolved_after / revert_to)
   5d  Temporal audit archive (TarlAuditArchive)
 """
+import datetime
 import unittest
 
 from utf.tarl.archive import TarlAuditArchive
 from utf.tarl.composer import PolicyComposer
 from utf.tarl.core import (
     PolicyParser,
+    SafeExpr,
     _check_policy_temporal,
     _parse_duration,
     evaluate_policy,
@@ -102,6 +104,10 @@ class TestRuleDurationParsing(unittest.TestCase):
         policy = PolicyParser.parse('when x == 1 => ALLOW')
         assert policy.rules[0].duration_seconds is None
 
+    def test_malformed_rule_duration_is_rejected(self):
+        with self.assertRaisesRegex(SafeExpr.ParseError, "invalid rule duration"):
+            PolicyParser.parse('when true => ALLOW for: bananas')
+
     def test_rule_str_shows_duration(self):
         rule = TarlRule("x == 1", TarlVerdict.ALLOW, duration_seconds=7200)
         assert "for: 2h" in str(rule)
@@ -148,15 +154,15 @@ class TestExpiresAt(unittest.TestCase):
         assert decision.verdict == TarlVerdict.ALLOW
         assert decision.expires_at is not None
 
-    def test_runtime_proof_no_expires_at_field_on_proof(self):
-        """TarlProof does not carry expires_at; it lives on TarlDecision."""
+    def test_runtime_proof_binds_decision_expiry(self):
+        """A signed proof carries the exact expiry used by its decision."""
         rt = TarlRuntime()
         decision, proof = rt.evaluate_with_proof(
             {"role": "admin"},
             policy_text='when role == "admin" => ALLOW for: 2h',
         )
         assert decision.expires_at is not None
-        assert not hasattr(proof, "expires_at")
+        assert proof.expires_at == decision.expires_at
 
     def test_decision_str_includes_expires(self):
         d = TarlDecision(
@@ -188,6 +194,22 @@ class TestTemporalWindowParsing(unittest.TestCase):
             "policy p:\n  on_expiry: DENY\n  when x == 1 => ALLOW"
         )
         assert policy.on_expiry == TarlVerdict.DENY
+
+    def test_malformed_temporal_metadata_is_rejected(self):
+        invalid_policies = (
+            "policy p:\n  valid_from: not-a-date\n  when true => ALLOW",
+            "policy p:\n  valid_until: not-a-date\n  when true => ALLOW",
+            "policy p:\n  valid_from: 2026-01-01Z\n"
+            "  if_unresolved_after: bananas => revert_to: base\n"
+            "  when true => ALLOW",
+            "policy p:\n  on_expiry: BOGUS\n  when true => ALLOW",
+            "policy p:\n  valid_until: 2026-12-31Z\n"
+            "  on_expiry: ALLOW\n  when true => DENY",
+        )
+        for policy_text in invalid_policies:
+            with self.subTest(policy_text=policy_text):
+                with self.assertRaises(SafeExpr.ParseError):
+                    PolicyParser.parse(policy_text)
 
     def test_supersedes_parsed(self):
         policy = PolicyParser.parse(
@@ -266,6 +288,24 @@ class TestCheckPolicyTemporal(unittest.TestCase):
     def test_future_valid_until_returns_none(self):
         policy = TarlPolicy(name="p", valid_until=FAR_FUTURE)
         assert _check_policy_temporal(policy) is None
+
+    def test_valid_until_is_an_exclusive_cutoff(self):
+        cutoff = datetime.datetime(2026, 8, 2, 12, 1, tzinfo=datetime.UTC)
+        policy = TarlPolicy(name="p", valid_until=cutoff.isoformat())
+        result = _check_policy_temporal(policy, now=cutoff)
+        assert result is not None
+        assert result.verdict == TarlVerdict.ESCALATE
+
+    def test_direct_on_expiry_allow_model_fails_closed(self):
+        policy = TarlPolicy(
+            name="p",
+            valid_until=FAR_PAST,
+            on_expiry=TarlVerdict.ALLOW,
+        )
+        result = _check_policy_temporal(policy)
+        assert result is not None
+        assert result.verdict == TarlVerdict.DENY
+        assert "on_expiry cannot grant ALLOW" in result.reason
 
     def test_window_open_both_bounds(self):
         policy = TarlPolicy(
@@ -681,9 +721,14 @@ class TestIsExpired(unittest.TestCase):
         d = TarlDecision(verdict=TarlVerdict.DENY, expires_at=FAR_PAST)
         assert d.is_expired()
 
-    def test_malformed_expires_at_not_expired(self):
+    def test_malformed_or_naive_expires_at_fails_closed_as_expired(self):
         d = TarlDecision(verdict=TarlVerdict.ALLOW, expires_at="not-a-date")
-        assert not d.is_expired()   # bad date → False, not an exception
+        naive = TarlDecision(
+            verdict=TarlVerdict.ALLOW,
+            expires_at="2099-01-01T00:00:00",
+        )
+        assert d.is_expired()
+        assert naive.is_expired()
 
 
 # ── succession cycle detection ────────────────────────────────────────────────

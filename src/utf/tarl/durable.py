@@ -66,8 +66,10 @@ class DurableReplayGuard(_SqliteBacked, ReplayGuard):
 
     The seen-proof set is persisted, so a proof accepted by one process is
     rejected as a replay by any other process (or after a restart) pointed at
-    the same database. The proof identity is unchanged
-    (``context_hash|evaluated_at|signature``)."""
+    the same database. Version 0.8.6 records a semantic identity over the
+    complete canonical proof, key identity, algorithm, and decoded signature
+    bytes. It also claims the canonicalized legacy identity atomically so
+    stores created by earlier releases continue to reject prior uses."""
 
     def __init__(self, db_path: str = "tarl_replay.db") -> None:
         _SqliteBacked.__init__(self, db_path)
@@ -87,14 +89,37 @@ class DurableReplayGuard(_SqliteBacked, ReplayGuard):
         """Return True the first time this proof is seen (across all processes
         sharing the database), False on every reuse."""
         pid = self.proof_id(proof)
+        legacy_pid = self.legacy_proof_id(proof)
         with self._lock:
             conn = self._connect()
-            cur = conn.execute(
-                "INSERT OR IGNORE INTO seen_proofs (proof_id, recorded_at) "
-                "VALUES (?, ?)", (pid, _now_iso()))
-            conn.commit()
-            # rowcount == 1 means a fresh insert; 0 means the id already existed.
-            return cur.rowcount == 1
+            try:
+                # Serialize the read/claim sequence across processes. Checking
+                # both identifiers also handles an interrupted migration that
+                # persisted only one of them.
+                conn.execute("BEGIN IMMEDIATE")
+                seen = conn.execute(
+                    "SELECT 1 FROM seen_proofs WHERE proof_id IN (?, ?) LIMIT 1",
+                    (legacy_pid, pid),
+                ).fetchone()
+                if seen is not None:
+                    conn.commit()
+                    return False
+                recorded_at = _now_iso()
+                conn.execute(
+                    "INSERT INTO seen_proofs (proof_id, recorded_at) VALUES (?, ?)",
+                    (legacy_pid, recorded_at),
+                )
+                if pid != legacy_pid:
+                    conn.execute(
+                        "INSERT INTO seen_proofs (proof_id, recorded_at) "
+                        "VALUES (?, ?)",
+                        (pid, recorded_at),
+                    )
+                conn.commit()
+                return True
+            except Exception:
+                conn.rollback()
+                raise
 
 
 class RevocationStore(_SqliteBacked):

@@ -10,7 +10,7 @@ import pytest
 from utf.tarl.broker import CapabilityBroker
 from utf.tarl.core import PolicyParser
 from utf.tarl.runtime import TarlRuntime
-from utf.tarl.spec import TarlVerdict
+from utf.tarl.spec import TarlPolicy, TarlRule, TarlVerdict
 from utf.thirsty_lang.interpreter import GovernanceViolation, Interpreter
 from utf.thirsty_lang.lexer import Lexer
 from utf.thirsty_lang.parser import Parser
@@ -66,6 +66,21 @@ def test_make_broker_matches_gate_authority_context():
     interp = _interp(authority="ops")
     broker = interp.make_broker()
     assert broker._authority_context() == interp._authority_context()
+
+
+def test_invalid_on_expiry_allow_cannot_authorize_a_brokered_effect():
+    policy = TarlPolicy(
+        name="invalid_expiry",
+        source="direct invalid temporal policy",
+        rules=[TarlRule("true", TarlVerdict.DENY)],
+        valid_until="2000-01-01T00:00:00Z",
+        on_expiry=TarlVerdict.ALLOW,
+    )
+    result = CapabilityBroker(TarlRuntime(policy)).request("write", "secret")
+
+    assert result.allowed is False
+    assert result.verdict is TarlVerdict.DENY
+    assert "on_expiry cannot grant ALLOW" in result.reason
 
 
 def test_path_guard_confines_fs_writes(tmp_path):

@@ -28,7 +28,12 @@ from utf.tarl.tester import (
     TarlTestRunner,
     TarlTestSuiteResult,
 )
-from utf.tarl.verifier import ProofVerifier, VerificationResult
+from utf.tarl.verifier import (
+    ProofVerifier,
+    VerificationResult,
+    context_authority_admissible,
+    positive_context_authority_admissible,
+)
 
 __all__ = [
     "TarlVerdict",
@@ -51,6 +56,8 @@ __all__ = [
     "ConflictPair",
     "ProofVerifier",
     "VerificationResult",
+    "context_authority_admissible",
+    "positive_context_authority_admissible",
     "TarlAuditArchive",
     "TarlExplainer",
     "PolicyExplanation",

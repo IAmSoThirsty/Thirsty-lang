@@ -1,6 +1,6 @@
 # Thirsty-Lang Language Specification
 
-**Version:** 0.8.5
+**Version:** 0.8.6
 **Copyright:** 2026 Thirsty's Projects LLC (Apache 2.0)
 
 ---
@@ -212,12 +212,32 @@ A policy-as-code engine with default-DENY governance.
 
 ```tarl
 policy example:
-    when user.role == "admin" -> ALLOW
-    when user.ip in blacklist -> DENY
-    default -> ESCALATE
+    when user.role == "admin" => ALLOW
+    when user.ip in blacklist => DENY
+    when true => ESCALATE
 ```
 
 TarlVerdict values: ALLOW, DENY, ESCALATE. Default-DENY applies when no rule matches.
+
+T.A.R.L. condition validation is eager and fail-closed. Both operands of
+`and`/`or` are evaluated, and `ALL(collection, item -> predicate)` and
+`ANY(collection, item -> predicate)` validate every collection element before
+accepting the aggregate result. Missing paths, wrong intermediate types, or incompatible
+predicate values therefore cannot be hidden by boolean or iteration order.
+An empty quantifier collection fails closed; it is not authorization evidence.
+
+Comparisons are type-strict. Integers and floats interoperate as numbers;
+strings never coerce to numbers, including in ordering and equality. Numeric
+operands and every arithmetic result must be finite. `NaN`, infinities, and
+overflow to infinity are evaluation errors that deny the affected policy
+decision. Quantifier binder names beginning with `__tarl_` are reserved for
+trusted runtime state and are rejected during parse and evaluation.
+
+Temporal metadata is strict. Invalid `valid_from`/`valid_until` timestamps,
+`for:` or `if_unresolved_after` durations, and expiry verdicts reject the
+policy. `on_expiry: ALLOW` is forbidden. `valid_until` is an exclusive cutoff,
+and a matched verdict expires at the earlier of that effective policy cutoff or
+its rule-level `for:` duration.
 
 ---
 

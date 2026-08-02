@@ -33,10 +33,10 @@ Directives:
 from __future__ import annotations
 
 import glob as _glob
-import json
 import os
 from dataclasses import dataclass, field
 
+from utf.tarl.context import ContextResolutionError, load_context_json
 from utf.tarl.core import PolicyParser, evaluate_policy
 from utf.tarl.spec import TarlVerdict
 
@@ -257,8 +257,8 @@ class TarlTestRunner:
             name = current_test.get("name", "unnamed")
             raw_ctx = current_test.get("context", "{}")
             try:
-                ctx = json.loads(raw_ctx)
-            except json.JSONDecodeError as exc:
+                ctx = load_context_json(raw_ctx)
+            except (ValueError, ContextResolutionError) as exc:
                 raise ValueError(
                     f"Invalid JSON context in test {name!r}: {exc}"
                 ) from exc

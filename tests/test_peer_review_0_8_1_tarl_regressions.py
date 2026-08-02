@@ -9,7 +9,7 @@ from utf.tarl.spec import TarlProof, TarlVerdict
 from utf.tarl.verifier import ProofVerifier
 
 
-def test_numeric_string_ordering_is_numeric_not_lexicographic():
+def test_numeric_string_ordering_fails_closed_without_conversion():
     policy = (
         "policy risk_gate:\n"
         "  when risk_score > 9 => DENY\n"
@@ -20,6 +20,8 @@ def test_numeric_string_ordering_is_numeric_not_lexicographic():
 
     assert decision.verdict == TarlVerdict.DENY
     assert decision.rule_index == 0
+    assert "fail-closed" in decision.reason
+    assert "cannot order str and int" in decision.reason
 
 
 def test_non_numeric_ordering_mismatch_fails_closed():
@@ -53,14 +55,16 @@ def test_rule_evaluation_error_does_not_fall_through_to_allow():
         "  when risk_score > 9 => DENY\n"
         "  when true => ALLOW\n"
     )
-    decision = evaluate_policy({"risk_score": object()}, policy=policy)
+    # Stay inside the authoritative JSON context domain while forcing the
+    # ordered comparison itself to fail.
+    decision = evaluate_policy({"risk_score": "not-a-number"}, policy=policy)
 
     assert decision.verdict == TarlVerdict.DENY
     assert decision.rule_index == 0
     assert "fail-closed" in decision.reason
 
 
-def test_proof_verifier_rejects_forged_unsigned_proof_by_default():
+def test_proof_verifier_rejects_positive_proof_without_context_binding():
     proof = TarlProof(
         policy_hash="sha256:" + "0" * 64,
         context_hash="sha256:" + "1" * 64,
@@ -83,7 +87,10 @@ def test_proof_verifier_rejects_forged_unsigned_proof_by_default():
 
     assert not default_result.valid
     assert default_result.checks["signature"] is False
-    assert permissive_result.valid
+    # Permissive signature mode is only an inspection aid.  It must not make
+    # a legacy positive proof without representation metadata admissible.
+    assert not permissive_result.valid
+    assert permissive_result.checks["context_coherence"] is False
 
 
 def test_trace_verdict_mismatch_is_invalid_even_when_unsigned_allowed():
@@ -123,6 +130,19 @@ def test_evaluate_policy_threads_trusted_time_to_temporal_builtins():
     assert decision.rule_index == 1
 
 
+def test_evaluate_policy_rejects_naive_trusted_time():
+    policy = "policy office:\n  when CURRENT_HOUR >= 9 => ALLOW\n"
+
+    decision = evaluate_policy(
+        {},
+        policy_text=policy,
+        now=datetime.datetime(2026, 7, 1, 9, 0),
+    )
+
+    assert decision.verdict == TarlVerdict.DENY
+    assert "timezone-aware" in decision.reason
+
+
 def test_tarl_eval_refuses_temporal_policy_without_trusted_now(
     monkeypatch, tmp_path, capsys
 ):
@@ -140,6 +160,50 @@ def test_tarl_eval_refuses_temporal_policy_without_trusted_now(
 
     assert exc.value.code == 1
     assert "--now" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "rule",
+    [
+        'when ELAPSED_SINCE(timestamp) > 60 => ALLOW',
+        'when true => ALLOW for: 5m',
+    ],
+)
+def test_tarl_eval_requires_now_for_all_time_dependent_rules(
+    monkeypatch, tmp_path, capsys, rule
+):
+    policy_path = tmp_path / "time-dependent.tarl"
+    policy_path.write_text(
+        f"policy time_dependent:\n  {rule}\n  when true => DENY\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("sys.argv", ["tarl", "eval", str(policy_path)])
+
+    with pytest.raises(SystemExit) as exc:
+        tarl_cli.main()
+
+    assert exc.value.code == 1
+    assert "--now" in capsys.readouterr().err
+
+
+def test_tarl_eval_rejects_naive_trusted_now(monkeypatch, tmp_path, capsys):
+    policy_path = tmp_path / "clock.tarl"
+    policy_path.write_text(
+        "policy clock:\n"
+        "  when CURRENT_HOUR >= 9 => ALLOW\n"
+        "  when true => DENY\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        ["tarl", "eval", str(policy_path), "--now", "2026-07-01T08:00:00"],
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        tarl_cli.main()
+
+    assert exc.value.code == 1
+    assert "timezone" in capsys.readouterr().err
 
 
 def test_tarl_parse_reports_malformed_policy_without_traceback(

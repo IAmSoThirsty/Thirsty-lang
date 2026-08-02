@@ -7,11 +7,44 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
+  validate:
+    name: Validate tagged commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+
+      - name: Install validation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test,analysis]" ruff mypy
+
+      - name: Require tag and package versions to match
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PACKAGE_VERSION=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          test "$TAG_VERSION" = "$PACKAGE_VERSION"
+
+      - name: Lint
+        run: ruff check src tests
+
+      - name: Type check
+        run: mypy -p utf
+
+      - name: Test with release coverage floor
+        run: pytest tests/ -q --cov=utf --cov-report=term-missing --cov-fail-under=90
+
   pypi-publish:
     name: Upload release to PyPI
+    needs: validate
     runs-on: ubuntu-latest
     environment: release
 
@@ -34,6 +67,7 @@ jobs:
 
       - name: Verify wheel contents
         run: |
+          set -euo pipefail
           python -m pip install wheel
           unzip -l dist/*.whl | grep -E "\.py$|entry_points.txt" | head -20
 

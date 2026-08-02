@@ -514,16 +514,25 @@ class Interpreter:
         proof. Unsigned; see utf/tarl/spec.py:TarlProof for the signing model.
         """
         import hashlib
-        import json
         from datetime import UTC, datetime
 
+        from utf.tarl.context import (
+            ContextResolutionError,
+            prepare_context,
+            rejected_context_binding,
+        )
         from utf.tarl.spec import TarlProof
         policy_hash = "sha256:" + hashlib.sha256(
             source.encode("utf-8")).hexdigest()
-        ctx_bytes = json.dumps(
-            context, sort_keys=True, default=str, separators=(",", ":")
-        ).encode("utf-8")
-        context_hash = "sha256:" + hashlib.sha256(ctx_bytes).hexdigest()
+        try:
+            prepared = prepare_context(context)
+        except ContextResolutionError as exc:
+            prepared = rejected_context_binding(
+                context, conflict_status=exc.conflict_status
+            )
+        context_hash = (
+            prepared.canonical_context_hash or prepared.original_context_hash
+        )
         return TarlProof(
             policy_hash=policy_hash,
             context_hash=context_hash,
@@ -534,6 +543,12 @@ class Interpreter:
             trace=trace,
             signature="",
             key_id="",
+            original_context_hash=prepared.original_context_hash,
+            canonical_context_hash=prepared.canonical_context_hash,
+            context_representation_id=prepared.context_representation_id,
+            normalization_algorithm_id=prepared.normalization_algorithm_id,
+            normalization_version=prepared.normalization_version,
+            context_conflict_status=prepared.context_conflict_status,
         )
 
     def _gate_capability(
@@ -1097,6 +1112,10 @@ class Interpreter:
                 self._last_proof = deny
                 return (False, reason, deny)
             if self.tarl_runtime is not None and self.authority is not None:
+                from utf.tarl.context import (
+                    ContextResolutionError,
+                    compose_context_layers,
+                )
                 # Hardened-mode prerequisites fail closed before policy routing.
                 action_name = decl.name if decl is not None else "<call>"
                 hardened_violation = self._hardened_precheck(
@@ -1104,12 +1123,65 @@ class Interpreter:
                 if hardened_violation is not None:
                     return (False, hardened_violation.reason,
                             hardened_violation.proof)
-                policy_ctx = dict(context)
-                policy_ctx.update(self._authority_context())
-                if decl is not None:
-                    policy_ctx.setdefault("action", decl.name)
+                action_context = {
+                    "action": decl.name if decl is not None else "<call>"
+                }
+                try:
+                    policy_ctx = compose_context_layers(
+                        ("function arguments", context),
+                        ("verified authority", self._authority_context()),
+                        ("governed action", action_context),
+                    )
+                except ContextResolutionError as exc:
+                    deny_trace = trace + [{
+                        "kind": "context-layer-conflict",
+                        "phase": phase,
+                        "matched": False,
+                        "reason": str(exc),
+                    }]
+                    deny = self._make_contract_proof(
+                        decl,
+                        phase,
+                        context,
+                        TarlVerdict.DENY,
+                        str(exc),
+                        deny_trace,
+                    )
+                    self._last_proof = deny
+                    return (False, str(exc), deny)
+                ensure_schema = getattr(
+                    self.tarl_runtime, "ensure_context_schema", None
+                )
+                if callable(ensure_schema):
+                    ensure_schema()
                 decision, proof = self.tarl_runtime.evaluate_with_proof(
                     policy_ctx)
+                if decision.verdict == TarlVerdict.ALLOW:
+                    from utf.tarl.verifier import (
+                        positive_context_authority_admissible,
+                    )
+
+                    if not positive_context_authority_admissible(proof):
+                        reason = (
+                            "positive verdict inadmissible: exact context "
+                            "schema validation was not proof-bound"
+                        )
+                        deny_trace = trace + [{
+                            "kind": "inadmissible-positive-verdict",
+                            "phase": phase,
+                            "matched": False,
+                            "reason": reason,
+                        }]
+                        deny = self._make_contract_proof(
+                            decl,
+                            phase,
+                            context,
+                            TarlVerdict.DENY,
+                            reason,
+                            deny_trace,
+                        )
+                        self._last_proof = deny
+                        return (False, reason, deny)
                 if decision.verdict != TarlVerdict.ALLOW:
                     return (False,
                             decision.reason

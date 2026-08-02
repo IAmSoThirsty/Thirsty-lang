@@ -112,7 +112,7 @@ try:
     from importlib.metadata import version as _version
     __version__ = _version("thirsty-lang")
 except Exception:
-    __version__ = "0.8.5"  # fallback
+    __version__ = "0.8.6"  # fallback
 __all__ = [
     "Token", "TokenType", "KEYWORDS",
     "Lexer",

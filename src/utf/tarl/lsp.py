@@ -18,10 +18,17 @@ Capabilities:
 """
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import sys
 import threading
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    PACKAGE_VERSION = version("thirsty-lang")
+except PackageNotFoundError:  # source checkout before installation
+    PACKAGE_VERSION = "0.8.6"
 
 log = logging.getLogger(__name__)
 
@@ -167,7 +174,7 @@ class TarlLanguageServer:
                 "hoverProvider": True,
                 "definitionProvider": True,
             },
-            "serverInfo": {"name": "tarl-lsp", "version": "0.1.0"},
+            "serverInfo": {"name": "tarl-lsp", "version": PACKAGE_VERSION},
         }
 
     def _on_initialized(self, params: dict):
@@ -474,7 +481,17 @@ class TarlLanguageServer:
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(
+        prog="tarl-lsp",
+        description="T.A.R.L. Language Server over JSON-RPC/stdio",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"tarl-lsp {PACKAGE_VERSION}",
+    )
+    parser.parse_args(argv)
     logging.basicConfig(
         level=logging.ERROR,
         format="%(levelname)s %(name)s: %(message)s",

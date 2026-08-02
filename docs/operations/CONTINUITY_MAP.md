@@ -1,9 +1,64 @@
 # Operational Continuity Map
 
-Workstream: **Proof-Carrying Effects Language + TARL 0.8.2 Peer-Review Corrections**
-Updated: 2026-07-01
+Workstream: **Proof-Carrying Effects Language + TARL Security Corrections**
+Updated: 2026-08-02
 Branch: `master`
 Workspace: `thirsty_lang_exploration_0754`
+
+---
+
+## 2026-08-02 Context Resolution Integrity Repair
+
+- An isolated install of published `thirsty-lang==0.8.5` preserved the canonical
+  four-case context matrix. Nested `user.role` and simple `role` ALLOW paths
+  work; flat dotted input and guest control return DENY. Evidence manifest:
+  `4DD3E6A4CF017E3E34A25C62A398D29A6F93D279890C4CCDF2A4528C6333F8D5`.
+- Adversarial evaluation confirmed a critical authorization bypass: unresolved
+  dotted paths were converted to `False`, so negation and inequality could
+  produce ALLOW. Published 0.8.5 is not admissible for load-bearing positive
+  verdict authority.
+- Active source now uses typed resolution states (`RESOLVED`, `MISSING`,
+  `TYPE_ERROR`, `REPRESENTATION_CONFLICT`) and one nested context
+  representation. Flat dotted keys, all mixed forms, duplicate keys, and
+  trusted-layer collisions fail closed.
+- Proofs bind original and canonical context hashes, representation identity,
+  transformation algorithm/version, and conflict status. Positive legacy
+  proofs without coherent context metadata are inadmissible even when unsigned
+  inspection mode is selected.
+- Permanent fixtures and tests are in
+  `tests/fixtures/tarl_context_coherence/` and
+  `tests/test_tarl_context_resolution_integrity.py`. The matrix runs through
+  SafeExpr, `evaluate_policy`, `TarlRuntime`, `tarl eval`, schema/proof
+  obligations, proof creation/verification, and governed Thirsty-Lang routing.
+- Post-audit expression hardening now evaluates both boolean operands and every
+  supplied quantifier element, treats an empty quantifier collection as no
+  authorization evidence, forbids string-to-number comparison coercion, rejects
+  non-finite numeric operands/results, and reserves `__tarl_*` quantifier
+  binders for trusted runtime state.
+- Trusted-time hardening rejects naive signed assertions and CLI times. Once a
+  runtime clock is configured, a missing, malformed, or failing value denies
+  without falling back to host time. CLI `--now` is required for windows,
+  time-bound verdicts, `CURRENT_*`, and `ELAPSED_SINCE`.
+- Derived schemas now follow exact policy identity. A differing `policy_text`
+  override receives a fresh complete derivation and proof binding; incomplete
+  override derivation fails closed rather than inheriting the base policy's
+  derived schema.
+- Quorum promotion now requires independent cryptographic verification of the
+  signed exact-policy/rule, schema-passed ESCALATE proof before distinct
+  Ed25519 approvals over the complete proof digest are counted. The resolver
+  also requires the exact request context, an explicit timezone-aware trusted
+  clock, verifier freshness and replay enforcement, and the exact evaluated
+  context for registered-source proofs. Time-bound promotion retains its
+  verified signed expiry. Regression coverage is in
+  `tests/test_threat_model_lint_quorum.py`.
+- Threat-model cases C065–C073 permanently record the eager-expression,
+  finite-result, reserved-binder, per-policy-schema, proof-bound-quorum,
+  canonical replay-identity, and strict temporal-authority protections.
+  Active-source coverage does not itself satisfy package-level independent
+  acceptance.
+- Competence Register state is in `docs/STATUS.md`. Context coherence and
+  resolution integrity remain critical FAIL for the published artifact pending
+  repaired-release and independent acceptance.
 
 ---
 
@@ -18,7 +73,9 @@ Branch: `iamsothirsty-sync-and-fix-release`
 - GitHub master ahead by 7 commits (`d35d179` through `2317dcc`); all README
   documentation/cosmetic changes via PR #22.
 - Remote tag `v0.8.5` = `1da4a9735d06811ec82a10554ef5695cbc601df4` matches
-  local tag exactly. Public v0.8.5 implementation is verified correct.
+  local tag exactly. Release identity/plumbing was verified at that time; the
+  later 2026-08-02 context-resolution finding supersedes any broader claim that
+  the public evaluator implementation was correct.
 - `.github/workflows/release.yml` had `permissions: id-token: write` and used
   `pypa/gh-action-pypi-publish` but had **no `environment:` field on the job**.
 - GitHub repo environments API: only `copilot` environment exists; no `release`

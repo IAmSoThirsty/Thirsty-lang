@@ -8,6 +8,7 @@ import datetime
 
 from utf.tarl.core import PolicyParser
 from utf.tarl.runtime import TarlRuntime
+from utf.tarl.schema import ContextSchema
 from utf.tarl.verifier import ProofVerifier, ReplayGuard, canonical_context_hash
 
 POLICY = (
@@ -21,7 +22,9 @@ CTX = {"role": "admin", "action": "charge"}
 def _proof(context=CTX):
     # Unsigned proofs isolate the replay/freshness/revocation checks under test
     # from signature verification (covered in test_threat_model_proof_strictness).
-    rt = TarlRuntime(PolicyParser.parse(POLICY))
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
+        ContextSchema()
+    )
     _decision, proof = rt.evaluate_with_proof(context)
     return proof
 
@@ -70,6 +73,39 @@ def test_stale_proof_is_rejected():
     ).verify(proof, now=later)
     assert result.checks["freshness"] is False
     assert not result.valid
+
+
+def test_freshness_rejects_naive_proof_or_verification_time_without_throwing():
+    aware_now = datetime.datetime.now(datetime.UTC)
+
+    naive_proof = _proof()
+    naive_proof.evaluated_at = aware_now.replace(tzinfo=None).isoformat()
+    naive_result = ProofVerifier(
+        require_signature=False,
+        max_age_seconds=60,
+    ).verify(naive_proof, now=aware_now)
+
+    aware_proof = _proof()
+    naive_now_result = ProofVerifier(
+        require_signature=False,
+        max_age_seconds=60,
+    ).verify(aware_proof, now=aware_now.replace(tzinfo=None))
+
+    assert naive_result.checks["freshness"] is False
+    assert not naive_result.valid
+    assert naive_now_result.checks["freshness"] is False
+    assert not naive_now_result.valid
+
+
+def test_freshness_rejects_invalid_age_configuration():
+    proof = _proof()
+    for max_age in (-1, float("inf"), float("nan")):
+        result = ProofVerifier(
+            require_signature=False,
+            max_age_seconds=max_age,
+        ).verify(proof)
+        assert result.checks["freshness"] is False
+        assert not result.valid
 
 
 # ── C024: policy revocation ────────────────────────────────────────────────────

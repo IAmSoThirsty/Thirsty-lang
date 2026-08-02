@@ -13,6 +13,7 @@ from utf.tarl import keystore
 from utf.tarl.authority import AuthorityIssuer, AuthorityVerifier
 from utf.tarl.core import PolicyParser
 from utf.tarl.runtime import TarlRuntime
+from utf.tarl.schema import ContextSchema
 from utf.tarl.spec import TarlVerdict
 from utf.tarl.verifier import ProofVerifier
 
@@ -66,7 +67,9 @@ def test_proof_signer_key_signs_and_verifies(tmp_path):
     key.write(priv, include_private=True)
 
     loaded = keystore.load(priv)
-    rt = TarlRuntime(PolicyParser.parse(POLICY))
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
+        ContextSchema()
+    )
     rt.set_ed25519_signing_key(loaded.key_id, loaded.private_bytes())
     decision, proof = rt.evaluate_with_proof({"role": "admin"})
     assert decision.verdict == TarlVerdict.ALLOW
@@ -98,7 +101,9 @@ def test_rotation_old_public_key_still_verifies(tmp_path):
     old = keystore.generate("signer-1", keystore.ROLE_PROOF_SIGNER)
     new = keystore.generate("signer-2", keystore.ROLE_PROOF_SIGNER)
 
-    rt = TarlRuntime(PolicyParser.parse(POLICY))
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
+        ContextSchema()
+    )
     rt.set_ed25519_signing_key(new.key_id, new.private_bytes())
     _d, proof = rt.evaluate_with_proof({"role": "admin"})
 

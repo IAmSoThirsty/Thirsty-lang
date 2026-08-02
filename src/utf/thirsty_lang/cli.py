@@ -47,6 +47,15 @@ def main():
     run_parser.add_argument("--thirst-level", choices=["core", "governed"], default="core", help="Thirst mode")
     run_parser.add_argument("--authority", type=str, help="Authority tag injected into the governance context for governed mode")
     run_parser.add_argument("--policy", type=str, help="Path to a .tarl policy file to route governed calls through")
+    run_parser.add_argument(
+        "--context-schema",
+        type=str,
+        metavar="FILE",
+        help=(
+            "Explicit context schema JSON for governed policy authority; "
+            "otherwise a complete schema is derived from the policy"
+        ),
+    )
     run_parser.add_argument("--demo", action="store_true", help="Run demo program")
     run_parser.add_argument("--locked", action="store_true", help="Require lockfile verification before executing")
     run_parser.add_argument("--hardened", action="store_true", help="Hardened posture: require an authenticated (signed) authority and Ed25519-signed proofs at every governed gate")
@@ -271,10 +280,34 @@ pour result
         with open(policy_path) as pf:
             policy = PolicyParser.parse(pf.read())
         runtime = TarlRuntime(policy)
+        schema_path = getattr(args, "context_schema", None)
+        if schema_path:
+            if not os.path.isfile(schema_path):
+                print(
+                    f"Error: context schema file not found: {schema_path}",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            from utf.tarl.schema import ContextSchema
+            from utf.thirsty_lang.proof_obligations import (
+                load_explicit_context_schema,
+            )
+
+            try:
+                described_schema = load_explicit_context_schema(schema_path)
+                runtime.set_context_schema(
+                    ContextSchema.from_dict(described_schema.to_dict())
+                )
+            except (OSError, ValueError) as exc:
+                print(f"Error: invalid context schema: {exc}", file=sys.stderr)
+                sys.exit(1)
         interpreter.attach_tarl(runtime)
         # A policy with no authority tag still needs a context to evaluate.
         if authority is None:
             interpreter.set_authority("")
+    elif getattr(args, "context_schema", None):
+        print("Error: --context-schema requires --policy", file=sys.stderr)
+        sys.exit(1)
 
     # Authenticated authority provenance: verify a signed claim against trusted
     # issuer keys and bind the authenticated identity (overriding any bare tag).

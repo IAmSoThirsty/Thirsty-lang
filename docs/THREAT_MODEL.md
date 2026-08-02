@@ -112,7 +112,7 @@ is what Thirsty-Lang must do to claim resistance.
 | C002 | Run callable stdout builtin `print(...)` in governed mode with no policy | DENY with proof | Covered by `tests/test_gate_fail_closed.py` |
 | C003 | Read stdin with `sip` in governed mode with no policy | DENY with proof | Covered by `tests/test_gate_fail_closed.py` |
 | C004 | Import a module in governed mode with no policy | DENY with proof | Covered by `tests/test_gate_fail_closed.py` |
-| C005 | Allow write policy, then attempt read/import | DENY non-matching capability | Partially covered by capability tests |
+| C005 | Allow write policy, then attempt read/import | DENY non-matching capability | Covered by `tests/test_gate_fail_closed.py::test_write_allow_does_not_grant_read_or_import` |
 | C006 | Wrap a governed denial in `spillage` | Denial propagates; handler cannot swallow it | Covered by governance behavior |
 | C007 | Call governed function from core mode | DENY via cross-mode guard/static E053 | Covered by status matrix tests |
 | C008 | Use contract predicate ambiguity to invert policy meaning | Parser precedence must preserve author intent | Covered by precedence tests |
@@ -123,7 +123,7 @@ is what Thirsty-Lang must do to claim resistance.
 | C013 | Use HMAC as non-repudiation | Documentation must reject claim | Covered by docs; not a runtime block |
 | C014 | Replace policy source after proof generation | Policy hash verification fails | Covered by proof verifier tests |
 | C015 | Submit malformed proof JSON | CLI verification exits non-zero | Covered by CLI proof tests |
-| C016 | Use expired temporal policy | DENY or configured expiry verdict | Covered by temporal tests |
+| C016 | Use expired temporal policy | DENY or configured non-ALLOW expiry verdict | Covered by temporal tests |
 | C017 | Cache a time-bound ALLOW past expiry | Runtime must not cache temporal decisions | Covered by runtime behavior |
 | C018 | Use unknown identifiers to silently allow | Unknown identifiers fail safe | Covered by TARL semantics |
 | C019 | Inject malformed context JSON through CLI | CLI exits non-zero | Covered by CLI tests |
@@ -150,21 +150,37 @@ is what Thirsty-Lang must do to claim resistance.
 | C040 | Use prompt injection to instruct an agent to bypass Thirsty | Agent adapters must enforce broker outside model text | Covered by `tests/test_threat_model_broker.py` — agent/tool effects must call `CapabilityBroker.require`; denied by default |
 | C041 | Use MCP/tool call directly from agent runtime | Tool adapter must call broker before tool invocation | Covered by `tests/test_threat_model_broker.py` — MCP/tool adapters broker before invocation (`ACTION_TOOL`) |
 | C042 | Use filesystem symlink/path traversal to escape allowed root | Path canonicalization and root policy required | Covered by `tests/test_threat_model_pathguard.py` — `PathGuard` confines canonical paths; traversal/symlink escape denied |
-| C043 | Use time spoofing to satisfy temporal policy | Trusted clock or signed time source required | Covered by `tests/test_threat_model_clock.py` — `TrustedClock` verifies signed time; runtime temporal checks use it, not the host clock |
-| C044 | Use stale cached decision after context changes | Cache key and invalidation must bind all relevant context | Partially covered |
+| C043 | Use time spoofing or make a configured time authority fail so runtime falls back to the host clock | Trusted clock values must be signed and timezone-aware; a missing, malformed, naive, or failing configured clock denies without host fallback | Covered by `tests/test_threat_model_clock.py` — `TrustedClock` verifies signed zoned time and invalid configured clocks fail closed |
+| C044 | Use stale cached decision after context changes | Cache key and invalidation must bind all relevant context | Covered by `tests/test_tarl_composition.py::TestRuntimeRegisterSource::test_callable_source_updated_dynamically` and `test_source_does_not_leak_between_contexts` |
 | C045 | Use partial context omission to get safer defaults wrong | Missing required context must DENY or ESCALATE | Covered by `tests/test_threat_model_context_schema.py` — missing required field fails closed before rule evaluation |
 | C046 | Use type confusion in policy context | Context schema validation required | Covered by `tests/test_threat_model_context_schema.py` — type-confused context value fails closed (`ContextSchema`) |
 | C047 | Use policy include/composition cycle | Must raise composition error, not fail open | Covered by composition tests |
 | C048 | Use parallel evaluation race to alter first-match semantics | Policy order must win | Covered by TARL tests |
 | C049 | Use archive query without signature verification as proof of validity | CLI/docs must distinguish stored from verified | Covered by `tests/test_threat_model_audit_chain.py` and `tarl audit verify-chain`; `query(verifier=...)` distinguishes stored from verified |
-| C050 | Use social pressure language to force high-risk ALLOW | ESCALATE rules and quorum required | Covered by `tests/test_threat_model_lint_quorum.py` — `QuorumResolver` upgrades ESCALATE only on distinct signed approvals |
+| C050 | Use social pressure language to force high-risk ALLOW | ESCALATE rules and proof-bound quorum required | Covered by `tests/test_threat_model_lint_quorum.py` — promotion requires a signature-verified policy/schema-bound proof and distinct digest-bound approvals |
 | C051 | Claim governed readiness for a program without enumerating effects/proof obligations | Static report must list governed calls, sensitive stdlib calls, capabilities, TARL actions, context schema, authority, contracts, and unresolved gaps before execution | Covered by `tests/test_proof_obligations.py` — `thirsty prove` emits a machine-readable obligation report without running side effects |
 | C052 | Infer an unsafe or ambiguous policy context schema | Derived schema must be marked incomplete and make `thirsty prove` fail closed unless an explicit schema is supplied | Covered by `tests/test_proof_obligations.py` — ambiguous field references produce `context_schema.status = incomplete` and exit non-zero |
-| C053 | Use numeric strings to bypass ordering thresholds | Ordering comparisons must compare numeric-looking strings numerically and deny on unorderable values | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` — `"50" > 9` trips the DENY rule; `"admin" > 9` fails closed |
+| C053 | Use numeric strings to bypass ordering thresholds or exploit silent string-to-number conversion | Comparisons are type-strict: integers and floats interoperate, while every string/number comparison fails closed without conversion | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` and `tests/test_tarl_context_security_boundaries.py` |
 | C054 | Hide a malformed DENY guard before a broad ALLOW | Policy load and residual runtime evaluation errors must reject or DENY, never skip to a later ALLOW | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` and `tests/test_tarl.py::TestThrowStats` |
 | C055 | Accept a forged unsigned proof as valid by default | Verification default must require a signature and trace consistency must reject verdict mismatch when trace declares a verdict | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` |
-| C056 | Evaluate temporal policy from spoofed host clock through `tarl eval` | CLI temporal evaluation must require explicit trusted time | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` — `tarl eval` refuses temporal policies without `--now` |
+| C056 | Evaluate a policy window, time-bound verdict, `CURRENT_*`, or `ELAPSED_SINCE` from spoofed host time through `tarl eval` | Every time-dependent CLI evaluation must require an explicitly zoned trusted time | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` — `tarl eval` refuses all time-dependent rules without zoned `--now` |
 | C057 | Generate auto-TARL policies keyed on a context field the runtime never supplies | Generated policies must use `action`, matching governed runtime context | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` |
+| C058 | Supply a flat dotted key, nested object, or both so schema and evaluator observe different values | One authoritative nested representation; flat dotted keys and every mixed representation DENY explicitly | Covered in active source by `tests/test_tarl_context_resolution_integrity.py`; published 0.8.5 competence remains blocked pending release acceptance |
+| C059 | Use `!=`, `not`, membership, or a safe function to turn an unresolved path into ALLOW | MISSING and TYPE_ERROR short-circuit the rule and produce fail-closed DENY; a resolved boolean `false` remains distinct | Covered in active source by `tests/test_tarl_context_resolution_integrity.py`; confirmed bypass in published 0.8.5 |
+| C060 | Present a positive proof whose schema context differs from the evaluated context | Positive proof is inadmissible unless representation metadata and original/canonical hashes are coherent and signature-bound | Covered in active source by `tests/test_tarl_context_resolution_integrity.py`; release acceptance pending |
+| C061 | Supply Python-only, cyclic, or non-finite context values, or exploit Python equality between booleans and numbers | Context and registered sources are restricted to finite JSON; incompatible values cannot enter boolean, comparison, membership, arithmetic, or safe-function algebra | Covered by `tests/test_tarl_context_security_boundaries.py` |
+| C062 | Feed an unbound evaluator ALLOW directly into a broker or governed effect | Load-bearing consumers require an admissible positive proof with a passed explicit or complete derived schema; otherwise they replace ALLOW with DENY | Covered by `tests/test_tarl_context_security_boundaries.py` and `tests/test_tarl_proof.py` |
+| C063 | Inject a reserved source field or forge a source-enriched context that also changes caller data | Registered-source injection is the sole transformation; proofs preserve original/evaluated bindings and verification requires both contexts while permitting only valid top-level source additions | Covered by `tests/test_tarl_context_security_boundaries.py` and `tests/test_tarl_proof.py` |
+| C064 | Launder an explicit schema through duplicate/conflicting representation metadata, coercive fields, unknown kinds, or `on_violation: ALLOW` | Schema JSON and metadata are parsed strictly; unsupported, ambiguous, duplicate, or fail-open declarations are rejected | Covered by `tests/test_tarl_context_security_boundaries.py` |
+| C065 | Hide a missing, malformed, or type-invalid value behind a decisive boolean operand, an earlier decisive quantifier element, or vacuous truth over an empty collection | Both boolean operands and every predicate application over the supplied collection are evaluated before the combined result is accepted; any resolution/type failure or empty quantifier collection denies the decision | Covered by `tests/test_tarl_context_security_boundaries.py` |
+| C066 | Supply `NaN`, infinity, or overflow through numeric values/arithmetic, or send a numeric-looking string where the policy expects a number | Numeric operands and arithmetic outputs must be finite, and strings never coerce to numbers; violations raise a fail-closed evaluation error | Covered by `tests/test_tarl_context_security_boundaries.py` |
+| C067 | Shadow trusted runtime state by naming a quantifier binder `__tarl_trusted_now` or another internal identifier | The `__tarl_*` binder namespace is reserved and rejected at parse and evaluation boundaries | Covered by `tests/test_tarl_context_security_boundaries.py` |
+| C068 | Derive a schema for one policy, then evaluate a different `policy_text` override under the stale base schema | Derived-schema origin is tracked; each differing override receives a fresh complete derivation and proof binding, or fails closed when derivation is incomplete | Covered by `tests/test_tarl_context_security_boundaries.py` |
+| C069 | Promote a fabricated, unsigned, tampered, wrong-policy, schema-unbound, differently approved, stale, replayed, expired, expiry-stripped, or request-unbound ESCALATE artifact | Quorum requires the exact request context, trusted aware time, freshness and replay enforcement, and independent signature verification against the exact policy/rule and a passed authoritative schema; each distinct approver signs the complete proof digest, and time-bound promotion preserves the verified signed expiry | Covered by `tests/test_threat_model_lint_quorum.py` |
+| C070 | Re-encode the same valid signature with uppercase or embedded whitespace to obtain a second replay identity | Proof signatures have one exact lowercase hexadecimal encoding; replay identity binds the complete canonical proof, key, algorithm, and decoded signature bytes, with durable legacy-ID compatibility | Covered by `tests/test_tarl_proof.py::TestProofVerifier::test_ed25519_signature_encoding_cannot_bypass_replay_guard` and `tests/test_durable_state.py` |
+| C071 | Reuse or promote a fresh proof after the governing policy window ended, or let a rule duration outlive that window | Every matched verdict and proof expires at the earliest exclusive policy or rule cutoff; verifier and quorum independently derive and enforce the same bound | Covered by `tests/test_tarl_proof.py::TestProofExpiryBinding` and `tests/test_threat_model_lint_quorum.py::test_quorum_cannot_promote_after_governing_policy_cutoff` |
+| C072 | Misspell a temporal date, rule duration, succession duration, or expiry verdict so the restriction is silently discarded | The parser rejects malformed temporal directives and durations; direct invalid policy models fail closed | Covered by `tests/test_tarl_temporal.py::TestTemporalWindowParsing::test_malformed_temporal_metadata_is_rejected` and `TestRuleDurationParsing::test_malformed_rule_duration_is_rejected` |
+| C073 | Configure `on_expiry: ALLOW` or present an unmatched positive proof to an authority consumer | Expiry cannot grant ALLOW, and positive authority requires a structurally coherent matched-rule trace plus passed context/schema binding | Covered by `tests/test_broker_unified_gate.py::test_invalid_on_expiry_allow_cannot_authorize_a_brokered_effect` and `tests/test_tarl_proof.py::TestContextSchemaProofBinding::test_unmatched_allow_proof_is_never_context_authority` |
 
 ## Mandatory Invariants
 
@@ -187,6 +203,56 @@ Thirsty-Lang from "active resistance runtime" to "policy library."
    is required and unavailable, the runtime fails closed.
 10. **No unverifiable readiness claim.** Security claims cite tests or are
     labeled roadmap.
+11. **Missing is not false. Invalid is not false. Unresolved is not evidence.**
+    `MISSING`, `TYPE_ERROR`, and `REPRESENTATION_CONFLICT` never participate in
+    comparison, negation, membership, functions, or boolean algebra; they
+    short-circuit to DENY or ESCALATE with an explicit reason.
+12. **One context representation.** Dotted policy names are paths into nested
+    objects. A JSON key containing a dot is not an alternative spelling. Flat
+    dotted keys, equal mixed forms, contradictory mixed forms, duplicate keys,
+    and reserved-layer collisions fail closed; no conversion occurs silently.
+13. **Positive proof context coherence.** A positive policy verdict is
+    inadmissible as advancement authority unless the exact context
+    representation used for schema validation is the representation evaluated
+    by the policy engine and bound into the proof. The proof binds the original
+    context hash, canonical context hash, representation identifier,
+    normalization algorithm identifier and version, and collision/conflict
+    status. Identity evaluation requires the original and canonical hashes to
+    match.
+14. **Strict JSON and type algebra.** Contexts and registered sources contain
+    only JSON objects, arrays, strings, booleans, finite numbers, and null.
+    Python-specific values and incompatible cross-kind coercions fail closed;
+    resolved boolean `false` is never equal to numeric zero.
+15. **Load-bearing consumer gate.** Plain evaluation may report `ALLOW`, but a
+    broker or governed runtime advances only when the positive proof carries a
+    passed schema binding for the evaluated representation.
+16. **One explicit source transformation.** Callers cannot provide `source:*`.
+    Registered sources may add valid top-level source fields only, and a
+    verifier must bind both the original and evaluated contexts before accepting
+    a transformed positive proof.
+17. **Strict schema metadata.** Representation fields, path model,
+    normalization, violation verdict, field kinds, required flags, and field
+    names are validated without duplicate-key acceptance or coercion.
+18. **No hidden invalid operand.** Boolean operators evaluate both operands,
+    and quantifiers evaluate their predicate for every supplied element before
+    accepting the aggregate result. Resolution/type failure anywhere in that
+    evaluated surface, or an empty quantifier collection, fails closed.
+19. **Type-strict finite numeric evaluation.** Integers and floats may
+    interoperate, but strings never coerce to numbers. Numeric operands and
+    arithmetic outputs must be finite; `NaN`, infinity, and overflow to
+    infinity never participate in a verdict condition.
+20. **Reserved evaluator bindings.** A policy cannot bind a quantifier variable
+    in the `__tarl_*` namespace used for trusted internal evaluation state.
+21. **Policy/schema identity.** A derived schema belongs to the exact policy
+    from which it was derived. A different policy override receives a fresh
+    complete derivation and proof binding or is denied.
+22. **Proof-bound quorum.** ESCALATE promotion requires a cryptographically
+    signed proof independently verified against the exact policy, exact rule,
+    passed schema, exact original request context, explicit trusted aware time,
+    maximum proof age, and replay guard. Registered-source proofs also bind the
+    exact evaluated context. Approvals bind the complete proof digest and are
+    distinct by identity and key material. Time-bound promotion preserves its
+    verified signed expiry.
 
 ## Offensive Test Suites
 
@@ -203,13 +269,15 @@ Implemented this hardening pass:
 | `tests/test_threat_model_context_schema.py` | Missing or type-confused context fields fail closed before rule evaluation (C045–C046) |
 | `tests/test_threat_model_audit_chain.py` | Hash-linked append-only audit; edits, deletions, and reordering break `verify_chain` (C022/C026/C049) |
 | `tests/test_threat_model_pathguard.py` | `PathGuard` confines canonical (symlink-resolved) paths; traversal/symlink escape denied (C042) |
-| `tests/test_threat_model_clock.py` | Temporal windows evaluate against signed `TrustedClock` time, not the host clock (C043) |
+| `tests/test_threat_model_clock.py` | Temporal windows evaluate against signed, zoned `TrustedClock` time; invalid configured clocks deny without host fallback (C043) |
 | `tests/test_threat_model_failclosed.py` | Evaluator errors and failed required-audit writes surface as non-swallowable denials (C037–C038) |
-| `tests/test_threat_model_lint_quorum.py` | `lint_policy` flags broad/ungated ALLOW; `QuorumResolver` upgrades ESCALATE only on distinct signed approvals (C039/C050) |
+| `tests/test_threat_model_lint_quorum.py` | `lint_policy` flags broad/ungated ALLOW; `QuorumResolver` requires current-request binding, explicit trusted time, freshness/replay enforcement, and an independently verified signed policy/rule/schema-bound ESCALATE proof with distinct complete-digest approvals and preserved signed expiry (C039/C050/C069) |
 | `tests/test_threat_model_build_outputs.py` | Governance-dropping build targets are refused for governed source unless explicitly opted in and disclosed (C034) |
 | `tests/test_threat_model_parser_fail_closed.py` | Governed parse errors fail closed: no executable statements survive recovery (C036) |
-| `tests/test_proof_obligations.py` | Static proof-obligation extraction, derived schema, build-manifest proof metadata, denial explanation, no-side-effect prove path, and proof/audit regression coverage (C051-C052) |
-| `tests/test_peer_review_0_8_1_tarl_regressions.py` | TARL adversarial peer-review regressions for comparison typing, fail-closed evaluation, secure verifier defaults, trusted CLI time, and auto-TARL action context (C053-C057) |
+| `tests/test_proof_obligations.py` | Static proof-obligation extraction, derived schema, build-manifest proof metadata, denial explanation, no-side-effect prove path, and proof/audit regression coverage (C051–C052) |
+| `tests/test_peer_review_0_8_1_tarl_regressions.py` | TARL adversarial peer-review regressions for comparison typing, fail-closed evaluation, secure verifier defaults, trusted CLI time, and auto-TARL action context (C053–C057) |
+| `tests/test_tarl_context_resolution_integrity.py` | Preserved context matrix across SafeExpr, evaluator, runtime, CLI, schema/proof obligations, proof creation/verification, and governed runtime; missing/type/conflict bypass regressions (C058–C060) |
+| `tests/test_tarl_context_security_boundaries.py` | Strict JSON/type algebra, eager expression integrity, reserved binders, load-bearing schema authority, registered-source transformation, strict explicit-schema metadata, and per-override derivation (C061–C068) |
 
 The earlier "still required" suites (proof replay, policy downgrade, context
 poisoning, archive tamper, agent tools, resource failure) were implemented under
@@ -239,7 +307,33 @@ The following surfaces are implemented and tested today:
 - Proof verification requires a signature by default, can restrict the signature
   family to Ed25519 (`ProofVerifier` / `tarl verify --ed25519-only`), and only
   accepts unsigned proofs when `require_signature=False` or `--allow-unsigned`
-  is explicit.
+  is explicit. Signature permissiveness does not admit a positive legacy proof
+  that lacks coherent context-representation binding.
+- The active source uses nested objects as the sole context representation.
+  Dotted policy references resolve as paths; flat dotted keys and mixed forms
+  fail closed before any rule can match.
+- Runtime proofs bind both original and evaluated context hashes plus the
+  representation and transformation identity. The verifier rejects positive
+  proofs whose binding metadata is missing, contradictory, or unsupported.
+- `CapabilityBroker` and the governed interpreter call the runtime's schema
+  assurance path and independently reject a positive proof that is not
+  context-authority admissible. Plain evaluation without a schema remains
+  available, but its `ALLOW` cannot authorize an effect through those consumers.
+- Registered-source verification requires the expected original and evaluated
+  contexts and proves that removing only valid top-level `source:<name>` fields
+  reproduces the original request exactly.
+- Boolean evaluation checks both operands, and `ALL`/`ANY` evaluates every
+  supplied element's predicate before accepting the aggregate result. Numeric
+  comparisons are type-strict, numeric operands/arithmetic outputs must be
+  finite, empty quantifier collections fail closed, and binders cannot use the
+  reserved `__tarl_*` namespace.
+- A derived context schema is bound to the policy that produced it. Differing
+  `policy_text` overrides receive a fresh complete derivation and proof binding;
+  incomplete override derivation denies.
+- Quorum promotion independently verifies the exact policy-bound,
+  exact-rule, schema-passed, signed ESCALATE proof before counting distinct
+  approvals. Each approval signs the digest of the complete proof artifact,
+  and a time-bound promotion preserves its verified expiry.
 - Governance-dropping build targets are refused for governed source unless
   `--allow-governance-loss` is given, which warns and records the loss in the
   emitted manifest.
@@ -257,25 +351,31 @@ The following surfaces are implemented and tested today:
 
 ## Remaining Gaps
 
-The hardening pass closed the critical/high catalog items (C022–C028, C033,
-C037–C043, C045–C046, C049–C057). What remains is breadth and operational
-hardening, not a known critical bypass:
+The active-source repair covers C058–C073, but published 0.8.5 contains a
+confirmed context-resolution authorization bypass. The Competence Register
+therefore keeps context coherence and resolution integrity at critical FAIL
+until a repaired release is independently accepted. Other remaining work is:
 
-1. **Adapter breadth.** `CapabilityBroker` is the single mediation point and is
-   used for FFI/native, subprocess, file, network, and MCP/tool adapters in
-   tests, but the shipped stdlib adapters are not yet *all* re-routed through it
-   (in-language stdlib calls use the interpreter gate, which is equivalent but a
-   separate code path).
-2. **Durability.** `ReplayGuard` and the audit hash chain are correct in-process;
-   cross-process/durable replay state and an external chain checkpoint store are
-   left to the embedding.
-3. **Trust roots.** Authority-issuer, time-authority, and approver keys must be
-   provisioned and rotated by the deployment; no key-management is bundled.
+1. **Adapter rollout.** Shipped governed stdlib effects and the reference
+   external adapters use `CapabilityBroker`; deployments must preserve that
+   path for every additional adapter they introduce.
+2. **Durable-state placement.** SQLite-backed replay/revocation stores and audit
+   checkpoints are implemented, but deployments must place them on shared,
+   access-controlled storage and export checkpoints to an independently trusted
+   location.
+3. **Trust-root custody.** Key formats, generation, loading, and rotation flows
+   are implemented; deployments still own private-key custody, distribution of
+   trusted public keys, and rotation/revocation operations.
+4. **Release acceptance.** Build and inspect a repaired distribution, rerun the
+   preserved package-level matrix, and only then unblock load-bearing positive
+   verdict reliance for the released artifact.
 
 ## Proof-Obligation Behavior Contracts
 
-- Context schemas are enforced when attached, and `thirsty prove` can derive
-  simple field kinds from TARL policy references.
+- Plain evaluation can run without a schema, but its positive result is not
+  advancement authority. Load-bearing broker and governed-runtime consumers
+  require a passed schema binding and attempt only complete schema derivation.
+  `thirsty prove` derives simple field kinds from TARL policy references.
 - Ambiguous context references remain incomplete and fail closed; use an
   explicit schema file for policy expressions the static derivation cannot
   prove.
@@ -288,18 +388,22 @@ hardening, not a known critical bypass:
 Thirsty-Lang can claim hardened governance-substrate status when:
 
 1. Every challenge in the catalog is passing with a test or documented out of
-   scope. **Met** — C001–C057 are each Covered or Deferred-with-reason above.
+   scope. **Met for active source** — C001–C073 have coverage; released-artifact
+   acceptance for C058–C073 remains open.
 2. All side-effect adapters are mediated by the same broker. **Met (mechanism)**
-   — `utf.tarl.broker.CapabilityBroker`; adapter-breadth rollout tracked in
+   — `utf.tarl.broker.CapabilityBroker`; deployment adapter rollout tracked in
    Remaining Gaps #1.
 3. Hardened mode requires Ed25519 proof signatures. **Met** —
    `Interpreter.set_hardened()` fails closed without authenticated authority and
    Ed25519-signed proofs (`tests/test_threat_model_authority.py`).
-4. Policy and context schemas are verified before evaluation. **Met** —
-   `utf.tarl.schema.ContextSchema` (`tests/test_threat_model_context_schema.py`).
+4. Policy and context schemas use the representation evaluated by the engine.
+   **Met for active source** — `utf.tarl.context`, `utf.tarl.schema`, and
+   `tests/test_tarl_context_resolution_integrity.py`; the load-bearing consumer
+   gate is covered by `tests/test_tarl_context_security_boundaries.py`;
+   released-artifact acceptance remains open.
 5. Audit persistence is hash-linked and tamper-evident. **Met** —
    `TarlAuditArchive.verify_chain` (`tests/test_threat_model_audit_chain.py`).
 6. Replay and downgrade attacks are rejected. **Met** —
    `tests/test_threat_model_replay.py`, `tests/test_threat_model_proof_strictness.py`.
-7. The full offensive challenge suite passes locally and in CI. **Met locally**;
-   CI runs `pytest`, `ruff`, and `mypy -p utf`.
+7. The full offensive challenge suite passes locally and in CI. **Pending for
+   this repair** until the full local gate and CI complete.

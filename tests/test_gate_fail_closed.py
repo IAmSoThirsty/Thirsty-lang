@@ -85,6 +85,24 @@ def test_policy_default_deny_blocks_capability():
              authority="admin")
 
 
+@pytest.mark.parametrize("src", [
+    "module m: governed\nsip value\n",
+    "module m: governed\nimport foo\n",
+])
+def test_write_allow_does_not_grant_read_or_import(src):
+    with pytest.raises(GovernanceViolation) as exc:
+        _run(
+            src,
+            policy_text=(
+                'policy p\nwhen action == "write" => ALLOW\n'
+                "when true => DENY\n"
+            ),
+            authority="admin",
+        )
+    assert exc.value.proof is not None
+    assert exc.value.proof.verdict is TarlVerdict.DENY
+
+
 def test_import_allow_does_not_grant_stdlib_fs_write(tmp_path):
     target = (tmp_path / "owned.txt").as_posix()
     src = (

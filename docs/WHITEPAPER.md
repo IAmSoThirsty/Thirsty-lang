@@ -1,6 +1,6 @@
 # Thirsty-Lang: A Governance-First Language for Accountable Execution
 
-**Version:** 0.8.5 · **Stack:** Universal Thirsty Family (UTF)
+**Version:** 0.8.6 · **Stack:** Universal Thirsty Family (UTF)
 **Copyright:** 2026 Thirsty's Projects LLC · **License:** Apache-2.0
 **Status of claims:** every capability below is marked *Real* (implemented and
 covered by a test) or *Roadmap / Deferred* (reserved surface, not yet enforced).
@@ -27,7 +27,7 @@ missing authority, a failed signature check, or an unavailable gate all resolve 
 
 This paper describes the language, its governance model, the T.A.R.L. policy
 engine and proof system, the offensive threat model that scopes its guarantees,
-and the engineering state of the 0.8.5 release.
+and the engineering state of the 0.8.6 release.
 
 ---
 
@@ -36,7 +36,7 @@ and the engineering state of the 0.8.5 release.
 Thirsty-Lang targets a specific adversary class: **untrusted code and untrusted
 policy**, including AI-generated programs, prompt-injected agents, malicious
 plugins/tool adapters, and operators attempting unauthorized actions. The full
-adversary catalog (A1–A14) and a 57-entry offensive challenge catalog (C001–C057)
+adversary catalog (A1–A14) and a 73-entry offensive challenge catalog (C001–C073)
 are maintained in [THREAT_MODEL.md](THREAT_MODEL.md).
 
 The design goal is not "mathematically unbreakable." It is: **no known reproducible
@@ -184,7 +184,7 @@ verdicts — **ALLOW**, **DENY**, **ESCALATE** (for human/quorum workflows):
 ```tarl
 policy access
 when role == "admin" => ALLOW
-when action == "read" and source:allowlist => ALLOW
+when action == "read" and resource IN source:allowlist => ALLOW
 when true => DENY            # explicit default-deny floor
 ```
 
@@ -192,8 +192,16 @@ The runtime evaluates rules over a context dict, with a safe expression evaluato
 (no `eval`/import/state mutation in conditions), an LRU decision cache, and
 adaptive rule ordering that never changes first-match semantics. A dynamic
 **source registry** binds live data providers to `source:<name>` references.
-Unknown identifiers fail safe; evaluator exceptions are observable via `throw_stats`
-and treated as non-matching.
+Contexts and sources are restricted to finite JSON values. Missing paths, wrong
+intermediate types, representation conflicts, incompatible expression kinds,
+and evaluator exceptions terminate the affected decision fail closed; they do
+not become ordinary false values or fall through to a later ALLOW.
+Boolean operators validate both operands, and quantifiers validate every
+supplied element rather than stopping at an earlier decisive value. Empty
+quantifier collections are not authorization evidence and fail closed. Numeric
+comparisons are type-strict: integers and floats interoperate, but strings never
+coerce to numbers. Numeric operands and arithmetic results must be finite. The
+`__tarl_*` quantifier binder namespace is reserved for trusted runtime state.
 
 ### 5.2 Temporal governance
 
@@ -213,7 +221,10 @@ Every governed boundary decision — policy verdict, contract verdict, or
 fail-closed denial — emits a `TarlProof` certificate binding:
 
 - `policy_hash` — SHA-256 of the policy source,
-- `context_hash` — SHA-256 of the canonical context,
+- hashes of the original request and exact evaluated context, plus the context
+  representation and transformation identity,
+- for policy proofs, the schema fingerprint, representation, and validation
+  status (a positive proof requires `passed`),
 - the matched rule index and condition, the verdict, and a per-rule **trace** up
   to the first match,
 - an evaluation timestamp, and an optional signature.
@@ -228,10 +239,31 @@ exist:
 - **Ed25519** — an *asymmetric* signature; the verifier needs only the public key.
   Use this when a proof must attest to the signer.
 
+Derived schema bindings follow policy identity. If evaluation supplies a
+different `policy_text` override, a runtime-derived schema is regenerated from
+that exact policy and bound into its proof. An incomplete override derivation
+denies instead of inheriting the base policy's schema.
+
 ### 5.5 Independent verification — secure default, explicit unsigned mode
 
 `ProofVerifier` checks signature validity, policy-hash match (when the source is
-supplied), and trace consistency — with no runtime or policy engine required.
+supplied), trace consistency, context/schema coherence, and expected-context
+bindings — with no runtime or policy engine required. A registered-source ALLOW
+requires both the original and evaluated contexts, and only valid top-level
+`source:<name>` additions may distinguish them. A coherent raw evaluator ALLOW
+without a passed schema remains inadmissible to `CapabilityBroker` and the
+governed interpreter.
+
+`QuorumResolver` applies the same positive-authority standard to escalation. It
+requires an independently verified, cryptographically signed `ESCALATE` proof
+bound to the exact policy/rule and a passed authoritative schema before it
+can promote. Resolution also requires the exact original request context, an
+explicit timezone-aware trusted clock, and a verifier with a maximum proof age
+and replay guard; registered-source proofs additionally require the exact
+evaluated context. Each approval is Ed25519-signed over the SHA-256 digest of the
+complete proof; duplicate identities or public-key material count once, and
+time-bound promotion preserves the verified signed expiry.
+
 The default requires a signature. Local unsigned-proof inspection must opt in
 explicitly:
 
@@ -305,16 +337,18 @@ emitted manifest (challenge C034). Governance loss is never silent.
 
 ## 8. Security posture: covered vs. deferred
 
-The threat catalog (C001–C057) is the source of truth. As of 0.8.5:
+The threat catalog (C001–C073) is the source of truth. As of 0.8.6:
 
-Every challenge C001–C057 is now **Covered (test-backed)**. Highlights:
+Every challenge C001–C073 now has **active-source test coverage**. The repaired
+artifact and C058–C073 remain pending independent release acceptance. Highlights:
 
 - **Fail-closed core** — governed I/O/import/print without policy (C001–C004);
   non-matching capability denial (C005); denial unswallowable by `spillage`
   (C006); cross-mode guard (C007); evaluator/audit failure → DENY (C037–C038).
 - **Proof integrity & freshness** — tamper/wrong-key/no-key/policy-swap detection
   (C009–C014); downgrade rejection (C025); context-bound replay, freshness
-  windows, policy revocation, single-use replay guard (C023–C024).
+  windows, policy revocation, single-use replay guard, and canonical signature
+  encoding with semantic replay identity (C023–C024, C070).
 - **Authority provenance** — Ed25519-signed `AuthorityClaim`s; a bare
   `--authority` string grants nothing in hardened mode (C027–C028); hardened
   mode also mandates Ed25519-signed proofs.
@@ -322,21 +356,37 @@ Every challenge C001–C057 is now **Covered (test-backed)**. Highlights:
   edits, deletions, and reordering (C022, C026, C049).
 - **Universal broker** — one `CapabilityBroker` mediates FFI/native (C033) and
   agent/MCP tool adapters (C040–C041), denied by default.
-- **Context & path safety** — schema validation rejects missing/type-confused
-  context (C045–C046); `PathGuard` confines canonical paths against traversal and
+- **Context & path safety** — schema and evaluator share one authoritative nested
+  JSON representation; missing, malformed, conflicting, or mixed dotted-path
+  context is preserved as a typed failure; finite JSON and strict type algebra
+  prohibit Python-specific coercion (C045–C046, C058–C061, C064). Eager
+  boolean/quantifier validation, finite arithmetic, reserved evaluator binders,
+  and per-policy override derivation close hidden-expression and stale-schema
+  paths (C065–C068). `PathGuard` confines canonical paths against traversal and
   symlink escape (C042).
+- **Positive authority & sources** — brokered and governed effects require a
+  passed schema binding before ALLOW can advance; registered-source proofs bind
+  original/evaluated contexts and permit no hidden caller-data rewrite
+  (C060, C062–C063).
 - **Time & escalation** — `TrustedClock` decides temporal windows on verified
-  signed time, not the host clock (C043); `tarl eval` refuses temporal policies
-  and `CURRENT_*` builtins without explicit `--now` (C056);
-  `QuorumResolver` upgrades ESCALATE only on distinct signed approvals (C050);
-  the linter flags broad/ungated ALLOW (C039).
-- **Adversarial peer-review fixes** — TARL ordering compares numeric-looking strings
-  numerically and denies unorderable values (C053), malformed or throwing rules
-  reject/deny instead of falling through (C054), unsigned forged proofs are not
-  valid by default and verdict-bearing traces are checked (C055), and
+  explicitly zoned signed time and an invalid configured clock fails closed
+  without host fallback (C043); `tarl eval` refuses policy windows, time-bound
+  verdicts, `CURRENT_*`, and `ELAPSED_SINCE` without explicit zoned `--now`
+  (C056);
+  `QuorumResolver` upgrades ESCALATE only from an independently verified,
+  cryptographically signed, current-request/policy/rule/schema-bound proof
+  checked under explicit trusted time, freshness, and replay controls, with
+  distinct digest-bound approvals while preserving verified signed expiry
+  (C050, C069); matched authority expires at the earliest exclusive policy or
+  rule cutoff, malformed temporal restrictions are rejected, and expiry cannot
+  grant ALLOW (C071–C073); the linter flags broad/ungated ALLOW (C039).
+- **Adversarial peer-review fixes** — TARL comparison is type-strict and denies
+  every string/number comparison without conversion (C053), malformed or
+  throwing rules reject/deny instead of falling through (C054), unsigned forged
+  proofs are not valid by default and verdict-bearing traces are checked (C055), and
   `thirsty govern --auto-tarl` emits policies keyed on runtime `action` (C057).
 
-**Operational readiness (0.8.5).** The three items previously left to the
+**Operational readiness (0.8.6).** The three items previously left to the
 embedder are now implemented in-tree: the in-language capability gate routes
 through the same `CapabilityBroker` as the out-of-language adapters (one
 enforcement path, with optional `PathGuard` confinement on file targets);
@@ -346,16 +396,16 @@ enforcement path, with optional `PathGuard` confinement on file targets);
 rotation path. What genuinely remains with the embedder is *secret custody* — the
 durable stores and key files live wherever the deployment puts them (vault, HSM,
 encrypted volume), and automatic schema derivation remains conservative and
-fails closed when ambiguous. See `docs/PRODUCTION_DEPLOYMENT.md` for the deployment checklist and
-THREAT_MODEL.md §"Remaining Gaps".
+fails closed when ambiguous. See `docs/PRODUCTION_DEPLOYMENT.md` for the
+deployment checklist and THREAT_MODEL.md §"Remaining Gaps".
 
 ---
 
-## 9. Engineering state (0.8.5)
+## 9. Engineering state (0.8.6)
 
 | Property | State |
 |---|---|
-| Test suite | 1233 tests + subtests, passing locally on 3.11; CI covers 3.11/3.12 (incl. the full C001–C057 offensive suite) |
+| Test suite | Full suite plus permanent context-integrity regression matrices; CI covers Python 3.11/3.12 and the C001–C073 offensive catalog |
 | Line coverage | ~91% (CI floor enforced) |
 | Lint | `ruff check src tests` clean |
 | Types | `mypy -p utf` clean across all modules; ships a PEP 561 `py.typed` marker; mypy is a CI gate |
@@ -363,12 +413,14 @@ THREAT_MODEL.md §"Remaining Gaps".
 | Platform | Windows/macOS/Linux; UTF-8-safe CLI output on Windows code pages |
 
 The reference implementation is an interpreter. The governance substrate meets
-its own hardened-runtime acceptance bar (§8), and as of 0.8.5 the operational
+its own hardened-runtime acceptance bar (§8), and as of 0.8.6 the operational
 items that were previously deferred — adapter routing through the broker,
 durable cross-process replay/audit state, and deployment key management — are
-implemented in-tree and exercised by a CI `production-acceptance` job. Treat it
-as **production-ready** for governed execution and audit once the deployment
-provisions secret custody for the durable stores and trust-root key files per
+implemented in-tree and exercised by a CI `production-acceptance` job. Treat
+load-bearing context authority as **pending release acceptance** until the
+repaired 0.8.6 artifact passes the preserved package matrix and independent
+acceptance. After that gate, a deployment must still provision secret custody
+for durable stores and trust-root key files per
 `docs/PRODUCTION_DEPLOYMENT.md`.
 
 ---
@@ -398,10 +450,11 @@ verdict and policy hash, and exits non-zero.
 Thirsty-Lang makes authorization a property of the runtime rather than a
 convention of the code: in governed mode no effect precedes an explicit ALLOW,
 every decision carries a verifiable proof, and every "secure" claim is pinned to a
-test or labeled as roadmap. Through 0.8.5 the offensive catalog (C001–C057) is
-closed, and the operational substrate — authority provenance, tamper-evident
-audit, replay/downgrade rejection, universal adapter brokering, durable
-cross-process state, and deployment key management — is implemented in-tree and
+test or labeled as roadmap. Through 0.8.6 the offensive catalog (C001–C073) has
+active-source coverage, while C058–C073 remain blocked pending repaired-artifact
+and independent acceptance. The operational substrate — authority provenance,
+tamper-evident audit, replay/downgrade rejection, universal adapter brokering,
+durable cross-process state, and deployment key management — is implemented in-tree and
 gated in CI. What remains for a deployment is secret custody for the durable
 stores and trust-root keys, per `docs/PRODUCTION_DEPLOYMENT.md`.
 

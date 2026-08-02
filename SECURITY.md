@@ -2,12 +2,29 @@
 
 ## Supported Versions
 
-Thirsty-Lang is currently in alpha (v0.8.5). Security updates will be applied to the latest release only.
+Thirsty-Lang is currently in alpha (v0.8.6). Security updates are applied to
+the latest release only.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.8.x   | :white_check_mark: |
-| < 0.8   | :x:                |
+Versions through 0.8.5 must not be used for load-bearing authorization with
+dotted context paths. Upgrade to 0.8.6 for fail-closed missing, malformed, and
+conflicting context handling. The repaired release also fails closed on hidden
+invalid boolean/quantifier values, empty quantifier collections, non-finite
+numeric results, stale per-policy derived schemas, and inadmissible quorum
+proofs. Quorum promotion additionally requires the exact request context,
+trusted verification time, proof freshness, and replay enforcement. Proof
+signatures have one canonical lowercase hexadecimal encoding, and replay
+identity binds the complete proof semantics plus decoded signature bytes.
+Configured trusted clocks and CLI trusted-time values must be timezone-aware;
+an invalid clock fails closed without host-clock fallback. Malformed temporal
+directives are rejected, expiry can never grant `ALLOW`, and proof authority is
+capped at the earliest exclusive policy or rule cutoff. Independent
+repaired-artifact acceptance remains required before the
+Competence Register can unblock load-bearing positive authority.
+
+| Version           | Supported          |
+| ----------------- | ------------------ |
+| 0.8.6             | :white_check_mark: |
+| 0.8.5 and earlier | :x:                |
 
 ## Reporting a Vulnerability
 

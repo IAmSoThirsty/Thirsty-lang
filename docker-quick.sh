@@ -5,7 +5,7 @@
 set -e
 
 COMMAND="${1:-help}"
-IMAGE_NAME="thirsty-lang:0.8.5"
+IMAGE_NAME="thirsty-lang:0.8.6"
 PROJECT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 case "$COMMAND" in

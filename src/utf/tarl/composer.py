@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import os
 
+from utf.tarl.context import ContextResolutionError, compose_context_layers
 from utf.tarl.spec import (
     DEFAULT_DENY,
     CompositionOp,
@@ -154,7 +155,10 @@ class PolicyComposer:
         # Pre-evaluate INCLUDE directives, inject into context copy
         ctx = dict(context)
         if policy.includes:
-            ctx = self._inject_includes(policy.includes, ctx, chain)
+            try:
+                ctx = self._inject_includes(policy.includes, ctx, chain)
+            except ContextResolutionError as exc:
+                return TarlDecision(verdict=TarlVerdict.DENY, reason=str(exc))
 
         if policy.composition == CompositionOp.EXTENDS:
             return self._evaluate_extends(policy, ctx, chain)
@@ -248,9 +252,12 @@ class PolicyComposer:
         """
         Pre-evaluate each INCLUDE'd policy and inject its verdict into ctx.
 
-        Injects two keys per include:
+        Injects one nested object per include:
           ctx["<alias>"] = {"verdict": "<VERDICT>", "rule_index": <int>}
-          ctx["<alias>.verdict"] = "<VERDICT>"
+
+        ``alias.verdict`` in a policy is a path into that object. A second flat
+        dotted key would be a conflicting context representation and is never
+        synthesized.
         """
         ctx = dict(context)
         for ref in refs:
@@ -264,23 +271,35 @@ class PolicyComposer:
                     try:
                         self.load_file(ref.name)
                     except OSError:
-                        ctx[alias] = {"verdict": "DENY", "rule_index": -1}
-                        ctx[f"{alias}.verdict"] = "DENY"
+                        ctx = compose_context_layers(
+                            ("composition context", ctx),
+                            (f"include '{alias}'", {
+                                alias: {"verdict": "DENY", "rule_index": -1}
+                            }),
+                        )
                         continue
                 policy_name = stem
 
             if policy_name not in self._policies:
-                ctx[alias] = {"verdict": "DENY", "rule_index": -1}
-                ctx[f"{alias}.verdict"] = "DENY"
+                ctx = compose_context_layers(
+                    ("composition context", ctx),
+                    (f"include '{alias}'", {
+                        alias: {"verdict": "DENY", "rule_index": -1}
+                    }),
+                )
                 continue
 
             inc_policy = self._policies[policy_name]
             inc_dec = self._evaluate_policy(inc_policy, ctx, chain)
-            ctx[alias] = {
-                "verdict": inc_dec.verdict.value,
-                "rule_index": inc_dec.rule_index,
-            }
-            ctx[f"{alias}.verdict"] = inc_dec.verdict.value
+            ctx = compose_context_layers(
+                ("composition context", ctx),
+                (f"include '{alias}'", {
+                    alias: {
+                        "verdict": inc_dec.verdict.value,
+                        "rule_index": inc_dec.rule_index,
+                    }
+                }),
+            )
 
         return ctx
 

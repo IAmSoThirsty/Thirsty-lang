@@ -6,7 +6,7 @@ This guide walks you through shipping your first Thirsty-Lang release as a produ
 
 ## What You Have Now
 
-✓ **Dockerfile** — Multi-stage build with integrated test gate (1212 tests must pass)  
+✓ **Dockerfile** — Multi-stage build with an integrated full-suite test gate
 ✓ **docker-compose.yml** — 9 development and testing services  
 ✓ **docker-quick.sh / docker-quick.bat** — One-command CLI helpers  
 ✓ **.github/workflows/docker.yml** — Automated GitHub Actions CI/CD  
@@ -19,9 +19,9 @@ This guide walks you through shipping your first Thirsty-Lang release as a produ
 ### 1. Tag a Release
 
 ```bash
-# Locally, bump your version
-git tag v<version>
-git push tp v<version>
+# After the release commit is on master and CI passes
+git tag -a v<version> -m "Thirsty-Lang <version>"
+git push tp refs/tags/v<version>
 ```
 
 ### 2. GitHub Actions Automatically:
@@ -30,12 +30,12 @@ git push tp v<version>
 - Builds the Dockerfile (with all tests running inside)
 - If any test fails → build fails, image doesn't ship
 - If all tests pass → image is pushed to GHCR
-- Generates a GitHub release summary with pull/run commands
+- Generates a GitHub Actions job summary with pull/run commands
 
 ### 3. Anyone Can Use It:
 
 ```bash
-docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.5 run --demo
+docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 run --demo
 ```
 
 ---
@@ -66,8 +66,8 @@ git push tp master
 ### Step 3: Create Release Tag
 
 ```bash
-git tag v<version>
-git push tp v<version>
+git tag -a v<version> -m "Thirsty-Lang <version>"
+git push tp refs/tags/v<version>
 ```
 
 **That's it.** GitHub Actions takes it from here.
@@ -80,7 +80,7 @@ Watch the **"Build and Push Docker Image"** workflow run. It will:
 - Build the image (~2-3 minutes)
 - Run tests inside the build
 - Push to GHCR
-- Generate a release summary
+- Generate an Actions job summary
 
 ---
 
@@ -95,7 +95,7 @@ However, if you want to push images manually:
 docker login ghcr.io -u <your-github-username> -p <your-github-token>
 
 # Then push manually
-docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.5
+docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.6
 ```
 
 ---
@@ -120,7 +120,7 @@ docker run --rm ghcr.io/iamsothirsty/thirsty-lang:latest run --demo
 Once pushed, your image is available at:
 
 ```
-ghcr.io/iamsothirsty/thirsty-lang:0.8.5    (specific version)
+ghcr.io/iamsothirsty/thirsty-lang:0.8.6    (specific version)
 ghcr.io/iamsothirsty/thirsty-lang:latest   (always latest)
 ```
 
@@ -146,22 +146,23 @@ git commit -m "feat: add new feature"
 git push tp master
 
 # 5. Release
-git tag v<version>
-git push tp v<version>
+git tag -a v<version> -m "Thirsty-Lang <version>"
+git push tp refs/tags/v<version>
 
 # 6. Everyone has it
-docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.5
+docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.6
 ```
 
 ---
 
 ## PyPI + Docker Together
 
-Your release workflow does **both**:
+Pushing a lowercase `v*` release tag starts two GitHub Actions workflows:
 
 1. **PyPI** (existing workflow: `release.yml`)
    - `pip install thirsty-lang`
-   - Uses PyPI Trusted Publishing for `IAmSoThirsty/Thirsty-lang` and `.github/workflows/release.yml`
+   - Uses the scoped PyPI API token stored as `IAMSOTHIRSTY` in the GitHub
+     Actions `release` environment
 
 2. **Docker** (new workflow: `docker.yml`)
    - `docker run ghcr.io/.../thirsty-lang:latest`
@@ -180,7 +181,8 @@ Common causes:
 - A test failed (intentional — no broken images ship)
 - Missing Dockerfile
 - GHCR registry permissions
-- PyPI Trusted Publishing is not configured for this repository/workflow
+- The `release` environment or its `IAMSOTHIRSTY` PyPI API-token secret is
+  missing, expired, or unauthorized
 
 ### "Permission denied" on GHCR
 

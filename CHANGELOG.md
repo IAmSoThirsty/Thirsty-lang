@@ -7,11 +7,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.6] - 2026-08-02
+
+### Security
+
+- Established nested JSON objects as the authoritative context representation
+  for dotted TARL paths. Flat dotted keys, duplicate keys, and mixed flat/nested
+  representations now fail closed instead of being normalized silently.
+- Preserved context resolution as typed internal states (`RESOLVED`, `MISSING`,
+  `TYPE_ERROR`, and `REPRESENTATION_CONFLICT`) so unresolved or malformed values
+  cannot enter ordinary boolean algebra or comparisons.
+- Restricted contexts and registered sources to finite JSON values, and enforced
+  strict type algebra for boolean operators, comparisons, membership,
+  arithmetic, and safe functions. Python-specific coercions can no longer turn
+  invalid context into an `ALLOW` condition.
+- Made boolean and quantifier validation eager: both operands of `and`/`or` and
+  every supplied `ALL`/`ANY` element are checked, so a decisive value cannot
+  hide an unresolved or malformed value elsewhere in the expression. Empty
+  quantifier collections now fail closed instead of authorizing vacuously.
+- Made comparisons type-strict: integers and floats interoperate, while strings
+  never coerce to numbers. Non-finite numeric operands/results fail closed, and
+  the `__tarl_*` namespace is reserved against quantifier-binder shadowing.
+- Bound positive proofs to the schema-validation result and the exact original,
+  canonical, and evaluated context representations, including representation,
+  normalization, version, and conflict metadata.
+- Made a raw `ALLOW` inadmissible to load-bearing broker or governed-runtime
+  consumers unless a passed explicit or complete derived schema is proof-bound.
+- Preserved registered-source injection as an explicit transformation: callers
+  cannot provide reserved `source:*` fields, and verification requires both the
+  original and evaluated contexts while permitting only source-field additions.
+- Made explicit schema parsing strict: duplicate or conflicting representation
+  metadata, silent normalization, coercive field metadata, duplicate fields,
+  unknown kinds, and `on_violation: ALLOW` are rejected.
+- Derived and proof-bound a fresh schema for each differing `policy_text`
+  override when the runtime schema is derived; incomplete override derivation
+  now fails closed instead of reusing the base policy's schema.
+- Hardened quorum promotion so an `ESCALATE` can advance only after independent
+  cryptographic verification of a signed proof against the exact policy and a
+  passed authoritative schema. Resolution now requires the exact original
+  request context, an explicit timezone-aware trusted clock, and verifier
+  freshness and replay enforcement; registered-source proofs also require the
+  exact evaluated context. Distinct approver signatures bind the digest of the
+  complete proof artifact, and time-bound promotion preserves and verifies its
+  signed expiry.
+- Removed every trusted-time fallback after a clock has been configured. A
+  missing, malformed, naive, or failing trusted clock now produces an explicit
+  fail-closed denial; signed-time assertions and CLI `--now` values must carry
+  a timezone. CLI evaluation requires `--now` for policy windows, time-bound
+  verdicts, `CURRENT_*`, and `ELAPSED_SINCE`.
+- Made temporal authority explicit and fail-closed. Malformed policy dates,
+  rule/succession durations, and expiry verdicts are rejected; `on_expiry`
+  cannot grant `ALLOW`; `valid_until` is an exclusive cutoff; and every matched
+  decision/proof expires at the earlier of its rule duration or effective
+  policy cutoff. Independent verification and quorum promotion derive and
+  enforce that same bound.
+- Hardened `TarlDecision.is_expired()` so malformed or timezone-naive expiry
+  values are treated as expired, never as evidence of continuing authority.
+- Canonicalized proof-signature encoding and changed replay identity to bind the
+  complete signed proof semantics, signing key, algorithm, and decoded
+  signature bytes. Alternate hexadecimal spellings can no longer evade
+  in-memory or durable single-use enforcement; durable stores retain legacy-ID
+  compatibility across upgrade.
+- Added a permanent cross-surface regression matrix covering direct `SafeExpr`,
+  policy evaluation, runtime and CLI paths, schema validation, proof obligation
+  generation, proof creation/verification, and governed execution.
+
+### Changed
+
+- Documented the current GitHub `release` environment and scoped PyPI API-token
+  authentication used by the release workflow.
+
 ## [0.8.5] - 2026-07-22
 
 ### Fixed
-- Switched the PyPI release workflow from an empty token-secret path to PyPI
-  Trusted Publishing via GitHub OIDC.
+- Repaired PyPI publishing through the GitHub Actions `release` environment and
+  its scoped API-token secret after the OIDC publisher path was unavailable.
 - Added a release metadata check before PyPI upload so invalid distributions fail
   before publish.
 

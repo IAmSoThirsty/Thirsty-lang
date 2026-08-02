@@ -11,14 +11,29 @@ Phase 4: evaluate_with_proof() — evaluate and return a TarlProof alongside
 import datetime
 import hashlib
 import hmac
-import json
 from collections import OrderedDict
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from utf.tarl.core import PolicyParser, SafeExpr, _check_policy_temporal
+from utf.tarl.context import (
+    ContextResolutionError,
+    ContextResolutionState,
+    PreparedContext,
+    compose_context_layers,
+    hash_context,
+    prepare_context,
+    rejected_context_binding,
+)
+from utf.tarl.core import (
+    _TEMPORAL_BUILTINS,
+    PolicyParser,
+    SafeExpr,
+    _check_policy_temporal,
+    _policy_authority_expiry,
+)
+from utf.tarl.schema import ContextSchema
 from utf.tarl.spec import (
     DEFAULT_DENY,
     TarlDecision,
@@ -33,7 +48,21 @@ def _is_temporally_constrained(policy: TarlPolicy) -> bool:
     """Return True if the policy has any temporal constraints that make caching unsafe."""
     if policy.valid_from or policy.valid_until or policy.if_unresolved_after:
         return True
-    return any(r.duration_seconds for r in policy.rules)
+    if any(r.duration_seconds for r in policy.rules):
+        return True
+    temporal_names = _TEMPORAL_BUILTINS | {"ELAPSED_SINCE"}
+    for rule in policy.rules:
+        try:
+            tokens = PolicyParser._tokenize(rule.condition)
+        except Exception:
+            return True
+        if any(
+            isinstance(token.value, str)
+            and token.value.upper() in temporal_names
+            for token in tokens
+        ):
+            return True
+    return False
 
 
 class LRUCache:
@@ -91,7 +120,8 @@ class TarlRuntime:
         self._signing_key_id: str = ""  # active key
         self._signing_alg: str = ""     # "hmac-sha256" or "ed25519"
         self._archive = None            # TarlAuditArchive | None
-        self._context_schema = None     # ContextSchema | None
+        self._context_schema: ContextSchema | None = None
+        self._context_schema_origin = "none"
         self._require_audit = False     # fail closed if audit cannot persist
         # Trusted time source for temporal checks; None => host clock.
         self._clock: Callable[[], datetime.datetime | None] | None = None
@@ -102,11 +132,32 @@ class TarlRuntime:
         ``datetime`` (typically obtained by verifying a signed-time assertion via
         ``utf.tarl.clock.TrustedClock``). A spoofed system clock then cannot
         satisfy a temporal window (C043). Returns self."""
+        if not callable(clock):
+            raise TypeError("clock must be callable")
         self._clock = clock
         return self
 
-    def _now(self):
-        return self._clock() if self._clock is not None else None
+    def _now(self) -> datetime.datetime | None:
+        if self._clock is None:
+            return None
+        try:
+            current = self._clock()
+        except Exception as exc:
+            raise ContextResolutionError(
+                f"trusted clock failure: {exc}",
+                state=ContextResolutionState.TYPE_ERROR,
+            ) from exc
+        if not isinstance(current, datetime.datetime):
+            raise ContextResolutionError(
+                "trusted clock failure: expected a datetime value",
+                state=ContextResolutionState.TYPE_ERROR,
+            )
+        if current.tzinfo is None or current.utcoffset() is None:
+            raise ContextResolutionError(
+                "trusted clock failure: datetime must be timezone-aware",
+                state=ContextResolutionState.TYPE_ERROR,
+            )
+        return current.astimezone(datetime.UTC)
 
     def set_require_audit(self, required: bool = True) -> "TarlRuntime":
         """When True and an audit archive is attached, a failure to persist a
@@ -118,7 +169,7 @@ class TarlRuntime:
     def _persist(
         self,
         policy: TarlPolicy,
-        ctx: dict,
+        ctx: PreparedContext,
         decision: TarlDecision,
         proof: TarlProof,
     ) -> tuple[TarlDecision, TarlProof]:
@@ -138,32 +189,199 @@ class TarlRuntime:
             )
             denied_proof = self._generate_proof(
                 policy, ctx, denied, -1,
-                [{"kind": "audit-fail", "matched": False, "reason": str(exc)}])
+                [{"kind": "audit-fail", "matched": False, "reason": str(exc)}],
+                schema_binding={
+                    "hash": proof.context_schema_hash or "",
+                    "representation_id": (
+                        proof.context_schema_representation_id or ""
+                    ),
+                    "status": (
+                        proof.context_schema_validation_status
+                        or "not_evaluated"
+                    ),
+                },
+                evaluation_time=datetime.datetime.fromisoformat(
+                    proof.evaluated_at.replace("Z", "+00:00")
+                ),
+            )
             return denied, denied_proof
 
     # ── Context schema ────────────────────────────────────────────────────────
 
-    def set_context_schema(self, schema) -> "TarlRuntime":
+    def set_context_schema(self, schema: ContextSchema) -> "TarlRuntime":
         """Attach a ``utf.tarl.schema.ContextSchema``. When set, every context is
         validated before any rule runs; a missing required field or a
         type-confused value short-circuits to the schema's fail-closed verdict
         (DENY by default) instead of silently matching a permissive later rule.
         Returns self for chaining."""
+        if type(schema) is not ContextSchema:
+            raise TypeError("context schema must be a ContextSchema")
+        # Validate and fingerprint at registration time so malformed schema
+        # configuration cannot reach an authorization path.
+        schema.fingerprint()
         self._context_schema = schema
+        self._context_schema_origin = "explicit"
         return self
 
-    def _schema_decision(self, context: dict) -> "TarlDecision | None":
+    def ensure_context_schema(self) -> bool:
+        """Attach a complete derived schema when authority use needs one.
+
+        Plain evaluation remains available without a schema, but load-bearing
+        consumers call this method before relying on ALLOW.  Incomplete or
+        ambiguous derivation leaves the runtime unbound so the consumer's
+        positive-proof admissibility gate fails closed.
+        """
+        if self._context_schema is not None:
+            return True
+        try:
+            from utf.thirsty_lang.proof_obligations import derive_context_schema
+
+            derived = derive_context_schema(self.policy.source)
+            if not derived.complete:
+                return False
+            self.set_context_schema(ContextSchema.from_dict(derived.to_dict()))
+            self._context_schema_origin = "derived"
+        except Exception:
+            return False
+        return True
+
+    def _schema_for_evaluation(
+        self,
+        policy: TarlPolicy,
+        *,
+        policy_override: bool,
+    ) -> tuple[ContextSchema | None, str]:
+        """Resolve the schema that belongs to the policy being evaluated.
+
+        A schema derived for ``self.policy`` must never be reused for a
+        different ``policy_text`` override. Explicit schemas are caller-bound
+        and remain applicable; derived schemas are regenerated per override.
+        """
+        if not policy_override or self._context_schema_origin != "derived":
+            return self._context_schema, ""
+        try:
+            from utf.thirsty_lang.proof_obligations import derive_context_schema
+
+            derived = derive_context_schema(policy.source)
+            if not derived.complete:
+                return None, (
+                    "context schema could not be derived completely for the "
+                    "evaluated policy override"
+                )
+            return ContextSchema.from_dict(derived.to_dict()), ""
+        except Exception as exc:
+            return None, (
+                "context schema could not be derived for the evaluated "
+                f"policy override: {exc}"
+            )
+
+    @staticmethod
+    def _binding_for_schema(
+        schema: ContextSchema | None,
+        status: str,
+    ) -> dict[str, str]:
+        """Return proof metadata for one exact context schema."""
+        if schema is None:
+            return {
+                "hash": "",
+                "representation_id": "",
+                "status": "error" if status == "error" else "not_configured",
+            }
+        try:
+            schema_hash = schema.fingerprint()
+            representation_id = schema.representation_id
+        except Exception:
+            return {
+                "hash": "",
+                "representation_id": "",
+                "status": "error",
+            }
+        return {
+            "hash": schema_hash,
+            "representation_id": representation_id,
+            "status": status,
+        }
+
+    def _schema_binding(self, status: str) -> dict[str, str]:
+        """Return proof metadata for the runtime's configured schema."""
+        return self._binding_for_schema(self._context_schema, status)
+
+    def _validate_context_schema(
+        self,
+        context: PreparedContext,
+        schema: ContextSchema | None,
+    ) -> tuple["TarlDecision | None", dict[str, str]]:
+        """Validate once and return both decision and proof-bound result."""
+        if schema is None:
+            return None, self._binding_for_schema(None, "not_configured")
+
+        before_binding = self._binding_for_schema(schema, "not_evaluated")
+        if before_binding["status"] == "error":
+            return (
+                TarlDecision(
+                    verdict=TarlVerdict.DENY,
+                    reason="context schema configuration is invalid",
+                ),
+                before_binding,
+            )
+        schema_violation_verdict = schema.on_violation
+
+        try:
+            violations = ContextSchema.validate(schema, context)
+            context_unchanged = (
+                hash_context(context.canonical) == context.canonical_context_hash
+            )
+            after_binding = self._binding_for_schema(schema, "passed")
+        except Exception as exc:
+            binding = self._binding_for_schema(schema, "error")
+            binding["status"] = "error"
+            return (
+                TarlDecision(
+                    verdict=TarlVerdict.DENY,
+                    reason=f"context schema validation failed: {exc}",
+                ),
+                binding,
+            )
+
+        if (
+            not context_unchanged
+            or after_binding["hash"] != before_binding["hash"]
+            or after_binding["representation_id"]
+            != before_binding["representation_id"]
+        ):
+            after_binding["status"] = "error"
+            return (
+                TarlDecision(
+                    verdict=TarlVerdict.DENY,
+                    reason=(
+                        "context schema validation mutated its schema or "
+                        "evaluation context"
+                    ),
+                ),
+                after_binding,
+            )
+
+        if not violations:
+            return None, after_binding
+
+        after_binding["status"] = "failed"
+        return (
+            TarlDecision(
+                verdict=schema_violation_verdict,
+                reason="context schema violation: " + "; ".join(violations),
+            ),
+            after_binding,
+        )
+
+    def _schema_decision(
+        self,
+        context: PreparedContext,
+        schema: ContextSchema | None,
+    ) -> "TarlDecision | None":
         """Return a fail-closed decision when ``context`` violates the schema,
         else None."""
-        if self._context_schema is None:
-            return None
-        violations = self._context_schema.validate(context)
-        if not violations:
-            return None
-        return TarlDecision(
-            verdict=self._context_schema.on_violation,
-            reason="context schema violation: " + "; ".join(violations),
-        )
+        decision, _binding = self._validate_context_schema(context, schema)
+        return decision
 
     # ── Audit archive ─────────────────────────────────────────────────────────
 
@@ -217,25 +435,58 @@ class TarlRuntime:
         """
         Bind a data provider to source:<name> condition references.
 
-        provider — a list/set (static) or a zero-arg callable that
-                   returns a list/set each time it is called.
+        provider — a strict JSON value (commonly a list) or a zero-arg
+                   callable that returns one each time it is called.
         Returns self for chaining.
         """
+        if (
+            type(name) is not str
+            or not name
+            or not all(char.isalnum() or char == "_" for char in name)
+        ):
+            raise ValueError(
+                "registered source name must be non-empty and contain only "
+                "letters, numbers, or underscores"
+            )
         self._sources[name] = provider
         return self
 
     def _inject_sources(self, context: dict) -> dict:
         """Resolve all registered sources and inject into a context copy."""
         if not self._sources:
-            return context
-        ctx = dict(context)
+            return dict(context)
+        source_context = {}
         for name, provider in self._sources.items():
             try:
                 value = provider() if callable(provider) else provider
-            except Exception:
-                value = []
-            ctx[f"source:{name}"] = value
-        return ctx
+            except Exception as exc:
+                raise ContextResolutionError(
+                    f"registered source '{name}' could not be resolved: {exc}",
+                    state=ContextResolutionState.MISSING,
+                    path=f"source:{name}",
+                ) from exc
+            source_context[f"source:{name}"] = value
+        return compose_context_layers(
+            ("caller context", context),
+            ("registered sources", source_context),
+        )
+
+    def _prepare_evaluation_context(self, context: dict) -> PreparedContext:
+        """Freeze caller input, inject sources, then freeze the evaluated state."""
+        original = prepare_context(context)
+        enriched = self._inject_sources(original.canonical)
+        evaluated = prepare_context(enriched, allow_source_keys=True)
+        algorithm = (
+            "identity"
+            if original.original_context_hash == evaluated.canonical_context_hash
+            else "tarl.registered-source-injection"
+        )
+        return PreparedContext(
+            canonical=evaluated.canonical,
+            original_context_hash=original.original_context_hash,
+            canonical_context_hash=evaluated.canonical_context_hash,
+            normalization_algorithm_id=algorithm,
+        )
 
     # ── Policy management ─────────────────────────────────────────────────────
 
@@ -264,6 +515,9 @@ class TarlRuntime:
     def set_policy(self, new_policy: TarlPolicy):
         """Replace the active policy and reset the cache and hit counts."""
         self.policy = new_policy
+        if self._context_schema_origin == "derived":
+            self._context_schema = None
+            self._context_schema_origin = "none"
         self.cache.clear()
         self._hit_counts = dict.fromkeys(range(len(new_policy.rules)), 0)
         self._throw_counts = {}
@@ -280,22 +534,59 @@ class TarlRuntime:
         context. Sources are resolved before evaluation. Returns the
         first matching rule's verdict, or DEFAULT_DENY.
         """
-        ctx = self._inject_sources(context)
-
-        # Context schema validation fails closed before any rule evaluation.
-        schema_decision = self._schema_decision(ctx)
-        if schema_decision is not None:
-            return schema_decision
-
-        cache_key = str(sorted(ctx.items()))
-
         if policy_text is not None:
             policy = PolicyParser.parse(policy_text)
         else:
             policy = self.policy
+        policy_override = (
+            policy_text is not None and policy.source != self.policy.source
+        )
+        evaluation_schema, schema_resolution_error = self._schema_for_evaluation(
+            policy,
+            policy_override=policy_override,
+        )
+        try:
+            evaluation_now = self._now()
+            if evaluation_now is None:
+                evaluation_now = datetime.datetime.now(datetime.UTC)
+        except ContextResolutionError as exc:
+            return TarlDecision(
+                verdict=TarlVerdict.DENY,
+                reason=f"fail-closed: {exc}",
+            )
+
+        try:
+            prepared = self._prepare_evaluation_context(context)
+        except ContextResolutionError as exc:
+            return TarlDecision(verdict=TarlVerdict.DENY, reason=str(exc))
+
+        if schema_resolution_error:
+            return TarlDecision(
+                verdict=TarlVerdict.DENY,
+                reason=f"fail-closed: {schema_resolution_error}",
+            )
+
+        # Context schema validation fails closed before any rule evaluation.
+        schema_decision = self._schema_decision(prepared, evaluation_schema)
+        if schema_decision is not None:
+            return schema_decision
+
+        policy_hash = hashlib.sha256(policy.source.encode("utf-8")).hexdigest()
+        cache_key = "|".join(
+            (
+                policy_hash,
+                prepared.original_context_hash,
+                prepared.canonical_context_hash,
+                prepared.normalization_algorithm_id,
+                prepared.normalization_version,
+                self._binding_for_schema(
+                    evaluation_schema, "not_evaluated"
+                )["hash"],
+            )
+        )
 
         # Phase 5: enforce temporal window before any rule evaluation
-        temporal = _check_policy_temporal(policy, now=self._now())
+        temporal = _check_policy_temporal(policy, now=evaluation_now)
         if temporal is not None:
             return temporal
 
@@ -318,11 +609,11 @@ class TarlRuntime:
         )
 
         futures_by_idx = {}
-        trusted_now = self._now()
+        trusted_now = evaluation_now
         for idx in ordered_indices:
             rule = policy.rules[idx]
             future = self.executor.submit(
-                self._evaluate_rule, rule, ctx, trusted_now
+                self._evaluate_rule, rule, prepared, trusted_now
             )
             futures_by_idx[idx] = (future, rule)
 
@@ -364,12 +655,14 @@ class TarlRuntime:
                 self._hit_counts[idx] = (
                     self._hit_counts.get(idx, 0) + 1
                 )
-                expires_at = None
-                if rule.duration_seconds:
-                    expires_at = (
-                        datetime.datetime.now(datetime.UTC)
-                        + datetime.timedelta(seconds=rule.duration_seconds)
-                    ).isoformat(timespec="seconds")
+                authority_expiry = _policy_authority_expiry(
+                    policy, rule, trusted_now
+                )
+                expires_at = (
+                    authority_expiry.isoformat(timespec="seconds")
+                    if authority_expiry is not None
+                    else None
+                )
                 result = TarlDecision(
                     verdict=decision.verdict,
                     reason=decision.reason or f"Rule matched: {rule}",
@@ -388,7 +681,7 @@ class TarlRuntime:
     def _evaluate_rule(
         self,
         rule: TarlRule,
-        context: dict,
+        context: PreparedContext,
         now: datetime.datetime | None = None,
     ) -> tuple:
         """
@@ -433,41 +726,153 @@ class TarlRuntime:
           - Per-rule trace up to (and including) the first match
           - HMAC-SHA256 or Ed25519 signature if a signing key is registered
         """
-        ctx = self._inject_sources(context)
         if policy_text is not None:
             policy = PolicyParser.parse(policy_text)
         else:
             policy = self.policy
+        policy_override = (
+            policy_text is not None and policy.source != self.policy.source
+        )
+        evaluation_schema, schema_resolution_error = self._schema_for_evaluation(
+            policy,
+            policy_override=policy_override,
+        )
+
+        try:
+            evaluation_now = self._now()
+            if evaluation_now is None:
+                evaluation_now = datetime.datetime.now(datetime.UTC)
+        except ContextResolutionError as exc:
+            try:
+                prepared = prepare_context(context)
+            except ContextResolutionError as context_exc:
+                prepared = rejected_context_binding(
+                    context,
+                    conflict_status=context_exc.conflict_status,
+                )
+            decision = TarlDecision(
+                verdict=TarlVerdict.DENY,
+                reason=f"fail-closed: {exc}",
+            )
+            trace = [{
+                "kind": "trusted-time-failure",
+                "matched": False,
+                "reason": str(exc),
+                "state": exc.state.value,
+            }]
+            proof = self._generate_proof(
+                policy,
+                prepared,
+                decision,
+                -1,
+                trace,
+                schema_binding=self._binding_for_schema(
+                    evaluation_schema,
+                    "error" if schema_resolution_error else "not_evaluated",
+                ),
+                evaluation_time=datetime.datetime.now(datetime.UTC),
+            )
+            return self._persist(policy, prepared, decision, proof)
+
+        try:
+            prepared = self._prepare_evaluation_context(context)
+        except ContextResolutionError as exc:
+            rejected = rejected_context_binding(
+                context, conflict_status=exc.conflict_status
+            )
+            decision = TarlDecision(verdict=TarlVerdict.DENY, reason=str(exc))
+            trace = [
+                {
+                    "kind": "context-resolution-failure",
+                    "matched": False,
+                    "reason": str(exc),
+                    "state": exc.state.value,
+                }
+            ]
+            proof = self._generate_proof(
+                policy,
+                rejected,
+                decision,
+                -1,
+                trace,
+                schema_binding=self._binding_for_schema(
+                    evaluation_schema,
+                    "error" if schema_resolution_error else "not_evaluated",
+                ),
+                evaluation_time=evaluation_now,
+            )
+            return self._persist(policy, rejected, decision, proof)
+
+        if schema_resolution_error:
+            decision = TarlDecision(
+                verdict=TarlVerdict.DENY,
+                reason=f"fail-closed: {schema_resolution_error}",
+            )
+            trace = [{
+                "kind": "context-schema-unavailable",
+                "matched": False,
+                "reason": schema_resolution_error,
+            }]
+            proof = self._generate_proof(
+                policy,
+                prepared,
+                decision,
+                -1,
+                trace,
+                schema_binding=self._binding_for_schema(None, "error"),
+                evaluation_time=evaluation_now,
+            )
+            return self._persist(policy, prepared, decision, proof)
 
         # Context schema validation fails closed before any rule evaluation,
         # carrying a proof that records which fields were missing or mistyped.
-        schema_decision = self._schema_decision(ctx)
+        schema_decision, schema_binding = self._validate_context_schema(
+            prepared,
+            evaluation_schema,
+        )
         if schema_decision is not None:
             trace = [{"kind": "schema-violation", "matched": False,
                       "reason": schema_decision.reason}]
-            proof = self._generate_proof(policy, ctx, schema_decision, -1, trace)
-            return self._persist(policy, ctx, schema_decision, proof)
+            proof = self._generate_proof(
+                policy,
+                prepared,
+                schema_decision,
+                -1,
+                trace,
+                schema_binding=schema_binding,
+                evaluation_time=evaluation_now,
+            )
+            return self._persist(policy, prepared, schema_decision, proof)
 
         # Phase 5: temporal window check — return early with proof if outside window
-        temporal = _check_policy_temporal(policy, now=self._now())
+        temporal = _check_policy_temporal(policy, now=evaluation_now)
         if temporal is not None:
-            proof = self._generate_proof(policy, ctx, temporal, -1, [])
-            return self._persist(policy, ctx, temporal, proof)
+            proof = self._generate_proof(
+                policy,
+                prepared,
+                temporal,
+                -1,
+                [],
+                schema_binding=schema_binding,
+                evaluation_time=evaluation_now,
+            )
+            return self._persist(policy, prepared, temporal, proof)
 
         trace = []
         decision = DEFAULT_DENY
         matched_idx = -1
-        trusted_now = self._now()
+        trusted_now = evaluation_now
 
         for i, rule in enumerate(policy.rules):
             matched, rule_dec, threw = self._evaluate_rule(
-                rule, ctx, trusted_now
+                rule, prepared, trusted_now
             )
             if threw:
                 self._throw_counts[i] = (
                     self._throw_counts.get(i, 0) + 1
                 )
             trace.append({
+                **({"kind": "evaluation-error"} if threw else {}),
                 "rule_index": i,
                 "condition": rule.condition,
                 "verdict": rule.verdict.value,
@@ -488,12 +893,14 @@ class TarlRuntime:
                 break
             if matched:
                 matched_idx = i
-                expires_at = None
-                if rule.duration_seconds:
-                    expires_at = (
-                        datetime.datetime.now(datetime.UTC)
-                        + datetime.timedelta(seconds=rule.duration_seconds)
-                    ).isoformat(timespec="seconds")
+                authority_expiry = _policy_authority_expiry(
+                    policy, rule, trusted_now
+                )
+                expires_at = (
+                    authority_expiry.isoformat(timespec="seconds")
+                    if authority_expiry is not None
+                    else None
+                )
                 decision = TarlDecision(
                     verdict=rule_dec.verdict,
                     reason=f"Condition '{rule.condition}' matched",
@@ -503,30 +910,49 @@ class TarlRuntime:
                 )
                 break
 
-        proof = self._generate_proof(policy, ctx, decision, matched_idx, trace)
-        return self._persist(policy, ctx, decision, proof)
+        proof = self._generate_proof(
+            policy,
+            prepared,
+            decision,
+            matched_idx,
+            trace,
+            schema_binding=schema_binding,
+            evaluation_time=evaluation_now,
+        )
+        return self._persist(policy, prepared, decision, proof)
 
     def _generate_proof(
         self,
         policy: TarlPolicy,
-        context: dict,
+        context: PreparedContext,
         decision: TarlDecision,
         matched_idx: int,
         trace: list,
+        schema_binding: dict[str, str] | None = None,
+        evaluation_time: datetime.datetime | None = None,
     ) -> TarlProof:
         policy_hash = "sha256:" + hashlib.sha256(
             policy.source.encode("utf-8")
         ).hexdigest()
-        ctx_bytes = json.dumps(
-            context, sort_keys=True, default=str, separators=(",", ":")
-        ).encode("utf-8")
-        context_hash = "sha256:" + hashlib.sha256(ctx_bytes).hexdigest()
+        context_hash = (
+            context.canonical_context_hash or context.original_context_hash
+        )
+        if evaluation_time is None:
+            evaluation_time = datetime.datetime.now(datetime.UTC)
+        if (
+            evaluation_time.tzinfo is None
+            or evaluation_time.utcoffset() is None
+        ):
+            raise ValueError("proof evaluation time must be timezone-aware")
         evaluated_at = (
-            datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+            evaluation_time.astimezone(datetime.UTC)
+            .isoformat(timespec="seconds")
+            .replace("+00:00", "Z")
         )
         matched_condition = (
             policy.rules[matched_idx].condition if matched_idx >= 0 else ""
         )
+        schema_binding = schema_binding or self._schema_binding("not_evaluated")
         proof = TarlProof(
             policy_hash=policy_hash,
             context_hash=context_hash,
@@ -537,6 +963,18 @@ class TarlRuntime:
             trace=trace,
             signature="",
             key_id="",
+            original_context_hash=context.original_context_hash,
+            canonical_context_hash=context.canonical_context_hash,
+            context_representation_id=context.context_representation_id,
+            normalization_algorithm_id=context.normalization_algorithm_id,
+            normalization_version=context.normalization_version,
+            context_conflict_status=context.context_conflict_status,
+            context_schema_hash=schema_binding["hash"],
+            context_schema_representation_id=(
+                schema_binding["representation_id"]
+            ),
+            context_schema_validation_status=schema_binding["status"],
+            expires_at=decision.expires_at,
         )
         if self._signing_key_id and self._signing_alg == "hmac-sha256":
             secret = self._signing_keys.get(self._signing_key_id)

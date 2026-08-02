@@ -1,8 +1,8 @@
 # Thirsty-Lang — Feature Reference
 
-> Complete, implementation-accurate inventory of what Thirsty-Lang `0.4.0` can do.
-> Every capability here is exercised by the test suite; see
-> [STATUS.md](STATUS.md) for the capability → test map.
+> Feature-oriented reference for Thirsty-Lang `0.8.6`. See
+> [STATUS.md](STATUS.md) for the authoritative capability-to-test map and
+> [THREAT_MODEL.md](THREAT_MODEL.md) for security acceptance status.
 
 Thirsty-Lang is a **governance-first language family**. It is not one language
 but a layered stack: a small imperative core whose execution is *governed*, a

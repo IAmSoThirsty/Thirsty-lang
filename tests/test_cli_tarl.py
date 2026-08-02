@@ -1,4 +1,6 @@
 """CLI coverage for the `tarl` policy tool."""
+import datetime
+
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -6,6 +8,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from utf.tarl import cli as tarl_cli
 from utf.tarl.core import PolicyParser
 from utf.tarl.runtime import TarlRuntime
+from utf.tarl.schema import ContextSchema
 
 POLICY = 'when role == "admin" => ALLOW\nwhen true => DENY\n'
 POLICY2 = 'when role == "admin" => ALLOW\nwhen true => DENY\n'
@@ -40,7 +43,9 @@ def _policy(tmp_path, text=POLICY, name="p.tarl"):
 
 
 def _proof_file(tmp_path):
-    rt = TarlRuntime(PolicyParser.parse(POLICY))
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
+        ContextSchema()
+    )
     _decision, proof = rt.evaluate_with_proof({"role": "admin"})
     p = tmp_path / "proof.json"
     p.write_text(proof.to_json())
@@ -48,7 +53,9 @@ def _proof_file(tmp_path):
 
 
 def _ed25519_proof_file(tmp_path):
-    rt = TarlRuntime(PolicyParser.parse(POLICY))
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
+        ContextSchema()
+    )
     rt.set_ed25519_signing_key("ed1", bytes(range(32)))
     _decision, proof = rt.evaluate_with_proof({"role": "admin"})
     p = tmp_path / "proof-ed25519.json"
@@ -233,6 +240,78 @@ def test_verify_with_ed25519_key(monkeypatch, tmp_path):
     assert exc.value.code == 0
 
 
+def test_verify_time_bound_proof_requires_trusted_now(
+    monkeypatch, tmp_path
+):
+    policy_text = (
+        "policy timed:\n"
+        '  when role == "admin" => ALLOW for: 1m\n'
+        "  when true => DENY\n"
+    )
+    policy_file = _policy(tmp_path, policy_text, "timed.tarl")
+    trusted_now = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
+    runtime = TarlRuntime(PolicyParser.parse(policy_text)).set_context_schema(
+        ContextSchema()
+    )
+    runtime.set_clock(lambda: trusted_now)
+    runtime.set_ed25519_signing_key("ed1", bytes(range(32)))
+    _decision, proof = runtime.evaluate_with_proof({"role": "admin"})
+    proof_file = tmp_path / "timed-proof.json"
+    proof_file.write_text(proof.to_json())
+    public_hex = Ed25519PrivateKey.from_private_bytes(
+        bytes(range(32))
+    ).public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    ).hex()
+
+    _argv(
+        monkeypatch,
+        "tarl",
+        "verify",
+        str(proof_file),
+        "--policy",
+        policy_file,
+        "--ed25519-key",
+        f"ed1:{public_hex}",
+    )
+    with pytest.raises(SystemExit) as missing_now:
+        tarl_cli.main()
+    assert missing_now.value.code == 1
+
+    _argv(
+        monkeypatch,
+        "tarl",
+        "verify",
+        str(proof_file),
+        "--policy",
+        policy_file,
+        "--ed25519-key",
+        f"ed1:{public_hex}",
+        "--now",
+        "2026-01-01T00:00:00",
+    )
+    with pytest.raises(SystemExit) as naive_now:
+        tarl_cli.main()
+    assert naive_now.value.code == 1
+
+    _argv(
+        monkeypatch,
+        "tarl",
+        "verify",
+        str(proof_file),
+        "--policy",
+        policy_file,
+        "--ed25519-key",
+        f"ed1:{public_hex}",
+        "--now",
+        "2026-01-01T00:00:00Z",
+    )
+    with pytest.raises(SystemExit) as verified:
+        tarl_cli.main()
+    assert verified.value.code == 0
+
+
 # --- keygen ----------------------------------------------------------------
 
 def test_keygen_writes_keypair(monkeypatch, tmp_path, capsys):
@@ -263,7 +342,9 @@ def test_verify_with_ed25519_key_file(monkeypatch, tmp_path):
     key = keystore.generate("ed1", keystore.ROLE_PROOF_SIGNER)
     pub = str(tmp_path / "k.pub")
     key.public_only().write(pub, include_private=False)
-    rt = TarlRuntime(PolicyParser.parse(POLICY))
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
+        ContextSchema()
+    )
     rt.set_ed25519_signing_key("ed1", key.private_bytes())
     _d, proof = rt.evaluate_with_proof({"role": "admin"})
     proof_file = tmp_path / "p.json"

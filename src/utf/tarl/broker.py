@@ -20,7 +20,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from utf.tarl.context import (
+    ContextResolutionError,
+    compose_context_layers,
+    prepare_context,
+    rejected_context_binding,
+)
 from utf.tarl.spec import TarlProof, TarlVerdict
+from utf.tarl.verifier import positive_context_authority_admissible
 
 
 @dataclass
@@ -95,19 +102,34 @@ class CapabilityBroker:
             "authority_grants": list(self._grants),
         }
 
-    def _fail_closed_proof(self, action: str, target: str, reason: str):
+    def _fail_closed_proof(
+        self,
+        action: str,
+        target: str,
+        reason: str,
+        *,
+        context: dict | None = None,
+    ):
         import hashlib
-        import json
         from datetime import UTC, datetime
-        ctx = {**self._authority_context(), "action": action,
-               "target": str(target)}
-        ctx_bytes = json.dumps(
-            ctx, sort_keys=True, default=str, separators=(",", ":")
-        ).encode("utf-8")
+        ctx = context or {
+            **self._authority_context(),
+            "action": action,
+            "target": str(target),
+        }
+        try:
+            prepared = prepare_context(ctx)
+        except ContextResolutionError as exc:
+            prepared = rejected_context_binding(
+                ctx, conflict_status=exc.conflict_status
+            )
+        context_hash = (
+            prepared.canonical_context_hash or prepared.original_context_hash
+        )
         return TarlProof(
             policy_hash="sha256:" + hashlib.sha256(
                 b"<broker fail-closed: no policy>").hexdigest(),
-            context_hash="sha256:" + hashlib.sha256(ctx_bytes).hexdigest(),
+            context_hash=context_hash,
             rule_index=-1,
             matched_condition="",
             verdict=TarlVerdict.DENY,
@@ -116,6 +138,12 @@ class CapabilityBroker:
                     "target": str(target), "matched": False, "reason": reason}],
             signature="",
             key_id="",
+            original_context_hash=prepared.original_context_hash,
+            canonical_context_hash=prepared.canonical_context_hash,
+            context_representation_id=prepared.context_representation_id,
+            normalization_algorithm_id=prepared.normalization_algorithm_id,
+            normalization_version=prepared.normalization_version,
+            context_conflict_status=prepared.context_conflict_status,
         )
 
     def request(
@@ -142,9 +170,51 @@ class CapabilityBroker:
             proof = self._fail_closed_proof(action, target, reason)
             return BrokerDecision(False, TarlVerdict.DENY, proof, reason)
 
-        ctx = {**self._authority_context(), **context,
-               "action": action, "target": str(target)}
+        request_context = {"action": action, "target": str(target)}
+        try:
+            ctx = compose_context_layers(
+                ("caller context", context),
+                ("verified authority", self._authority_context()),
+                ("capability request", request_context),
+            )
+        except ContextResolutionError as exc:
+            reason = f"fail-closed: {exc}"
+            diagnostic_context = {
+                "caller_context": context,
+                "authority_context": self._authority_context(),
+                "request_context": request_context,
+            }
+            proof = self._fail_closed_proof(
+                action,
+                target,
+                reason,
+                context=diagnostic_context,
+            )
+            return BrokerDecision(False, TarlVerdict.DENY, proof, reason)
+        ensure_schema = getattr(self.runtime, "ensure_context_schema", None)
+        if callable(ensure_schema):
+            ensure_schema()
         decision, proof = self.runtime.evaluate_with_proof(ctx)
+        if (
+            decision.verdict is TarlVerdict.ALLOW
+            and not positive_context_authority_admissible(proof)
+        ):
+            reason = (
+                "fail-closed: positive verdict inadmissible: a matched-rule "
+                "context/schema proof was not established"
+            )
+            denied_proof = self._fail_closed_proof(
+                action,
+                target,
+                reason,
+                context=ctx,
+            )
+            return BrokerDecision(
+                False,
+                TarlVerdict.DENY,
+                denied_proof,
+                reason,
+            )
         allowed = decision.verdict == TarlVerdict.ALLOW
         return BrokerDecision(
             allowed, decision.verdict, proof,

@@ -7,6 +7,7 @@ import datetime
 import json
 import sys
 
+from utf.tarl.context import ContextResolutionError, load_context_json
 from utf.tarl.core import PolicyParser, evaluate_policy
 
 
@@ -38,7 +39,8 @@ def main():
         help=(
             'Trusted evaluation time for temporal policies/builtins. '
             'Required when a policy uses valid_from, valid_until, '
-            'if_unresolved_after, or CURRENT_* builtins.'
+            'if_unresolved_after, time-bound verdicts, CURRENT_* builtins, '
+            'or ELAPSED_SINCE.'
         ),
     )
 
@@ -56,6 +58,30 @@ def main():
     verify_parser.add_argument(
         '--policy', '-p', default=None,
         help='Policy file to verify policy_hash against (optional)',
+    )
+    verify_context = verify_parser.add_mutually_exclusive_group()
+    verify_context.add_argument(
+        '--context', '-c', default=None,
+        help='Original JSON context whose hash the proof must bind',
+    )
+    verify_context.add_argument(
+        '--context-file', default=None, metavar='FILE',
+        help='File containing the original JSON context the proof must bind',
+    )
+    verify_evaluated_context = verify_parser.add_mutually_exclusive_group()
+    verify_evaluated_context.add_argument(
+        '--evaluated-context', default=None,
+        help=(
+            'Exact JSON context evaluated after registered-source injection; '
+            'required for a source-injected ALLOW proof'
+        ),
+    )
+    verify_evaluated_context.add_argument(
+        '--evaluated-context-file', default=None, metavar='FILE',
+        help=(
+            'File containing the exact post-source-injection JSON context; '
+            'required for a source-injected ALLOW proof'
+        ),
     )
     verify_parser.add_argument(
         '--hmac-key', '-k', default=None, metavar='ID:HEX',
@@ -86,6 +112,13 @@ def main():
     verify_parser.add_argument(
         '--max-age', type=float, default=None, metavar='SECONDS',
         help='Strict: reject a proof older than SECONDS (freshness)',
+    )
+    verify_parser.add_argument(
+        '--now', default=None, metavar='ISO8601',
+        help=(
+            'Trusted verification time. Required to verify a time-bound '
+            'proof; the host clock is never substituted for proof expiry.'
+        ),
     )
     verify_parser.add_argument(
         '--revoked-policy-hash', action='append', default=None, metavar='HASH',
@@ -324,8 +357,8 @@ def _cmd_eval(args):
         print(f"Error parsing policy: {e}", file=sys.stderr)
         sys.exit(1)
     try:
-        context = json.loads(args.context)
-    except json.JSONDecodeError as e:
+        context = load_context_json(args.context)
+    except (json.JSONDecodeError, ContextResolutionError) as e:
         print(f"Error parsing context JSON: {e}", file=sys.stderr)
         sys.exit(1)
     try:
@@ -359,23 +392,28 @@ def _trusted_eval_now(
             policy.valid_from,
             policy.valid_until,
             policy.if_unresolved_after is not None,
-            any("CURRENT_" in rule.condition for rule in policy.rules),
+            any(rule.duration_seconds for rule in policy.rules),
+            any(
+                "CURRENT_" in rule.condition
+                or "ELAPSED_SINCE" in rule.condition.upper()
+                for rule in policy.rules
+            ),
         ]
     )
     if raw_now is None:
         if temporal_policy:
             raise ValueError(
-                "tarl eval requires --now for temporal policies or CURRENT_* "
-                "builtins; refusing host-clock evaluation"
+                "tarl eval requires --now for temporal policies, time-bound "
+                "verdicts, or temporal builtins; refusing host-clock evaluation"
             )
         return None
     try:
         parsed = datetime.datetime.fromisoformat(raw_now.replace("Z", "+00:00"))
     except ValueError as exc:
         raise ValueError(f"invalid --now ISO-8601 value: {raw_now!r}") from exc
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=datetime.UTC)
-    return parsed
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("--now must include an explicit timezone offset")
+    return parsed.astimezone(datetime.UTC)
 
 
 # ── parse ─────────────────────────────────────────────────────────────────────
@@ -404,7 +442,7 @@ def _cmd_verify(args):
     try:
         with open(args.proof_file) as f:
             proof = TarlProof.from_json(f.read())
-    except (OSError, KeyError, ValueError) as e:
+    except (OSError, KeyError, TypeError, ValueError) as e:
         print(f"Error reading proof: {e}", file=sys.stderr)
         sys.exit(1)
 
@@ -459,7 +497,72 @@ def _cmd_verify(args):
                   file=sys.stderr)
             sys.exit(1)
 
-    result = verifier.verify(proof, policy_source=policy_source)
+    expected_context = None
+    raw_context = getattr(args, "context", None)
+    if getattr(args, "context_file", None):
+        try:
+            with open(args.context_file) as f:
+                raw_context = f.read()
+        except OSError as e:
+            print(f"Error reading context: {e}", file=sys.stderr)
+            sys.exit(1)
+    if raw_context is not None:
+        try:
+            expected_context = load_context_json(raw_context)
+        except (json.JSONDecodeError, ContextResolutionError) as e:
+            print(f"Error parsing context JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    expected_evaluated_context = None
+    raw_evaluated_context = getattr(args, "evaluated_context", None)
+    evaluated_context_file = getattr(args, "evaluated_context_file", None)
+    if evaluated_context_file:
+        try:
+            with open(evaluated_context_file) as f:
+                raw_evaluated_context = f.read()
+        except OSError as e:
+            print(f"Error reading evaluated context: {e}", file=sys.stderr)
+            sys.exit(1)
+    if raw_evaluated_context is not None:
+        try:
+            expected_evaluated_context = load_context_json(
+                raw_evaluated_context
+            )
+        except (json.JSONDecodeError, ContextResolutionError) as e:
+            print(
+                f"Error parsing evaluated context JSON: {e}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+    verification_now = None
+    raw_now = getattr(args, "now", None)
+    if raw_now is not None:
+        try:
+            verification_now = datetime.datetime.fromisoformat(
+                raw_now.replace("Z", "+00:00")
+            )
+        except ValueError as e:
+            print(f"Invalid --now ISO-8601 value: {e}", file=sys.stderr)
+            sys.exit(1)
+        if (
+            verification_now.tzinfo is None
+            or verification_now.utcoffset() is None
+        ):
+            print(
+                "Invalid --now value: an explicit timezone offset is required",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        verification_now = verification_now.astimezone(datetime.UTC)
+
+    result = verifier.verify(
+        proof,
+        policy_source=policy_source,
+        expected_context=expected_context,
+        expected_evaluated_context=expected_evaluated_context,
+        now=verification_now,
+    )
     if replay_guard is not None:
         replay_guard.close()
 
@@ -648,8 +751,8 @@ def _cmd_explain(args):
     with open(args.policy_file) as f:
         policy_text = f.read()
     try:
-        context = json.loads(args.context)
-    except json.JSONDecodeError as e:
+        context = load_context_json(args.context)
+    except (json.JSONDecodeError, ContextResolutionError) as e:
         print(f"Error parsing context JSON: {e}", file=sys.stderr)
         sys.exit(1)
 

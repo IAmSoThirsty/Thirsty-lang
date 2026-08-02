@@ -28,7 +28,7 @@ from utf.tarl.composer import (  # noqa: E402
     CompositionError,
     PolicyComposer,
 )
-from utf.tarl.core import PolicyParser, evaluate_policy  # noqa: E402
+from utf.tarl.core import PolicyParser, SafeExpr, evaluate_policy  # noqa: E402
 from utf.tarl.runtime import TarlRuntime  # noqa: E402
 from utf.tarl.spec import (  # noqa: E402
     DEFAULT_DENY,
@@ -303,10 +303,10 @@ class TestPolicyParserParseAll:
         items = PolicyParser.parse_all(text)
         assert items[0].on_expiry == TarlVerdict.ESCALATE
 
-    def test_metadata_on_expiry_unknown_is_none(self):
+    def test_metadata_on_expiry_unknown_is_rejected(self):
         text = "policy x:\n    on_expiry: BOGUS"
-        items = PolicyParser.parse_all(text)
-        assert items[0].on_expiry is None
+        with pytest.raises(SafeExpr.ParseError, match="invalid on_expiry verdict"):
+            PolicyParser.parse_all(text)
 
     def test_policy_set_parsed(self):
         text = (

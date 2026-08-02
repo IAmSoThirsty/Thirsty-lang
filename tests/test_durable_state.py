@@ -2,10 +2,13 @@
 checkpoints. Each test simulates a second process by opening a *fresh* store
 instance on the same database file.
 """
+import sqlite3
+
 from utf.tarl.archive import TarlAuditArchive
 from utf.tarl.core import PolicyParser
 from utf.tarl.durable import DurableReplayGuard, RevocationStore
 from utf.tarl.runtime import TarlRuntime
+from utf.tarl.schema import ContextSchema
 from utf.tarl.spec import TarlVerdict
 from utf.tarl.verifier import ProofVerifier
 
@@ -17,7 +20,9 @@ POLICY = (
 
 
 def _signed_proof(tmp_path):
-    rt = TarlRuntime(PolicyParser.parse(POLICY))
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
+        ContextSchema()
+    )
     rt.set_signing_key("k1", b"secret-hmac-key")
     decision, proof = rt.evaluate_with_proof({"role": "admin"})
     assert decision.verdict == TarlVerdict.ALLOW
@@ -57,6 +62,26 @@ def test_durable_replay_guard_plugs_into_verifier(tmp_path):
     guard2.close()
     assert not second.valid
     assert second.checks.get("not_replayed") is False
+
+
+def test_durable_replay_guard_honors_canonicalized_legacy_identity(tmp_path):
+    db = str(tmp_path / "replay.db")
+    proof = _signed_proof(tmp_path)
+    with DurableReplayGuard(db) as guard:
+        legacy_id = guard.legacy_proof_id(proof)
+
+    conn = sqlite3.connect(db)
+    conn.execute(
+        "INSERT INTO seen_proofs (proof_id, recorded_at) VALUES (?, ?)",
+        (legacy_id, "2026-08-02T00:00:00+00:00"),
+    )
+    conn.commit()
+    conn.close()
+
+    algorithm, signature_hex = proof.signature.split(":", 1)
+    proof.signature = f"{algorithm}:{signature_hex.upper()}"
+    with DurableReplayGuard(db) as upgraded_guard:
+        assert upgraded_guard.check_and_record(proof) is False
 
 
 def test_revocation_store_roundtrip(tmp_path):
@@ -100,7 +125,6 @@ def test_audit_checkpoint_detects_truncation(tmp_path):
         assert arc.verify_chain(expected_head=trusted_head).valid
 
     # Simulate suffix truncation: drop the last record (a valid prefix).
-    import sqlite3
     conn = sqlite3.connect(db)
     conn.execute("DELETE FROM proofs WHERE id = (SELECT MAX(id) FROM proofs)")
     conn.commit()

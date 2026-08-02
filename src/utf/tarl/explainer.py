@@ -171,6 +171,12 @@ class TarlExplainer:
                 error=error,
             ))
 
+            # An unresolved or ill-typed value is not an ordinary non-match.
+            # Stop the trace at the failing rule so a later permissive rule is
+            # never presented as the decision path.
+            if error is not None:
+                break
+
             if matched:
                 matched_index = i
                 if rule.duration_seconds:

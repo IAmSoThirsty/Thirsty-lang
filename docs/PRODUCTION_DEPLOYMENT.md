@@ -1,6 +1,6 @@
 # Production Deployment Requirement
 
-**Applies to:** Thirsty-Lang 0.7.0+ · **Audience:** operators embedding the
+**Applies to:** Thirsty-Lang 0.8.6+ · **Audience:** operators embedding the
 governed runtime to authorize real-world, high-risk actions.
 
 The reference runtime meets its hardened-runtime acceptance bar (WHITEPAPER §8)
@@ -38,7 +38,34 @@ for governed execution.
   brokered on the **canonical** path, so traversal/symlink escapes fail closed
   before the effect (C042).
 
-## 3. Durable, cross-process replay & revocation state
+## 3. Context authority and registered-source transformations
+
+- [ ] Attach an explicit `ContextSchema`, or require
+  `TarlRuntime.ensure_context_schema()` to derive a complete schema, before a
+  positive verdict can authorize an effect. A raw evaluator `ALLOW` without a
+  passed, proof-bound schema is diagnostic output, not advancement authority.
+- [ ] Route load-bearing use through `CapabilityBroker` or the governed
+  interpreter. Both apply the positive-context-authority gate and replace an
+  inadmissible `ALLOW` with a fail-closed denial.
+- [ ] Bind proof verification to the exact original request context. If a policy
+  uses registered sources, also provide the exact evaluated context. Verification
+  permits only valid top-level `source:<name>` additions whose removal reproduces
+  the original context; callers may not supply reserved source fields.
+- [ ] Keep caller contexts, registered-source values, and explicit schema files
+  inside the strict finite JSON domain. Duplicate keys, non-finite numbers,
+  Python-only values, coercive schema metadata, and representation conflicts
+  fail closed.
+- [ ] Do not rely on expression short-circuiting to skip invalid data. TARL
+  validates both boolean operands and every quantifier element, rejects reserved
+  `__tarl_*` binders, treats empty quantifier collections as no authorization
+  evidence, forbids string-to-number comparison coercion, and requires finite
+  numeric operands and arithmetic results (C065–C067).
+- [ ] If an embedding passes a differing `policy_text` override to a runtime
+  whose schema was derived, require a fresh complete derivation for that exact
+  override. An incomplete override must deny; do not reuse the base policy's
+  derived schema (C068).
+
+## 4. Durable, cross-process replay & revocation state
 
 In-memory replay/revocation state is lost on restart and not shared across
 workers — a replayed proof would be accepted by a second process. Use the
@@ -47,11 +74,15 @@ durable stores in `utf.tarl.durable`:
 - [ ] Wire a `DurableReplayGuard("<path>.db")` into every `ProofVerifier`
   (`verify --replay-db <db>` from the CLI). The store must be shared by all
   verifying processes (a shared volume or a single DB host).
+- [ ] Preserve the store during upgrades. Version 0.8.6 records a complete
+  semantic replay identity and a canonicalized legacy identity, so proofs used
+  before upgrade remain single-use. Proof signatures must retain their one
+  lowercase hexadecimal encoding.
 - [ ] Maintain a `RevocationStore("<path>.db")` and hydrate verifiers from it
   (`verify --revocation-store <db>`). Revoke a compromised/rotated policy with
   `tarl revoke <policy-hash> --store <db>`; list with `tarl revoke --list`.
 
-## 4. External audit checkpoints
+## 5. External audit checkpoints
 
 The audit archive (`TarlAuditArchive`) is SQLite-durable and hash-chained, but a
 local attacker who can rewrite the DB could re-link a truncated suffix.
@@ -63,7 +94,7 @@ local attacker who can rewrite the DB could re-link a truncated suffix.
   <head.txt>`. A head that no longer matches the checkpoint reveals suffix
   rewrite or truncation.
 
-## 5. Trust-root key management
+## 6. Trust-root key management
 
 Three Ed25519 trust roots must be provisioned: **authority issuer**, **proof
 signer**, **time authority** (`utf.tarl.keystore`).
@@ -81,8 +112,29 @@ signer**, **time authority** (`utf.tarl.keystore`).
   expired.
 - [ ] Provision a `TimeAuthority` key and run temporal policies against a
   `TrustedClock`, not the host clock (C043).
+- [ ] Configure each `QuorumResolver` with an independent `ProofVerifier` and
+  the exact policy source, plus an explicit timezone-aware trusted clock.
+  Promotion requires an `ESCALATE` proof that passes cryptographic signature,
+  policy, context, authoritative-schema, freshness, replay, and expiry
+  verification; counted approvers must be distinct by identity and key
+  material, each Ed25519 approval must bind the digest of the complete proof
+  artifact, and a time-bound promotion must retain its verified signed expiry
+  (C069).
+- [ ] Bind quorum resolution to the current request by supplying its exact
+  original context; for a registered-source proof, also supply the evaluated
+  context. Do not promote a self-consistent proof without establishing that it
+  belongs to the request being authorized.
+- [ ] Configure the quorum's `ProofVerifier` with a maximum proof age and a
+  replay guard; the resolver refuses promotion without both. Back the replay
+  guard with deployment-wide durable state and configure policy revocation as
+  an additional deployment control. Digest-bound approvals do not by themselves
+  make an unbounded proof fresh, current, or single-use.
+- [ ] Treat `valid_until` as an exclusive cutoff. Runtime decisions and proofs
+  bind the earlier of the effective policy cutoff and rule duration; independent
+  verification and quorum promotion must receive trusted time and enforce that
+  exact bound.
 
-## 6. Secret custody (remains with the deployment)
+## 7. Secret custody (remains with the deployment)
 
 The runtime defines the **formats and flows**; it does not choose where secrets
 live. The deployment owns:
@@ -92,7 +144,7 @@ live. The deployment owns:
 - [ ] Backup/restore and access auditing for those artifacts.
 - [ ] Rotation cadence and revocation response runbooks.
 
-## 7. Release gates (enforced in CI)
+## 8. Release gates (enforced in CI)
 
 - [ ] `ruff check src tests` clean.
 - [ ] `mypy -p utf` clean.
@@ -125,8 +177,13 @@ tarl audit verify-chain --db audit.db --checkpoint head.txt
 
 # 4. Verify a proof with durable replay + revocation, rejecting reuse
 tarl verify proof.json --ed25519-key-file signer.key.pub --ed25519-only \
+    --context-file context.json \
     --replay-db replay.db --revocation-store revocations.db
 ```
+
+For a registered-source proof, add
+`--evaluated-context-file evaluated-context.json`; both files are mandatory for
+accepting that transformed positive decision.
 
 See also: [WHITEPAPER.md](WHITEPAPER.md) §8–§9, [THREAT_MODEL.md](THREAT_MODEL.md)
 §"Remaining Gaps", [governance_model.md](governance_model.md),

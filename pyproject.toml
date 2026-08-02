@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "thirsty-lang"
-version = "0.8.5"
+version = "0.8.6"
 description = "A governance-first programming language family"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -42,7 +42,7 @@ shadow-thirst = "utf.shadow_thirst.cli:main"
 [project.optional-dependencies]
 test = ["pytest>=7.0", "pytest-cov>=4.0"]
 dev = ["pytest>=7.0", "pytest-cov>=4.0", "black>=23.0", "ruff>=0.1.0", "mypy>=1.0"]
-docs = ["sphinx>=5.0", "sphinx-rtd-theme>=1.2"]
+docs = ["pdoc==16.0.0", "sphinx>=5.0", "sphinx-rtd-theme>=1.2"]
 analysis = ["z3-solver>=4.12"]
 
 [tool.setuptools.packages.find]

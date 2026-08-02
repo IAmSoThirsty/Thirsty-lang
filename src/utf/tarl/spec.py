@@ -195,18 +195,18 @@ class TarlDecision:
         this method before acting on a stored result and re-evaluate when it
         returns True.
         """
-        if not self.expires_at:
+        if self.expires_at is None:
             return False
         import datetime
         try:
             exp = datetime.datetime.fromisoformat(
                 self.expires_at.replace("Z", "+00:00")
             )
-            if exp.tzinfo is None:
-                exp = exp.replace(tzinfo=datetime.UTC)
-            return datetime.datetime.now(datetime.UTC) > exp
-        except ValueError:
-            return False
+            if exp.tzinfo is None or exp.utcoffset() is None:
+                return True
+            return datetime.datetime.now(datetime.UTC) >= exp
+        except (AttributeError, TypeError, ValueError):
+            return True
 
 
 @dataclass
@@ -236,11 +236,19 @@ class TarlProof:
     """
     Integrity certificate of a policy evaluation.
 
-    Π = (H(P), H(c), k, v, T, σ)
+    Π = (H(P), H(original-c), H(canonical-c), R, N, C, H(S), S,
+         k, v, t_exp, T, σ)
       H(P) — SHA-256 of exact policy source used
-      H(c) — SHA-256 of canonical context snapshot
+      H(original-c) — SHA-256 of the caller-supplied context snapshot
+      H(canonical-c) — SHA-256 of the exact representation evaluated
+      R    — authoritative context representation identifier
+      N    — transformation/normalization algorithm identifier and version
+      C    — representation collision/conflict status
+      H(S) — SHA-256 fingerprint of the explicit context schema
+      S    — schema representation identifier and validation status
       k    — matched rule index (-1 = DEFAULT_DENY)
       v    — final verdict
+      t_exp — optional expiry of a time-bound matched-rule verdict
       T    — evaluation trace: [{rule_index, condition, matched}, ...]
       σ    — optional HMAC-SHA256 tag or Ed25519 signature over the canonical
              encoding
@@ -260,6 +268,37 @@ class TarlProof:
     trace: list[dict]         # [{rule_index, condition, matched}, ...]
     signature: str            # "hmac-sha256:<hex>", "ed25519:<hex>", or ""
     key_id: str               # signing key identifier or ""
+    original_context_hash: str | None = None
+    canonical_context_hash: str | None = None
+    context_representation_id: str | None = None
+    normalization_algorithm_id: str | None = None
+    normalization_version: str | None = None
+    context_conflict_status: str | None = None
+    context_schema_hash: str | None = None
+    context_schema_representation_id: str | None = None
+    context_schema_validation_status: str | None = None
+    expires_at: str | None = None
+
+    def _context_binding(self) -> dict[str, str | None]:
+        return {
+            "original_context_hash": self.original_context_hash,
+            "canonical_context_hash": self.canonical_context_hash,
+            "context_representation_id": self.context_representation_id,
+            "normalization_algorithm_id": self.normalization_algorithm_id,
+            "normalization_version": self.normalization_version,
+            "context_conflict_status": self.context_conflict_status,
+        }
+
+    def _schema_binding(self) -> dict[str, str | None]:
+        return {
+            "context_schema_hash": self.context_schema_hash,
+            "context_schema_representation_id": (
+                self.context_schema_representation_id
+            ),
+            "context_schema_validation_status": (
+                self.context_schema_validation_status
+            ),
+        }
 
     def canonical_bytes(self) -> bytes:
         """Deterministic serialisation used for signing and verification."""
@@ -273,26 +312,38 @@ class TarlProof:
             "evaluated_at": self.evaluated_at,
             "trace": self.trace,
         }
+        if self.expires_at is not None:
+            data["expires_at"] = self.expires_at
+        binding = self._context_binding()
+        if any(value is not None for value in binding.values()):
+            data["context_binding"] = binding
+        schema_binding = self._schema_binding()
+        if any(value is not None for value in schema_binding.values()):
+            data["context_schema_binding"] = schema_binding
         return json.dumps(
-            data, sort_keys=True, separators=(',', ':')
+            data, sort_keys=True, separators=(',', ':'), allow_nan=False
         ).encode('utf-8')
 
     def to_dict(self) -> dict:
-        return {
+        data = {
             "policy_hash": self.policy_hash,
             "context_hash": self.context_hash,
             "rule_index": self.rule_index,
             "matched_condition": self.matched_condition,
             "verdict": self.verdict.value,
             "evaluated_at": self.evaluated_at,
+            "expires_at": self.expires_at,
             "trace": list(self.trace),
             "signature": self.signature,
             "key_id": self.key_id,
         }
+        data.update(self._context_binding())
+        data.update(self._schema_binding())
+        return data
 
     def to_json(self) -> str:
         import json
-        return json.dumps(self.to_dict(), indent=2)
+        return json.dumps(self.to_dict(), indent=2, allow_nan=False)
 
     @classmethod
     def from_dict(cls, d: dict) -> TarlProof:
@@ -306,12 +357,30 @@ class TarlProof:
             trace=d.get("trace", []),
             signature=d.get("signature", ""),
             key_id=d.get("key_id", ""),
+            original_context_hash=d.get("original_context_hash"),
+            canonical_context_hash=d.get("canonical_context_hash"),
+            context_representation_id=d.get("context_representation_id"),
+            normalization_algorithm_id=d.get("normalization_algorithm_id"),
+            normalization_version=d.get("normalization_version"),
+            context_conflict_status=d.get("context_conflict_status"),
+            context_schema_hash=d.get("context_schema_hash"),
+            context_schema_representation_id=d.get(
+                "context_schema_representation_id"
+            ),
+            context_schema_validation_status=d.get(
+                "context_schema_validation_status"
+            ),
+            expires_at=d.get("expires_at"),
         )
 
     @classmethod
     def from_json(cls, s: str) -> TarlProof:
-        import json
-        return cls.from_dict(json.loads(s))
+        from utf.tarl.context import load_context_json
+
+        decoded = load_context_json(s)
+        if not isinstance(decoded, dict):
+            raise ValueError("TARL proof must be a JSON object")
+        return cls.from_dict(decoded)
 
 
 # Ground state. Nothing crosses without an explicit ALLOW.

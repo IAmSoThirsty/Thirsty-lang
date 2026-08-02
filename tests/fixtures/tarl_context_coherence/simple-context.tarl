@@ -1,0 +1,4 @@
+policy access_control
+
+when role == "admin" => ALLOW
+when true => DENY

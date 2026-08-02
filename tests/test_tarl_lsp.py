@@ -92,4 +92,4 @@ def test_main_entrypoint(monkeypatch):
     monkeypatch.setattr("sys.stdin", io.TextIOWrapper(io.BytesIO(b"")))
     monkeypatch.setattr("sys.stdout", io.TextIOWrapper(io.BytesIO()))
     # main() builds a server on the real stdio buffers and runs to EOF.
-    lsp.main()
+    lsp.main([])

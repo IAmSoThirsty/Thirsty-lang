@@ -265,7 +265,7 @@ class TestThrowStats:
         policy_text = f"{self._THROW_RULE}\nwhen x == 1 => ALLOW"
         for v in range(3):
             result = rt.evaluate(
-                {"risk_score": object(), "x": 1, "v": v},
+                {"risk_score": "not-a-number", "x": 1, "v": v},
                 policy_text=policy_text,
             )
         assert result.verdict == TarlVerdict.DENY
@@ -278,7 +278,9 @@ class TestThrowStats:
         rt = TarlRuntime()
         policy_text = f"{self._THROW_RULE}\nwhen true => ALLOW"
         for _ in range(5):
-            rt.evaluate({"risk_score": object()}, policy_text=policy_text)
+            rt.evaluate(
+                {"risk_score": "not-a-number"}, policy_text=policy_text
+            )
         stats = rt.throw_stats()
         assert stats.get(0, 0) > 0, "throw_count should be nonzero for always-throwing rule"
         assert rt._hit_counts.get(0, 0) == 0, "hit_count must be zero for a never-matching rule"
@@ -287,7 +289,7 @@ class TestThrowStats:
         rt = TarlRuntime()
         policy_text = f"{self._THROW_RULE}\nwhen x == 1 => ALLOW"
         result = rt.evaluate(
-            {"risk_score": object(), "x": 1},
+            {"risk_score": "not-a-number", "x": 1},
             policy_text=policy_text,
         )
         stats = rt.throw_stats()
@@ -305,7 +307,9 @@ class TestThrowStats:
         from utf.tarl.core import PolicyParser
         rt = TarlRuntime()
         policy_text = f"{self._THROW_RULE}\nwhen true => ALLOW"
-        rt.evaluate({"risk_score": object()}, policy_text=policy_text)
+        rt.evaluate(
+            {"risk_score": "not-a-number"}, policy_text=policy_text
+        )
         assert rt.throw_stats() != {}, "throw_count should be nonzero before reset"
         rt.set_policy(PolicyParser.parse("when x == 1 => ALLOW"))
         assert rt.throw_stats() == {}
@@ -315,7 +319,7 @@ class TestThrowStats:
         policy_text = f"{self._THROW_RULE}\nwhen true => ALLOW"
         for _ in range(2):
             rt.evaluate_with_proof(
-                {"risk_score": object()},
+                {"risk_score": "not-a-number"},
                 policy_text=policy_text,
             )
         stats = rt.throw_stats()

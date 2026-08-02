@@ -44,11 +44,11 @@ gpg --send-keys <YOUR_KEY_ID> --keyserver keyserver.ubuntu.com
 python -m build
 
 # Sign wheel
-gpg --detach-sign --armor dist/thirsty_lang-0.8.5-py3-none-any.whl
-# Creates: thirsty_lang-0.8.5-py3-none-any.whl.asc
+gpg --detach-sign --armor dist/thirsty_lang-0.8.6-py3-none-any.whl
+# Creates: thirsty_lang-0.8.6-py3-none-any.whl.asc
 
 # Upload both files to PyPI
-twine upload dist/thirsty_lang-0.8.5* --sign --identity <YOUR_KEY_ID>
+twine upload dist/thirsty_lang-0.8.6* --sign --identity <YOUR_KEY_ID>
 ```
 
 ### Automated Signing (GitHub Actions)
@@ -89,7 +89,7 @@ curl -O https://keyserver.ubuntu.com/pks/lookup?op=get&search=<KEY_ID>
 gpg --import public_key.asc
 
 # Verify signature
-gpg --verify thirsty_lang-0.8.5-py3-none-any.whl.asc thirsty_lang-0.8.5-py3-none-any.whl
+gpg --verify thirsty_lang-0.8.6-py3-none-any.whl.asc thirsty_lang-0.8.6-py3-none-any.whl
 ```
 
 ## Best Practices
@@ -101,17 +101,17 @@ gpg --verify thirsty_lang-0.8.5-py3-none-any.whl.asc thirsty_lang-0.8.5-py3-none
 5. **Document key fingerprint** in project security policy
 6. **Test verification** before publicizing signatures
 
-## PyPI Trusted Publishing
+## PyPI Release Authentication
 
-The release workflow publishes with PyPI Trusted Publishing through GitHub OIDC.
-Configure the PyPI project publisher with:
+The current `.github/workflows/release.yml` publishes through the pinned PyPI
+publish action using a scoped PyPI API token. The token is stored as the
+`IAMSOTHIRSTY` secret in the GitHub Actions `release` environment and is passed
+with the `__token__` username; it is never stored in the repository.
 
-- Owner: `IAmSoThirsty`
-- Repository: `Thirsty-lang`
-- Workflow: `release.yml`
-
-This avoids storing a PyPI API token as a GitHub secret. PEP 740 attestations can
-be layered onto this workflow in a future release.
+PyPI Trusted Publishing through GitHub OIDC is not the active authentication
+path. A future migration can remove the token input after the PyPI project has a
+matching trusted-publisher configuration for owner `IAmSoThirsty`, repository
+`Thirsty-lang`, and workflow `release.yml`.
 
 ## References
 

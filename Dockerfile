@@ -18,7 +18,7 @@ COPY . .
 RUN pip install --no-cache-dir -e ".[test]"
 
 # Run full test suite - only proceed to next stage if all tests pass
-RUN pytest tests/ -q --tb=short && echo "✓ All 1212 tests passed"
+RUN pytest tests/ -q --tb=short && echo "✓ Full test suite passed"
 
 # Build distribution
 RUN python -m pip install --no-cache-dir build && \
@@ -69,5 +69,5 @@ CMD ["--help"]
 # Metadata
 LABEL org.opencontainers.image.title="Thirsty-Lang" \
       org.opencontainers.image.description="A governance-first programming language family" \
-      org.opencontainers.image.version="0.8.5" \
+      org.opencontainers.image.version="0.8.6" \
       org.opencontainers.image.source="https://github.com/IAmSoThirsty/Thirsty-lang"

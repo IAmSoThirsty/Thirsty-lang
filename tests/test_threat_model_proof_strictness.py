@@ -4,6 +4,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from utf.tarl.core import PolicyParser
 from utf.tarl.runtime import TarlRuntime
+from utf.tarl.schema import ContextSchema
 from utf.tarl.spec import TarlVerdict
 from utf.tarl.verifier import ProofVerifier
 
@@ -17,7 +18,9 @@ PRIVATE_BYTES = bytes(range(32))
 
 
 def _runtime():
-    return TarlRuntime(PolicyParser.parse(POLICY))
+    return TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
+        ContextSchema()
+    )
 
 
 def _unsigned_proof():

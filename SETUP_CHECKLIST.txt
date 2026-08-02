@@ -12,21 +12,21 @@
   - DOCKER.md (comprehensive Docker usage guide)
   - SHIPPING.md (release workflow and next steps)
 
-✓ IMAGE BUILT & TESTED LOCALLY:
-  - Image: thirsty-lang:0.8.5 (255MB)
-  - All 1212 tests pass inside build
+✓ RELEASE IMAGE CONFIGURATION:
+  - Target image: thirsty-lang:0.8.6
+  - The full test suite must pass inside the build
   - Demo executes: "hello, thirsty world!"
   - CLI works: thirsty, thirst-of-gods, tarl, tscg, tscg-b, shadow-thirst
 
 ✓ DOCKER COMPOSE VERIFIED:
   - docker compose run --rm thirsty run --demo ✓
-  - docker compose run --rm test ✓ (1112 passed, 48 skipped)
+  - docker compose run --rm test executes the current full suite
   - All 9 services configured and ready
 
 ✓ GitHub Actions WORKFLOW READY:
   - Triggers on git tag push (e.g., git tag v0.9.0 && git push tp v0.9.0)
   - Builds image, runs tests, pushes to GHCR
-  - Generates release summary with pull/run commands
+  - Generates an Actions job summary with pull/run commands
   - No manual setup needed (uses ${{ secrets.GITHUB_TOKEN }})
 
 ================================================================================
@@ -40,8 +40,8 @@
    git push tp master
 
 2. CREATE A NEW RELEASE TAG WHEN THE VERSION CHANGES:
-   git tag v<version>
-   git push tp v<version>
+   git tag -a v<version> -m "Thirsty-Lang <version>"
+   git push tp refs/tags/v<version>
 
 3. MONITOR GITHUB ACTIONS:
    → Visit: https://github.com/IAmSoThirsty/Thirsty-lang/actions
@@ -50,8 +50,8 @@
 
 4. VERIFY RELEASE:
    Once workflow completes, test the published image:
-   docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.5
-   docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.5 run --demo
+   docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.6
+   docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 run --demo
 
 ================================================================================
   LOCAL DEVELOPMENT COMMANDS
@@ -89,25 +89,25 @@ Health check:
   RELEASE WORKFLOW (REPEAT FOR FUTURE RELEASES)
 ================================================================================
 
-git tag v<version>
-git push tp v<version>
+git tag -a v<version> -m "Thirsty-Lang <version>"
+git push tp refs/tags/v<version>
 
 → GitHub Actions automatically:
   ✓ Builds Dockerfile
   ✓ Runs all tests
   ✓ Pushes to GHCR
-  ✓ Generates release summary
+  ✓ Generates an Actions job summary
 
 Anyone can then use:
-  docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.5
-  docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.5 run --demo
+  docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.6
+  docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 run --demo
 
 ================================================================================
   KEY GUARANTEES
 ================================================================================
 
 ✓ Reproducibility — Every image built from same commit is identical
-✓ Test Integrity — All 1212 tests must pass; broken images don't ship
+✓ Test Integrity — The full suite must pass; broken images don't ship
 ✓ Security — Non-root user, minimal surface, no dev tools in production
 ✓ Global Distribution — Tagged releases auto-publish to GHCR
 ✓ PyPI + Docker — Users choose: pip install OR docker run

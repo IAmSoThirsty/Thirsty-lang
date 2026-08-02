@@ -65,4 +65,4 @@ def test_decision_str_and_expiry():
     assert d.is_expired() is True
     assert TarlDecision(verdict=TarlVerdict.ALLOW).is_expired() is False
     assert TarlDecision(verdict=TarlVerdict.ALLOW,
-                        expires_at="not-a-date").is_expired() is False
+                        expires_at="not-a-date").is_expired() is True

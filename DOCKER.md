@@ -75,7 +75,7 @@ docker compose run --rm doctor
 
 - **`thirsty`** — Runtime container for executing .thirsty files
 - **`dev`** — Development environment with hot-reload mounted volumes
-- **`test`** — Full test suite runner (1212 tests)
+- **`test`** — Full test suite runner
 - **`repl`** — Interactive REPL
 - **`lsp`** — Language Server Protocol server (port 9898)
 - **`build-js`** — Compile to JavaScript
@@ -97,14 +97,14 @@ docker compose run --rm <service>
 On every tag push, GitHub Actions automatically:
 
 1. ✓ Builds the Docker image
-2. ✓ Runs all 1212 tests *inside* the build
+2. ✓ Runs the full test suite *inside* the build
 3. ✓ Pushes to GitHub Container Registry (GHCR)
 
 **Trigger a release:**
 
 ```bash
-git tag v<version>
-git push tp v<version>
+git tag -a v<version> -m "Thirsty-Lang <version>"
+git push tp refs/tags/v<version>
 ```
 
 The image will be available at:
@@ -117,17 +117,17 @@ ghcr.io/iamsothirsty/thirsty-lang:latest
 
 ```bash
 # Build locally
-docker build -t thirsty-lang:0.8.5 .
+docker build -t thirsty-lang:0.8.6 .
 
 # Tag for registry
-docker tag thirsty-lang:0.8.5 ghcr.io/iamsothirsty/thirsty-lang:0.8.5
-docker tag thirsty-lang:0.8.5 ghcr.io/iamsothirsty/thirsty-lang:latest
+docker tag thirsty-lang:0.8.6 ghcr.io/iamsothirsty/thirsty-lang:0.8.6
+docker tag thirsty-lang:0.8.6 ghcr.io/iamsothirsty/thirsty-lang:latest
 
 # Log in (first time only)
 docker login ghcr.io
 
 # Push
-docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.5
+docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.6
 docker push ghcr.io/iamsothirsty/thirsty-lang:latest
 ```
 

@@ -8,11 +8,16 @@ warnings, and build manifests.
 from __future__ import annotations
 
 import hashlib
-import json
 from dataclasses import dataclass, field, fields, is_dataclass
 from typing import Any
 
+from utf.tarl.context import (
+    CONTEXT_REPRESENTATION_ID,
+    RESERVED_CONTEXT_IDENTIFIERS,
+    load_context_json,
+)
 from utf.tarl.core import PolicyParser, SafeExpr
+from utf.tarl.schema import ContextSchema
 from utf.thirsty_lang.ast import (
     CallExpr,
     ClassDecl,
@@ -28,16 +33,7 @@ from utf.thirsty_lang.ast import (
 from utf.thirsty_lang.diagnostics import Diagnostic
 from utf.thirsty_lang.module_system import SENSITIVE_STDLIB_CAPABILITIES
 
-RESERVED_CONTEXT_FIELDS = {
-    "true",
-    "false",
-    "CURRENT_HOUR",
-    "CURRENT_DAY",
-    "CURRENT_WEEKDAY",
-    "CURRENT_MONTH",
-    "CURRENT_YEAR",
-    "CURRENT_TIMESTAMP",
-}
+RESERVED_CONTEXT_FIELDS = RESERVED_CONTEXT_IDENTIFIERS
 
 AUTHORITY_FIELDS = {
     "authority": ("string",),
@@ -85,6 +81,7 @@ class DerivedContextSchema:
     fields: list[dict[str, Any]] = field(default_factory=list)
     gaps: list[str] = field(default_factory=list)
     source: str = "derived"
+    on_violation: str = "DENY"
 
     @property
     def complete(self) -> bool:
@@ -94,6 +91,12 @@ class DerivedContextSchema:
         return {
             "status": self.status,
             "source": self.source,
+            "on_violation": self.on_violation,
+            "representation": {
+                "id": CONTEXT_REPRESENTATION_ID,
+                "path_model": "nested-objects",
+                "normalization": "none",
+            },
             "fields": self.fields,
             "gaps": self.gaps,
         }
@@ -105,15 +108,87 @@ def sha256_text(text: str) -> str:
 
 def load_explicit_context_schema(path: str) -> DerivedContextSchema:
     with open(path, encoding="utf-8") as f:
-        data = json.load(f)
+        data = load_context_json(f.read())
     if not isinstance(data, dict):
         raise ValueError("context schema must be a JSON object")
+    unknown_top_level = set(data) - {
+        "fields",
+        "gaps",
+        "on_violation",
+        "representation",
+        "representation_id",
+        "source",
+        "status",
+    }
+    if unknown_top_level:
+        raise ValueError(
+            "unknown context schema fields: "
+            + ", ".join(sorted(unknown_top_level))
+        )
+    status = data.get("status")
+    if status is not None and status not in {"complete", "explicit"}:
+        raise ValueError(
+            "only complete or explicit context schemas may be loaded"
+        )
+    representation = data.get("representation", {})
+    if representation is None:
+        representation = {}
+    if not isinstance(representation, dict):
+        raise ValueError("context schema representation must be an object")
+    unknown_representation_keys = set(representation) - {
+        "id",
+        "path_model",
+        "normalization",
+    }
+    if unknown_representation_keys:
+        raise ValueError(
+            "unknown context schema representation fields: "
+            + ", ".join(sorted(unknown_representation_keys))
+        )
+    top_level_representation_id = data.get("representation_id")
+    nested_representation_id = representation.get("id")
+    if (
+        top_level_representation_id is not None
+        and nested_representation_id is not None
+        and top_level_representation_id != nested_representation_id
+    ):
+        raise ValueError("conflicting context schema representation identifiers")
+    representation_id = (
+        nested_representation_id
+        or top_level_representation_id
+        or CONTEXT_REPRESENTATION_ID
+    )
+    if representation_id != CONTEXT_REPRESENTATION_ID:
+        raise ValueError(
+            "unsupported context representation: "
+            f"{representation_id!r}; expected {CONTEXT_REPRESENTATION_ID!r}"
+        )
+    if representation.get("normalization", "none") != "none":
+        raise ValueError(
+            "context schema normalization must be 'none'; silent conversion "
+            "is not permitted"
+        )
+    if representation.get("path_model", "nested-objects") != "nested-objects":
+        raise ValueError("context schema path_model must be 'nested-objects'")
+    on_violation = data.get("on_violation", "DENY")
     raw_fields = data.get("fields", [])
     fields_out = _normalize_explicit_schema_fields(raw_fields)
+    validated = ContextSchema.from_dict(
+        {
+            "representation": {
+                "id": representation_id,
+                "path_model": "nested-objects",
+                "normalization": "none",
+            },
+            "on_violation": on_violation,
+            "fields": fields_out,
+        }
+    )
     return DerivedContextSchema(
         status="explicit",
         source=path,
-        fields=sorted(fields_out, key=lambda f: f["name"]),
+        on_violation=validated.on_violation.value,
+        fields=validated.to_dict()["fields"],
         gaps=[],
     )
 
@@ -133,6 +208,21 @@ def _normalize_explicit_schema_fields(raw_fields: Any) -> list[dict[str, Any]]:
     for item in iterable:
         if not isinstance(item, dict):
             raise ValueError("context schema field entries must be objects")
+        unknown_field_keys = set(item) - {
+            "kind",
+            "kinds",
+            "name",
+            "required",
+        }
+        if unknown_field_keys:
+            raise ValueError(
+                "unknown context schema field attributes: "
+                + ", ".join(sorted(unknown_field_keys))
+            )
+        if "kind" in item and "kinds" in item:
+            raise ValueError(
+                "context schema field cannot declare both kind and kinds"
+            )
         name = item.get("name")
         if not isinstance(name, str) or not name:
             raise ValueError("context schema field entries require a string name")
@@ -143,10 +233,15 @@ def _normalize_explicit_schema_fields(raw_fields: Any) -> list[dict[str, Any]]:
             raise ValueError(
                 f"context schema field '{name}' must declare string kind values"
             )
+        required = item.get("required", True)
+        if type(required) is not bool:
+            raise ValueError(
+                f"context schema field '{name}' required must be a boolean"
+            )
         fields_out.append({
             "name": name,
             "kinds": sorted(set(kinds)),
-            "required": bool(item.get("required", True)),
+            "required": required,
         })
     return fields_out
 
@@ -157,6 +252,16 @@ def _field_item_from_mapping(name: str, spec: Any) -> dict[str, Any]:
     if isinstance(spec, list):
         return {"name": name, "kinds": spec, "required": True}
     if isinstance(spec, dict):
+        unknown_field_keys = set(spec) - {"kind", "kinds", "required"}
+        if unknown_field_keys:
+            raise ValueError(
+                f"unknown attributes for context schema field '{name}': "
+                + ", ".join(sorted(unknown_field_keys))
+            )
+        if "kind" in spec and "kinds" in spec:
+            raise ValueError(
+                f"context schema field '{name}' cannot declare both kind and kinds"
+            )
         return {
             "name": name,
             "kinds": spec.get("kinds", [spec.get("kind", "string")]),
@@ -190,7 +295,7 @@ def derive_context_schema(policy_text: str) -> DerivedContextSchema:
             tokens = PolicyParser._tokenize(rule.condition)
             parser = SafeExpr(tokens)
             node = parser.parse_expr()
-            _infer_node(node, refs, gaps, expected=None)
+            _infer_node(node, refs, gaps, expected="bool")
         except Exception as exc:
             gaps.append(
                 f"rule {rule.source_line or '?'} could not be analyzed: {exc}"
@@ -238,6 +343,13 @@ def _field_name(node: Any) -> str | None:
     return None
 
 
+def _is_bound_field(name: str | None, bound: frozenset[str]) -> bool:
+    """Return True when a reference belongs to a quantifier-local binder."""
+    if not name:
+        return False
+    return any(name == item or name.startswith(f"{item}.") for item in bound)
+
+
 def _literal_kind(node: Any) -> str | None:
     if not isinstance(node, tuple):
         return None
@@ -258,6 +370,7 @@ def _infer_node(
     refs: dict[str, set[str]],
     gaps: list[str],
     expected: str | None,
+    bound: frozenset[str] = frozenset(),
 ) -> None:
     if not isinstance(node, tuple):
         return
@@ -265,6 +378,8 @@ def _infer_node(
 
     name = _field_name(node)
     if name:
+        if _is_bound_field(name, bound):
+            return
         if expected is None:
             refs.setdefault(name, set())
             gaps.append(f"field '{name}' is referenced without an inferable kind")
@@ -273,27 +388,27 @@ def _infer_node(
         return
 
     if tag in {"and", "or"}:
-        _infer_node(node[1], refs, gaps, expected="bool")
-        _infer_node(node[2], refs, gaps, expected="bool")
+        _infer_node(node[1], refs, gaps, expected="bool", bound=bound)
+        _infer_node(node[2], refs, gaps, expected="bool", bound=bound)
         return
     if tag == "not":
-        _infer_node(node[1], refs, gaps, expected="bool")
+        _infer_node(node[1], refs, gaps, expected="bool", bound=bound)
         return
     if tag == "compare":
-        _infer_comparison(node[2], node[3], refs, gaps)
+        _infer_comparison(node[2], node[3], refs, gaps, bound=bound)
         return
     if tag in {"add", "sub", "mul", "div", "mod", "neg"}:
         for child in node[1:]:
-            _infer_node(child, refs, gaps, expected="number")
+            _infer_node(child, refs, gaps, expected="number", bound=bound)
         return
     if tag in {"in", "not_in"}:
         left, right = node[1], node[2]
         right_name = _field_name(right)
         left_name = _field_name(left)
         left_kind = _literal_kind(left)
-        if right_name:
+        if right_name and not _is_bound_field(right_name, bound):
             refs.setdefault(right_name, set()).add("list")
-        if left_name:
+        if left_name and not _is_bound_field(left_name, bound):
             right_kind = _literal_set_member_kind(right)
             if right_kind:
                 refs.setdefault(left_name, set()).add(right_kind)
@@ -303,18 +418,25 @@ def _infer_node(
                     f"field '{left_name}' membership kind is ambiguous"
                 )
         elif left_kind is not None:
-            _infer_node(right, refs, gaps, expected="list")
+            _infer_node(right, refs, gaps, expected="list", bound=bound)
         return
     if tag == "call":
-        _infer_call(node, refs, gaps)
+        _infer_call(node, refs, gaps, bound=bound)
         return
     if tag in {"all", "any"}:
-        _infer_node(node[1], refs, gaps, expected="list")
-        _infer_node(node[3], refs, gaps, expected="bool")
+        _infer_node(node[1], refs, gaps, expected="list", bound=bound)
+        binder = str(node[2])
+        _infer_node(
+            node[3],
+            refs,
+            gaps,
+            expected="bool",
+            bound=bound | {binder},
+        )
         return
     if tag == "set":
         for child in node[1]:
-            _infer_node(child, refs, gaps, expected=None)
+            _infer_node(child, refs, gaps, expected=None, bound=bound)
 
 
 def _literal_set_member_kind(node: Any) -> str | None:
@@ -332,42 +454,53 @@ def _infer_comparison(
     right: Any,
     refs: dict[str, set[str]],
     gaps: list[str],
+    bound: frozenset[str] = frozenset(),
 ) -> None:
     left_name = _field_name(left)
     right_name = _field_name(right)
     left_lit = _literal_kind(left)
     right_lit = _literal_kind(right)
-    if left_name and right_lit:
+    if left_name and right_lit and not _is_bound_field(left_name, bound):
         refs.setdefault(left_name, set()).add(right_lit)
-    elif right_name and left_lit:
+    elif right_name and left_lit and not _is_bound_field(right_name, bound):
         refs.setdefault(right_name, set()).add(left_lit)
     else:
-        _infer_node(left, refs, gaps, expected=None)
-        _infer_node(right, refs, gaps, expected=None)
+        _infer_node(left, refs, gaps, expected=None, bound=bound)
+        _infer_node(right, refs, gaps, expected=None, bound=bound)
 
 
-def _infer_call(node: tuple, refs: dict[str, set[str]], gaps: list[str]) -> None:
+def _infer_call(
+    node: tuple,
+    refs: dict[str, set[str]],
+    gaps: list[str],
+    bound: frozenset[str] = frozenset(),
+) -> None:
     name = str(node[1]).upper()
     args = list(node[2])
-    if name in {"LOWER", "UPPER", "STARTS_WITH", "ENDS_WITH", "MATCHES"}:
+    if name in {
+        "LOWER",
+        "UPPER",
+        "STARTS_WITH",
+        "ENDS_WITH",
+        "CONTAINS",
+        "MATCHES",
+        "ELAPSED_SINCE",
+    }:
         for arg in args:
-            _infer_node(arg, refs, gaps, expected="string")
+            _infer_node(arg, refs, gaps, expected="string", bound=bound)
     elif name == "LEN":
         for arg in args:
             fname = _field_name(arg)
-            if fname:
+            if fname and not _is_bound_field(fname, bound):
                 refs.setdefault(fname, set())
                 gaps.append(
                     f"field '{fname}' is used with LEN; list/string kind is ambiguous"
                 )
             else:
-                _infer_node(arg, refs, gaps, expected=None)
-    elif name == "CONTAINS":
-        for arg in args:
-            _infer_node(arg, refs, gaps, expected=None)
+                _infer_node(arg, refs, gaps, expected=None, bound=bound)
     else:
         for arg in args:
-            _infer_node(arg, refs, gaps, expected=None)
+            _infer_node(arg, refs, gaps, expected=None, bound=bound)
 
 
 def extract_proof_obligations(

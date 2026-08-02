@@ -20,9 +20,18 @@ Phase 2 — PolicyParser supports:
   - parse_all() for multi-policy files
 """
 import datetime
+import math
 import re
 from typing import Any, Optional
 
+from utf.tarl.context import (
+    ContextResolutionError,
+    ContextResolutionState,
+    PreparedContext,
+    canonical_context_bytes,
+    prepare_context,
+    resolve_context_path,
+)
 from utf.tarl.spec import (
     DEFAULT_DENY,
     CompositionOp,
@@ -90,8 +99,14 @@ _QUANTIFIERS = frozenset({"ALL", "ANY"})
 _TRUSTED_NOW_KEY = "__tarl_trusted_now"
 
 
-class ConditionTypeError(Exception):
+class ConditionTypeError(ContextResolutionError):
     """A condition could not be evaluated in a well-typed way."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            f"condition type error: {message}",
+            state=ContextResolutionState.TYPE_ERROR,
+        )
 
 
 class ExprToken:
@@ -104,6 +119,27 @@ class ExprToken:
 
     def __repr__(self) -> str:
         return f"ExprToken({self.type}, {self.value!r})"
+
+
+def _strip_policy_comment(line: str) -> str:
+    """Remove an inline TARL comment without touching quoted string data."""
+    quote: str | None = None
+    escaped = False
+    for index, char in enumerate(line):
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\" and quote is not None:
+            escaped = True
+            continue
+        if char in {'"', "'"}:
+            quote = None if quote == char else char if quote is None else quote
+            continue
+        if quote is None and (
+            char == "#" or line[index:index + 2] == "//"
+        ):
+            return line[:index]
+    return line
 
 
 class PolicyParser:
@@ -158,6 +194,12 @@ class PolicyParser:
         def _flush():
             nonlocal current_policy, current_set
             if current_policy is not None:
+                try:
+                    _policy_temporal_bounds(current_policy)
+                except ConditionTypeError as exc:
+                    raise SafeExpr.ParseError(
+                        f"invalid temporal policy metadata: {exc}"
+                    ) from exc
                 results.append(current_policy)
                 current_policy = None
             if current_set is not None:
@@ -165,7 +207,7 @@ class PolicyParser:
                 current_set = None
 
         for lineno, raw_line in enumerate(text.split("\n"), start=1):
-            line = raw_line.strip()
+            line = _strip_policy_comment(raw_line).strip()
             if not line or line.startswith("#") or line.startswith("//"):
                 continue
 
@@ -230,28 +272,56 @@ class PolicyParser:
             m_iu = cls.IF_UNRESOLVED_RE.match(line)
             if m_iu:
                 dur = _parse_duration(m_iu.group(1))
-                if dur is not None:
-                    current_policy.if_unresolved_after = dur
+                if dur is None:
+                    raise SafeExpr.ParseError(
+                        f"line {lineno}: invalid if_unresolved_after duration"
+                    )
+                current_policy.if_unresolved_after = dur
                 current_policy.revert_to = m_iu.group(2)
                 continue
+            if line.startswith("if_unresolved_after"):
+                raise SafeExpr.ParseError(
+                    f"line {lineno}: malformed if_unresolved_after directive"
+                )
 
             m_meta = cls.METADATA_RE.match(line)
             if m_meta:
                 key, val = m_meta.group(1), m_meta.group(2).strip()
                 if key == "valid_from":
+                    try:
+                        _parse_policy_timestamp(val, key)
+                    except ConditionTypeError as exc:
+                        raise SafeExpr.ParseError(
+                            f"line {lineno}: {exc}"
+                        ) from exc
                     current_policy.valid_from = val
                 elif key == "valid_until":
+                    try:
+                        _parse_policy_timestamp(val, key)
+                    except ConditionTypeError as exc:
+                        raise SafeExpr.ParseError(
+                            f"line {lineno}: {exc}"
+                        ) from exc
                     current_policy.valid_until = val
                 elif key == "supersedes":
                     current_policy.supersedes = val
                 elif key == "on_expiry":
                     try:
-                        current_policy.on_expiry = TarlVerdict(
-                            val.upper()
+                        expiry_verdict = TarlVerdict(val.upper())
+                    except ValueError as exc:
+                        raise SafeExpr.ParseError(
+                            f"line {lineno}: invalid on_expiry verdict {val!r}"
+                        ) from exc
+                    if expiry_verdict is TarlVerdict.ALLOW:
+                        raise SafeExpr.ParseError(
+                            f"line {lineno}: on_expiry cannot grant ALLOW"
                         )
-                    except ValueError:
-                        current_policy.on_expiry = None
+                    current_policy.on_expiry = expiry_verdict
                 continue
+            if line.startswith(("valid_from", "valid_until", "on_expiry")):
+                raise SafeExpr.ParseError(
+                    f"line {lineno}: malformed temporal metadata directive"
+                )
 
             m_rule = cls.RULE_RE.match(line)
             if m_rule:
@@ -262,12 +332,22 @@ class PolicyParser:
                     _parse_duration(m_rule.group(3))
                     if m_rule.group(3) else None
                 )
+                if m_rule.group(3) and duration is None:
+                    raise SafeExpr.ParseError(
+                        f"line {lineno}: invalid rule duration "
+                        f"{m_rule.group(3)!r}"
+                    )
                 current_policy.rules.append(TarlRule(
                     condition=condition,
                     verdict=verdict,
                     source_line=lineno,
                     duration_seconds=duration,
                 ))
+                continue
+            if line.startswith("when "):
+                raise SafeExpr.ParseError(
+                    f"line {lineno}: malformed policy rule"
+                )
 
         _flush()
         return results
@@ -488,6 +568,111 @@ def _parse_duration(s: str) -> int | None:
     return total if total > 0 else None
 
 
+def _parse_policy_timestamp(value: object, field: str) -> datetime.datetime:
+    """Parse a policy timestamp, preserving the documented UTC date shorthand."""
+    if not isinstance(value, str) or not value.strip():
+        raise ConditionTypeError(f"{field} must be an ISO-8601 timestamp")
+    try:
+        parsed = datetime.datetime.fromisoformat(
+            value.strip().replace("Z", "+00:00")
+        )
+    except ValueError as exc:
+        raise ConditionTypeError(
+            f"{field} must be an ISO-8601 timestamp"
+        ) from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.UTC)
+    if parsed.utcoffset() is None:
+        raise ConditionTypeError(f"{field} timezone is invalid")
+    return parsed.astimezone(datetime.UTC)
+
+
+def _policy_temporal_bounds(
+    policy: "TarlPolicy",
+) -> tuple[datetime.datetime | None, datetime.datetime | None]:
+    """Return the validated inclusive start and exclusive authority cutoff."""
+    if policy.on_expiry is TarlVerdict.ALLOW:
+        raise ConditionTypeError("on_expiry cannot grant ALLOW")
+    if policy.on_expiry is not None and not isinstance(
+        policy.on_expiry, TarlVerdict
+    ):
+        raise ConditionTypeError("on_expiry must be DENY or ESCALATE")
+    for rule in policy.rules:
+        duration = rule.duration_seconds
+        if duration is not None and (
+            isinstance(duration, bool)
+            or not isinstance(duration, int)
+            or duration <= 0
+        ):
+            raise ConditionTypeError("rule duration must be positive")
+
+    valid_from = (
+        _parse_policy_timestamp(policy.valid_from, "valid_from")
+        if policy.valid_from is not None
+        else None
+    )
+    effective_until = (
+        _parse_policy_timestamp(policy.valid_until, "valid_until")
+        if policy.valid_until is not None
+        else None
+    )
+
+    if policy.if_unresolved_after is not None:
+        duration = policy.if_unresolved_after
+        if (
+            isinstance(duration, bool)
+            or not isinstance(duration, int)
+            or duration <= 0
+        ):
+            raise ConditionTypeError(
+                "if_unresolved_after must be a positive duration"
+            )
+        if valid_from is None:
+            raise ConditionTypeError(
+                "if_unresolved_after requires valid_from"
+            )
+        try:
+            succession_at = valid_from + datetime.timedelta(seconds=duration)
+        except OverflowError as exc:
+            raise ConditionTypeError(
+                "if_unresolved_after exceeds the datetime range"
+            ) from exc
+        if effective_until is None or succession_at < effective_until:
+            effective_until = succession_at
+
+    return valid_from, effective_until
+
+
+def _policy_authority_expiry(
+    policy: "TarlPolicy",
+    rule: "TarlRule",
+    evaluated_at: datetime.datetime,
+) -> datetime.datetime | None:
+    """Return the earliest rule or policy cutoff for a matched verdict."""
+    evaluated_at = _coerce_datetime(evaluated_at)
+    _valid_from, effective_until = _policy_temporal_bounds(policy)
+    candidates: list[datetime.datetime] = []
+    if effective_until is not None:
+        candidates.append(effective_until)
+    if rule.duration_seconds is not None:
+        duration = rule.duration_seconds
+        if (
+            isinstance(duration, bool)
+            or not isinstance(duration, int)
+            or duration <= 0
+        ):
+            raise ConditionTypeError("rule duration must be positive")
+        try:
+            candidates.append(
+                evaluated_at + datetime.timedelta(seconds=duration)
+            )
+        except OverflowError as exc:
+            raise ConditionTypeError(
+                "rule duration exceeds the datetime range"
+            ) from exc
+    return min(candidates) if candidates else None
+
+
 def _check_policy_temporal(
     policy: "TarlPolicy",
     now: "datetime.datetime | None" = None,
@@ -503,45 +688,36 @@ def _check_policy_temporal(
     or expired/auto-expired), using policy.on_expiry or ESCALATE as the verdict.
     Returns None when the policy is in-window and should be evaluated normally.
     """
-    now = now or datetime.datetime.now(datetime.UTC)
+    if now is None:
+        now = datetime.datetime.now(datetime.UTC)
+    else:
+        try:
+            now = _coerce_datetime(now)
+        except ConditionTypeError as exc:
+            return TarlDecision(
+                verdict=TarlVerdict.DENY,
+                reason=f"fail-closed: {exc}",
+            )
+    try:
+        valid_from, effective_until = _policy_temporal_bounds(policy)
+    except ConditionTypeError as exc:
+        return TarlDecision(
+            verdict=TarlVerdict.DENY,
+            reason=f"fail-closed: invalid temporal policy metadata: {exc}",
+        )
     expiry_verdict = policy.on_expiry or TarlVerdict.ESCALATE
 
-    def _parse_dt(s: str) -> datetime.datetime | None:
-        s = s.strip().replace("Z", "+00:00")
-        try:
-            dt = datetime.datetime.fromisoformat(s)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=datetime.UTC)
-            return dt
-        except ValueError:
-            return None
-
     # Not-yet-active check
-    if policy.valid_from:
-        vf = _parse_dt(policy.valid_from)
-        if vf and now < vf:
-            return TarlDecision(
-                verdict=expiry_verdict,
-                reason=(
-                    f"Policy '{policy.name}' not yet effective "
-                    f"(valid_from: {policy.valid_from})"
-                ),
-            )
+    if valid_from is not None and now < valid_from:
+        return TarlDecision(
+            verdict=expiry_verdict,
+            reason=(
+                f"Policy '{policy.name}' not yet effective "
+                f"(valid_from: {policy.valid_from})"
+            ),
+        )
 
-    # Build effective_until = min(valid_until, valid_from + if_unresolved_after)
-    effective_until: datetime.datetime | None = None
-    if policy.valid_until:
-        effective_until = _parse_dt(policy.valid_until)
-    if policy.if_unresolved_after is not None and policy.valid_from:
-        vf = _parse_dt(policy.valid_from)
-        if vf:
-            succession_at = vf + datetime.timedelta(
-                seconds=policy.if_unresolved_after
-            )
-            if effective_until is None or succession_at < effective_until:
-                effective_until = succession_at
-
-    if effective_until and now > effective_until:
+    if effective_until is not None and now >= effective_until:
         return TarlDecision(
             verdict=expiry_verdict,
             reason=(
@@ -557,17 +733,29 @@ def _check_policy_temporal(
 
 def _coerce_datetime(now: Any) -> datetime.datetime:
     if isinstance(now, datetime.datetime):
-        return now
-    if isinstance(now, str):
-        parsed = datetime.datetime.fromisoformat(now.replace("Z", "+00:00"))
-        if parsed.tzinfo is not None:
-            return parsed.astimezone()
-        return parsed
-    raise ConditionTypeError(f"invalid trusted clock value {now!r}")
+        parsed = now
+    elif isinstance(now, str):
+        try:
+            parsed = datetime.datetime.fromisoformat(
+                now.replace("Z", "+00:00")
+            )
+        except ValueError as exc:
+            raise ConditionTypeError(
+                f"invalid trusted clock value {now!r}"
+            ) from exc
+    else:
+        raise ConditionTypeError(f"invalid trusted clock value {now!r}")
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ConditionTypeError("trusted clock value must be timezone-aware")
+    return parsed.astimezone(datetime.UTC)
 
 
 def _resolve_temporal(name: str, now: Any | None = None):
-    current = _coerce_datetime(now) if now is not None else datetime.datetime.now()
+    current = (
+        _coerce_datetime(now)
+        if now is not None
+        else datetime.datetime.now(datetime.UTC)
+    )
     return {
         "CURRENT_HOUR": current.hour,
         "CURRENT_DAY": current.day,
@@ -580,30 +768,118 @@ def _resolve_temporal(name: str, now: Any | None = None):
 
 # ── Safe built-in functions ──────────────────────────────────────────────────
 
-def _call_safe_function(name: str, args: list):
+def _call_safe_function(
+    name: str,
+    args: list,
+    now: datetime.datetime | str | None = None,
+):
     try:
         if name == "MATCHES":
-            return bool(re.search(str(args[1]), str(args[0])))
+            _require_string_args(name, args, 2)
+            return bool(re.search(args[1], args[0]))
         if name == "STARTS_WITH":
-            return str(args[0]).startswith(str(args[1]))
+            _require_string_args(name, args, 2)
+            return args[0].startswith(args[1])
         if name == "ENDS_WITH":
-            return str(args[0]).endswith(str(args[1]))
+            _require_string_args(name, args, 2)
+            return args[0].endswith(args[1])
         if name == "CONTAINS":
-            return str(args[1]) in str(args[0])
+            _require_string_args(name, args, 2)
+            return args[1] in args[0]
         if name == "LEN":
+            if len(args) != 1:
+                raise ConditionTypeError(
+                    f"LEN expected 1 argument, got {len(args)}"
+                )
             v = args[0]
-            return len(v) if isinstance(v, (str, list, dict, set)) else 0
+            if not isinstance(v, (str, list, dict, set)):
+                raise ConditionTypeError(
+                    f"LEN expected string or collection, got {type(v).__name__}"
+                )
+            return len(v)
         if name == "LOWER":
-            return str(args[0]).lower()
+            _require_string_args(name, args, 1)
+            return args[0].lower()
         if name == "UPPER":
-            return str(args[0]).upper()
+            _require_string_args(name, args, 1)
+            return args[0].upper()
         if name == "ELAPSED_SINCE":
-            past = datetime.datetime.fromisoformat(str(args[0]))
-            now = datetime.datetime.now(tz=past.tzinfo)
-            return (now - past).total_seconds()
-    except (IndexError, ValueError, TypeError, AttributeError):
-        return False
-    return False
+            _require_string_args(name, args, 1)
+            past = datetime.datetime.fromisoformat(args[0])
+            current = (
+                _coerce_datetime(now)
+                if now is not None
+                else datetime.datetime.now(tz=past.tzinfo)
+            )
+            return (current - past).total_seconds()
+    except ConditionTypeError:
+        raise
+    except (IndexError, ValueError, TypeError, AttributeError, re.error) as exc:
+        raise ConditionTypeError(f"{name} could not be evaluated: {exc}") from exc
+    raise ConditionTypeError(f"unknown safe function {name}")
+
+
+def _require_string_args(name: str, args: list, count: int) -> None:
+    if len(args) != count:
+        raise ConditionTypeError(
+            f"{name} expected {count} argument(s), got {len(args)}"
+        )
+    for index, value in enumerate(args):
+        if not isinstance(value, str):
+            raise ConditionTypeError(
+                f"{name} argument {index + 1} expected string, "
+                f"got {type(value).__name__}"
+            )
+
+
+def _require_boolean(value: Any, operation: str) -> bool:
+    if not isinstance(value, bool):
+        raise ConditionTypeError(
+            f"{operation} expected bool, got {type(value).__name__}"
+        )
+    return value
+
+
+def _require_numeric(value: Any, operation: str) -> int | float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ConditionTypeError(
+            f"{operation} expected number, got {type(value).__name__}"
+        )
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ConditionTypeError(
+            f"{operation} received a non-finite number"
+        )
+    return value
+
+
+def _require_finite_result(value: int | float, operation: str) -> int | float:
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ConditionTypeError(
+            f"{operation} produced a non-finite arithmetic result"
+        )
+    return value
+
+
+def _strict_membership(value: Any, collection: list | set | frozenset) -> bool:
+    matched = False
+    for item in collection:
+        try:
+            left, right = _coerce_equatable(value, item)
+        except ConditionTypeError as exc:
+            raise ConditionTypeError(
+                f"membership collection contains an incompatible "
+                f"{type(item).__name__} value"
+            ) from exc
+        if _strict_expression_equal(left, right):
+            matched = True
+    return matched
+
+
+def _strict_expression_equal(left: Any, right: Any) -> bool:
+    """Compare coerced values without Python's nested bool/int equivalence."""
+    if isinstance(left, (list, dict)):
+        return canonical_context_bytes(left) == canonical_context_bytes(right)
+    return bool(left == right)
 
 
 # ── Expression evaluator ─────────────────────────────────────────────────────
@@ -631,7 +907,7 @@ class SafeExpr:
     def evaluate(
         cls,
         expr,
-        context: dict,
+        context: dict | PreparedContext,
         now: datetime.datetime | None = None,
     ) -> bool:
         tokens = (PolicyParser._tokenize(expr)
@@ -640,10 +916,15 @@ class SafeExpr:
         result = parser.parse_expr()
         if parser.current().type != EOF:
             raise cls.ParseError(f"Unexpected token: {parser.current()}")
-        eval_context = dict(context)
+        prepared = (
+            context if isinstance(context, PreparedContext) else prepare_context(context)
+        )
+        eval_context = dict(prepared.canonical)
         if now is not None:
             eval_context[_TRUSTED_NOW_KEY] = now
-        return bool(cls._eval_node(result, eval_context))
+        return _require_boolean(
+            cls._eval_node(result, eval_context), "condition result"
+        )
 
     def __init__(self, tokens: list[ExprToken]):
         self.tokens = tokens
@@ -837,6 +1118,10 @@ class SafeExpr:
                 f"Expected lambda variable in {quantifier}(...)"
             )
         var = self.advance().value
+        if var.startswith("__tarl_"):
+            raise self.ParseError(
+                f"Reserved lambda variable in {quantifier}(...): {var}"
+            )
         self.expect(ARROW)
         condition = self.parse_expr()
         self.expect(RPAREN)
@@ -859,23 +1144,16 @@ class SafeExpr:
             name = node[1]
             if name in _TEMPORAL_BUILTINS:
                 return _resolve_temporal(name, context.get(_TRUSTED_NOW_KEY))
-            return context.get(name, False)
+            return resolve_context_path(context, [name]).require_value()
 
-        # Dot-access: walk nested dicts
+        # Dot-access: missing/invalid is not the ordinary boolean value False.
         if tag == "attr":
-            val: Any = context
-            for part in node[1]:
-                if isinstance(val, dict):
-                    val = val.get(part)
-                    if val is None:
-                        return False
-                else:
-                    return False
-            return val
+            return resolve_context_path(context, node[1]).require_value()
 
         # Dynamic source (list injected by TarlRuntime as "source:<name>")
         if tag == "source":
-            return context.get(f"source:{node[1]}", [])
+            source_name = f"source:{node[1]}"
+            return resolve_context_path(context, [source_name]).require_value()
 
         # Inline set: list of evaluated items
         if tag == "set":
@@ -884,59 +1162,76 @@ class SafeExpr:
         # Arithmetic
         ev = SafeExpr._eval_node
         if tag == "add":
-            try:
-                return ev(node[1], context) + ev(node[2], context)
-            except TypeError:
-                return False
+            left = _require_numeric(ev(node[1], context), "addition")
+            right = _require_numeric(ev(node[2], context), "addition")
+            return _require_finite_result(left + right, "addition")
         if tag == "sub":
-            try:
-                return ev(node[1], context) - ev(node[2], context)
-            except TypeError:
-                return False
+            left = _require_numeric(ev(node[1], context), "subtraction")
+            right = _require_numeric(ev(node[2], context), "subtraction")
+            return _require_finite_result(left - right, "subtraction")
         if tag == "mul":
-            try:
-                return ev(node[1], context) * ev(node[2], context)
-            except TypeError:
-                return False
+            left = _require_numeric(ev(node[1], context), "multiplication")
+            right = _require_numeric(ev(node[2], context), "multiplication")
+            return _require_finite_result(left * right, "multiplication")
         if tag == "div":
-            try:
-                r = ev(node[2], context)
-                return ev(node[1], context) / r if r != 0 else False
-            except TypeError:
-                return False
+            right = _require_numeric(ev(node[2], context), "division")
+            if right == 0:
+                raise ConditionTypeError("division by zero")
+            left = _require_numeric(ev(node[1], context), "division")
+            return _require_finite_result(left / right, "division")
         if tag == "mod":
-            try:
-                r = ev(node[2], context)
-                return ev(node[1], context) % r if r != 0 else False
-            except TypeError:
-                return False
+            right = _require_numeric(ev(node[2], context), "modulo")
+            if right == 0:
+                raise ConditionTypeError("modulo by zero")
+            left = _require_numeric(ev(node[1], context), "modulo")
+            return _require_finite_result(left % right, "modulo")
         if tag == "neg":
-            try:
-                return -SafeExpr._eval_node(node[1], context)
-            except TypeError:
-                return False
+            return _require_finite_result(
+                -_require_numeric(
+                    SafeExpr._eval_node(node[1], context), "unary minus"
+                ),
+                "unary minus",
+            )
 
         # Logic
         if tag == "not":
-            return not SafeExpr._eval_node(node[1], context)
+            return not _require_boolean(
+                SafeExpr._eval_node(node[1], context), "NOT"
+            )
         if tag == "and":
-            return (SafeExpr._eval_node(node[1], context)
-                    and SafeExpr._eval_node(node[2], context))
+            left = _require_boolean(
+                SafeExpr._eval_node(node[1], context), "AND"
+            )
+            right = _require_boolean(
+                SafeExpr._eval_node(node[2], context), "AND"
+            )
+            return left and right
         if tag == "or":
-            return (SafeExpr._eval_node(node[1], context)
-                    or SafeExpr._eval_node(node[2], context))
+            left = _require_boolean(
+                SafeExpr._eval_node(node[1], context), "OR"
+            )
+            right = _require_boolean(
+                SafeExpr._eval_node(node[2], context), "OR"
+            )
+            return left or right
 
         # Set membership
         if tag == "in":
             val = SafeExpr._eval_node(node[1], context)
             col = SafeExpr._eval_node(node[2], context)
-            is_col = isinstance(col, (list, set, frozenset))
-            return val in col if is_col else False
+            if not isinstance(col, (list, set, frozenset)):
+                raise ConditionTypeError(
+                    f"IN expected a collection, got {type(col).__name__}"
+                )
+            return _strict_membership(val, col)
         if tag == "not_in":
             val = SafeExpr._eval_node(node[1], context)
             col = SafeExpr._eval_node(node[2], context)
-            is_col = isinstance(col, (list, set, frozenset))
-            return val not in col if is_col else True
+            if not isinstance(col, (list, set, frozenset)):
+                raise ConditionTypeError(
+                    f"NOT IN expected a collection, got {type(col).__name__}"
+                )
+            return not _strict_membership(val, col)
 
         # Comparison
         if tag == "compare":
@@ -949,9 +1244,9 @@ class SafeExpr:
                 lv, rv = _coerce_equatable(lv, rv)
             try:
                 if op == EQEQ:
-                    return lv == rv
+                    return _strict_expression_equal(lv, rv)
                 if op == NE:
-                    return lv != rv
+                    return not _strict_expression_equal(lv, rv)
                 if op == LT:
                     return lv < rv
                 if op == GT:
@@ -960,36 +1255,68 @@ class SafeExpr:
                     return lv <= rv
                 if op == GE:
                     return lv >= rv
-            except TypeError:
-                return False
-            return False
+            except TypeError as exc:
+                raise ConditionTypeError(f"comparison operands are incompatible: {exc}") from exc
+            raise ConditionTypeError(f"unknown comparison operator {op}")
 
         # Safe function calls
         if tag == "call":
             args = [SafeExpr._eval_node(a, context) for a in node[2]]
-            return _call_safe_function(node[1], args)
+            return _call_safe_function(
+                node[1],
+                args,
+                context.get(_TRUSTED_NOW_KEY),
+            )
 
         # Quantifiers
         if tag == "all":
             _, collection_node, var, cond = node
+            if not isinstance(var, str) or var.startswith("__tarl_"):
+                raise ConditionTypeError(
+                    "ALL lambda variable uses a reserved internal name"
+                )
             col = SafeExpr._eval_node(collection_node, context)
             if not isinstance(col, (list, set, frozenset)):
-                return False
-            return all(
-                SafeExpr._eval_node(cond, {**context, var: item})
+                raise ConditionTypeError(
+                    f"ALL expected a collection, got {type(col).__name__}"
+                )
+            if not col:
+                raise ConditionTypeError(
+                    "ALL cannot establish a predicate over an empty collection"
+                )
+            results = [
+                _require_boolean(
+                    SafeExpr._eval_node(cond, {**context, var: item}),
+                    "ALL predicate",
+                )
                 for item in col
-            )
+            ]
+            return all(results)
         if tag == "any":
             _, collection_node, var, cond = node
+            if not isinstance(var, str) or var.startswith("__tarl_"):
+                raise ConditionTypeError(
+                    "ANY lambda variable uses a reserved internal name"
+                )
             col = SafeExpr._eval_node(collection_node, context)
             if not isinstance(col, (list, set, frozenset)):
-                return False
-            return any(
-                SafeExpr._eval_node(cond, {**context, var: item})
+                raise ConditionTypeError(
+                    f"ANY expected a collection, got {type(col).__name__}"
+                )
+            if not col:
+                raise ConditionTypeError(
+                    "ANY cannot establish a predicate over an empty collection"
+                )
+            results = [
+                _require_boolean(
+                    SafeExpr._eval_node(cond, {**context, var: item}),
+                    "ANY predicate",
+                )
                 for item in col
-            )
+            ]
+            return any(results)
 
-        return bool(node)
+        raise ConditionTypeError(f"unknown expression node {tag!r}")
 
     @staticmethod
     def _resolve_value(node, context: dict):
@@ -1008,41 +1335,16 @@ class SafeExpr:
         return None
 
 
-def _parse_numeric_string(value: str) -> int | float:
-    stripped = value.strip()
-    if not stripped:
-        raise ConditionTypeError("empty string in numeric comparison")
-    try:
-        if re.fullmatch(r"[+-]?\d+", stripped):
-            return int(stripped)
-        return float(stripped)
-    except ValueError as exc:
-        raise ConditionTypeError(
-            f"non-numeric string {value!r} in ordering comparison"
-        ) from exc
-
-
-def _numeric_value(value: Any) -> int | float:
-    if isinstance(value, bool):
-        raise ConditionTypeError("bool in ordering comparison")
-    if isinstance(value, (int, float)):
-        return value
-    if isinstance(value, str):
-        return _parse_numeric_string(value)
-    raise ConditionTypeError(
-        f"uncomparable type {type(value).__name__} in ordering comparison"
-    )
-
-
 def _coerce_ordered(lv: Any, rv: Any) -> tuple[Any, Any]:
-    """Coerce ordered operands numerically, or raise for fail-closed eval."""
-    if isinstance(lv, str) or isinstance(rv, str):
-        return _numeric_value(lv), _numeric_value(rv)
+    """Accept only type-compatible ordered operands; never parse strings."""
     if isinstance(lv, bool) or isinstance(rv, bool):
         raise ConditionTypeError("bool in ordering comparison")
     if isinstance(lv, (int, float)) and isinstance(rv, (int, float)):
-        return lv, rv
-    if type(lv) is type(rv):
+        return (
+            _require_numeric(lv, "numeric comparison"),
+            _require_numeric(rv, "numeric comparison"),
+        )
+    if isinstance(lv, str) and isinstance(rv, str):
         return lv, rv
     raise ConditionTypeError(
         f"cannot order {type(lv).__name__} and {type(rv).__name__}"
@@ -1050,20 +1352,23 @@ def _coerce_ordered(lv: Any, rv: Any) -> tuple[Any, Any]:
 
 
 def _coerce_equatable(lv: Any, rv: Any) -> tuple[Any, Any]:
-    """Keep compatibility for numeric strings in equality comparisons."""
+    """Coerce compatible equality operands or reject type confusion."""
     if isinstance(lv, bool) or isinstance(rv, bool):
+        if isinstance(lv, bool) and isinstance(rv, bool):
+            return lv, rv
+        raise ConditionTypeError(
+            f"cannot compare {type(lv).__name__} and {type(rv).__name__}"
+        )
+    if isinstance(lv, (int, float)) and isinstance(rv, (int, float)):
+        return (
+            _require_numeric(lv, "numeric comparison"),
+            _require_numeric(rv, "numeric comparison"),
+        )
+    if type(lv) is type(rv):
         return lv, rv
-    if isinstance(lv, (int, float)) and isinstance(rv, str):
-        try:
-            return lv, _parse_numeric_string(rv)
-        except ConditionTypeError:
-            return lv, rv
-    if isinstance(rv, (int, float)) and isinstance(lv, str):
-        try:
-            return _parse_numeric_string(lv), rv
-        except ConditionTypeError:
-            return lv, rv
-    return lv, rv
+    raise ConditionTypeError(
+        f"cannot compare {type(lv).__name__} and {type(rv).__name__}"
+    )
 
 
 # ── Module-level evaluate_policy ─────────────────────────────────────────────
@@ -1086,20 +1391,44 @@ def evaluate_policy(
             return DEFAULT_DENY
         policy = PolicyParser.parse(policy_text)
 
-    temporal = _check_policy_temporal(policy, now=now)
+    try:
+        prepared = prepare_context(context)
+    except ContextResolutionError as exc:
+        return TarlDecision(
+            verdict=TarlVerdict.DENY,
+            reason=str(exc),
+        )
+
+    try:
+        evaluation_now = (
+            _coerce_datetime(now)
+            if now is not None
+            else datetime.datetime.now(datetime.UTC)
+        )
+    except ConditionTypeError as exc:
+        return TarlDecision(
+            verdict=TarlVerdict.DENY,
+            reason=f"fail-closed: {exc}",
+        )
+
+    temporal = _check_policy_temporal(policy, now=evaluation_now)
     if temporal is not None:
         return temporal
 
     for i, rule in enumerate(policy.rules):
         try:
-            result = SafeExpr.evaluate(rule.condition, context, now=now)
+            result = SafeExpr.evaluate(
+                rule.condition, prepared, now=evaluation_now
+            )
             if result:
-                expires_at = None
-                if rule.duration_seconds:
-                    expires_at = (
-                        (now or datetime.datetime.now(datetime.UTC))
-                        + datetime.timedelta(seconds=rule.duration_seconds)
-                    ).isoformat(timespec="seconds")
+                authority_expiry = _policy_authority_expiry(
+                    policy, rule, evaluation_now
+                )
+                expires_at = (
+                    authority_expiry.isoformat(timespec="seconds")
+                    if authority_expiry is not None
+                    else None
+                )
                 return TarlDecision(
                     verdict=rule.verdict,
                     reason=f"Rule matched: {rule}",

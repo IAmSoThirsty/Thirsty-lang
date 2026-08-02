@@ -88,9 +88,49 @@ def test_derived_schema_from_policy_is_machine_readable():
     assert fields["authority_authenticated"]["kinds"] == ["bool"]
 
 
+def test_derived_schema_infers_bare_condition_as_boolean():
+    schema = derive_context_schema(
+        "policy p\nwhen enabled => ALLOW\nwhen true => DENY\n"
+    ).to_dict()
+
+    assert schema["status"] == "complete"
+    assert schema["fields"] == [
+        {"name": "enabled", "kinds": ["bool"], "required": True}
+    ]
+
+
+def test_derived_schema_keeps_quantifier_binder_local():
+    schema = derive_context_schema(
+        "policy p\n"
+        'when ALL(users, user -> user.role == "admin") => ALLOW\n'
+        "when true => DENY\n"
+    ).to_dict()
+
+    assert schema["status"] == "complete"
+    assert schema["fields"] == [
+        {"name": "users", "kinds": ["list"], "required": True}
+    ]
+    assert not any(field["name"].startswith("user.") for field in schema["fields"])
+
+
+def test_derived_schema_infers_contains_arguments_as_strings():
+    schema = derive_context_schema(
+        'policy p\nwhen CONTAINS(name, "admin") => ALLOW\nwhen true => DENY\n'
+    ).to_dict()
+
+    assert schema["status"] == "complete"
+    assert schema["fields"] == [
+        {"name": "name", "kinds": ["string"], "required": True}
+    ]
+
+
 def test_missing_schema_fails_closed_in_prove(tmp_path, monkeypatch, capsys):
     source = _write(tmp_path, "p.thirsty", "module m: governed\ndrink main = 1\n")
-    policy = _write(tmp_path, "p.tarl", "policy p\nwhen mystery => ALLOW\n")
+    policy = _write(
+        tmp_path,
+        "p.tarl",
+        "policy p\nwhen LEN(mystery) > 0 => ALLOW\n",
+    )
     with pytest.raises(SystemExit) as exc:
         _run_cli(monkeypatch, "prove", source, "--policy", policy)
     assert exc.value.code == 1
