@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 
 from utf.tarl.context import (
     CONTEXT_REPRESENTATION_ID,
+    NORMALIZATION_ALGORITHM_ID,
     RESERVED_CONTEXT_IDENTIFIERS,
     ContextResolutionError,
     ContextResolutionState,
@@ -145,7 +146,7 @@ class ContextSchema:
             "representation": {
                 "id": self.representation_id,
                 "path_model": "nested-objects",
-                "normalization": "none",
+                "normalization": NORMALIZATION_ALGORITHM_ID,
             },
             "on_violation": self.on_violation.value,
             "fields": fields,
@@ -255,11 +256,13 @@ class ContextSchema:
                 "unsupported context representation: "
                 f"{representation_id!r}; expected {CONTEXT_REPRESENTATION_ID!r}"
             )
-        normalization = representation.get("normalization", "none")
-        if normalization != "none":
+        normalization = representation.get(
+            "normalization", NORMALIZATION_ALGORITHM_ID
+        )
+        if normalization != NORMALIZATION_ALGORITHM_ID:
             raise ValueError(
-                "context schema normalization must be 'none'; silent "
-                "conversion is not permitted"
+                "unsupported context schema normalization: "
+                f"{normalization!r}; expected {NORMALIZATION_ALGORITHM_ID!r}"
             )
         path_model = representation.get("path_model", "nested-objects")
         if path_model != "nested-objects":

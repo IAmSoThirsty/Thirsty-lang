@@ -44,3 +44,6 @@ dmypy.json
 
 # pytest basetemp
 .tmp/
+
+# Generated PDF rendering intermediates (final PDFs live in output/pdf/)
+tmp/pdfs/

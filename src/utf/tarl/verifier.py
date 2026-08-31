@@ -22,8 +22,12 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from utf.tarl.context import (
     CONTEXT_REPRESENTATION_ID,
+    NORMALIZATION_ALGORITHM_ID,
     NORMALIZATION_VERSION,
+    SOURCE_INJECTION_ALGORITHM_ID,
     ContextResolutionError,
+    hash_rejected_canonical_binding,
+    hash_rejected_context,
     prepare_context,
 )
 from utf.tarl.core import (
@@ -132,11 +136,19 @@ def _check_context_coherence(proof: TarlProof) -> bool:
         return (
             proof.verdict is not TarlVerdict.ALLOW
             and proof.context_conflict_status in {"invalid", "conflict"}
-            and proof.canonical_context_hash == ""
-            and proof.context_hash == proof.original_context_hash
+            and isinstance(proof.canonical_context_hash, str)
+            and _is_sha256(proof.canonical_context_hash)
+            and proof.canonical_context_hash
+            == hash_rejected_canonical_binding(
+                proof.original_context_hash,
+                proof.context_conflict_status,
+            )
+            and proof.context_hash == proof.canonical_context_hash
         )
 
     if proof.normalization_algorithm_id not in {
+        NORMALIZATION_ALGORITHM_ID,
+        SOURCE_INJECTION_ALGORITHM_ID,
         "identity",
         "tarl.registered-source-injection",
     }:
@@ -656,17 +668,32 @@ class ProofVerifier:
         )
 
         # ── 5. Context binding (C023: replay an old proof for a new context) ──
-        source_transformed = (
-            proof.normalization_algorithm_id
-            == "tarl.registered-source-injection"
-        )
+        source_transformed = proof.normalization_algorithm_id in {
+            SOURCE_INJECTION_ALGORITHM_ID,
+            "tarl.registered-source-injection",
+        }
         prepared_expected_context = None
         prepared_expected_evaluated_context = None
         if expected_context is not None:
             try:
                 prepared_expected_context = prepare_context(expected_context)
             except ContextResolutionError:
-                cb_ok = False
+                if proof.normalization_algorithm_id == "rejected":
+                    rejected_original_hash = hash_rejected_context(
+                        expected_context
+                    )
+                    cb_ok = (
+                        proof.original_context_hash
+                        == rejected_original_hash
+                        and proof.canonical_context_hash
+                        == hash_rejected_canonical_binding(
+                            rejected_original_hash,
+                            proof.context_conflict_status or "invalid",
+                        )
+                        == proof.context_hash
+                    )
+                else:
+                    cb_ok = False
             else:
                 # The caller supplies the original request representation.  An
                 # identity evaluation must bind that same snapshot as canonical;
@@ -676,7 +703,7 @@ class ProofVerifier:
                     proof.original_context_hash
                     == prepared_expected_context.original_context_hash
                 )
-                if proof.normalization_algorithm_id == "identity":
+                if not source_transformed:
                     cb_ok = cb_ok and (
                         proof.canonical_context_hash
                         == prepared_expected_context.canonical_context_hash

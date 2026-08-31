@@ -14,7 +14,14 @@ import pytest
 from utf.tarl import cli as tarl_cli
 from utf.tarl.broker import CapabilityBroker
 from utf.tarl.composer import PolicyComposer
-from utf.tarl.context import ContextResolutionError, hash_rejected_context
+from utf.tarl.context import (
+    NORMALIZATION_ALGORITHM_ID,
+    ContextResolutionError,
+    hash_context,
+    hash_rejected_canonical_binding,
+    hash_rejected_context,
+    prepare_context,
+)
 from utf.tarl.core import PolicyParser, SafeExpr, evaluate_policy
 from utf.tarl.runtime import TarlRuntime
 from utf.tarl.schema import ContextSchema, FieldSpec
@@ -120,20 +127,38 @@ def test_resolved_wrong_value_type_fails_closed(condition):
 
 
 @pytest.mark.parametrize(
+    "context",
+    [
+        {"user.role": "admin"},
+        {"user": {"role": "admin"}},
+        {"user.role": "admin", "user": {"role": "admin"}},
+    ],
+)
+def test_flat_nested_and_equivalent_mixed_normalize_to_one_context(context):
+    prepared = prepare_context(context)
+    assert prepared.canonical == {"user": {"role": "admin"}}
+    assert prepared.canonical_context_hash == hash_context(
+        {"user": {"role": "admin"}}
+    )
+    assert evaluate_policy(context, policy_text=DOTTED_POLICY).verdict == (
+        TarlVerdict.ALLOW
+    )
+
+
+@pytest.mark.parametrize(
     ("context", "reason"),
     [
-        ({"user.role": "admin"}, "dotted key 'user.role' is not permitted"),
-        (
-            {"user.role": "admin", "user": {"role": "admin"}},
-            "context representation conflict: user.role is supplied in both flat and nested form",
-        ),
         (
             {"user.role": "guest", "user": {"role": "admin"}},
             "context representation conflict: user.role has contradictory flat and nested values",
         ),
+        (
+            {"user": "admin", "user.role": "admin"},
+            "context representation conflict: user.role collides with non-object intermediate 'user'",
+        ),
     ],
 )
-def test_non_authoritative_or_ambiguous_context_is_denied(context, reason):
+def test_conflicting_or_malformed_mixed_context_is_denied(context, reason):
     decision = evaluate_policy(context, policy_text=DOTTED_POLICY)
     assert decision.verdict == TarlVerdict.DENY
     assert decision.reason == reason
@@ -158,8 +183,6 @@ def test_permanent_matrix_through_safe_expr(
 ):
     condition = PolicyParser.parse(policy_text).rules[0].condition
     if case_id in {
-        "flat-dotted-key-only",
-        "flat-and-nested-equal",
         "flat-and-nested-conflicting",
         "missing-intermediate-object",
         "wrong-intermediate-type",
@@ -203,7 +226,9 @@ def test_permanent_matrix_through_schema_and_proof_obligations(
     schema = ContextSchema.from_dict(derived)
     violations = schema.validate(context)
     valid_cases = {
+        "flat-dotted-key-only",
         "nested-object-only",
+        "flat-and-nested-equal",
         "simple-identifier-allow",
         "simple-identifier-deny",
     }
@@ -227,7 +252,9 @@ def test_permanent_matrix_through_proof_creation_and_verification(
 
     verifier = ProofVerifier().add_hmac_key("matrix-key", b"matrix-secret")
     authoritative = case_id in {
+        "flat-dotted-key-only",
         "nested-object-only",
+        "flat-and-nested-equal",
         "simple-identifier-allow",
         "simple-identifier-deny",
     }
@@ -304,13 +331,16 @@ def test_schema_and_evaluator_resolve_the_same_nested_path():
 
     runtime = TarlRuntime(PolicyParser.parse(DOTTED_POLICY)).set_context_schema(schema)
     assert runtime.evaluate(nested).verdict == TarlVerdict.ALLOW
-    assert runtime.evaluate({"user.role": "admin"}).verdict == TarlVerdict.DENY
+    assert runtime.evaluate({"user.role": "admin"}).verdict == TarlVerdict.ALLOW
+    assert schema.validate({"user.role": "admin"}) == []
 
 
 def test_derived_schema_declares_the_authoritative_representation():
     schema = derive_context_schema(DOTTED_POLICY).to_dict()
     assert schema["representation"]["id"] == "tarl.context.nested-json.v1"
-    assert schema["representation"]["normalization"] == "none"
+    assert schema["representation"]["normalization"] == (
+        NORMALIZATION_ALGORITHM_ID
+    )
     assert schema["fields"] == [
         {"name": "user.role", "kinds": ["string"], "required": True}
     ]
@@ -331,7 +361,7 @@ def test_runtime_proof_binds_the_exact_evaluated_context():
     assert proof.original_context_hash == expected_hash
     assert proof.canonical_context_hash == expected_hash
     assert proof.context_representation_id == "tarl.context.nested-json.v1"
-    assert proof.normalization_algorithm_id == "identity"
+    assert proof.normalization_algorithm_id == NORMALIZATION_ALGORITHM_ID
     assert proof.normalization_version == "1"
     assert proof.context_conflict_status == "none"
     assert proof.context_schema_hash == schema.fingerprint()
@@ -348,14 +378,56 @@ def test_runtime_proof_binds_the_exact_evaluated_context():
     assert result.checks["context_binding"] is True
 
 
+def test_flat_context_proof_binds_original_and_canonical_representations():
+    original = {"user.role": "admin"}
+    canonical = {"user": {"role": "admin"}}
+    schema = ContextSchema.from_dict(derive_context_schema(DOTTED_POLICY).to_dict())
+    runtime = TarlRuntime(PolicyParser.parse(DOTTED_POLICY)).set_context_schema(
+        schema
+    )
+    runtime.set_signing_key("context-key", b"context-secret")
+
+    decision, proof = runtime.evaluate_with_proof(original)
+
+    assert decision.verdict == TarlVerdict.ALLOW
+    assert proof.original_context_hash == hash_context(original)
+    assert proof.canonical_context_hash == hash_context(canonical)
+    assert proof.context_hash == proof.canonical_context_hash
+    assert proof.original_context_hash != proof.canonical_context_hash
+    assert proof.normalization_algorithm_id == NORMALIZATION_ALGORITHM_ID
+    assert proof.normalization_version == "1"
+    assert proof.context_conflict_status == "none"
+
+    verifier = ProofVerifier().add_hmac_key(
+        "context-key", b"context-secret"
+    )
+    assert verifier.verify(proof, expected_context=original).valid is True
+    rebound = verifier.verify(proof, expected_context=canonical)
+    assert rebound.valid is False
+    assert rebound.checks["context_binding"] is False
+
+
 def test_conflicting_context_produces_deny_proof_not_allow_proof():
     context = {"user.role": "guest", "user": {"role": "admin"}}
     runtime = TarlRuntime(PolicyParser.parse(DOTTED_POLICY))
+    runtime.set_signing_key("context-key", b"context-secret")
     decision, proof = runtime.evaluate_with_proof(context)
     assert decision.verdict == TarlVerdict.DENY
     assert proof.verdict == TarlVerdict.DENY
     assert proof.context_conflict_status == "conflict"
     assert proof.original_context_hash == hash_rejected_context(context)
+    assert proof.canonical_context_hash == hash_rejected_canonical_binding(
+        proof.original_context_hash, "conflict"
+    )
+    assert proof.context_hash == proof.canonical_context_hash
+    assert proof.normalization_version == "1"
+
+    result = ProofVerifier().add_hmac_key(
+        "context-key", b"context-secret"
+    ).verify(proof, expected_context=context)
+    assert result.valid is True
+    assert result.checks["context_coherence"] is True
+    assert result.checks["context_binding"] is True
 
 
 def test_positive_proof_metadata_tampering_is_inadmissible():

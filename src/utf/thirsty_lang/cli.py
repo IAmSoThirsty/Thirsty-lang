@@ -1218,7 +1218,7 @@ def cmd_doctor(args):
 
 
 def cmd_lsp(args):
-    """Start the language server (JSON-RPC over stdio or a TCP socket)."""
+    """Start the TARL language server (JSON-RPC over stdio or a TCP socket)."""
     from utf.tarl.lsp import TarlLanguageServer
 
     if args.stdio:
@@ -1281,7 +1281,9 @@ def cmd_docs(args):
 </head>
 <body>
     <h1>🌊 Thirsty-Lang Documentation</h1>
-    <p>A governance-first programming language with water-metaphor syntax.</p>
+     <p>Version __VERSION__: a governance-first language family with
+     proof-carrying T.A.R.L. policy decisions.</p>
+     <p><a href="https://github.com/IAmSoThirsty/Thirsty-lang/blob/master/docs/THIRSTY_LANG_101.md">Canonical Thirsty-Lang 101 manual</a></p>
 
     <h2>Quick Start</h2>
     <pre><code><span class="keyword">module</span> hello: core
@@ -1296,23 +1298,27 @@ def cmd_docs(args):
     <h2>Keywords</h2>
     <p>Core: drink, pour, sip, thirsty, hydrated, thirst, quench, refill, glass, reservoir, well, of, flood, drip, evaporate, condense, fountain, return, mut, empty</p>
     <p>Security: shield, sanitize, armor, morph, detect, defend</p>
-    <p>Governance: cascade, spillage, cleanup, throw, policy, when, ALLOW, DENY, ESCALATE</p>
+     <p>Structured flow: cascade, spillage, cleanup, throw</p>
+     <p>T.A.R.L. policy files: policy, when, ALLOW, DENY, ESCALATE</p>
     <p>Shadow Thirst: mutation, validated_canonical, shadow, invariant, canonical, promote, reject</p>
 
     <h2>Types</h2>
-    <p>Int, Float, Bool, String, Void, Any, Quenched&lt;T&gt;, Reservoir&lt;T&gt;, Task&lt;T&gt;, Result&lt;T,E&gt;, Governed&lt;T&gt;</p>
+     <p>Int, Float, Bool, String, Void, Any, Error, Quenched, Reservoir, Task, Result, Governed</p>
 
     <h2>CLI</h2>
     <p><code>thirsty run file.thirsty</code> — Execute a program</p>
     <p><code>thirsty repl</code> — Interactive REPL</p>
-    <p><code>thirsty fmt file.thirsty</code> — Format source</p>
-    <p><code>thirsty new project</code> — Scaffold project</p>
+     <p><code>thirsty fmt file.thirsty</code> — Format source</p>
+     <p><code>thirsty new project</code> — Scaffold project</p>
+     <p>Installed companion commands: <code>tarl</code>, <code>tarl-lsp</code>,
+     <code>thirst-of-gods</code>, <code>shadow-thirst</code>, <code>tscg</code>,
+     and <code>tscg-b</code>.</p>
 
     <footer>
-        <p>Thirsty-Lang v1.0.0 — The Universal Thirsty Family</p>
+         <p>Thirsty-Lang v__VERSION__ — The Universal Thirsty Family</p>
     </footer>
 </body>
-</html>"""
+ </html>""".replace("__VERSION__", __version__)
 
     index_path = os.path.join(output_dir, "index.html")
     with open(index_path, "w", encoding="utf-8") as f:

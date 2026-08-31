@@ -18,6 +18,8 @@ from concurrent.futures import ThreadPoolExecutor
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from utf.tarl.context import (
+    NORMALIZATION_ALGORITHM_ID,
+    SOURCE_INJECTION_ALGORITHM_ID,
     ContextResolutionError,
     ContextResolutionState,
     PreparedContext,
@@ -477,9 +479,9 @@ class TarlRuntime:
         enriched = self._inject_sources(original.canonical)
         evaluated = prepare_context(enriched, allow_source_keys=True)
         algorithm = (
-            "identity"
-            if original.original_context_hash == evaluated.canonical_context_hash
-            else "tarl.registered-source-injection"
+            NORMALIZATION_ALGORITHM_ID
+            if original.canonical_context_hash == evaluated.canonical_context_hash
+            else SOURCE_INJECTION_ALGORITHM_ID
         )
         return PreparedContext(
             canonical=evaluated.canonical,

@@ -23,6 +23,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
 )
 
+from utf.tarl.context import SOURCE_INJECTION_ALGORITHM_ID
 from utf.tarl.core import PolicyParser
 from utf.tarl.spec import TarlDecision, TarlProof, TarlVerdict
 from utf.tarl.verifier import (
@@ -266,7 +267,10 @@ class QuorumResolver:
                 return False, f"time-bound escalation expiry is invalid: {exc}"
             if verification_now >= expires_at:
                 return False, "escalated decision has expired"
-        if proof.normalization_algorithm_id == "tarl.registered-source-injection":
+        if proof.normalization_algorithm_id in {
+            SOURCE_INJECTION_ALGORITHM_ID,
+            "tarl.registered-source-injection",
+        }:
             if expected_context is None or expected_evaluated_context is None:
                 return False, (
                     "source-injected escalation requires original and "
@@ -313,7 +317,10 @@ class QuorumResolver:
                 "not an ESCALATE decision; nothing to resolve")
         if (
             proof.normalization_algorithm_id
-            == "tarl.registered-source-injection"
+            in {
+                SOURCE_INJECTION_ALGORITHM_ID,
+                "tarl.registered-source-injection",
+            }
             and (
                 expected_context is None
                 or expected_evaluated_context is None

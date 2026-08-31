@@ -3,44 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Thirsty-Lang — Documentation</title>
+<title>Thirsty-Lang 0.8.6 Documentation</title>
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; line-height: 1.6; color: #333; }
-  h1 { border-bottom: 2px solid #1a73e8; padding-bottom: 0.5rem; color: #1a1a1a; }
-  h2 { color: #1a73e8; margin-top: 2rem; }
-  ul { padding-left: 1.5rem; }
-  li { margin: 0.5rem 0; }
-  a { color: #1a73e8; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .tag { display: inline-block; background: #e8f0fe; color: #1a73e8; padding: 0.1rem 0.5rem; border-radius: 3px; font-size: 0.85rem; margin-left: 0.5rem; }
-  .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #ddd; font-size: 0.9rem; color: #666; }
+  :root { --navy:#102a43; --blue:#0ea5e9; --pale:#eef8ff; --ink:#243b53; --line:#c9e8f7; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 1040px; margin: 0 auto; padding: 2rem; line-height: 1.62; color: var(--ink); background:#fff; }
+  header { padding: 2.4rem; border-radius: 18px; color:#fff; background:linear-gradient(135deg,var(--navy),#075985 70%,var(--blue)); box-shadow:0 12px 30px rgba(16,42,67,.16); }
+  h1 { margin:0 0 .35rem; font-size:2.45rem; }
+  h2 { color:var(--navy); margin-top:2.1rem; border-bottom:2px solid var(--line); padding-bottom:.35rem; }
+  h3 { color:#075985; }
+  a { color:#0369a1; text-decoration:none; font-weight:600; }
+  a:hover { text-decoration:underline; }
+  .lede { max-width:760px; font-size:1.08rem; margin-bottom:0; }
+  .badges { margin-top:1rem; }
+  .badge { display:inline-block; margin:.2rem .35rem .2rem 0; padding:.24rem .62rem; border:1px solid rgba(255,255,255,.55); border-radius:999px; font-size:.82rem; }
+  .hero-links { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:1rem; margin:1.4rem 0; }
+  .card { display:block; padding:1.15rem; border:1px solid var(--line); border-radius:12px; background:var(--pale); }
+  .card strong { display:block; color:var(--navy); font-size:1.08rem; margin-bottom:.3rem; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1.3rem; }
+  ul { padding-left:1.25rem; }
+  li { margin:.48rem 0; }
+  code { background:#f1f5f9; border-radius:4px; padding:.12rem .3rem; }
+  .notice { border-left:5px solid var(--blue); background:var(--pale); padding:.9rem 1.1rem; margin:1.2rem 0; }
+  footer { margin-top:3rem; padding-top:1rem; border-top:1px solid var(--line); font-size:.9rem; color:#627d98; }
 </style>
 </head>
 <body>
-<h1>Thirsty-Lang Documentation</h1>
-<p><strong>Thirsty-Lang (Universal Thirsty Family — UTF)</strong> is a governance-first programming language family designed to make Red Hat and Black Hat attack patterns structurally harder through water-metaphor syntax.</p>
+<header>
+  <h1>Thirsty-Lang Documentation</h1>
+  <p class="lede">The end-to-end reference hub for Thirsty-Lang 0.8.6: language, governance, T.A.R.L., proof integrity, operations, security, and the six-tier Universal Thirsty Family.</p>
+  <div class="badges"><span class="badge">Version 0.8.6</span><span class="badge">Python 3.11+</span><span class="badge">Apache-2.0</span><span class="badge">Seven CLIs</span></div>
+</header>
 
-<h2>Module API Reference</h2>
-<ul>
-  <li><a href="./src/utf/thirsty_lang.html">thirsty_lang</a> <span class="tag">Tier 1</span> — Core language: lexer, parser, AST, type system, interpreter, CLI, formatter, module system</li>
-  <li><a href="./src/utf/thirst_of_gods.html">thirst_of_gods</a> <span class="tag">Tier 2</span> — Deity contract validation for OOP, async, error handling</li>
-  <li><a href="./src/utf/tarl.html">tarl</a> <span class="tag">Tier 3</span> — T.A.R.L. policy-as-code engine with default-DENY</li>
-  <li><a href="./src/utf/shadow_thirst.html">shadow_thirst</a> <span class="tag">Tier 4</span> — Mutation analysis and invariant verification</li>
-  <li><a href="./src/utf/tscg.html">tscg</a> <span class="tag">Tier 5</span> — Symbolic constraint grammar with 9 core symbols</li>
-  <li><a href="./src/utf/tscg_b.html">tscg_b</a> <span class="tag">Tier 6</span> — Binary frame protocol with CRC32/SHA-256</li>
-</ul>
+<section class="hero-links">
+  <a class="card" href="THIRSTY_LANG_101.md"><strong>Canonical Thirsty-Lang 101</strong>Integrated tutorial, exact contracts, operations, and source traceability.</a>
+  <a class="card" href="../output/pdf/Thirsty-Lang-101.pdf"><strong>Single canonical PDF</strong>Portable, bookmarked, generated edition of the complete 101 corpus.</a>
+  <a class="card" href="STATUS.md"><strong>Competence and feature status</strong>What passes, what remains blocked, and the test evidence.</a>
+</section>
 
-<h2>Language Specification</h2>
-<ul>
-  <li><a href="LANGUAGE_SPEC.md">LANGUAGE_SPEC.md</a> — Human-readable language reference covering all 6 tiers</li>
-  <li><a href="GRAMMAR.md">GRAMMAR.md</a> — Formal BNF/EBNF grammar for Thirsty-Lang Tier 1</li>
-</ul>
+<div class="notice"><strong>Security release:</strong> use 0.8.6 or later for dotted-path policy authority. Versions through 0.8.5 contain the documented fail-open context-resolution defect.</div>
 
-<h2>Contact</h2>
-<p>For all inquiries, bug reports, and support: <strong>FounderOfTP@thirstysprojects.com</strong></p>
-
-<div class="footer">
-  <p>Copyright 2026 Thirsty's Projects LLC — Apache 2.0 License</p>
+<h2>Specifications and reference</h2>
+<div class="grid">
+  <section><h3>Language</h3><ul>
+    <li><a href="LANGUAGE_SPEC.md">Language specification</a></li>
+    <li><a href="GRAMMAR.md">Tier 1 grammar</a></li>
+    <li><a href="FEATURES.md">Feature reference</a></li>
+    <li><a href="WHITEPAPER.md">Architecture whitepaper</a></li>
+  </ul></section>
+  <section><h3>Governance and security</h3><ul>
+    <li><a href="governance_model.md">Governance model</a></li>
+    <li><a href="THREAT_MODEL.md">Offensive threat model C001-C073</a></li>
+    <li><a href="STATUS.md">Bootstrap Competence Register</a></li>
+    <li><a href="../SECURITY.md">Security policy</a></li>
+  </ul></section>
+  <section><h3>Operations</h3><ul>
+    <li><a href="PRODUCTION_DEPLOYMENT.md">Production deployment checklist</a></li>
+    <li><a href="SIGNING.md">Release authentication and attestations</a></li>
+    <li><a href="../DOCKER.md">Container guide</a></li>
+    <li><a href="operations/CONTINUITY_MAP.md">Operational continuity map</a></li>
+  </ul></section>
 </div>
+
+<h2>Installed module API</h2>
+<ul>
+  <li><a href="./src/utf/thirsty_lang.html">utf.thirsty_lang</a> - Tier 1 lexer, parser, checker, interpreter, formatter, module system, and CLI</li>
+  <li><a href="./src/utf/thirst_of_gods.html">utf.thirst_of_gods</a> - Tier 2 structural contract validation</li>
+  <li><a href="./src/utf/tarl.html">utf.tarl</a> - Tier 3 policy, context, proofs, verification, authority, and audit</li>
+  <li><a href="./src/utf/shadow_thirst.html">utf.shadow_thirst</a> - Tier 4 mutation and promotion analysis</li>
+  <li><a href="./src/utf/tscg.html">utf.tscg</a> - Tier 5 symbolic constraints</li>
+  <li><a href="./src/utf/tscg_b.html">utf.tscg_b</a> - Tier 6 binary integrity frames</li>
+</ul>
+
+<h2>Source authority</h2>
+<p>The Markdown specifications explain the contract. Active source and deterministic tests decide implemented behavior. Repository-local <code>governance/</code> and <code>src/psia</code> surfaces are not part of the published 0.8.6 package unless packaging configuration changes.</p>
+
+<footer>
+  <p>Copyright 2026 Thirsty's Projects LLC. Apache-2.0. Security reports: FounderOfTP@thirstysprojects.com.</p>
+</footer>
 </body>
 </html>

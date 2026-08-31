@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Reconciled README, security, governance, deployment, contribution, signing,
+  Docker, shipping, status, threat-model, whitepaper, specification, grammar,
+  and continuity guidance with the released 0.8.6 behavior and receipts.
+- Added `docs/THIRSTY_LANG_101.md` as the integrated canonical source and a
+  reproducible `output/pdf/Thirsty-Lang-101.pdf` single-file edition with a
+  checked source manifest, bookmarks, table of contents, and validation tooling.
+- Distinguished proof records from signed proofs and explicit durable audit
+  configuration; removed claims that hardened mode automatically provisions an
+  audit archive.
+- Made GHCR 0.8.6 the authoritative container source and marked the stale
+  Docker Hub 0.8.1 image as historical and unsuitable for the repaired release.
+- Reframed OpenPGP wheel signatures as optional out-of-band artifacts because
+  PyPI ignores PGP signatures, and documented Trusted Publishing as a future
+  OIDC/attestation migration rather than a property of 0.8.6.
+
+### Fixed
+
+- Corrected the Docker workflow summary so it prints a Docker Hub pull command
+  only when Docker Hub credentials actually enabled that publication leg.
+- Repaired Compose `build-js` to compile a real example into the writable
+  `dist/` mount, repaired `fmt` to pass source files instead of a directory, and
+  removed the obsolete top-level Compose version field.
+- Updated the embedded `thirsty docs` page to report the installed package
+  version, identify the TARL LSP, enumerate all companion CLIs, and link the
+  canonical manual.
+
 ## [0.8.6] - 2026-08-02
 
 ### Security
@@ -76,6 +104,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Documented the current GitHub `release` environment and scoped PyPI API-token
   authentication used by the release workflow.
+- Added tagged-commit validation before publication: tag/package version match,
+  Ruff, mypy, and the full suite with a 90 percent coverage floor.
+- Added package smoke coverage for all seven installed console entry points,
+  including `tarl-lsp --help` and `--version` metadata.
+- Verified the published release from a clean PyPI install and published the
+  multi-architecture GHCR image for `linux/amd64` and `linux/arm64`.
 
 ## [0.8.5] - 2026-07-22
 
@@ -516,7 +550,10 @@ rather than grep, and CI is the gate.
 ### Added — Phase 1: Condition Algebra
 
 - Replaced regex tokenizer with a proper state-machine lexer in `core.py`
-- Nested attribute access: `user.role.clearance` walks nested context dicts; missing key returns `false` (never errors)
+- Historical 0.2.0 behavior: nested attribute access walked dictionaries and a
+  missing key returned `false`. **Superseded and security-fixed in 0.8.6:**
+  missing, malformed, and conflicting paths are distinct fail-closed states and
+  never become boolean false.
 - Full arithmetic operators: `-`, `*`, `/`, `%` alongside existing `+`
 - Set membership: `value IN [...]` and `value NOT IN [...]` as first-class operators
 - Dynamic source binding: `source:name` references a live data provider registered via `TarlRuntime.register_source(name, callable)`; missing source evaluates to `[]` (never silently ALLOWs)
@@ -688,12 +725,17 @@ rather than grep, and CI is the gate.
 ### Features
 - Governance-first design philosophy
 - Deny-by-default policy model (T.A.R.L.)
-- No runtime dependencies (stdlib only)
+- Historical 0.1.0 claim: no runtime dependencies. Current releases require
+  `cryptography>=41.0` for proof and authority surfaces.
 - Apache 2.0 license
 
 ---
 
-## Future Roadmap
+## Historical Roadmap (superseded)
+
+The following early-version plan is retained only as release history. It is not
+the current roadmap; several items shipped, changed direction, or were replaced
+by the 0.8.x governance and release model.
 
 ### Planned for 0.1.6+
 - Pre-commit hook integration for contributor workflow (expanded)

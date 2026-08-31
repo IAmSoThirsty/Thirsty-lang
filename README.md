@@ -2,7 +2,7 @@
 
 # 💧 Thirsty-Lang 💧
 
-### *The world's first governance-first programming language family*
+### *A governance-first programming language family*
 
 ```text
   source  →  verdict  →  proof  →  audit  →  governed effect
@@ -43,8 +43,10 @@ did so correctly?*
 Instead of treating governance as documentation, middleware, or operational
 policy applied after deployment, Thirsty-Lang treats **governance as part of
 the execution model itself**. Sensitive operations require policy evaluation,
-authority verification, proof generation, and audit recording before producing
-governed effects.
+authority verification and proof generation before producing governed effects.
+Deployments that require durable audit persistence must attach a
+`TarlAuditArchive` and enable `set_require_audit(True)`; hardened mode alone
+does not provision an archive.
 
 The result is a language designed to make execution not only programmable, but
 **explainable, attributable, and defensible** — by construction, not by
@@ -57,7 +59,8 @@ The core posture is non-negotiable:
 | 🌊 No policy | **DENY** |
 | 🔐 No authority | **DENY** |
 | 🧾 No proof | No governed-execution claim |
-| ⚡ No verdict | No side effect |
+| ⚡ No verdict | No governed side effect |
+| ⛓️ Required audit write fails | **DENY** when an archive is attached and audit is required |
 | 🧱 Governance loss | Must be explicitly confessed — never silently dropped |
 
 ---
@@ -81,6 +84,15 @@ git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
 cd Thirsty-lang
 pip install -e .
 ```
+
+## Canonical Manual
+
+The end-to-end reference is the
+[`Thirsty-Lang 101`](docs/THIRSTY_LANG_101.md) manual. Its generated single-file
+edition is [`Thirsty-Lang-101.pdf`](output/pdf/Thirsty-Lang-101.pdf). It unifies
+the language tutorial, exact grammar, all seven CLIs, T.A.R.L. policy and proof
+contracts, the six-tier family, deployment, security, release evidence, and
+source/test traceability for version 0.8.6.
 
 ---
 
@@ -258,12 +270,12 @@ adapters.
 
 | Current | Capability | Defensive effect |
 |---|---|---|
-| 🌊 | Default-deny governed mode | Missing policy, authority, proof, or audit state refuses execution instead of granting it |
+| 🌊 | Default-deny governed mode | Missing policy, authority, or admissible proof refuses governed execution instead of granting it |
 | 🚪 | Capability broker | External effects such as FFI/native calls and tool invocations can be mediated before execution |
 | 🧰 | Sensitive stdlib gates | File, network, process, env, database, logging, and related calls are treated as capability-bearing effects |
 | 🔐 | Signed authority claims | Hardened mode can require authenticated authority instead of trusting a raw string like `admin` |
 | 🧾 | Proof verifier | Rejects tampered, stale, unsigned, wrong-key, revoked, or context-mismatched decisions when strict checks are enabled |
-| ⛓️ | Hash-linked audit | Proof archives can detect edits, deletions, and reordering |
+| ⛓️ | Hash-linked audit | Attached proof archives can detect edits, deletions, and reordering; production deployments must explicitly require persistence |
 | ⏱️ | Trusted clock | Temporal policy can use signed time instead of the host clock |
 | 🗺️ | Path guard | Filesystem roots can be canonicalized and confined against traversal and symlink escape |
 | 🗳️ | Policy lint and quorum | Broad `ALLOW` rules are flagged; `ESCALATE` promotion requires a verified policy/schema-bound proof plus distinct digest-bound approvals |
@@ -368,8 +380,9 @@ thirst-of-gods --help
 
 | Command | Current | Surface |
 |---|---|---|
-| `thirsty` | 🌊 | run, format, build, static proof-obligation reports, denial explanations, govern, LSP, docs |
+| `thirsty` | 🌊 | run, format, build, static proof-obligation reports, denial explanations, govern, TARL LSP launcher, docs |
 | `tarl` | 🛡️ | evaluate policies, verify proofs, inspect audits |
+| `tarl-lsp` | 🧭 | run the T.A.R.L. language server directly |
 | `shadow-thirst` | 🌑 | analyze mutation and promotion risk |
 | `tscg` | 🧬 | parse and canonicalize symbolic constraints |
 | `tscg-b` | 📡 | encode and decode binary constraint frames |
@@ -403,8 +416,10 @@ The compact schema shape is:
 Schema field names and TARL expressions use the same dotted-path notation over
 the authoritative nested representation. Generated schemas declare that
 representation explicitly and request no silent normalization. Positive proofs
-bind the original and evaluated context hashes, representation identifier,
-transformation algorithm/version, and conflict status.
+bind the original and canonical/evaluated context hashes, representation ID,
+normalization algorithm ID and version, conflict status, schema fingerprint,
+schema representation and validation result, policy hash, matched rule and
+condition, verdict, trace, evaluation time, and applicable expiry.
 
 A plain evaluator may return `ALLOW` without an attached schema, but that result
 is not load-bearing advancement authority. `CapabilityBroker` and the governed
@@ -464,6 +479,7 @@ decision at `ESCALATE`.
 
 This project keeps defensive claims tied to files that can be inspected:
 
+- canonical end-to-end manual: [`docs/THIRSTY_LANG_101.md`](docs/THIRSTY_LANG_101.md)
 - status matrix: [`docs/STATUS.md`](docs/STATUS.md)
 - adversary model and challenge catalog: [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
 - governance runtime model: [`docs/governance_model.md`](docs/governance_model.md)

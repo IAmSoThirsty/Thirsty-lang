@@ -1,340 +1,411 @@
 # Thirsty-Lang Grammar (Tier 1)
 
-## Reserved Keywords (Higher Tiers)
+**Edition:** Thirsty-Lang v0.8.6
 
-The following keywords are syntactically reserved for Tiers 5/6 (TSCG / TSCG-B)
-and produce no runtime effect in Thirsty-Lang core. They exist in the lexer
-for upward compatibility only.
+**Scope:** syntax accepted by `utf.thirsty_lang.lexer.Lexer` and
+`utf.thirsty_lang.parser.Parser`
 
-```
-shield     — identity/access context barrier
-sanitize   — data scrubbing annotation
-armor      — runtime safety wrap
-morph      — type coercion boundary
-detect     — anomaly tap point
-defend     — invariant enforcement hook
-```
+**Canonical handbook:** [Thirsty-Lang 101](THIRSTY_LANG_101.md)
 
-See `docs/governance_model.md` for the tier escalation model.
+This is the source-authoritative EBNF-style reference for the Tier 1 parser.
+It describes accepted syntax, not every semantic or governance guarantee. The
+lexer, parser, and their regression tests govern if an older example conflicts
+with this document.
 
----
-
-An EBNF-style formal grammar for the Thirsty-Lang programming language (core tier).  
-This doc covers lexical grammar, program structure, types, expressions, statements, and declarations.
+Several words used by higher tiers are reserved by the Tier 1 lexer. Some also
+have a Tier 1 parse form: `shield` and `detect` wrap a block; `sanitize` and
+`armor` wrap an expression; `morph` declares a callable transform; and `defend`
+records a strategy form. Their presence alone does not provide a higher-tier
+security guarantee. See the [governance model](governance_model.md).
 
 ---
 
 ## Notation
 
-- `"…"` — literal keyword or symbol
-- `'…'` — literal character or token
-- `( … )` — grouping
-- `[ … ]` — optional
-- `{ … }` — zero or more repetitions
-- `… | …` — alternation
-- `/* … */` — semantic comment
+- `"..."` denotes a literal keyword or symbol.
+- `( ... )` groups grammar terms.
+- `[ ... ]` is optional.
+- `{ ... }` repeats zero or more times.
+- `A | B` is alternation.
+- `/* ... */` is a note about parsing or semantics.
 
 ---
 
-## 1. Lexical Grammar
+## 1. Lexical grammar
 
+### 1.1 Identifiers and member access
+
+```ebnf
+identifier_start = alphabetic | "_" ;
+identifier_rest  = alphanumeric | "_" ;
+identifier       = identifier_start { identifier_rest } ;
+
+member_access    = expression "." member_name ;
 ```
-letter         = "A".."Z" | "a".."z" ;
+
+`alphabetic` and `alphanumeric` follow Python's Unicode-aware `str.isalpha()`
+and `str.isalnum()` behavior. A dot is **not** part of an identifier. For
+example, `user.role` lexes as `identifier`, `.`, `identifier` and the parser
+builds a member-access path. After a dot, a reserved word whose spelling is a
+valid identifier may be used as the member name, such as `log.error`.
+
+### 1.2 Numbers
+
+```ebnf
 digit          = "0".."9" ;
 hex_digit      = digit | "a".."f" | "A".."F" ;
-ident_char     = letter | digit | "_" | "." ;
+oct_digit      = "0".."7" ;
+binary_digit   = "0" | "1" ;
 
-identifier     = ( letter | "_" ) { ident_char } ;
+decimal_int    = digit { digit } ;
+hex_int        = ( "0x" | "0X" ) hex_digit { hex_digit } ;
+octal_int      = ( "0o" | "0O" ) oct_digit { oct_digit } ;
+binary_int     = ( "0b" | "0B" ) binary_digit { binary_digit } ;
+integer        = decimal_int | hex_int | octal_int | binary_int ;
 
-integer        = digit { digit }
-               | "0x" hex_digit { hex_digit }
-               | "0b" ("0" | "1") { ("0" | "1") } ;
-
-float          = digit { digit } "." digit { digit } [ ("e" | "E") ["+" | "-"] digit { digit } ] ;
-
-string         = '"' { char | escape } '"' ;
-escape         = "\\" ( "n" | "t" | "r" | "0" | "\\" | '"' | "x" hex_digit hex_digit ) ;
-
-comment        = "//" { char } newline
-               | "/*" { char } "*/" ;
-
-newline        = '\n' ;
-whitespace     = ' ' | '\t' | '\r' | newline ;
+exponent       = ( "e" | "E" ) [ "+" | "-" ] digit { digit } ;
+float          = decimal_int "." digit { digit } [ exponent ]
+               | decimal_int exponent ;
 ```
+
+`3.` is an integer followed by a dot, not a float. A fractional form therefore
+requires at least one digit after the dot.
+
+### 1.3 Strings and escapes
+
+```ebnf
+string         = double_quoted_string | single_quoted_string ;
+double_quoted_string = '"' { string_character | escape } '"' ;
+single_quoted_string = "'" { string_character | escape } "'" ;
+
+escape         = "\\n" | "\\t" | "\\0" | "\\\\" | "\\\"" | "\\'" ;
+```
+
+The decoded escapes in v0.8.6 are newline (`\n`), tab (`\t`), NUL (`\0`),
+backslash (`\\`), double quote (`\"`), and single quote (`\'`). `\r` and
+hex escapes such as `\x41` are not implemented escape forms. For compatibility,
+the current lexer drops the backslash from an unknown escape and retains the
+following character; code should not rely on that fallback. Quoted strings may
+span physical lines.
+
+### 1.4 Comments and whitespace
+
+```ebnf
+line_comment   = "//" { character - newline } ( newline | EOF ) ;
+block_comment  = "/*" { character | block_comment } "*/" ;
+whitespace     = " " | "\t" | "\r" | "\n" ;
+```
+
+Block comments may nest. Whitespace, including newlines, separates tokens but
+does not itself produce a statement-termination token.
 
 ---
 
-## 2. Program Structure
+## 2. Program structure and types
 
-```
-program        = module_header { import_stmt } { declaration } EOF ;
+```ebnf
+program        = [ module_header ] { statement } EOF ;
 
 module_header  = "module" identifier ":" module_mode ;
-
 module_mode    = "core" | "governed" | "strict" | "pure" ;
 
-/* "strict": every `drink`/`let` binding must have an initializer (a bare
-   `drink x` is a runtime error). "pure": side-effecting I/O (`pour`/`sip`)
-   is rejected at runtime. */
+import_stmt    = "import" string [ "as" identifier ] [ ";" ] ;
 
-import_stmt    = "import" string [ "as" identifier ] ;
+type_name      = identifier ;
+parameter      = identifier [ ":" type_name ] ;
+parameters     = "(" [ parameter { "," parameter } ] ")" ;
 ```
+
+The module header, when present, must be first. Imports are ordinary statements
+and may occur wherever the parser accepts a statement.
+
+Type annotations currently consume exactly one identifier. The checker
+recognizes the built-in names `Int`, `Float`, `Bool`, `String`, `Void`, `Any`,
+and `Error`. Function-type, tuple-type, and bracketed generic syntax are not
+accepted in a Tier 1 annotation by the v0.8.6 parser.
+
+In `strict` mode, `drink` and `let` bindings require an initializer at runtime.
+In `pure` mode, side-effecting `pour` and `sip` operations are rejected at
+runtime.
 
 ---
 
-## 3. Types
+## 3. Expressions
 
-```
-type           = simple_type | function_type | tuple_type | "any" | "never" ;
+The productions below are ordered from lowest to highest binding power.
 
-simple_type    = "int" | "float" | "str" | "bool" | "void"
-               | identifier          /* user-defined types */ ;
+```ebnf
+expression       = assignment ;
 
-function_type  = "(" [type { "," type }] ")" "->" type ;
+assignment       = low_pipe [ "=" assignment ] ;
 
-tuple_type     = "(" type { "," type } ")" ;
-```
+low_pipe         = logical_or { ( "|" | "|>" ) logical_or } ;
 
----
+logical_or       = logical_and { "or" logical_and } ;
+logical_and      = logical_not { "and" logical_not } ;
+logical_not      = { "not" } comparison ;
 
-## 4. Expressions
+comparison       = additive
+                   { ( "==" | "!=" | "<" | ">" | "<=" | ">=" ) additive } ;
 
-Expressions are listed in order of **increasing precedence** (lowest first).
+additive         = multiplicative { ( "+" | "-" ) multiplicative } ;
+multiplicative   = high_combine { ( "*" | "/" | "%" ) high_combine } ;
 
-```
-expr           = assignment ;
+high_combine     = numeric_unary { ( "->" | "||" | "^" ) numeric_unary } ;
+numeric_unary    = "-" numeric_unary | postfix ;
 
-assignment     = pipeline "=" expr                  /* if LHS is assignable */
-               | pipeline ;
+postfix          = primary
+                   { call_suffix | subscript_suffix | member_suffix } ;
+call_suffix      = "(" [ argument_list ] ")" ;
+subscript_suffix = "[" expression "]" ;
+member_suffix    = "." member_name ;
+argument_list    = expression { "," expression } ;
 
-pipeline       = pipe { "|" pipe } ;
+primary          = literal
+                 | identifier
+                 | "this"
+                 | "(" expression ")"
+                 | array_literal
+                 | lambda_expression
+                 | guard_expression
+                 | quenched_expression
+                 | flow_expression
+                 | new_expression
+                 | cascade_expression ;
 
-pipe           = combine { "|>" combine } ;
+literal          = integer | float | string | "true" | "false" | "none" ;
+array_literal    = "[" [ argument_list ] "]" ;
 
-combine        = logical_or { ("^" | "||") logical_or } ;
+lambda_expression = "glass" parameters [ "->" type_name ] block ;
 
-logical_or     = logical_and { "or" logical_and } ;
+guard_expression  = "thirst" expression "quench" expression ;
+quenched_expression = "quenched" [ "(" [ expression ] ")" ] ;
 
-logical_and    = equality { "and" equality } ;
+flow_expression   = ( "flood" | "drip" | "evaporate" | "condense"
+                    | "sanitize" | "armor" ) expression ;
 
-equality       = comparison { ("==" | "!=") comparison } ;
-
-comparison     = term { ("<" | ">" | "<=" | ">=") term } ;
-
-term           = factor { ("+" | "-") factor } ;
-
-factor         = unary { ("*" | "/" | "%") unary } ;
-
-unary          = ("+" | "-" | "!") unary
-               | call ;
-
-call           = primary { "(" [expr { "," expr }] ")"       /* function call */
-                         | "." identifier                     /* member access */
-                         | "[" expr "]" } ;                   /* subscript */
-
-primary        = literal
-               | identifier
-               | "this"
-               | lambda_expr
-               | "(" expr ")"
-               | string_expr
-               | array_literal
-               | struct_literal ;
-
-lambda_expr    = "glass" "(" [param { "," param }] ")" [":" type] block ;
-
-literal        = integer
-               | float
-               | "true" | "false"
-               | "null"
-               | "quenched"
-               | "thirsty_error" ;
-
-string_expr    = string { string } ;                /* concatenation */
-
-array_literal  = "[" [expr { "," expr }] "]" ;
-
-struct_literal = identifier "{" [field_init { "," field_init }] "}" ;
-
-field_init     = identifier "=" expr ;
+new_expression    = "new" identifier [ "(" [ argument_list ] ")" ] ;
+cascade_expression = "cascade" expression ;
 ```
 
----
+`member_name` is an identifier-shaped token; it may be a reserved word after
+the dot. Method calls use the same postfix chain as ordinary calls, for example
+`object.method(arg)[0]`.
 
-## 5. Statements
+There is no unary `+` operator. Logical negation is spelled `not`; a bare `!`
+is a lexer error, while `!=` is the supported inequality operator. Adjacent
+string literals are not an implicit concatenation form, and the parser does
+not implement the formerly documented `identifier { field = value }` struct
+literal.
 
-```
-stmt           = variable_decl
-               | pour_stmt
-               | sip_stmt
-               | assign_stmt
-               | if_stmt
-               | refill_stmt
-               | times_stmt
-               | return_stmt
-               | import_stmt
-               | block
-               | pipe_block_stmt
-               | expr_stmt
-               | ";" ;
+### Exact precedence and associativity
 
-variable_decl  = "drink" identifier [":" type] [ "=" expr ] ";"
-               | "let" identifier [":" type] [ "=" expr ] ";"   /* immutable */
-               | identifier ":=" expr ";" ;                      /* define mutable */
-
-for_stmt       = "for" [ "(" ] identifier "in" expr [ ")" ] block ;
-
-pour_stmt      = "pour" expr ";" ;
-
-sip_stmt       = "sip" identifier [ "=" expr ] ";" ;
-
-assign_stmt    = expr "=" expr ";" ;
-
-if_stmt        = "thirsty" "(" expr ")" block
-                 { "hydrated" "thirsty" "(" expr ")" block }
-                 [ "hydrated" block ] ;
-
-refill_stmt    = "refill" "(" identifier "in" expr ")" block    /* for-each */
-               | "refill" "(" for_init ";" expr ";" for_step ")" block
-                                                               /* C-style for */
-               | "refill" "(" expr ")" block ;                  /* while-loop */
-
-for_init       = variable_decl | assign_stmt | expr ;
-for_step       = assign_stmt | expr ;
-
-times_stmt     = "times" expr block ;                           /* repeat N */
-
-return_stmt    = "return" [expr] ";" ;
-
-block          = "{" { stmt } "}" ;
-
-pipe_block_stmt = "|" [">"] expr ";" ;
-
-expr_stmt      = expr ";" ;
-```
-
----
-
-## 6. Declarations
-
-```
-declaration    = function_decl
-               | class_decl
-               | spillage_decl
-               | cleanup_decl
-               | enum_decl
-               | struct_decl
-               | interface_decl
-               | morph_def
-               | security_block
-               | cascade_call
-               | mutation
-               | symbol ;
-
-function_decl  = "glass" identifier "(" [param { "," param }] ")" [":" type]
-                 [ "requires" expr ]                  /* governed precondition */
-                 [ "ensures" expr ]                   /* governed postcondition */
-                 [ "invariant" expr ]                 /* governed invariant */
-                 block ;
-
-/* A function with a `requires`, `ensures`, or `invariant` clause is a
-   *governed function*: the interpreter evaluates its contract predicates on
-   every call. In governed mode, entry also requires an attached T.A.R.L.
-   policy engine plus authority; otherwise the call fails closed. See
-   docs/governance_model.md § Runtime Enforcement. */
-
-param          = identifier ":" type ;
-
-class_decl     = "fountain" identifier
-                 [ ":" type_list ]                    /* mixins / interfaces */
-                 "{" { class_member } "}" ;
-
-class_member   = function_decl
-               | variable_decl
-               | "init" "(" [param { "," param }] ")" block ;
-
-spillage_decl  = "spillage" identifier
-                 [ "(" param ")" ]
-                 "{" { handler } "}" ;
-
-handler        = "cascade" identifier block
-               | "converge" identifier block
-               | "deflect" identifier block ;
-
-cleanup_decl   = "cleanup" identifier
-                 "(" [param] ")"
-                 block
-                 [ "->" block ] ;                    /* finalizer */
-
-enum_decl      = "enum" identifier "{" enum_variant { "," enum_variant } "}" ;
-
-enum_variant   = identifier [ "(" type { "," type } ")" ] ;
-
-struct_decl    = "struct" identifier "{" struct_field { "," struct_field } "}" ;
-
-struct_field   = identifier ":" type ;
-
-interface_decl = "interface" identifier "{" interface_sig { ";" interface_sig } "}" ;
-
-interface_sig  = identifier "(" [type { "," type }] ")" [":" type] ;
-
-morph_def      = "morph" identifier "(" identifier ":" type ")" "->" type block ;
-
-security_block = "shield" "(" expr ")" block
-               | "detect" "(" expr ")" block ;
-
-defend_strat   = "defend" identifier "(" expr ")" block ;
-
-cascade_call   = "cascade" identifier "(" expr ")" ";" ;
-
-mutation       = "mutation" identifier "(" expr ")" block ;
-
-symbol         = "symbol" identifier ";" ;
-
-new_expr       = "new" identifier "(" [expr { "," expr }] ")" ;   /* class instantiation */
-```
-
----
-
-## 7. Patterns
-
-```
-pattern        = wildcard_pattern | bind_pattern | literal_pattern | tuple_pattern ;
-
-wildcard_pattern = "_" ;
-
-bind_pattern   = identifier ;
-
-literal_pattern = integer | float | string | "true" | "false" | "null" ;
-
-tuple_pattern  = "(" [pattern { "," pattern }] ")" ;
-```
-
-*(Patterns appear in guard/thirsty expressions and cascade handlers.)*
-
----
-
-## 8. Precedence Table
-
-| Level | Operators | Associativity |
-|-------|-----------|---------------|
-| 1 (lowest) | `=` | right |
-| 2 | `\|\|` | left |
+| Binding power | Operators/forms | Associativity |
+|---:|---|---|
+| 1 (lowest) | assignment `=` | right |
+| 2 | low pipe `|`, `|>` | left |
 | 3 | `or` | left |
 | 4 | `and` | left |
-| 5 | `==` `!=` | left |
-| 6 | `<` `>` `<=` `>=` | left |
-| 7 | `+` `-` | left |
-| 8 | `*` `/` `%` | left |
-| 9 | unary `+` `-` `!` | right |
-| 10 | `(…)` `.` `[…]` | left |
-| 11 (highest) | primary | — |
+| between 4 and 5 | prefix `not` | right/prefix |
+| 5 | `==`, `!=`, `<`, `>`, `<=`, `>=` | left, one shared level |
+| 6 | `+`, `-` | left |
+| 7 | `*`, `/`, `%` | left |
+| 8 | `->`, `||`, `^` | left |
+| prefix at 8 | unary `-` | right/prefix |
+| 9 (highest operators) | call `()`, member `.`, subscript `[]` | left/postfix |
+
+This table mirrors `Parser._precedence_map()`. In particular, equality and
+ordering comparisons share a level, `and` binds more tightly than `or`, and
+`not a == b` means `not (a == b)`.
 
 ---
 
-## 9. Keywords
+## 4. Statements and blocks
 
+```ebnf
+statement        = variable_decl
+                 | for_stmt
+                 | pour_stmt
+                 | sip_stmt
+                 | if_stmt
+                 | refill_stmt
+                 | times_stmt
+                 | return_stmt
+                 | import_stmt
+                 | block
+                 | function_decl
+                 | fountain_decl
+                 | spillage_stmt
+                 | cleanup_stmt
+                 | throw_stmt
+                 | security_block
+                 | morph_decl
+                 | defend_decl
+                 | enum_decl
+                 | struct_decl
+                 | interface_decl
+                 | mutation_decl
+                 | symbol_stmt
+                 | pipe_block_stmt
+                 | expression_stmt ;
+
+block            = "{" { statement } "}" ;
+
+variable_decl    = "drink" [ "mut" ] identifier
+                   [ ":" type_name ] [ "=" expression ] [ ";" ]
+                 | "let" identifier
+                   [ ":" type_name ] [ "=" expression ] [ ";" ]
+                 | identifier ":=" expression [ ";" ] ;
+
+for_stmt         = "for" identifier "in" expression block
+                 | "for" "(" identifier "in" expression ")" block ;
+
+pour_stmt        = "pour" expression [ ";" ] ;
+sip_stmt         = "sip" expression [ ";" ] ;
+
+if_stmt          = "thirsty" "(" expression ")" block
+                   [ "hydrated" ( if_stmt | block ) ] ;
+
+refill_stmt      = "refill" "(" identifier "in" expression ")" block
+                 | "refill" "(" expression ")" block
+                 | c_style_refill ;
+
+c_style_refill   = "refill" "(" c_style_init expression ";" expression ")" block ;
+c_style_init     = declaration_init | expression ";" ;
+declaration_init = ( "drink" [ "mut" ] identifier
+                   | "let" identifier )
+                   [ ":" type_name ] [ "=" expression ] [ ";" ] ;
+
+times_stmt       = "times" expression block ;
+return_stmt      = "return" [ expression ] [ ";" ] ;
+throw_stmt       = "throw" expression [ ";" ] ;
+
+pipe_block_stmt  = ( "|" | "|>" ) expression ";" ;
+expression_stmt  = expression [ ";" ] ;
 ```
+
+Most statement forms accept, but do not require, a trailing semicolon. There is
+no automatic semicolon insertion because newlines are discarded by the lexer;
+the parser instead recognizes the end of an expression or declaration from the
+following token. Empty `;` is not a statement.
+
+Semicolons remain required in two places:
+
+1. the condition separator in a C-style `refill` and the first separator when
+   its initializer is an expression; and
+2. the terminator of a statement-level pipe block.
+
+A `drink` or `let` initializer selects the C-style `refill` form directly, so
+its first separator is optional in the current parser. The canonical spelling
+still includes both separators: `refill (drink i = 0; i < 3; i = i + 1) { ... }`.
+
+One dispatch edge is also part of the v0.8.6 behavior: a statement beginning
+with `sanitize`, `armor`, `cascade`, or `new` bypasses the generic expression-
+statement parser. A trailing semicolon is therefore not consumed and would be
+read as an invalid empty statement; omit it on those four direct forms.
+
+---
+
+## 5. Declarations and governed forms
+
+### 5.1 Functions and contracts
+
+```ebnf
+function_decl    = "glass" identifier parameters [ "->" type_name ]
+                   { contract_clause } block ;
+
+contract_clause  = "requires" expression
+                 | "ensures" expression
+                 | "invariant" expression ;
+```
+
+Named and anonymous functions use `->` for return annotations. The formerly
+documented `: type` return form is not accepted. Contract clauses may appear in
+any order; canonical code uses each kind at most once.
+
+A function with a `requires`, `ensures`, or `invariant` clause is a governed
+function. In governed mode its contracts are evaluated on every call, and
+entry also requires the configured T.A.R.L. policy and authority path. See
+[Runtime Enforcement](governance_model.md#runtime-enforcement).
+
+### 5.2 Fountains
+
+```ebnf
+fountain_decl    = "fountain" identifier "{" { fountain_member } "}" ;
+
+fountain_member  = function_decl
+                 | "drink" [ "mut" ] fountain_field [ ";" ]
+                 | fountain_field [ ";" ] ;
+
+fountain_field   = identifier [ ":" type_name ] [ "=" expression ] ;
+```
+
+Fountain inheritance, mixin lists, and interface lists after the fountain name
+are not supported by the v0.8.6 parser. A constructor is an ordinary method
+named `init`, written `glass init(...) { ... }`.
+
+### 5.3 Error handling and cleanup
+
+```ebnf
+spillage_stmt    = "spillage" block
+                   { "error" [ "(" identifier ")" ] block } ;
+
+cleanup_stmt     = "cleanup" block "finally" block ;
+```
+
+The optional identifier in an `error(name)` handler receives the thrown value.
+
+### 5.4 Data and interface declarations
+
+```ebnf
+enum_decl        = "enum" identifier
+                   "{" [ identifier { "," identifier } ] "}" ;
+
+struct_decl      = "struct" identifier "{" { struct_field [ ";" ] } "}" ;
+struct_field     = identifier [ ":" type_name ] ;
+
+interface_decl   = "interface" identifier
+                   "{" { interface_signature [ ";" ] } "}" ;
+interface_signature = identifier parameters [ "->" type_name ] ;
+```
+
+Enum variants are names only; payload-bearing variants are not supported.
+Interface signatures contain named parameters (with optional type annotations),
+an optional `->` return type, and no body. The Tier 1 parser does not support
+interface inheritance or an `implements` clause on fountains; this syntax does
+not claim either feature.
+
+### 5.5 Higher-tier marker forms accepted by Tier 1
+
+```ebnf
+morph_decl       = "morph" identifier parameters block ;
+
+security_block   = ( "shield" | "detect" ) block ;
+
+defend_decl      = "defend" identifier [ "(" identifier ")" ]
+                   "{" { expression [ ";" ] } "}" ;
+
+mutation_decl    = "mutation" identifier "{"
+                     "validated_canonical" "{"
+                       { mutation_section }
+                     "}"
+                   "}" ;
+
+mutation_section = "shadow" block
+                 | "invariant" block
+                 | "canonical" block ;
+
+symbol_stmt      = "symbol" identifier [ ";" ] ;
+```
+
+`morph` has parameters and a body but no return annotation. `shield` and
+`detect` take a block directly; neither accepts a parenthesized condition.
+
+---
+
+## 6. Lexically reserved words
+
+```text
 drink, let, for, strict, pure,
 pour, sip, thirsty, hydrated, thirst, quench, refill, times,
 glass, reservoir, well, of, flood, drip, evaporate, condense, fountain,
@@ -347,15 +418,20 @@ enum, struct, interface, symbol, module, core, and, or, not,
 true, false, none
 ```
 
-The `requires` keyword introduces a governed-function precondition (see
-`function_decl` in § 6). The `governed` keyword is a module mode
-(`module <name>: governed`) under which governed functions are enforced and
-calls to them from `core` mode are denied.
+This is the complete v0.8.6 `KEYWORDS` set. Reservation does not mean that each
+word starts a Tier 1 parser production. Some tokens exist for higher-tier and
+forward-compatibility work.
 
 ---
 
-## 10. Comments & Whitespace
+## 7. Source anchors
 
-- **Comments**: `//` line comments and `/* … */` block comments (can nest).
-- **Whitespace**: spaces, tabs, newlines — ignored except as token separators.
-- **Semicolons**: required as statement terminators; no automatic semicolon insertion.
+The implementation points that define this edition are:
+
+- `src/utf/thirsty_lang/lexer.py` - token boundaries, number and string forms,
+  comments, and escape decoding;
+- `src/utf/thirsty_lang/token.py` - token kinds and reserved words;
+- `src/utf/thirsty_lang/parser.py` - statements, declarations, expressions,
+  precedence, and associativity;
+- `tests/test_lexer.py`, `tests/test_parser_coverage.py`, and
+  `tests/test_parser_precedence.py` - executable grammar regressions.

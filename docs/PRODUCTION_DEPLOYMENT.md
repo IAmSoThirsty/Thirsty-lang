@@ -3,6 +3,8 @@
 **Applies to:** Thirsty-Lang 0.8.6+ · **Audience:** operators embedding the
 governed runtime to authorize real-world, high-risk actions.
 
+Canonical end-to-end reference: [THIRSTY_LANG_101.md](THIRSTY_LANG_101.md).
+
 The reference runtime meets its hardened-runtime acceptance bar (WHITEPAPER §8)
 and, as of 0.7.0, ships the operational machinery that earlier releases left to
 the embedder: unified broker mediation, durable cross-process replay/audit
@@ -25,7 +27,8 @@ for governed execution.
   sensitive stdlib call with no policy engine + authority is **denied with a
   proof** — governed mode never implies authority.
 - [ ] Treat a `GovernanceViolation` (CLI exit code `2`) as a hard stop, never a
-  warning. The accompanying `TarlProof` is the audit record of the denial.
+  warning. A returned `TarlProof` records the decision, but it is not durable
+  audit evidence until an attached archive successfully persists it.
 
 ## 2. One enforcement path (broker + path guard)
 
@@ -40,6 +43,11 @@ for governed execution.
 
 ## 3. Context authority and registered-source transformations
 
+- [ ] Supply caller context as nested JSON under
+  `tarl.context.nested-json.v1`. Dotted schema/policy paths traverse nested
+  objects. Flat dotted keys, any mixed flat/nested form (equal or conflicting),
+  duplicate keys, missing paths, and wrong intermediate types fail closed; no
+  conversion is silent.
 - [ ] Attach an explicit `ContextSchema`, or require
   `TarlRuntime.ensure_context_schema()` to derive a complete schema, before a
   positive verdict can authorize an effect. A raw evaluator `ALLOW` without a
@@ -87,6 +95,11 @@ durable stores in `utf.tarl.durable`:
 The audit archive (`TarlAuditArchive`) is SQLite-durable and hash-chained, but a
 local attacker who can rewrite the DB could re-link a truncated suffix.
 
+- [ ] Explicitly attach a `TarlAuditArchive` to the same `TarlRuntime` used by
+  the interpreter or broker and call `set_require_audit(True)`. Hardened mode
+  alone does not create or require an archive. If no archive is attached, no
+  audit row is written; if an attached required archive fails, the decision is
+  downgraded to DENY.
 - [ ] On a schedule, write the chain head to a **trusted external location**:
   `tarl audit checkpoint --db <audit.db> --out <head.txt>` and store `head.txt`
   somewhere the runtime host cannot silently rewrite.
@@ -164,18 +177,25 @@ live. The deployment owns:
 tarl keygen authority-issuer --key-id issuer-1 --out issuer.key
 tarl keygen proof-signer     --key-id signer-1 --out signer.key
 
-# 2. Run a governed program hardened, with file-based keys + a policy
+# 2. Run a governed program hardened, with file-based keys + a policy.
+#    This CLI path emits proofs but does not itself attach audit.db.
 thirsty run app.thirsty --thirst-level governed --hardened \
     --policy policy.tarl \
     --authority-token token.json --authority-key-file issuer.key.pub \
     --sign-proofs-file signer.key
 #   -> allowed effects run; a denied effect exits 2 with a proof
 
-# 3. Checkpoint and verify the audit chain
+# 3. In an embedding that requires durable audit, configure the exact runtime:
+#    with TarlAuditArchive("audit.db") as archive:
+#        runtime.set_archive(archive).set_require_audit(True)
+#        interpreter.attach_tarl(runtime)
+#        ... evaluate governed work while the archive is open ...
+
+# 4. Checkpoint and verify the populated audit chain
 tarl audit checkpoint --db audit.db --out head.txt
 tarl audit verify-chain --db audit.db --checkpoint head.txt
 
-# 4. Verify a proof with durable replay + revocation, rejecting reuse
+# 5. Verify a proof with durable replay + revocation, rejecting reuse
 tarl verify proof.json --ed25519-key-file signer.key.pub --ed25519-only \
     --context-file context.json \
     --replay-db replay.db --revocation-store revocations.db

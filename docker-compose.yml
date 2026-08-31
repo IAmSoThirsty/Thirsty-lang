@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   # Runtime: Execute thirsty programs
   thirsty:
@@ -92,12 +90,14 @@ services:
       dockerfile: Dockerfile
     container_name: thirsty-build-js
     volumes:
-      - ./examples:/app/examples:ro
       - ./src:/app/src:ro
       - ./dist:/app/dist
     working_dir: /app
-    entrypoint: ["thirsty"]
-    command: ["build", "--target", "js", "src/main.thirsty"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        cp /app/src/utf/examples/hello.thirsty /app/dist/hello.thirsty &&
+        thirsty build /app/dist/hello.thirsty --target js
 
   # Formatter: Code formatting
   fmt:
@@ -108,8 +108,11 @@ services:
     volumes:
       - ./src:/app/src
     working_dir: /app
-    entrypoint: ["thirsty"]
-    command: ["fmt", "src/"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        find src/utf/examples -name '*.thirsty' -print0 |
+        xargs -0 thirsty fmt
 
   # Doctor: Project health check
   doctor:

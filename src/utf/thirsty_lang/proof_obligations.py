@@ -13,6 +13,7 @@ from typing import Any
 
 from utf.tarl.context import (
     CONTEXT_REPRESENTATION_ID,
+    NORMALIZATION_ALGORITHM_ID,
     RESERVED_CONTEXT_IDENTIFIERS,
     load_context_json,
 )
@@ -95,7 +96,7 @@ class DerivedContextSchema:
             "representation": {
                 "id": CONTEXT_REPRESENTATION_ID,
                 "path_model": "nested-objects",
-                "normalization": "none",
+                "normalization": NORMALIZATION_ALGORITHM_ID,
             },
             "fields": self.fields,
             "gaps": self.gaps,
@@ -163,10 +164,13 @@ def load_explicit_context_schema(path: str) -> DerivedContextSchema:
             "unsupported context representation: "
             f"{representation_id!r}; expected {CONTEXT_REPRESENTATION_ID!r}"
         )
-    if representation.get("normalization", "none") != "none":
+    normalization = representation.get(
+        "normalization", NORMALIZATION_ALGORITHM_ID
+    )
+    if normalization != NORMALIZATION_ALGORITHM_ID:
         raise ValueError(
-            "context schema normalization must be 'none'; silent conversion "
-            "is not permitted"
+            "unsupported context schema normalization: "
+            f"{normalization!r}; expected {NORMALIZATION_ALGORITHM_ID!r}"
         )
     if representation.get("path_model", "nested-objects") != "nested-objects":
         raise ValueError("context schema path_model must be 'nested-objects'")
@@ -178,7 +182,7 @@ def load_explicit_context_schema(path: str) -> DerivedContextSchema:
             "representation": {
                 "id": representation_id,
                 "path_model": "nested-objects",
-                "normalization": "none",
+                "normalization": NORMALIZATION_ALGORITHM_ID,
             },
             "on_violation": on_violation,
             "fields": fields_out,

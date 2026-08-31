@@ -2,7 +2,9 @@
 
 > Feature-oriented reference for Thirsty-Lang `0.8.6`. See
 > [STATUS.md](STATUS.md) for the authoritative capability-to-test map and
-> [THREAT_MODEL.md](THREAT_MODEL.md) for security acceptance status.
+> [THREAT_MODEL.md](THREAT_MODEL.md) for security acceptance status. The
+> [canonical Thirsty-Lang 101 manual](THIRSTY_LANG_101.md) is the integrated
+> tutorial, specification, operations, and traceability reference.
 
 Thirsty-Lang is a **governance-first language family**. It is not one language
 but a layered stack: a small imperative core whose execution is *governed*, a
@@ -48,7 +50,7 @@ checker, a type system, and a formatter.
 - Literals: int, float, string, bool, `none`, error, `quenched` (optional),
   and **array/reservoir literals** `[1, 2, 3]` (real Python `list`).
 - Arithmetic `+ - * / %`; comparison `== != < > <= >=`; logical `and or not`;
-  unary `- !`.
+  unary `-` and keyword negation `not` (a bare `!` is invalid).
 - **OOP:** member read `obj.field`, member write `obj.field = v`, method dispatch
   `obj.method(args)`.
 - `new Class(args)`, function calls, pipe `|`, guard `thirst(e) quench(c)`,
@@ -102,22 +104,30 @@ glass withdraw(balance, amount)
 
 ### 2.2 Capability gates
 
-In `governed` mode, sensitive operations — module `import` and I/O (`pour` /
-`sip`) — are routed through an attached **T.A.R.L. policy runtime**
-(`evaluate_with_proof`). A non-`ALLOW` verdict denies the operation before it
-takes effect. With a policy attached, the posture is **deny-by-default**.
+In `governed` mode, governed function calls and the explicitly mapped sensitive
+operations - including import, I/O, filesystem, HTTP/network, environment,
+process, logging, testing, and SQLite operations - are routed through an
+attached **T.A.R.L. policy runtime** (`evaluate_with_proof`). A non-`ALLOW`
+verdict denies the operation before it takes effect. Do not infer that every
+standard-library function is sensitive: `module_system.py` is the authority for
+the current capability map.
 
 ### 2.3 Cryptographic proofs
 
-Every gated decision can carry an **HMAC-signed `TarlProof`** certificate. On a
-denial it is attached to the `GovernanceViolation`, so callers (and audit logs)
-get a verifiable record of *why* an action was refused.
+Every gated decision produces a `TarlProof` record. It is unsigned unless a
+runtime signing key is configured. HMAC-SHA256 provides symmetric integrity;
+Ed25519 provides asymmetric signer attribution and is required by hardened
+mode. Independent verification rejects unsigned proofs by default. A denial
+proof is attached to `GovernanceViolation`; durable audit storage additionally
+requires an attached archive.
 
 ### 2.4 Temporal governance
 
-Because gated calls flow through T.A.R.L., **time-windowed policies**
-(`valid_from` / `valid_until`, durations) govern calls automatically — e.g.
-“this capability is allowed only until a given date.”
+T.A.R.L. evaluates **time-windowed policies** (`valid_from` / `valid_until`,
+durations). Production callers must supply a verified, timezone-aware trusted
+clock; an explicitly configured clock that is missing, malformed, or fails
+verification denies without falling back to host time. The CLI requires a
+zoned `--now` for temporal evaluation.
 
 ### 2.5 Static parity (checker)
 
@@ -181,8 +191,20 @@ A standalone, first-match-wins policy language.
 - **Verdicts:** `ALLOW` / `DENY` / `ESCALATE`, default-deny.
 - **Conditions:** comparisons, set membership (`in`), arithmetic, attribute
   access, and temporal builtins (`CURRENT_HOUR`, `CURRENT_WEEKDAY`, …).
-- **Temporal windows & durations**, with an append-only **audit archive**.
-- **HMAC-signed proof certificates** (`verify` re-checks them).
+- **Authoritative context:** dotted identifiers traverse nested JSON only.
+  Flat dotted keys, duplicate keys, mixed representations, missing paths, and
+  wrong intermediate types fail closed as distinct resolution states.
+- **Schema-bound positive authority:** an evaluator ALLOW is diagnostic until
+  a complete schema validated the exact evaluated representation and that
+  binding appears in the proof.
+- **Proof binding:** original and evaluated context hashes, representation,
+  normalization identity/version, conflict status, schema result, policy hash,
+  rule, verdict, trace, evaluation time, and expiry.
+- **Temporal windows & durations**, with an optional hash-linked audit archive.
+- **HMAC and Ed25519 proof signing**; secure-default verification rejects
+  unsigned, stale, replayed, revoked, or context-mismatched proofs.
+- **Registered sources and quorum:** the exact source-enriched context and
+  proof-bound distinct Ed25519 approvals are required for their positive paths.
 - **Policy composition.**
 - **Z3 static analysis** (`analyze`, `[analysis]` extra): coverage gaps,
   shadowed/dead rules, conflicts, and **equivalence / refinement** proofs
@@ -210,9 +232,9 @@ CLI: `tarl eval | parse | verify | audit | explain | test | analyze`, plus a
 - **Console scripts:** `thirsty`, `thirst-of-gods`, `tarl`, `tarl-lsp`, `tscg`,
   `tscg-b`, `shadow-thirst`.
 - **UTF-8-safe** CLI output on Windows.
-- **CI gate:** ruff lint (clean), full suite on Python 3.11/3.12, a coverage
-  floor, and every shipped example executed through its CLI; a separate
-  wheel-build/import smoke job.
+- **CI gate:** Ruff, mypy, full suite on Python 3.11/3.12 with a 90 percent
+  coverage floor, production acceptance, every shipped example, and a separate
+  wheel-install/all-seven-entry-points smoke job.
 
 ---
 

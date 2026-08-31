@@ -5,7 +5,8 @@
 **Status of claims:** every capability below is marked *Real* (implemented and
 covered by a test) or *Roadmap / Deferred* (reserved surface, not yet enforced).
 The test suite is the authority; see [STATUS.md](STATUS.md) and
-[THREAT_MODEL.md](THREAT_MODEL.md).
+[THREAT_MODEL.md](THREAT_MODEL.md). The integrated tutorial and reference is
+[THIRSTY_LANG_101.md](THIRSTY_LANG_101.md).
 
 ---
 
@@ -20,8 +21,9 @@ with no gate in its path.
 
 Thirsty-Lang inverts the default. In **governed** mode, a side effect cannot occur
 before an explicit **ALLOW** verdict from a separate policy engine
-(T.A.R.L.), and every governed decision emits a tamper-evident **proof**
-certificate binding the policy, the context, and the verdict. Missing policy,
+(T.A.R.L.), and every governed decision emits a **proof record** binding the
+policy, the context, and the verdict. The record becomes tamper-evident when
+HMAC- or Ed25519-signed; hardened mode requires Ed25519. Missing policy,
 missing authority, a failed signature check, or an unavailable gate all resolve to
 **DENY**. Governance is the substrate, not a library call.
 
@@ -221,13 +223,14 @@ Every governed boundary decision — policy verdict, contract verdict, or
 fail-closed denial — emits a `TarlProof` certificate binding:
 
 - `policy_hash` — SHA-256 of the policy source,
-- hashes of the original request and exact evaluated context, plus the context
-  representation and transformation identity,
+- hashes of the original request and exact canonical/evaluated context, plus
+  the representation ID, normalization algorithm ID/version, and conflict
+  status,
 - for policy proofs, the schema fingerprint, representation, and validation
   status (a positive proof requires `passed`),
 - the matched rule index and condition, the verdict, and a per-rule **trace** up
   to the first match,
-- an evaluation timestamp, and an optional signature.
+- an evaluation timestamp, applicable expiry, and an optional signature.
 
 Runtime proof generation can be unsigned when no signing key is configured, but
 independent verification rejects unsigned proofs by default. Two signing modes
@@ -339,8 +342,10 @@ emitted manifest (challenge C034). Governance loss is never silent.
 
 The threat catalog (C001–C073) is the source of truth. As of 0.8.6:
 
-Every challenge C001–C073 now has **active-source test coverage**. The repaired
-artifact and C058–C073 remain pending independent release acceptance. Highlights:
+Every challenge C001-C073 has **released test coverage** in 0.8.6. The repaired
+wheel, source distribution, and container were published and passed their
+release gates; C058-C073 remain blocked only at the separate independent
+Competence Register acceptance gate. Highlights:
 
 - **Fail-closed core** — governed I/O/import/print without policy (C001–C004);
   non-matching capability denial (C005); denial unswallowable by `spillage`
@@ -405,8 +410,8 @@ deployment checklist and THREAT_MODEL.md §"Remaining Gaps".
 
 | Property | State |
 |---|---|
-| Test suite | Full suite plus permanent context-integrity regression matrices; CI covers Python 3.11/3.12 and the C001–C073 offensive catalog |
-| Line coverage | ~91% (CI floor enforced) |
+| Test suite | 1,463 passed, 1 skipped, and 22 subtests at the 0.8.6 local release gate; CI covers Python 3.11/3.12 and the C001-C073 offensive catalog |
+| Line coverage | 90.60% at the local 0.8.6 release gate; 90% CI floor enforced |
 | Lint | `ruff check src tests` clean |
 | Types | `mypy -p utf` clean across all modules; ships a PEP 561 `py.typed` marker; mypy is a CI gate |
 | Packaging | builds an sdist + wheel; clean-venv install runs all 7 console scripts and shipped examples |
@@ -417,11 +422,11 @@ its own hardened-runtime acceptance bar (§8), and as of 0.8.6 the operational
 items that were previously deferred — adapter routing through the broker,
 durable cross-process replay/audit state, and deployment key management — are
 implemented in-tree and exercised by a CI `production-acceptance` job. Treat
-load-bearing context authority as **pending release acceptance** until the
-repaired 0.8.6 artifact passes the preserved package matrix and independent
-acceptance. After that gate, a deployment must still provision secret custody
-for durable stores and trust-root key files per
-`docs/PRODUCTION_DEPLOYMENT.md`.
+load-bearing context authority as **pending independent constitutional
+acceptance**. The repaired 0.8.6 PyPI artifact already passed the preserved
+package matrix; only an independent authority may change the critical
+Competence Register entries. A deployment must still provision secret custody
+for durable stores and trust-root key files per `docs/PRODUCTION_DEPLOYMENT.md`.
 
 ---
 
@@ -450,15 +455,17 @@ verdict and policy hash, and exits non-zero.
 Thirsty-Lang makes authorization a property of the runtime rather than a
 convention of the code: in governed mode no effect precedes an explicit ALLOW,
 every decision carries a verifiable proof, and every "secure" claim is pinned to a
-test or labeled as roadmap. Through 0.8.6 the offensive catalog (C001–C073) has
-active-source coverage, while C058–C073 remain blocked pending repaired-artifact
-and independent acceptance. The operational substrate — authority provenance,
+test or labeled as roadmap. In 0.8.6 the offensive catalog (C001-C073) has
+released-artifact coverage, while C058-C073 remain blocked pending independent
+Competence Register acceptance. The operational substrate — authority provenance,
 tamper-evident audit, replay/downgrade rejection, universal adapter brokering,
 durable cross-process state, and deployment key management — is implemented in-tree and
 gated in CI. What remains for a deployment is secret custody for the durable
 stores and trust-root keys, per `docs/PRODUCTION_DEPLOYMENT.md`.
 
 ---
+
+*Canonical manual:* [THIRSTY_LANG_101.md](THIRSTY_LANG_101.md)
 
 *References:* [LANGUAGE_SPEC.md](LANGUAGE_SPEC.md) · [GRAMMAR.md](GRAMMAR.md) ·
 [governance_model.md](governance_model.md) · [THREAT_MODEL.md](THREAT_MODEL.md) ·

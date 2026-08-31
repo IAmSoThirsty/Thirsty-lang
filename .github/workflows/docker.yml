@@ -118,8 +118,12 @@ jobs:
             echo "\`\`\`bash"
             echo "docker pull ${{ steps.meta.outputs.ghcr }}:latest"
             echo "\`\`\`"
-            echo "**Pull (Docker Hub):**"
-            echo "\`\`\`bash"
-            echo "docker pull ${DOCKERHUB_NAMESPACE}/thirsty-lang:latest"
-            echo "\`\`\`"
+            if [ -n "${DOCKERHUB_TOKEN}" ]; then
+              echo "**Pull (Docker Hub):**"
+              echo "\`\`\`bash"
+              echo "docker pull ${DOCKERHUB_NAMESPACE}/thirsty-lang:latest"
+              echo "\`\`\`"
+            else
+              echo "**Docker Hub:** skipped (credentials were not configured)."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

@@ -1,127 +1,151 @@
 ================================================================================
-  THIRSTY-LANG DOCKER & CI/CD — SETUP COMPLETE
+  THIRSTY-LANG DOCKER AND RELEASE CHECKLIST - v0.8.6 CURRENT STATE
 ================================================================================
 
-✓ FILES CREATED:
-  - Dockerfile (multi-stage, test-gated, 255MB final image)
-  - .dockerignore (optimized build context)
-  - docker-compose.yml (9 services: dev, test, repl, lsp, build, fmt, doctor)
-  - docker-quick.sh (macOS/Linux CLI wrapper)
-  - docker-quick.bat (Windows CLI wrapper)
-  - .github/workflows/docker.yml (automated GitHub Actions CI/CD)
-  - DOCKER.md (comprehensive Docker usage guide)
-  - SHIPPING.md (release workflow and next steps)
+CURRENT AUTHORITATIVE CONTAINER:
+  Image:     ghcr.io/iamsothirsty/thirsty-lang:0.8.6
+  Platforms: linux/amd64 and linux/arm64
+  Digest:    sha256:6f3f516b8e979437dd414373afe581716b8c890dc4758b8675cbbcad9b94b13c
+  Workflow:  GitHub Actions run 30756676576 - PASS
 
-✓ RELEASE IMAGE CONFIGURATION:
-  - Target image: thirsty-lang:0.8.6
-  - The full test suite must pass inside the build
-  - Demo executes: "hello, thirsty world!"
-  - CLI works: thirsty, thirst-of-gods, tarl, tscg, tscg-b, shadow-thirst
+REGISTRY STATUS:
+  - GHCR is the authoritative current registry.
+  - Docker Hub latest and 0.8.1 are historical and unmaintained.
+  - Do not use thirstyoftp/thirsty-lang to validate or deploy v0.8.6.
 
-✓ DOCKER COMPOSE VERIFIED:
-  - docker compose run --rm thirsty run --demo ✓
-  - docker compose run --rm test executes the current full suite
-  - All 9 services configured and ready
+REPOSITORY CONTAINER SURFACE:
+  - Dockerfile: multi-stage build with full-suite test gate
+  - .dockerignore: bounded build context
+  - docker-compose.yml: exactly 8 development and test services
+  - docker-quick.sh and docker-quick.bat: local command wrappers
+  - .github/workflows/docker.yml: multi-architecture GHCR publishing
+  - DOCKER.md: consumer and development guide
+  - SHIPPING.md: future-release procedure and evidence checklist
 
-✓ GitHub Actions WORKFLOW READY:
-  - Triggers on git tag push (e.g., git tag v0.9.0 && git push tp v0.9.0)
-  - Builds image, runs tests, pushes to GHCR
-  - Generates an Actions job summary with pull/run commands
-  - No manual setup needed (uses ${{ secrets.GITHUB_TOKEN }})
+INSTALLED COMMANDS IN THE IMAGE:
+  - thirsty
+  - thirst-of-gods
+  - tarl
+  - shadow-thirst
+  - tscg
+  - tscg-b
+  - tarl-lsp
 
 ================================================================================
-  IMMEDIATE NEXT STEPS (DO THIS NOW)
+  DOCKER COMPOSE SERVICES - EXACTLY 8
 ================================================================================
 
-1. COMMIT Docker Files to Git:
-   git add Dockerfile .dockerignore docker-compose.yml docker-quick.*
-   git add DOCKER.md SHIPPING.md .github/workflows/docker.yml
-   git commit -m "chore: add Docker containerization and GitHub Actions CI/CD"
-   git push tp master
+  - repl
+  - test
+  - thirsty
+  - build-js
+  - dev
+  - doctor
+  - fmt
+  - lsp
 
-2. CREATE A NEW RELEASE TAG WHEN THE VERSION CHANGES:
-   git tag -a v<version> -m "Thirsty-Lang <version>"
-   git push tp refs/tags/v<version>
+Verify the active configuration:
+  docker compose config --services
 
-3. MONITOR GITHUB ACTIONS:
-   → Visit: https://github.com/IAmSoThirsty/Thirsty-lang/actions
-   → Watch: "Build and Push Docker Image" workflow
-   → Expected time: ~2-3 minutes
-
-4. VERIFY RELEASE:
-   Once workflow completes, test the published image:
-   docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.6
-   docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 run --demo
+The output must contain all eight names above. Investigate any missing,
+additional, or invalid service before release.
 
 ================================================================================
   LOCAL DEVELOPMENT COMMANDS
 ================================================================================
 
-Build image:
+Build a local image:
   docker build -t thirsty-lang:dev .
   bash docker-quick.sh build
-  docker-quick.bat build (Windows)
+  docker-quick.bat build
 
-Run demo:
+Run the demo:
   docker run --rm thirsty-lang:dev run --demo
 
 Interactive REPL:
   docker run -it --rm thirsty-lang:dev repl
   bash docker-quick.sh repl
+  docker-quick.bat repl
 
-Full test suite:
+Full test service:
   docker compose run --rm test
   bash docker-quick.sh test
+  docker-quick.bat test
 
-Development shell (hot-reload):
+Development shell:
   docker compose run --rm dev
   bash docker-quick.sh dev
+  docker-quick.bat dev
 
-Format code:
+Format and health checks:
   docker compose run --rm fmt
-  bash docker-quick.sh fmt
-
-Health check:
   docker compose run --rm doctor
-  bash docker-quick.sh doctor
 
 ================================================================================
-  RELEASE WORKFLOW (REPEAT FOR FUTURE RELEASES)
+  FUTURE RELEASE CHECKLIST
 ================================================================================
 
-git tag -a v<version> -m "Thirsty-Lang <version>"
-git push tp refs/tags/v<version>
+1. PREPARE THE RELEASE COMMIT
+  [ ] Confirm version metadata, changelog, docs, Docker label, and CLI agree.
+  [ ] Review git status and preserve unrelated or untracked user work.
+  [ ] Run Python lint, type, security, package, and full-suite gates.
+  [ ] Build the local image and run --version plus run --demo.
+  [ ] Run docker compose config --services and confirm exactly 8 services.
+  [ ] Run docker compose run --rm test.
+  [ ] Commit and push the cohesive release state.
+  [ ] Wait for branch CI to pass.
 
-→ GitHub Actions automatically:
-  ✓ Builds Dockerfile
-  ✓ Runs all tests
-  ✓ Pushes to GHCR
-  ✓ Generates an Actions job summary
+2. TAG THE VERIFIED COMMIT
+  git tag -a v<version> -m "Thirsty-Lang <version>"
+  git show --no-patch --decorate v<version>
+  git push tp refs/tags/v<version>
 
-Anyone can then use:
+  A lowercase v* tag starts both PyPI and Docker release workflows.
+  A docker-v* tag is for an explicitly intended Docker-only publication.
+
+3. MONITOR GITHUB ACTIONS
+  https://github.com/IAmSoThirsty/Thirsty-lang/actions
+
+  [ ] Branch CI passed for the tagged commit.
+  [ ] PyPI release workflow passed for a normal v* release.
+  [ ] Docker workflow passed.
+  [ ] GHCR pull, version, and demo verification steps passed.
+
+4. VERIFY THE PUBLISHED ARTIFACTS
+  [ ] Fresh Python 3.11 environment installs thirsty-lang==<version> from PyPI.
+  [ ] Release-specific regression matrix passes against that installed wheel.
+  [ ] docker pull ghcr.io/iamsothirsty/thirsty-lang:<version> succeeds.
+  [ ] Container --version and run --demo succeed.
+  [ ] docker buildx imagetools inspect lists linux/amd64 and linux/arm64.
+  [ ] Record the GHCR manifest digest.
+
+5. RECORD EVIDENCE
+  [ ] Release commit SHA and annotated tag object SHA.
+  [ ] Branch CI, PyPI, and Docker workflow run IDs and conclusions.
+  [ ] Fresh PyPI install and regression output.
+  [ ] GHCR digest and architecture list.
+  [ ] Remaining security or competence-register failures.
+  [ ] README, status, threat model, shipping, and continuity docs reconciled.
+
+Do not move, replace, or force-push a released tag. If a release gate fails,
+repair the source in a new commit and follow the governed release path.
+
+================================================================================
+  VERIFY CURRENT v0.8.6 CONTAINER
+================================================================================
+
   docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.6
+  docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 --version
   docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 run --demo
+  docker buildx imagetools inspect ghcr.io/iamsothirsty/thirsty-lang:0.8.6
 
-================================================================================
-  KEY GUARANTEES
-================================================================================
+Expected:
+  Version:    0.8.6
+  Platforms:  linux/amd64, linux/arm64
+  Digest:     sha256:6f3f516b8e979437dd414373afe581716b8c890dc4758b8675cbbcad9b94b13c
+  Workflow:   30756676576 - PASS
 
-✓ Reproducibility — Every image built from same commit is identical
-✓ Test Integrity — The full suite must pass; broken images don't ship
-✓ Security — Non-root user, minimal surface, no dev tools in production
-✓ Global Distribution — Tagged releases auto-publish to GHCR
-✓ PyPI + Docker — Users choose: pip install OR docker run
-
-================================================================================
-  OPTIONAL ENHANCEMENTS (FUTURE)
-================================================================================
-
-- Multi-architecture builds (linux/amd64 + linux/arm64)
-- Push to Docker Hub in addition to GHCR
-- Alpine base image (smaller size)
-- Automated nightly builds for testing
-- Container image scanning for vulnerabilities
-
-See DOCKER.md for details.
+See DOCKER.md for use and development details.
+See SHIPPING.md for the full release and evidence procedure.
 
 ================================================================================

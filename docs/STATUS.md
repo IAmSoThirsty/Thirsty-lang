@@ -1,5 +1,9 @@
 # Feature Status
 
+Edition: Thirsty-Lang 0.8.6. The integrated navigation and reference layer is
+[THIRSTY_LANG_101.md](THIRSTY_LANG_101.md); security acceptance details remain
+authoritative in [THREAT_MODEL.md](THREAT_MODEL.md).
+
 Every capability below is marked **Real** (implemented and enforced, with a
 test that proves it) or **Roadmap** (reserved surface, not yet enforced). The
 test reference is the authority — if a row says Real, the cited test fails when
@@ -16,9 +20,14 @@ The optional Z3 layer is exercised only when the `analysis` extra is installed
 
 This register distinguishes verdict execution from context-contract integrity.
 The PASS entries are evidenced by the preserved 0.8.5 package reproduction.
-The critical FAIL entries continue to block load-bearing use of the published
-package until the repair is released and independently accepted; the active
-source repair is guarded by `tests/test_tarl_context_resolution_integrity.py`,
+The repairs shipped in 0.8.6 at commit
+`60f226a69059b5803b0035f037d09e6f7f9c45a2`; the branch CI, PyPI release, and
+multi-architecture GHCR workflows all passed, and a fresh PyPI installation
+reproduced the permanent ALLOW/DENY matrix. The critical FAIL entries remain
+in place because release evidence is not the same thing as independent
+constitutional acceptance. Until that acceptance is recorded, they continue
+to block load-bearing positive authority. Regression authority is provided by
+`tests/test_tarl_context_resolution_integrity.py`,
 `tests/test_tarl_context_security_boundaries.py`, and
 `tests/test_threat_model_lint_quorum.py`.
 
@@ -41,7 +50,7 @@ source repair is guarded by `tests/test_tarl_context_resolution_integrity.py`,
   title: Schema, CLI, evaluator, proofs, and documentation share one context model
   status: FAIL
   severity: critical
-  local_repair_status: implemented_pending_release_and_independent_acceptance
+  repair_status: released_in_0_8_6_pending_independent_acceptance
   blocks:
     - policy_engine_load_bearing_authority
     - trusted_state_promotion
@@ -52,7 +61,7 @@ source repair is guarded by `tests/test_tarl_context_resolution_integrity.py`,
   status: FAIL
   severity: critical
   security_impact: confirmed_authorization_bypass
-  local_repair_status: implemented_pending_release_and_independent_acceptance
+  repair_status: released_in_0_8_6_pending_independent_acceptance
   blocks:
     - all_dotted_path_policy_authority
     - competence_advancement_authorization
@@ -113,7 +122,7 @@ Preserved reproduction evidence manifest SHA-256:
 | Derived context schema from TARL policy references, fail-closed when incomplete | Real | `tests/test_proof_obligations.py`; `tests/test_threat_model_context_schema.py` |
 | Denial explanation for missing policy/context/authority/proof conditions | Real | `tests/test_proof_obligations.py` |
 | Build manifest records source/policy hashes, capabilities, schema, proof/audit requirements, Shadow status, and governance-loss status | Real | `tests/test_proof_obligations.py`; `tests/test_threat_model_build_outputs.py` |
-| TARL numeric comparison is type-strict: int/float interoperate; strings never coerce to numbers | Real in active source; release acceptance pending | `tests/test_peer_review_0_8_1_tarl_regressions.py`; `tests/test_tarl_context_security_boundaries.py` |
+| TARL numeric comparison is type-strict: int/float interoperate; strings never coerce to numbers | Real in released 0.8.6; independent acceptance pending | `tests/test_peer_review_0_8_1_tarl_regressions.py`; `tests/test_tarl_context_security_boundaries.py` |
 | TARL policy load and runtime evaluation reject or deny malformed/unsafe rules instead of falling through | Real | `tests/test_peer_review_0_8_1_tarl_regressions.py`; `tests/test_tarl.py::TestThrowStats` |
 | Runtime and `tarl eval` require valid zoned trusted time for configured clocks, policy windows, time-bound verdicts, `CURRENT_*`, and `ELAPSED_SINCE`; invalid configured clocks never fall back to host time | Real | `tests/test_threat_model_clock.py`; `tests/test_peer_review_0_8_1_tarl_regressions.py` |
 | `thirsty govern --auto-tarl` emits policies keyed on runtime `action` context | Real | `tests/test_peer_review_0_8_1_tarl_regressions.py` |
@@ -124,26 +133,26 @@ Preserved reproduction evidence manifest SHA-256:
 |---|---|---|
 | Authenticated authority provenance; hardened mode requires signed authority + Ed25519 proofs | Real | `tests/test_threat_model_authority.py` |
 | Context schema validation fails closed on missing/type-confused fields | Real | `tests/test_threat_model_context_schema.py` |
-| One authoritative nested context representation across schema, CLI, evaluator, proof, and governed runtime | Real in active source; release acceptance pending | `tests/test_tarl_context_resolution_integrity.py` |
-| Missing, malformed, and conflicting context states short-circuit to DENY and never enter boolean algebra | Real in active source; release acceptance pending | `tests/test_tarl_context_resolution_integrity.py` |
-| Positive proofs bind original/canonical hashes, representation, algorithm/version, and conflict status | Real in active source; release acceptance pending | `tests/test_tarl_context_resolution_integrity.py` |
-| Context and registered sources use strict finite JSON; incompatible expression kinds cannot coerce into ALLOW | Real in active source; release acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
-| Broker and governed runtime require a passed, proof-bound explicit or complete derived schema before ALLOW can advance authority | Real in active source; release acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
-| Registered-source proofs preserve original/evaluated contexts and verification permits only valid source-field additions | Real in active source; release acceptance pending | `tests/test_tarl_context_security_boundaries.py`; `tests/test_tarl_proof.py` |
-| Explicit schema representation and field metadata are parsed strictly without duplicate-key acceptance or coercion | Real in active source; release acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
-| Boolean operands and every supplied quantifier element are validated eagerly, and empty quantifier collections fail closed, so decisive or vacuous results cannot hide resolution/type failures | Real in active source; release acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
-| Numeric operands and arithmetic results must remain finite; strings never coerce to numbers | Real in active source; release acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
-| Quantifier binders cannot shadow the reserved `__tarl_*` evaluator namespace | Real in active source; release acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
-| When the runtime schema is derived, a differing `policy_text` override receives its own complete derived schema and proof binding, or fails closed; an explicitly attached schema remains caller-authoritative | Real in active source; release acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
-| Quorum promotion requires the exact request context, trusted aware time, freshness and replay enforcement, plus an independently verified, signed, exact-policy/rule, schema-passed ESCALATE proof with distinct approvals over its complete digest and preserved signed expiry | Real in active source; release acceptance pending | `tests/test_threat_model_lint_quorum.py` |
+| One authoritative nested context representation across schema, CLI, evaluator, proof, and governed runtime | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_context_resolution_integrity.py` |
+| Missing, malformed, and conflicting context states short-circuit to DENY and never enter boolean algebra | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_context_resolution_integrity.py` |
+| Positive proofs bind original/canonical hashes, representation, algorithm/version, and conflict status | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_context_resolution_integrity.py` |
+| Context and registered sources use strict finite JSON; incompatible expression kinds cannot coerce into ALLOW | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
+| Broker and governed runtime require a passed, proof-bound explicit or complete derived schema before ALLOW can advance authority | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
+| Registered-source proofs preserve original/evaluated contexts and verification permits only valid source-field additions | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_context_security_boundaries.py`; `tests/test_tarl_proof.py` |
+| Explicit schema representation and field metadata are parsed strictly without duplicate-key acceptance or coercion | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
+| Boolean operands and every supplied quantifier element are validated eagerly, and empty quantifier collections fail closed, so decisive or vacuous results cannot hide resolution/type failures | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
+| Numeric operands and arithmetic results must remain finite; strings never coerce to numbers | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
+| Quantifier binders cannot shadow the reserved `__tarl_*` evaluator namespace | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
+| When the runtime schema is derived, a differing `policy_text` override receives its own complete derived schema and proof binding, or fails closed; an explicitly attached schema remains caller-authoritative | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_context_security_boundaries.py` |
+| Quorum promotion requires the exact request context, trusted aware time, freshness and replay enforcement, plus an independently verified, signed, exact-policy/rule, schema-passed ESCALATE proof with distinct approvals over its complete digest and preserved signed expiry | Real in released 0.8.6; independent acceptance pending | `tests/test_threat_model_lint_quorum.py` |
 | Replay/freshness/revocation rejection in the proof verifier | Real | `tests/test_threat_model_replay.py` |
-| Canonical proof signatures and complete semantic replay identity prevent alternate-encoding reuse | Real in active source; release acceptance pending | `tests/test_tarl_proof.py`; `tests/test_durable_state.py` |
-| Temporal directives parse strictly, expiry cannot grant ALLOW, and proof/quorum authority is capped at the earliest exclusive policy or rule cutoff | Real in active source; release acceptance pending | `tests/test_tarl_temporal.py`; `tests/test_tarl_proof.py`; `tests/test_threat_model_lint_quorum.py`; `tests/test_broker_unified_gate.py` |
+| Canonical proof signatures and complete semantic replay identity prevent alternate-encoding reuse | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_proof.py`; `tests/test_durable_state.py` |
+| Temporal directives parse strictly, expiry cannot grant ALLOW, and proof/quorum authority is capped at the earliest exclusive policy or rule cutoff | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_temporal.py`; `tests/test_tarl_proof.py`; `tests/test_threat_model_lint_quorum.py`; `tests/test_broker_unified_gate.py` |
 | Tamper-evident hash-linked audit chain (`verify_chain`) | Real | `tests/test_threat_model_audit_chain.py` |
 | Universal capability broker (FFI/native + agent/MCP tools) | Real | `tests/test_threat_model_broker.py` |
 | Fail-closed under evaluator error / required-audit failure | Real | `tests/test_threat_model_failclosed.py` |
 | Filesystem path confinement (traversal/symlink escape) | Real | `tests/test_threat_model_pathguard.py` |
-| Broad-ALLOW policy lint + proof-bound signed ESCALATE quorum | Real in active source; release acceptance pending for strengthened proof gate | `tests/test_threat_model_lint_quorum.py` |
+| Broad-ALLOW policy lint + proof-bound signed ESCALATE quorum | Real in released 0.8.6; independent acceptance pending | `tests/test_threat_model_lint_quorum.py` |
 | Trusted signed-time source for temporal policy | Real | `tests/test_threat_model_clock.py` |
 | CLI: `tarl lint`, `tarl audit verify-chain`, strict `tarl verify` flags | Real | `tests/test_cli_tarl_hardening.py` |
 

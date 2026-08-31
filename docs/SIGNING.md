@@ -1,120 +1,95 @@
-# Signing Wheel Releases
+# Release Authentication, Attestations, and Optional Signatures
 
-This guide covers how to sign Thirsty-Lang wheel distributions using GPG.
+Edition: Thirsty-Lang 0.8.6 (2026-08-02)
 
-## Setup (One-time)
+This guide separates three mechanisms that protect different things:
 
-### 1. Generate GPG Key (if not already done)
+| Mechanism | Purpose | 0.8.6 status |
+|---|---|---|
+| PyPI API token | Authenticates the upload account | Active |
+| PyPI Trusted Publishing and publish attestations | Binds an uploaded file to a supported CI identity through OIDC | Not active for 0.8.6 |
+| TARL HMAC or Ed25519 signatures | Bind policy-verdict proofs inside the language runtime | Active; unrelated to package publication |
+| Detached OpenPGP signature | Optional out-of-band signature distributed somewhere other than PyPI | Not produced by the release workflow |
+
+The current `.github/workflows/release.yml` validates the tagged commit, builds
+the wheel and source distribution, checks metadata, and publishes through the
+pinned PyPA action. Authentication uses the project-scoped PyPI API token in
+the GitHub `release` environment secret named `IAMSOTHIRSTY`. The repository
+does not contain that secret.
+
+## Current 0.8.6 publication contract
+
+The release workflow enforces:
+
+1. The Git tag version matches `pyproject.toml`.
+2. Ruff and mypy pass.
+3. The full test suite passes with at least 90 percent coverage.
+4. The package builds and `twine check` accepts every distribution.
+5. The pinned publisher action uploads with `__token__` credentials.
+
+This is authenticated package publication, but it is not PyPI Trusted
+Publishing. Consequently the 0.8.6 files do not carry the Trusted Publisher
+publish-attestation claim described by PyPI.
+
+## Recommended future migration: Trusted Publishing
+
+PyPI Trusted Publishing exchanges a GitHub Actions OIDC identity for a
+short-lived upload token. It removes the long-lived project API token from the
+workflow and enables PyPI's supported publish-attestation path.
+
+Migration requires an external PyPI project configuration that exactly matches:
+
+- owner: `IAmSoThirsty`
+- repository: `Thirsty-lang`
+- workflow: `release.yml`
+- environment: `release`
+
+After that external configuration is verified, remove the explicit `user` and
+`password` inputs from the PyPA publishing step and grant `id-token: write` to
+the publish job. Do not make only one side of this change: a workflow/PyPI
+identity mismatch fails publication.
+
+The official PyPA publishing action generates and uploads supported
+attestations by default when it publishes through Trusted Publishing. A token-
+authenticated upload must not be described as having that OIDC provenance.
+
+## Optional detached OpenPGP signatures
+
+OpenPGP signatures can still be useful when the project operates a separate,
+documented distribution channel for both the artifact and signature. They are
+not a substitute for PyPI Trusted Publishing.
+
+Current Twine warns that PyPI and TestPyPI silently ignore attached PGP
+signatures. Do not use `twine upload --sign` or upload `.asc` files as evidence
+that PyPI users received or verified a signature.
+
+If an out-of-band channel is intentionally established:
 
 ```bash
-gpg --gen-key
-# Follow prompts:
-# - Key type: RSA
-# - Key size: 4096
-# - Name: Thirsty's Projects LLC
-# - Email: releases@thirsty-projects.local
-# - No passphrase (or use one for extra security)
-```
-
-### 2. Export Public Key
-
-```bash
-gpg --export --armor <YOUR_KEY_ID> > public_key.asc
-# Upload to keyserver (optional, for verifying published signatures)
-gpg --send-keys <YOUR_KEY_ID> --keyserver keyserver.ubuntu.com
-```
-
-### 3. Add Private Key to GitHub Secrets
-
-1. Export private key:
-   ```bash
-   gpg --export-secret-key --armor <YOUR_KEY_ID> > private_key.asc
-   ```
-
-2. In GitHub repo settings → Secrets and variables → Actions:
-   - Add `GPG_PRIVATE_KEY` = contents of private_key.asc
-   - Add `GPG_PASSPHRASE` = passphrase (if key is protected)
-
-## Release Workflow with Signing
-
-### Manual Signing (Local)
-
-```bash
-# Build wheel
 python -m build
-
-# Sign wheel
 gpg --detach-sign --armor dist/thirsty_lang-0.8.6-py3-none-any.whl
-# Creates: thirsty_lang-0.8.6-py3-none-any.whl.asc
-
-# Upload both files to PyPI
-twine upload dist/thirsty_lang-0.8.6* --sign --identity <YOUR_KEY_ID>
+gpg --verify \
+  dist/thirsty_lang-0.8.6-py3-none-any.whl.asc \
+  dist/thirsty_lang-0.8.6-py3-none-any.whl
 ```
 
-### Automated Signing (GitHub Actions)
+Use a dedicated protected release key, keep its passphrase and private material
+outside the repository, publish the complete fingerprint through an
+authenticated channel, document rotation and revocation, and test the consumer
+verification procedure. Never recommend an unprotected private release key.
 
-The release workflow can be enhanced to sign wheels:
+## TARL proof signing is separate
 
-```yaml
-- name: Install GPG
-  run: sudo apt-get install -y gnupg
-
-- name: Import GPG key
-  run: |
-    echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --import
-    gpg --list-secret-keys
-
-- name: Sign wheels
-  run: |
-    cd dist
-    for wheel in *.whl; do
-      gpg --detach-sign --armor "$wheel"
-    done
-
-- name: Publish with signatures
-  uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # release/v1
-  with:
-    skip-existing: true
-```
-
-## Verifying Signatures
-
-Users can verify downloaded wheels:
-
-```bash
-# Download public key
-curl -O https://keyserver.ubuntu.com/pks/lookup?op=get&search=<KEY_ID>
-
-# Import key
-gpg --import public_key.asc
-
-# Verify signature
-gpg --verify thirsty_lang-0.8.6-py3-none-any.whl.asc thirsty_lang-0.8.6-py3-none-any.whl
-```
-
-## Best Practices
-
-1. **Use a dedicated key** for releases (separate from personal GPG key)
-2. **Protect private keys** with strong passphrases
-3. **Rotate keys** annually
-4. **Publish public key** to multiple keyservers
-5. **Document key fingerprint** in project security policy
-6. **Test verification** before publicizing signatures
-
-## PyPI Release Authentication
-
-The current `.github/workflows/release.yml` publishes through the pinned PyPI
-publish action using a scoped PyPI API token. The token is stored as the
-`IAMSOTHIRSTY` secret in the GitHub Actions `release` environment and is passed
-with the `__token__` username; it is never stored in the repository.
-
-PyPI Trusted Publishing through GitHub OIDC is not the active authentication
-path. A future migration can remove the token input after the PyPI project has a
-matching trusted-publisher configuration for owner `IAmSoThirsty`, repository
-`Thirsty-lang`, and workflow `release.yml`.
+TARL proof signatures establish authority over an evaluated policy decision,
+not provenance for a wheel file. See the
+[canonical Thirsty-Lang 101 manual](THIRSTY_LANG_101.md) and
+[`governance_model.md`](governance_model.md) for proof canonicalization, HMAC
+compatibility, Ed25519 attribution, key identifiers, replay identity, expiry,
+and revocation.
 
 ## References
 
-- [PEP 740 — Trusted Publishing](https://peps.python.org/pep-0740/)
-- [PyPI Help: Publishing](https://pypi.org/help/)
-- [GPG Handbook](https://www.gnupg.org/documentation/)
+- [PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
+- [PyPI: Producing attestations](https://docs.pypi.org/attestations/producing-attestations/)
+- [Twine upload implementation and PGP warning](https://twine.readthedocs.io/en/stable/_modules/twine/commands/upload.html)
+- [GNU Privacy Handbook](https://www.gnupg.org/gph/en/manual.html)
