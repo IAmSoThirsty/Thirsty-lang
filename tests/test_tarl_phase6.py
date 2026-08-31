@@ -8,6 +8,7 @@ Covers:
   - CLI: tarl explain, tarl test
   - Public API exports
 """
+
 import io
 import json
 import os
@@ -39,43 +40,47 @@ policy ranked:
 # TarlExplainer
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestTarlExplainer(unittest.TestCase):
 
     def setUp(self):
         from utf.tarl.explainer import TarlExplainer
+
         self.ex = TarlExplainer()
 
     # ── basic verdict paths ───────────────────────────────────────────────────
 
     def test_explain_allow_first_rule(self):
         from utf.tarl.spec import TarlVerdict
-        exp = self.ex.explain({"user": {"role": "admin"}},
-                              policy_text=SIMPLE_POLICY)
+
+        exp = self.ex.explain({"user": {"role": "admin"}}, policy_text=SIMPLE_POLICY)
         self.assertEqual(exp.verdict, TarlVerdict.ALLOW)
         self.assertEqual(exp.matched_rule_index, 0)
 
     def test_explain_allow_second_rule(self):
         from utf.tarl.spec import TarlVerdict
-        exp = self.ex.explain({"user": {"role": "user"}},
-                              policy_text=SIMPLE_POLICY)
+
+        exp = self.ex.explain({"user": {"role": "user"}}, policy_text=SIMPLE_POLICY)
         self.assertEqual(exp.verdict, TarlVerdict.ALLOW)
         self.assertEqual(exp.matched_rule_index, 1)
 
     def test_explain_default_deny(self):
         from utf.tarl.spec import TarlVerdict
-        exp = self.ex.explain({"user": {"role": "ghost"}},
-                              policy_text=SIMPLE_POLICY)
+
+        exp = self.ex.explain({"user": {"role": "ghost"}}, policy_text=SIMPLE_POLICY)
         self.assertEqual(exp.verdict, TarlVerdict.DENY)
         self.assertEqual(exp.matched_rule_index, -1)
 
     def test_explain_deny_rule_match(self):
         from utf.tarl.spec import TarlVerdict
+
         exp = self.ex.explain({"flag": True}, policy_text=DENY_POLICY)
         self.assertEqual(exp.verdict, TarlVerdict.DENY)
         self.assertEqual(exp.matched_rule_index, 0)
 
     def test_explain_escalate_verdict(self):
         from utf.tarl.spec import TarlVerdict
+
         exp = self.ex.explain({"score": 75}, policy_text=MULTI_RULE_POLICY)
         self.assertEqual(exp.verdict, TarlVerdict.ESCALATE)
         self.assertEqual(exp.matched_rule_index, 1)
@@ -83,25 +88,21 @@ class TestTarlExplainer(unittest.TestCase):
     # ── trace structure ───────────────────────────────────────────────────────
 
     def test_rule_traces_count_equals_policy_rules(self):
-        exp = self.ex.explain({"user": {"role": "admin"}},
-                              policy_text=SIMPLE_POLICY)
+        exp = self.ex.explain({"user": {"role": "admin"}}, policy_text=SIMPLE_POLICY)
         self.assertEqual(len(exp.rule_traces), 2)
 
     def test_matched_rule_trace_is_evaluated_and_matched(self):
-        exp = self.ex.explain({"user": {"role": "admin"}},
-                              policy_text=SIMPLE_POLICY)
+        exp = self.ex.explain({"user": {"role": "admin"}}, policy_text=SIMPLE_POLICY)
         self.assertTrue(exp.rule_traces[0].evaluated)
         self.assertTrue(exp.rule_traces[0].matched)
 
     def test_subsequent_rule_marked_unevaluated(self):
-        exp = self.ex.explain({"user": {"role": "admin"}},
-                              policy_text=SIMPLE_POLICY)
+        exp = self.ex.explain({"user": {"role": "admin"}}, policy_text=SIMPLE_POLICY)
         self.assertFalse(exp.rule_traces[1].evaluated)
         self.assertFalse(exp.rule_traces[1].matched)
 
     def test_no_match_all_rules_evaluated(self):
-        exp = self.ex.explain({"user": {"role": "nobody"}},
-                              policy_text=SIMPLE_POLICY)
+        exp = self.ex.explain({"user": {"role": "nobody"}}, policy_text=SIMPLE_POLICY)
         for trace in exp.rule_traces:
             self.assertTrue(trace.evaluated)
         self.assertFalse(any(t.matched for t in exp.rule_traces))
@@ -143,8 +144,7 @@ class TestTarlExplainer(unittest.TestCase):
         self.assertIsNotNone(exp.expires_at)
 
     def test_no_duration_rule_has_no_expires_at(self):
-        exp = self.ex.explain({"user": {"role": "admin"}},
-                              policy_text=SIMPLE_POLICY)
+        exp = self.ex.explain({"user": {"role": "admin"}}, policy_text=SIMPLE_POLICY)
         self.assertIsNone(exp.expires_at)
 
     # ── pass TarlPolicy directly ──────────────────────────────────────────────
@@ -152,6 +152,7 @@ class TestTarlExplainer(unittest.TestCase):
     def test_explain_with_policy_object(self):
         from utf.tarl.core import PolicyParser
         from utf.tarl.spec import TarlVerdict
+
         policy = PolicyParser.parse(SIMPLE_POLICY)
         exp = self.ex.explain({"user": {"role": "admin"}}, policy=policy)
         self.assertEqual(exp.verdict, TarlVerdict.ALLOW)
@@ -159,26 +160,22 @@ class TestTarlExplainer(unittest.TestCase):
     # ── format ────────────────────────────────────────────────────────────────
 
     def test_format_contains_verdict(self):
-        exp = self.ex.explain({"user": {"role": "admin"}},
-                              policy_text=SIMPLE_POLICY)
+        exp = self.ex.explain({"user": {"role": "admin"}}, policy_text=SIMPLE_POLICY)
         text = exp.format()
         self.assertIn("ALLOW", text)
 
     def test_format_shows_matched_rule_index(self):
-        exp = self.ex.explain({"user": {"role": "user"}},
-                              policy_text=SIMPLE_POLICY)
+        exp = self.ex.explain({"user": {"role": "user"}}, policy_text=SIMPLE_POLICY)
         text = exp.format()
         self.assertIn("Rule #1", text)
 
     def test_format_verbose_shows_skipped_rules(self):
-        exp = self.ex.explain({"user": {"role": "admin"}},
-                              policy_text=SIMPLE_POLICY)
+        exp = self.ex.explain({"user": {"role": "admin"}}, policy_text=SIMPLE_POLICY)
         text = exp.format(verbose=True)
         self.assertIn("skipped", text)
 
     def test_format_non_verbose_hides_skipped_rules(self):
-        exp = self.ex.explain({"user": {"role": "admin"}},
-                              policy_text=SIMPLE_POLICY)
+        exp = self.ex.explain({"user": {"role": "admin"}}, policy_text=SIMPLE_POLICY)
         text = exp.format(verbose=False)
         self.assertNotIn("skipped", text)
 
@@ -195,8 +192,7 @@ class TestTarlExplainer(unittest.TestCase):
     # ── to_dict ───────────────────────────────────────────────────────────────
 
     def test_to_dict_structure(self):
-        exp = self.ex.explain({"user": {"role": "admin"}},
-                              policy_text=SIMPLE_POLICY)
+        exp = self.ex.explain({"user": {"role": "admin"}}, policy_text=SIMPLE_POLICY)
         d = exp.to_dict()
         self.assertIn("policy_name", d)
         self.assertIn("verdict", d)
@@ -205,18 +201,24 @@ class TestTarlExplainer(unittest.TestCase):
         self.assertIsInstance(d["rule_traces"], list)
 
     def test_to_dict_rule_traces_have_expected_keys(self):
-        exp = self.ex.explain({"user": {"role": "admin"}},
-                              policy_text=SIMPLE_POLICY)
+        exp = self.ex.explain({"user": {"role": "admin"}}, policy_text=SIMPLE_POLICY)
         d = exp.to_dict()
         trace = d["rule_traces"][0]
-        for key in ("rule_index", "condition", "verdict", "matched",
-                    "evaluated", "error"):
+        for key in (
+            "rule_index",
+            "condition",
+            "verdict",
+            "matched",
+            "evaluated",
+            "error",
+        ):
             self.assertIn(key, trace)
 
     # ── empty policy ──────────────────────────────────────────────────────────
 
     def test_explain_empty_policy_text_returns_deny(self):
         from utf.tarl.spec import TarlVerdict
+
         exp = self.ex.explain({"x": 1})
         self.assertEqual(exp.verdict, TarlVerdict.DENY)
 
@@ -225,7 +227,7 @@ class TestTarlExplainer(unittest.TestCase):
 # TarlTestRunner / .tarl_test format
 # ══════════════════════════════════════════════════════════════════════════════
 
-_INLINE_SUITE = '''\
+_INLINE_SUITE = """\
 policy:
     when user.role == "admin" => ALLOW
     when user.role == "user"  => ALLOW
@@ -241,18 +243,18 @@ test "user allowed":
 test "ghost denied":
     context: {"user": {"role": "ghost"}}
     expect: DENY
-'''
+"""
 
-_FAILING_SUITE = '''\
+_FAILING_SUITE = """\
 policy:
     when x == 1 => ALLOW
 
 test "wrong expectation":
     context: {"x": 1}
     expect: DENY
-'''
+"""
 
-_EXPECT_RULE_SUITE = '''\
+_EXPECT_RULE_SUITE = """\
 policy:
     when x >= 10 => ALLOW
     when x >= 5  => ESCALATE
@@ -267,13 +269,14 @@ test "mid score":
     context: {"x": 7}
     expect: ESCALATE
     expect_rule: 1
-'''
+"""
 
 
 class TestTarlTestRunner(unittest.TestCase):
 
     def setUp(self):
         from utf.tarl.tester import TarlTestRunner
+
         self.runner = TarlTestRunner()
 
     def _run(self, text, **kw):
@@ -301,7 +304,7 @@ class TestTarlTestRunner(unittest.TestCase):
         self.assertEqual(result.failed, 0, [str(r) for r in result.results])
 
     def test_expect_rule_fails_when_wrong_rule(self):
-        suite = '''\
+        suite = """\
 policy:
     when x >= 10 => ALLOW
     when x >= 5  => ALLOW
@@ -310,7 +313,7 @@ test "wrong rule":
     context: {"x": 15}
     expect: ALLOW
     expect_rule: 1
-'''
+"""
         result = self._run(suite)
         self.assertEqual(result.failed, 1)
         r = result.results[0]
@@ -318,7 +321,7 @@ test "wrong rule":
         self.assertEqual(r.expected_rule, 1)
 
     def test_mixed_pass_fail(self):
-        suite = '''\
+        suite = """\
 policy:
     when x == 1 => ALLOW
 
@@ -329,7 +332,7 @@ test "pass":
 test "fail":
     context: {"x": 2}
     expect: ALLOW
-'''
+"""
         result = self._run(suite)
         self.assertEqual(result.passed, 1)
         self.assertEqual(result.failed, 1)
@@ -342,10 +345,10 @@ test "fail":
             with open(pol, "w") as f:
                 f.write('when role == "admin" => ALLOW\n')
             suite_text = (
-                'policy_file: pol.tarl\n\n'
+                "policy_file: pol.tarl\n\n"
                 'test "admin":\n'
                 '    context: {"role": "admin"}\n'
-                '    expect: ALLOW\n'
+                "    expect: ALLOW\n"
             )
             result = self.runner.run_text(suite_text, base_dir=tmpdir)
             self.assertIsNone(result.load_error)
@@ -372,7 +375,7 @@ test "fail":
     def test_invalid_json_context_raises_load_error(self):
         suite = (
             "policy:\n    when x == 1 => ALLOW\n\n"
-            "test \"bad\":\n    context: {bad json}\n    expect: ALLOW\n"
+            'test "bad":\n    context: {bad json}\n    expect: ALLOW\n'
         )
         result = self._run(suite)
         self.assertIsNotNone(result.load_error)
@@ -445,8 +448,8 @@ test "fail":
         result = self._run(_FAILING_SUITE)
         text = str(result.results[0])
         self.assertIn("FAIL", text)
-        self.assertIn("ALLOW", text)   # actual
-        self.assertIn("DENY", text)    # expected
+        self.assertIn("ALLOW", text)  # actual
+        self.assertIn("DENY", text)  # expected
 
     # ── ok property ───────────────────────────────────────────────────────────
 
@@ -463,10 +466,12 @@ test "fail":
 # TarlLanguageServer
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestTarlLanguageServer(unittest.TestCase):
 
     def _server(self):
         from utf.tarl.lsp import TarlLanguageServer
+
         return TarlLanguageServer(
             stdin=io.BytesIO(b""),
             stdout=io.BytesIO(),
@@ -588,18 +593,20 @@ class TestTarlLanguageServer(unittest.TestCase):
 
     def test_did_open_stores_document(self):
         srv = self._server()
-        srv._on_did_open({
-            "textDocument": {"uri": "file:///a.tarl", "text": SIMPLE_POLICY}
-        })
+        srv._on_did_open(
+            {"textDocument": {"uri": "file:///a.tarl", "text": SIMPLE_POLICY}}
+        )
         self.assertIn("file:///a.tarl", srv._docs)
 
     def test_did_change_updates_document(self):
         srv = self._server()
         srv._docs["file:///a.tarl"] = "old"
-        srv._on_did_change({
-            "textDocument": {"uri": "file:///a.tarl"},
-            "contentChanges": [{"text": SIMPLE_POLICY}],
-        })
+        srv._on_did_change(
+            {
+                "textDocument": {"uri": "file:///a.tarl"},
+                "contentChanges": [{"text": SIMPLE_POLICY}],
+            }
+        )
         self.assertEqual(srv._docs["file:///a.tarl"], SIMPLE_POLICY)
 
     def test_did_close_removes_document(self):
@@ -625,20 +632,20 @@ class TestTarlLanguageServer(unittest.TestCase):
     def test_dispatch_unknown_method_with_id_replies_null(self):
         from utf.tarl.lsp import _read_message
 
-        req = json.dumps({
-            "jsonrpc": "2.0", "id": 99, "method": "$/unknown", "params": {}
-        }).encode()
+        req = json.dumps(
+            {"jsonrpc": "2.0", "id": 99, "method": "$/unknown", "params": {}}
+        ).encode()
         header = f"Content-Length: {len(req)}\r\n\r\n".encode()
         stdin = io.BytesIO(header + req)
         stdout = io.BytesIO()
 
         from utf.tarl.lsp import TarlLanguageServer
+
         srv = TarlLanguageServer(stdin=stdin, stdout=stdout)
         # Read one message and dispatch
         _read_message(stdin)
         stdin.seek(0)  # reset for run() to consume
-        srv._dispatch({"jsonrpc": "2.0", "id": 99, "method": "$/unknown",
-                        "params": {}})
+        srv._dispatch({"jsonrpc": "2.0", "id": 99, "method": "$/unknown", "params": {}})
 
         stdout.seek(0)
         response = _read_message(stdout)
@@ -651,6 +658,7 @@ class TestTarlLanguageServer(unittest.TestCase):
 # CLI integration — tarl explain
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestCLIExplain(unittest.TestCase):
 
     def _run_cli(self, args, stdin_text=None):
@@ -659,42 +667,48 @@ class TestCLIExplain(unittest.TestCase):
         from unittest.mock import patch
 
         buf = _io.StringIO()
-        with patch("sys.argv", args), \
-             patch("sys.stdout", buf):
+        with patch("sys.argv", args), patch("sys.stdout", buf):
             try:
                 from utf.tarl.cli import main
+
                 main()
             except SystemExit:
                 pass
         return buf.getvalue()
 
     def test_explain_basic(self):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".tarl", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".tarl", delete=False) as f:
             f.write(SIMPLE_POLICY)
             path = f.name
         try:
-            out = self._run_cli([
-                "tarl", "explain", path,
-                "--context", '{"user": {"role": "admin"}}',
-            ])
+            out = self._run_cli(
+                [
+                    "tarl",
+                    "explain",
+                    path,
+                    "--context",
+                    '{"user": {"role": "admin"}}',
+                ]
+            )
             self.assertIn("ALLOW", out)
         finally:
             os.unlink(path)
 
     def test_explain_json_output(self):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".tarl", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".tarl", delete=False) as f:
             f.write(SIMPLE_POLICY)
             path = f.name
         try:
-            out = self._run_cli([
-                "tarl", "explain", path,
-                "--context", '{"user": {"role": "admin"}}',
-                "--json",
-            ])
+            out = self._run_cli(
+                [
+                    "tarl",
+                    "explain",
+                    path,
+                    "--context",
+                    '{"user": {"role": "admin"}}',
+                    "--json",
+                ]
+            )
             data = json.loads(out)
             self.assertEqual(data["verdict"], "ALLOW")
             self.assertIn("rule_traces", data)
@@ -702,16 +716,19 @@ class TestCLIExplain(unittest.TestCase):
             os.unlink(path)
 
     def test_explain_default_deny(self):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".tarl", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".tarl", delete=False) as f:
             f.write(SIMPLE_POLICY)
             path = f.name
         try:
-            out = self._run_cli([
-                "tarl", "explain", path,
-                "--context", '{"user": {"role": "nobody"}}',
-            ])
+            out = self._run_cli(
+                [
+                    "tarl",
+                    "explain",
+                    path,
+                    "--context",
+                    '{"user": {"role": "nobody"}}',
+                ]
+            )
             self.assertIn("DENY", out)
             self.assertIn("DEFAULT_DENY", out)
         finally:
@@ -722,6 +739,7 @@ class TestCLIExplain(unittest.TestCase):
 # CLI integration — tarl test
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestCLITest(unittest.TestCase):
 
     def _run_cli(self, args):
@@ -730,10 +748,10 @@ class TestCLITest(unittest.TestCase):
 
         buf = _io.StringIO()
         exit_code = 0
-        with patch("sys.argv", args), \
-             patch("sys.stdout", buf):
+        with patch("sys.argv", args), patch("sys.stdout", buf):
             try:
                 from utf.tarl.cli import main
+
                 main()
             except SystemExit as exc:
                 exit_code = int(exc.code) if exc.code is not None else 0
@@ -783,10 +801,12 @@ class TestCLITest(unittest.TestCase):
 # Public API exports
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestPhase6APIExports(unittest.TestCase):
 
     def test_all_phase6_symbols_in_all(self):
         import utf.tarl as tarl
+
         expected = [
             "TarlExplainer",
             "PolicyExplanation",
@@ -803,16 +823,19 @@ class TestPhase6APIExports(unittest.TestCase):
 
     def test_explainer_importable_directly(self):
         from utf.tarl.explainer import TarlExplainer
+
         self.assertTrue(callable(TarlExplainer))
 
     def test_tester_importable_directly(self):
         from utf.tarl.tester import (
             TarlTestRunner,
         )
+
         self.assertTrue(callable(TarlTestRunner))
 
     def test_lsp_importable(self):
         from utf.tarl.lsp import TarlLanguageServer, main
+
         self.assertTrue(callable(TarlLanguageServer))
         self.assertTrue(callable(main))
 

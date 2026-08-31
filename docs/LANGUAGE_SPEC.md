@@ -5,7 +5,7 @@
 
 This is the concise normative family specification. For the integrated
 tutorial, CLI encyclopedia, security contract, deployment guidance, and source
-traceability, see [THIRSTY_LANG_101.md](THIRSTY_LANG_101.md).
+traceability, see [THIRSTY_LANG_UTF_101.md](THIRSTY_LANG_UTF_101.md).
 
 ---
 

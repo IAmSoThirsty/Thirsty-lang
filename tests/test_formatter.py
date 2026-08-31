@@ -1,4 +1,5 @@
 """Full coverage of the AST formatter via direct node construction."""
+
 from utf.thirsty_lang import formatter as F
 from utf.thirsty_lang.ast import (
     ArmorExpr,
@@ -75,16 +76,18 @@ def fexpr(e, prec=0):
 
 # === expressions ===========================================================
 
+
 def test_format_literals():
     assert fexpr(IntLiteral(span=N, value=5)) == "5"
     assert fexpr(FloatLiteral(span=N, value=1.5)) == "1.5"
-    assert fexpr(StringLiteral(span=N, value='a"\n\t\\')) .startswith('"')
+    assert fexpr(StringLiteral(span=N, value='a"\n\t\\')).startswith('"')
     assert fexpr(BoolLiteral(span=N, value=True)) == "true"
     assert fexpr(BoolLiteral(span=N, value=False)) == "false"
     assert fexpr(NoneLiteral(span=N)) == "empty"
     assert fexpr(ErrorLiteral(span=N, value="oops")) == "error(oops)"
-    assert "quenched" in fexpr(QuenchedLiteral(span=N, type_param="Int",
-                                               value=IntLiteral(span=N, value=1)))
+    assert "quenched" in fexpr(
+        QuenchedLiteral(span=N, type_param="Int", value=IntLiteral(span=N, value=1))
+    )
     assert "empty" in fexpr(QuenchedLiteral(span=N, type_param=None, value=None))
     assert fexpr(ident("x")) == "x"
 
@@ -102,8 +105,10 @@ def test_format_binary_and_unary():
 
 
 def test_format_call_member_array():
-    assert fexpr(CallExpr(span=N, callee=ident("f"),
-                          args=[IntLiteral(span=N, value=1)])) == "f(1)"
+    assert (
+        fexpr(CallExpr(span=N, callee=ident("f"), args=[IntLiteral(span=N, value=1)]))
+        == "f(1)"
+    )
     assert fexpr(MemberAccess(span=N, obj=ident("o"), member="m")) == "o.m"
     assert fexpr(ArrayLiteral(span=N, elements=[IntLiteral(span=N, value=1)])) == "[1]"
 
@@ -129,19 +134,35 @@ def test_format_misc_exprs():
     assert fexpr(ArmorExpr(span=N, expr=ident("x"))) == "armor(x)"
     assert fexpr(SymbolExpr(span=N, symbol_name="COG")) == "$COG"
     assert fexpr(PipelineExpr(span=N, left=ident("a"), right=ident("b"))) == "a -> b"
-    assert fexpr(CombineExpr(span=N, left=ident("a"), op="^", right=ident("b"))) == "a ^ b"
-    assert fexpr(CombineExpr(span=N, left=ident("a"), op="||", right=ident("b"))) == "a || b"
+    assert (
+        fexpr(CombineExpr(span=N, left=ident("a"), op="^", right=ident("b"))) == "a ^ b"
+    )
+    assert (
+        fexpr(CombineExpr(span=N, left=ident("a"), op="||", right=ident("b")))
+        == "a || b"
+    )
     assert "unknown expr" in fexpr(Expr(span=N))
 
 
 # === statements ============================================================
 
+
 def test_format_variable_and_funcs():
-    v = VariableDecl(span=N, name="x", var_type="int",
-                     init_expr=IntLiteral(span=N, value=1), is_mut=True)
+    v = VariableDecl(
+        span=N,
+        name="x",
+        var_type="int",
+        init_expr=IntLiteral(span=N, value=1),
+        is_mut=True,
+    )
     assert "mut drink x: int = 1" in F.format_stmt(v)
-    fn = FunctionDecl(span=N, name="f", params=[("a", "int"), ("b", None)],
-                      return_type="int", body=block(ReturnStmt(span=N, value=ident("a"))))
+    fn = FunctionDecl(
+        span=N,
+        name="f",
+        params=[("a", "int"), ("b", None)],
+        return_type="int",
+        body=block(ReturnStmt(span=N, value=ident("a"))),
+    )
     out = F.format_stmt(fn)
     assert "glass f(a: int, b): int {" in out
 
@@ -166,14 +187,17 @@ def test_format_if_chain():
     assert "hydrated {" in F.format_stmt(plain)
     # no else
     assert "hydrated" not in F.format_stmt(
-        IfStmt(span=N, condition=ident("a"), then_block=block(), else_block=None))
+        IfStmt(span=N, condition=ident("a"), then_block=block(), else_block=None)
+    )
 
 
 def test_format_loops():
     assert "refill c {" in F.format_stmt(
-        WhileStmt(span=N, condition=ident("c"), body=block()))
+        WhileStmt(span=N, condition=ident("c"), body=block())
+    )
     assert "refill i in xs {" in F.format_stmt(
-        ForStmt(span=N, variable=ident("i"), iterable=ident("xs"), body=block()))
+        ForStmt(span=N, variable=ident("i"), iterable=ident("xs"), body=block())
+    )
 
 
 def test_format_simple_stmts():
@@ -182,10 +206,14 @@ def test_format_simple_stmts():
     assert "sip -> y" in F.format_stmt(SipStmt(span=N, target=ident("y")))
     assert F.format_stmt(SipStmt(span=N, target=None)).strip() == "sip"
     assert "a = b" in F.format_stmt(
-        AssignStmt(span=N, target=ident("a"), value=ident("b")))
+        AssignStmt(span=N, target=ident("a"), value=ident("b"))
+    )
     assert "import 'm' as alias" in F.format_stmt(
-        ImportStmt(span=N, module_path="m", alias="alias"))
-    assert "import 'm'" in F.format_stmt(ImportStmt(span=N, module_path="m", alias=None))
+        ImportStmt(span=N, module_path="m", alias="alias")
+    )
+    assert "import 'm'" in F.format_stmt(
+        ImportStmt(span=N, module_path="m", alias=None)
+    )
     assert "x" in F.format_stmt(ExprStmt(span=N, expr=ident("x")))
     assert "throw x" in F.format_stmt(ThrowStmt(span=N, value=ident("x")))
     assert "cascade x" in F.format_stmt(CascadeCall(span=N, expr=ident("x")))
@@ -194,8 +222,7 @@ def test_format_simple_stmts():
 def test_format_blocks_and_handlers():
     sec = SecurityBlock(span=N, block_type="shield", body=block())
     assert "shield {" in F.format_stmt(sec)
-    sp = SpillageStmt(span=N, body=block(),
-                      handlers=[("ValueError", block())])
+    sp = SpillageStmt(span=N, body=block(), handlers=[("ValueError", block())])
     out = F.format_stmt(sp)
     assert "spillage {" in out and "spillage ValueError {" in out
     cl = CleanupStmt(span=N, body=block(), finalizer=block())
@@ -204,9 +231,15 @@ def test_format_blocks_and_handlers():
 
 def test_format_governed_and_morph():
     g = GovernedFunctionDecl(
-        span=N, name="w", params=[("a", "int")], return_type="int",
-        body=block(), requires_annotation="a > 0",
-        ensures_annotation="result > 0", invariant_annotation="a < 100")
+        span=N,
+        name="w",
+        params=[("a", "int")],
+        return_type="int",
+        body=block(),
+        requires_annotation="a > 0",
+        ensures_annotation="result > 0",
+        invariant_annotation="a < 100",
+    )
     out = F.format_stmt(g)
     assert "requires a > 0" in out
     assert "ensures result > 0" in out
@@ -217,21 +250,27 @@ def test_format_governed_and_morph():
 
 def test_format_decls():
     assert "defend d: pol = a, b" in F.format_stmt(
-        DefendStrat(span=N, name="d", policy="pol", actions=["a", "b"]))
+        DefendStrat(span=N, name="d", policy="pol", actions=["a", "b"])
+    )
     assert "enum E = A, B" in F.format_stmt(
-        EnumDecl(span=N, name="E", variants=["A", "B"]))
+        EnumDecl(span=N, name="E", variants=["A", "B"])
+    )
     assert "struct S(a: int, b)" in F.format_stmt(
-        StructDecl(span=N, name="S", fields=[("a", "int"), ("b", None)]))
+        StructDecl(span=N, name="S", fields=[("a", "int"), ("b", None)])
+    )
     assert "interface I(f, g)" in F.format_stmt(
-        InterfaceDecl(span=N, name="I", methods=["f", "g"]))
+        InterfaceDecl(span=N, name="I", methods=["f", "g"])
+    )
 
 
 def test_format_mutation():
     mut = ShadowThirstMutation(
-        span=N, name="mx",
+        span=N,
+        name="mx",
         shadow_block=block(ReturnStmt(span=N, value=ident("x"))),
         invariant_block=block(ReturnStmt(span=N, value=ident("x"))),
-        canonical_block=block(ReturnStmt(span=N, value=ident("x"))))
+        canonical_block=block(ReturnStmt(span=N, value=ident("x"))),
+    )
     out = F.format_stmt(mut)
     assert "mutation mx {" in out
     assert "shadow {" in out and "invariant {" in out and "canonical {" in out
@@ -247,8 +286,11 @@ def test_format_unknown_stmt():
 
 
 def test_format_program_and_top_level():
-    prog = Program(span=N, header=ModuleHeader(span=N, name="m", mode="core"),
-                   stmts=[PourStmt(span=N, value=IntLiteral(span=N, value=1))])
+    prog = Program(
+        span=N,
+        header=ModuleHeader(span=N, name="m", mode="core"),
+        stmts=[PourStmt(span=N, value=IntLiteral(span=N, value=1))],
+    )
     out = F.format(prog)
     assert out.startswith("module m: core")
     assert out.endswith("\n")

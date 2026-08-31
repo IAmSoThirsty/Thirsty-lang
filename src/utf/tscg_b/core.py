@@ -2,6 +2,7 @@
 TSCG-B — TSCG Binary Protocol
 Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.
 """
+
 import hashlib
 import struct
 import zlib
@@ -10,7 +11,7 @@ from typing import Any
 from utf.tscg.core import ALL_SYMBOLS, OPCODE_TO_SYMBOL
 
 # Frame format constants
-MAGIC = b'TSGB'
+MAGIC = b"TSGB"
 VERSION = 1
 HEADER_SIZE = 8  # magic(4) + version(1) + flags(1) + payload_length(2)
 CRC32_SIZE = 4
@@ -37,7 +38,7 @@ def symbol_for_opcode(opcode: int) -> str | None:
 
 def encode_text_to_opcodes(text: str) -> list[int]:
     """Encode text into reversible base-23 opcodes."""
-    data = text.encode('utf-8')
+    data = text.encode("utf-8")
     opcodes = []
     for byte in data:
         hi = byte // 23
@@ -66,7 +67,7 @@ def decode_opcodes_to_text(opcodes: list[int]) -> str:
         # Single digit (byte < 23, or ambiguous low byte)
         bytes_list.append(op)
         i += 1
-    return bytes(bytes_list).decode('utf-8', errors='replace')
+    return bytes(bytes_list).decode("utf-8", errors="replace")
 
 
 def pack_text(text: str, flags: int = FLAG_NONE) -> bytes:
@@ -82,17 +83,17 @@ def pack_text(text: str, flags: int = FLAG_NONE) -> bytes:
     - crc32: 4 bytes big-endian
     - sha256: 32 bytes
     """
-    text_bytes = text.encode('utf-8')
+    text_bytes = text.encode("utf-8")
 
     # Build header
-    header = struct.pack('!4sBBH', MAGIC, VERSION, flags, len(text_bytes))
+    header = struct.pack("!4sBBH", MAGIC, VERSION, flags, len(text_bytes))
 
     # Payload is the raw text bytes
     payload = text_bytes
 
     # CRC32 of header + payload
     crc32_val = zlib.crc32(header + payload) & 0xFFFFFFFF
-    crc32_bytes = struct.pack('!I', crc32_val)
+    crc32_bytes = struct.pack("!I", crc32_val)
 
     # SHA-256 of header + payload + crc32
     sha256_val = hashlib.sha256(header + payload + crc32_bytes).digest()
@@ -108,10 +109,12 @@ def unpack_frame(data: bytes, verify: bool = True) -> dict[str, Any]:
     Raises ValueError on verification failure.
     """
     if len(data) < MIN_FRAME_SIZE:
-        raise ValueError(f"Frame too short: {len(data)} bytes, minimum {MIN_FRAME_SIZE}")
+        raise ValueError(
+            f"Frame too short: {len(data)} bytes, minimum {MIN_FRAME_SIZE}"
+        )
 
     # Parse header
-    magic, version, flags, payload_length = struct.unpack('!4sBBH', data[:HEADER_SIZE])
+    magic, version, flags, payload_length = struct.unpack("!4sBBH", data[:HEADER_SIZE])
 
     if magic != MAGIC:
         raise ValueError(f"Invalid magic: {magic!r}, expected {MAGIC!r}")
@@ -132,7 +135,7 @@ def unpack_frame(data: bytes, verify: bool = True) -> dict[str, Any]:
     # Extract CRC32
     crc32_start = payload_end
     crc32_end = crc32_start + CRC32_SIZE
-    stored_crc32 = struct.unpack('!I', data[crc32_start:crc32_end])[0]
+    stored_crc32 = struct.unpack("!I", data[crc32_start:crc32_end])[0]
 
     # Extract SHA-256
     sha256_start = crc32_end
@@ -158,19 +161,19 @@ def unpack_frame(data: bytes, verify: bool = True) -> dict[str, Any]:
                 f"stored {stored_sha256.hex()}"
             )
 
-    text = payload.decode('utf-8', errors='replace')
+    text = payload.decode("utf-8", errors="replace")
 
     return {
-        'magic': magic,
-        'version': version,
-        'flags': flags,
-        'payload_length': payload_length,
-        'payload': payload,
-        'text': text,
-        'crc32': stored_crc32,
-        'sha256': stored_sha256,
-        'crc32_hex': f'{stored_crc32:#010x}',
-        'sha256_hex': stored_sha256.hex(),
+        "magic": magic,
+        "version": version,
+        "flags": flags,
+        "payload_length": payload_length,
+        "payload": payload,
+        "text": text,
+        "crc32": stored_crc32,
+        "sha256": stored_sha256,
+        "crc32_hex": f"{stored_crc32:#010x}",
+        "sha256_hex": stored_sha256.hex(),
     }
 
 
@@ -226,7 +229,7 @@ class StreamDecoder:
 
         try:
             _, _, _, payload_length = struct.unpack(
-                '!4sBBH', bytes(self.buffer[:HEADER_SIZE])
+                "!4sBBH", bytes(self.buffer[:HEADER_SIZE])
             )
         except struct.error:
             # Corrupt header — resync by skipping first byte

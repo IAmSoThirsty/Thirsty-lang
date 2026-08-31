@@ -17,6 +17,7 @@ discipline (a single file, an internal lock, safe concurrent access):
     verifier hydrates (``ProofVerifier(revoked_policy_hashes=store.all())``) and
     that the ``tarl revoke`` CLI manages.
 """
+
 from __future__ import annotations
 
 import sqlite3
@@ -152,7 +153,8 @@ class RevocationStore(_SqliteBacked):
             cur = conn.execute(
                 "INSERT OR IGNORE INTO revoked_policies "
                 "(policy_hash, revoked_at, reason) VALUES (?, ?, ?)",
-                (policy_hash, _now_iso(), reason))
+                (policy_hash, _now_iso(), reason),
+            )
             conn.commit()
             return cur.rowcount == 1
 
@@ -161,8 +163,8 @@ class RevocationStore(_SqliteBacked):
         with self._lock:
             conn = self._connect()
             cur = conn.execute(
-                "DELETE FROM revoked_policies WHERE policy_hash = ?",
-                (policy_hash,))
+                "DELETE FROM revoked_policies WHERE policy_hash = ?", (policy_hash,)
+            )
             conn.commit()
             return cur.rowcount > 0
 
@@ -170,8 +172,7 @@ class RevocationStore(_SqliteBacked):
         """All currently revoked policy hashes."""
         with self._lock:
             conn = self._connect()
-            rows = conn.execute(
-                "SELECT policy_hash FROM revoked_policies").fetchall()
+            rows = conn.execute("SELECT policy_hash FROM revoked_policies").fetchall()
         return {str(r[0]) for r in rows}
 
     def entries(self) -> list[tuple[str, str, str]]:
@@ -180,15 +181,16 @@ class RevocationStore(_SqliteBacked):
             conn = self._connect()
             rows = conn.execute(
                 "SELECT policy_hash, revoked_at, reason FROM revoked_policies "
-                "ORDER BY revoked_at").fetchall()
+                "ORDER BY revoked_at"
+            ).fetchall()
         return [(str(h), str(t), str(r or "")) for h, t, r in rows]
 
     def __contains__(self, policy_hash: str) -> bool:
         with self._lock:
             conn = self._connect()
             row = conn.execute(
-                "SELECT 1 FROM revoked_policies WHERE policy_hash = ?",
-                (policy_hash,)).fetchone()
+                "SELECT 1 FROM revoked_policies WHERE policy_hash = ?", (policy_hash,)
+            ).fetchone()
         return row is not None
 
 

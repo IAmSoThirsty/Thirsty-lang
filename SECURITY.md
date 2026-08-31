@@ -108,7 +108,7 @@ mistaken for independent authorization gates.
 - Attach a durable audit archive, enable required persistence, checkpoint it,
   and verify its hash chain
 - Follow [`docs/PRODUCTION_DEPLOYMENT.md`](docs/PRODUCTION_DEPLOYMENT.md) and the
-  [canonical Thirsty-Lang 101 manual](docs/THIRSTY_LANG_101.md)
+  [canonical Thirsty-Lang UTF 101 manual](docs/THIRSTY_LANG_UTF_101.md)
 
 ---
 

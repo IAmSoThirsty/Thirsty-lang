@@ -3,7 +3,7 @@
 > Feature-oriented reference for Thirsty-Lang `0.8.6`. See
 > [STATUS.md](STATUS.md) for the authoritative capability-to-test map and
 > [THREAT_MODEL.md](THREAT_MODEL.md) for security acceptance status. The
-> [canonical Thirsty-Lang 101 manual](THIRSTY_LANG_101.md) is the integrated
+> [canonical Thirsty-Lang UTF 101 manual](THIRSTY_LANG_UTF_101.md) is the integrated
 > tutorial, specification, operations, and traceability reference.
 
 Thirsty-Lang is a **governance-first language family**. It is not one language

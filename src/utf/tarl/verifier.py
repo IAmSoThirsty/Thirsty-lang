@@ -9,6 +9,7 @@ Independent verification of TarlProof certificates:
 
 No runtime or policy engine is required — proofs are self-contained.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -275,10 +276,7 @@ def _check_source_injection_relation(
         original = prepare_context(original_context)
     except ContextResolutionError:
         return False
-    return (
-        restored_context.canonical_context_hash
-        == original.canonical_context_hash
-    )
+    return restored_context.canonical_context_hash == original.canonical_context_hash
 
 
 def _check_freshness(
@@ -304,9 +302,7 @@ def _check_freshness(
     evaluated_at = _parse_bound_datetime(proof.evaluated_at)
     if evaluated_at is None:
         return False
-    age = (
-        trusted_now.astimezone(datetime.UTC) - evaluated_at
-    ).total_seconds()
+    age = (trusted_now.astimezone(datetime.UTC) - evaluated_at).total_seconds()
     # Allow small clock skew into the future; reject anything older than the bound.
     return -60.0 <= age <= max_age_seconds
 
@@ -371,17 +367,12 @@ def _check_policy_expiry(
     except (IndexError, TypeError):
         return False, "proof rule index is absent from the governing policy"
 
-    if (
-        proof.matched_condition != rule.condition
-        or proof.verdict is not rule.verdict
-    ):
+    if proof.matched_condition != rule.condition or proof.verdict is not rule.verdict:
         return False, "proof does not bind the matched governing-policy rule"
 
     try:
         valid_from, effective_until = _policy_temporal_bounds(policy)
-        expected_expiry = _policy_authority_expiry(
-            policy, rule, evaluated_at
-        )
+        expected_expiry = _policy_authority_expiry(policy, rule, evaluated_at)
     except (ContextResolutionError, OverflowError, TypeError, ValueError) as exc:
         return False, f"governing policy temporal metadata is invalid: {exc}"
 
@@ -411,9 +402,7 @@ def _check_policy_expiry(
         or now.tzinfo is None
         or now.utcoffset() is None
     ):
-        return False, (
-            "temporal proof requires an explicit trusted verification time"
-        )
+        return False, ("temporal proof requires an explicit trusted verification time")
     trusted_now = now.astimezone(datetime.UTC)
     temporal_now = _check_policy_temporal(policy, now=trusted_now)
     if temporal_now is not None:
@@ -440,13 +429,15 @@ class ReplayGuard:
             signature_bytes = bytes.fromhex(raw_hex) if separator else b""
         except ValueError:
             signature_bytes = proof.signature.encode("utf-8", errors="replace")
-        material = b"\0".join((
-            b"tarl.replay.v2",
-            proof.canonical_bytes(),
-            proof.key_id.encode("utf-8"),
-            alg.encode("ascii", errors="replace"),
-            signature_bytes,
-        ))
+        material = b"\0".join(
+            (
+                b"tarl.replay.v2",
+                proof.canonical_bytes(),
+                proof.key_id.encode("utf-8"),
+                alg.encode("ascii", errors="replace"),
+                signature_bytes,
+            )
+        )
         return "sha256:" + hashlib.sha256(material).hexdigest()
 
     @staticmethod
@@ -473,6 +464,7 @@ class ReplayGuard:
 @dataclass
 class VerificationResult:
     """Result of verifying a TarlProof."""
+
     valid: bool
     checks: dict[str, bool | None] = field(default_factory=dict)
     message: str = ""
@@ -633,9 +625,7 @@ class ProofVerifier:
         if policy_source is not None:
             ph_ok = _check_policy_hash(proof, policy_source)
             checks["policy_hash"] = ph_ok
-            messages.append(
-                "policy hash valid" if ph_ok else "policy hash MISMATCH"
-            )
+            messages.append("policy hash valid" if ph_ok else "policy hash MISMATCH")
         elif self.require_policy_source:
             # Strict mode: cannot certify policy binding without the source.
             checks["policy_hash"] = False
@@ -646,9 +636,7 @@ class ProofVerifier:
         # ── 3. Trace consistency ──────────────────────────────────────────────
         trace_ok = _check_trace(proof)
         checks["trace"] = trace_ok
-        messages.append(
-            "trace consistent" if trace_ok else "trace INCONSISTENT"
-        )
+        messages.append("trace consistent" if trace_ok else "trace INCONSISTENT")
 
         # ── 4. Context representation coherence ──────────────────────────────
         coherence_ok = _check_context_coherence(proof)
@@ -679,12 +667,9 @@ class ProofVerifier:
                 prepared_expected_context = prepare_context(expected_context)
             except ContextResolutionError:
                 if proof.normalization_algorithm_id == "rejected":
-                    rejected_original_hash = hash_rejected_context(
-                        expected_context
-                    )
+                    rejected_original_hash = hash_rejected_context(expected_context)
                     cb_ok = (
-                        proof.original_context_hash
-                        == rejected_original_hash
+                        proof.original_context_hash == rejected_original_hash
                         and proof.canonical_context_hash
                         == hash_rejected_canonical_binding(
                             rejected_original_hash,
@@ -710,15 +695,11 @@ class ProofVerifier:
                         == proof.context_hash
                     )
             checks["context_binding"] = cb_ok
-            messages.append(
-                "context binds" if cb_ok else "context hash MISMATCH"
-            )
+            messages.append("context binds" if cb_ok else "context hash MISMATCH")
         else:
             checks["context_binding"] = False if source_transformed else None
             if source_transformed:
-                messages.append(
-                    "original context REQUIRED for source-injected proof"
-                )
+                messages.append("original context REQUIRED for source-injected proof")
 
         if expected_evaluated_context is not None:
             try:
@@ -741,13 +722,9 @@ class ProofVerifier:
                 else "evaluated context hash MISMATCH"
             )
         else:
-            checks["evaluated_context_binding"] = (
-                False if source_transformed else None
-            )
+            checks["evaluated_context_binding"] = False if source_transformed else None
             if source_transformed:
-                messages.append(
-                    "evaluated context REQUIRED for source-injected proof"
-                )
+                messages.append("evaluated context REQUIRED for source-injected proof")
 
         if source_transformed:
             source_relation_ok = (
@@ -817,10 +794,7 @@ class ProofVerifier:
             checks["not_replayed"] = fresh
             messages.append("first use" if fresh else "REPLAYED proof")
 
-        valid = (
-            non_replay_valid
-            and checks["not_replayed"] is not False
-        )
+        valid = non_replay_valid and checks["not_replayed"] is not False
 
         return VerificationResult(
             valid=valid,
@@ -868,9 +842,7 @@ class ProofVerifier:
             if supplied is None:
                 return False
             try:
-                public_key.verify(
-                    supplied, proof.canonical_bytes()
-                )
+                public_key.verify(supplied, proof.canonical_bytes())
                 return True
             except (ValueError, InvalidSignature):
                 return False
@@ -879,6 +851,7 @@ class ProofVerifier:
 
 
 # ── standalone check functions ─────────────────────────────────────────────────
+
 
 def _check_policy_hash(proof: TarlProof, policy_source: str) -> bool:
     """Verify proof.policy_hash matches SHA-256 of policy_source."""
@@ -931,8 +904,7 @@ def _check_trace(proof: TarlProof) -> bool:
         ):
             return False
         return all(
-            entry.get("rule_index") == index
-            for index, entry in enumerate(proof.trace)
+            entry.get("rule_index") == index for index, entry in enumerate(proof.trace)
         )
 
     for i, entry in enumerate(proof.trace):

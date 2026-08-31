@@ -2,6 +2,7 @@
 Thirsty-Lang Lexer
 Character-by-character tokenizer with source span tracking and error handling.
 """
+
 from utf.thirsty_lang.diagnostics import Diagnostic
 from utf.thirsty_lang.token import KEYWORDS, Token, TokenType
 
@@ -13,8 +14,8 @@ class Lexer:
         self.source = source
         self.tokens: list[Token] = []
         self.errors: list[Diagnostic] = []
-        self.start = 0       # start of current lexeme
-        self.current = 0     # current position
+        self.start = 0  # start of current lexeme
+        self.current = 0  # current position
         self.line = 1
         self.col = 1
         self.line_start = 0  # column offset of line start for span tracking
@@ -54,16 +55,21 @@ class Lexer:
         return True
 
     def _add_token(self, token_type: TokenType, lexeme: str | None = None):
-        text = lexeme if lexeme is not None else self.source[self.start:self.current]
-        self.tokens.append(Token(token_type, text, self.line, self.start - self.line_start + 1))
+        text = lexeme if lexeme is not None else self.source[self.start : self.current]
+        self.tokens.append(
+            Token(token_type, text, self.line, self.start - self.line_start + 1)
+        )
 
     def _error(self, code: str, message: str):
         col = self.start - self.line_start + 1
-        self.errors.append(Diagnostic(
-            code=code, message=message,
-            span=(self.line, col, self.line, col),
-            severity="error"
-        ))
+        self.errors.append(
+            Diagnostic(
+                code=code,
+                message=message,
+                span=(self.line, col, self.line, col),
+                severity="error",
+            )
+        )
 
     def _scan_token(self):
         ch = self._advance()
@@ -188,7 +194,7 @@ class Lexer:
     def _identifier(self):
         while self._peek().isalnum() or self._peek() == "_":
             self._advance()
-        text = self.source[self.start:self.current]
+        text = self.source[self.start : self.current]
         token_type = KEYWORDS.get(text, TokenType.IDENTIFIER)
         self._add_token(token_type, text)
 
@@ -225,7 +231,7 @@ class Lexer:
             while self._peek().isdigit():
                 self._advance()
 
-        text = self.source[self.start:self.current]
+        text = self.source[self.start : self.current]
         if is_float:
             self._add_token(TokenType.FLOAT, text)
         else:
@@ -234,19 +240,19 @@ class Lexer:
     def _hex_number(self):
         while self._peek().isalnum():
             self._advance()
-        text = self.source[self.start:self.current]
+        text = self.source[self.start : self.current]
         self._add_token(TokenType.INT, text)
 
     def _binary_number(self):
         while self._peek() in "01":
             self._advance()
-        text = self.source[self.start:self.current]
+        text = self.source[self.start : self.current]
         self._add_token(TokenType.INT, text)
 
     def _octal_number(self):
         while self._peek() in "01234567":
             self._advance()
-        text = self.source[self.start:self.current]
+        text = self.source[self.start : self.current]
         self._add_token(TokenType.INT, text)
 
     def _string(self, quote: str):
@@ -258,7 +264,14 @@ class Lexer:
             if self._peek() == "\\":
                 self._advance()  # consume backslash
                 esc = self._advance()
-                esc_map = {"n": "\n", "t": "\t", "\\": "\\", '"': '"', "'": "'", "0": "\0"}
+                esc_map = {
+                    "n": "\n",
+                    "t": "\t",
+                    "\\": "\\",
+                    '"': '"',
+                    "'": "'",
+                    "0": "\0",
+                }
                 text_parts.append(esc_map.get(esc, esc))
             else:
                 text_parts.append(self._advance())

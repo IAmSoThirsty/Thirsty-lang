@@ -1,6 +1,7 @@
 """
 Thirsty-Lang CLI — Command-line interface with all subcommands.
 """
+
 import argparse
 import json
 import os
@@ -28,25 +29,53 @@ from utf.thirsty_lang.token import TokenType
 def main():
     """Main entry point for the Thirsty-Lang CLI."""
     from utf.console import enable_utf8
+
     enable_utf8()
     parser = argparse.ArgumentParser(
         prog="thirsty",
         description="Thirsty-Lang: A governance-first programming language",
-        epilog="For more information, see https://thirsty-lang.dev"
+        epilog="For more information, see https://thirsty-lang.dev",
     )
-    parser.add_argument("--version", action="version", version=f"Thirsty-Lang {__version__}")
+    parser.add_argument(
+        "--version", action="version", version=f"Thirsty-Lang {__version__}"
+    )
 
     subparsers = parser.add_subparsers(dest="command", help="Subcommands")
 
     # run
     run_parser = subparsers.add_parser("run", help="Run a .thirsty file")
     run_parser.add_argument("file", nargs="?", help="Path to .thirsty file")
-    run_parser.add_argument("--trace", action="store_true", help="Enable execution tracing")
-    run_parser.add_argument("--release", action="store_true", help="Suppress verbose error output, show user-friendly messages")
-    run_parser.add_argument("--opt", type=int, choices=[0, 1, 2, 3], default=0, help="Optimization level (0-3)")
-    run_parser.add_argument("--thirst-level", choices=["core", "governed"], default="core", help="Thirst mode")
-    run_parser.add_argument("--authority", type=str, help="Authority tag injected into the governance context for governed mode")
-    run_parser.add_argument("--policy", type=str, help="Path to a .tarl policy file to route governed calls through")
+    run_parser.add_argument(
+        "--trace", action="store_true", help="Enable execution tracing"
+    )
+    run_parser.add_argument(
+        "--release",
+        action="store_true",
+        help="Suppress verbose error output, show user-friendly messages",
+    )
+    run_parser.add_argument(
+        "--opt",
+        type=int,
+        choices=[0, 1, 2, 3],
+        default=0,
+        help="Optimization level (0-3)",
+    )
+    run_parser.add_argument(
+        "--thirst-level",
+        choices=["core", "governed"],
+        default="core",
+        help="Thirst mode",
+    )
+    run_parser.add_argument(
+        "--authority",
+        type=str,
+        help="Authority tag injected into the governance context for governed mode",
+    )
+    run_parser.add_argument(
+        "--policy",
+        type=str,
+        help="Path to a .tarl policy file to route governed calls through",
+    )
     run_parser.add_argument(
         "--context-schema",
         type=str,
@@ -57,74 +86,198 @@ def main():
         ),
     )
     run_parser.add_argument("--demo", action="store_true", help="Run demo program")
-    run_parser.add_argument("--locked", action="store_true", help="Require lockfile verification before executing")
-    run_parser.add_argument("--hardened", action="store_true", help="Hardened posture: require an authenticated (signed) authority and Ed25519-signed proofs at every governed gate")
-    run_parser.add_argument("--authority-token", type=str, metavar="FILE", help="Path to a signed authority claim (JSON) authenticating the authority")
-    run_parser.add_argument("--authority-key", type=str, action="append", metavar="ID:HEX", help="Trusted issuer Ed25519 public key for verifying the authority token (deprecated: hex on argv is exposed; prefer --authority-key-file)")
-    run_parser.add_argument("--authority-key-file", type=str, action="append", metavar="FILE", help="Trusted issuer Ed25519 public key file from 'tarl keygen' (repeatable)")
-    run_parser.add_argument("--sign-proofs", type=str, metavar="ID:HEX", help="Ed25519 private seed (hex) the runtime uses to sign decision proofs (deprecated: hex on argv is exposed; prefer --sign-proofs-file)")
-    run_parser.add_argument("--sign-proofs-file", type=str, metavar="FILE", help="Ed25519 proof-signer private key file from 'tarl keygen'")
+    run_parser.add_argument(
+        "--locked",
+        action="store_true",
+        help="Require lockfile verification before executing",
+    )
+    run_parser.add_argument(
+        "--hardened",
+        action="store_true",
+        help="Hardened posture: require an authenticated (signed) authority and Ed25519-signed proofs at every governed gate",
+    )
+    run_parser.add_argument(
+        "--authority-token",
+        type=str,
+        metavar="FILE",
+        help="Path to a signed authority claim (JSON) authenticating the authority",
+    )
+    run_parser.add_argument(
+        "--authority-key",
+        type=str,
+        action="append",
+        metavar="ID:HEX",
+        help="Trusted issuer Ed25519 public key for verifying the authority token (deprecated: hex on argv is exposed; prefer --authority-key-file)",
+    )
+    run_parser.add_argument(
+        "--authority-key-file",
+        type=str,
+        action="append",
+        metavar="FILE",
+        help="Trusted issuer Ed25519 public key file from 'tarl keygen' (repeatable)",
+    )
+    run_parser.add_argument(
+        "--sign-proofs",
+        type=str,
+        metavar="ID:HEX",
+        help="Ed25519 private seed (hex) the runtime uses to sign decision proofs (deprecated: hex on argv is exposed; prefer --sign-proofs-file)",
+    )
+    run_parser.add_argument(
+        "--sign-proofs-file",
+        type=str,
+        metavar="FILE",
+        help="Ed25519 proof-signer private key file from 'tarl keygen'",
+    )
 
     # repl
     repl_parser = subparsers.add_parser("repl", help="Start interactive REPL")
-    repl_parser.add_argument("--trace", action="store_true", help="Show stack traces on errors")
-    repl_parser.add_argument("--opt", type=int, choices=[0, 1, 2, 3], default=0, help="Optimization level (0-3)")
-    repl_parser.add_argument("--thirst-level", choices=["core", "governed"], default="core", help="Thirst mode")
+    repl_parser.add_argument(
+        "--trace", action="store_true", help="Show stack traces on errors"
+    )
+    repl_parser.add_argument(
+        "--opt",
+        type=int,
+        choices=[0, 1, 2, 3],
+        default=0,
+        help="Optimization level (0-3)",
+    )
+    repl_parser.add_argument(
+        "--thirst-level",
+        choices=["core", "governed"],
+        default="core",
+        help="Thirst mode",
+    )
 
     # fmt
     fmt_parser = subparsers.add_parser("fmt", help="Format .thirsty files")
     fmt_parser.add_argument("files", nargs="+", help="Files to format")
-    fmt_parser.add_argument("--check", action="store_true", help="Check formatting without modifying")
+    fmt_parser.add_argument(
+        "--check", action="store_true", help="Check formatting without modifying"
+    )
 
     # new
-    new_parser = subparsers.add_parser("new", help="Scaffold a new Thirsty-Lang project")
+    new_parser = subparsers.add_parser(
+        "new", help="Scaffold a new Thirsty-Lang project"
+    )
     new_parser.add_argument("name", help="Project name")
-    new_parser.add_argument("--mode", choices=["core", "governed"], default="core", help="Default governance mode")
+    new_parser.add_argument(
+        "--mode",
+        choices=["core", "governed"],
+        default="core",
+        help="Default governance mode",
+    )
 
     # build
     build_parser = subparsers.add_parser("build", help="Build a .thirsty project")
-    build_parser.add_argument("--target", choices=["llvm-ir", "llvm-obj", "llvm-exe", "llvm-asm", "llvm-jit", "js", "wasm-pyodide"], default="js", help="Build target")
-    build_parser.add_argument("--emit-manifest", action="store_true", help="Emit governance manifest")
-    build_parser.add_argument("--allow-governance-loss", action="store_true", help="Permit building a governed module to a target that drops the governed runtime (records the loss in the manifest)")
-    build_parser.add_argument("--policy", type=str, help="Path to a .tarl policy file to bind into the emitted manifest")
-    build_parser.add_argument("--context-schema", type=str, metavar="FILE", help="Path to an explicit context schema JSON file for the emitted manifest")
+    build_parser.add_argument(
+        "--target",
+        choices=[
+            "llvm-ir",
+            "llvm-obj",
+            "llvm-exe",
+            "llvm-asm",
+            "llvm-jit",
+            "js",
+            "wasm-pyodide",
+        ],
+        default="js",
+        help="Build target",
+    )
+    build_parser.add_argument(
+        "--emit-manifest", action="store_true", help="Emit governance manifest"
+    )
+    build_parser.add_argument(
+        "--allow-governance-loss",
+        action="store_true",
+        help="Permit building a governed module to a target that drops the governed runtime (records the loss in the manifest)",
+    )
+    build_parser.add_argument(
+        "--policy",
+        type=str,
+        help="Path to a .tarl policy file to bind into the emitted manifest",
+    )
+    build_parser.add_argument(
+        "--context-schema",
+        type=str,
+        metavar="FILE",
+        help="Path to an explicit context schema JSON file for the emitted manifest",
+    )
     build_parser.add_argument("file", nargs="?", help="Entry point .thirsty file")
 
     # prove
-    prove_parser = subparsers.add_parser("prove", help="Emit static proof-obligation report without executing effects")
+    prove_parser = subparsers.add_parser(
+        "prove", help="Emit static proof-obligation report without executing effects"
+    )
     prove_parser.add_argument("file", help="Path to .thirsty file")
-    prove_parser.add_argument("--policy", required=True, type=str, help="Path to the .tarl policy file")
-    prove_parser.add_argument("--context-schema", type=str, metavar="FILE", help="Path to an explicit context schema JSON file")
-    prove_parser.add_argument("--emit-manifest", action="store_true", help="Write <program>.proof-obligations.json as well as stdout")
+    prove_parser.add_argument(
+        "--policy", required=True, type=str, help="Path to the .tarl policy file"
+    )
+    prove_parser.add_argument(
+        "--context-schema",
+        type=str,
+        metavar="FILE",
+        help="Path to an explicit context schema JSON file",
+    )
+    prove_parser.add_argument(
+        "--emit-manifest",
+        action="store_true",
+        help="Write <program>.proof-obligations.json as well as stdout",
+    )
 
     # explain-denial
-    explain_parser = subparsers.add_parser("explain-denial", help="Explain missing policy/context/authority/proof conditions")
+    explain_parser = subparsers.add_parser(
+        "explain-denial",
+        help="Explain missing policy/context/authority/proof conditions",
+    )
     explain_parser.add_argument("file", help="Path to .thirsty file")
-    explain_parser.add_argument("--policy", type=str, help="Path to a .tarl policy file")
-    explain_parser.add_argument("--context-schema", type=str, metavar="FILE", help="Path to an explicit context schema JSON file")
+    explain_parser.add_argument(
+        "--policy", type=str, help="Path to a .tarl policy file"
+    )
+    explain_parser.add_argument(
+        "--context-schema",
+        type=str,
+        metavar="FILE",
+        help="Path to an explicit context schema JSON file",
+    )
 
     # govern
     govern_parser = subparsers.add_parser("govern", help="Governance operations")
     govern_parser.add_argument("file", nargs="?", help="Path to .thirsty file")
-    govern_parser.add_argument("--report", action="store_true", help="Generate governance report")
-    govern_parser.add_argument("--auto-tarl", action="store_true", help="Auto-generate T.A.R.L. policy")
-    govern_parser.add_argument("--enforce", action="store_true", help="Exit 1 if any function gets DENY")
+    govern_parser.add_argument(
+        "--report", action="store_true", help="Generate governance report"
+    )
+    govern_parser.add_argument(
+        "--auto-tarl", action="store_true", help="Auto-generate T.A.R.L. policy"
+    )
+    govern_parser.add_argument(
+        "--enforce", action="store_true", help="Exit 1 if any function gets DENY"
+    )
 
     # add
     add_parser = subparsers.add_parser("add", help="Add a dependency")
-    add_parser.add_argument("package", help="Package name with optional version (e.g., pkg@1.0)")
+    add_parser.add_argument(
+        "package", help="Package name with optional version (e.g., pkg@1.0)"
+    )
 
     # audit
-    audit_parser = subparsers.add_parser("audit", help="Audit dependencies for integrity")
-    audit_parser.add_argument("--fix", action="store_true", help="Attempt to fix issues")
+    audit_parser = subparsers.add_parser(
+        "audit", help="Audit dependencies for integrity"
+    )
+    audit_parser.add_argument(
+        "--fix", action="store_true", help="Attempt to fix issues"
+    )
 
     # lock
     lock_parser = subparsers.add_parser("lock", help="Generate lockfile")
-    lock_parser.add_argument("--update", action="store_true", help="Update existing lockfile")
+    lock_parser.add_argument(
+        "--update", action="store_true", help="Update existing lockfile"
+    )
 
     # doctor
     doctor_parser = subparsers.add_parser("doctor", help="Project health check")
-    doctor_parser.add_argument("--fix", action="store_true", help="Attempt to fix issues")
+    doctor_parser.add_argument(
+        "--fix", action="store_true", help="Attempt to fix issues"
+    )
 
     # lsp
     lsp_parser = subparsers.add_parser("lsp", help="Start LSP server")
@@ -177,9 +330,7 @@ def main():
         sys.exit(1)
 
 
-def _lex_parse_check(
-    file_path: str, mode: str = "core", effect_warnings: bool = False
-):
+def _lex_parse_check(file_path: str, mode: str = "core", effect_warnings: bool = False):
     """Helper: lex, parse, and type-check a file. Returns (ast, errors, checker)."""
     from utf.thirsty_lang.checker import check_ast
     from utf.thirsty_lang.lexer import Lexer
@@ -212,7 +363,7 @@ def cmd_run(args):
     from utf.thirsty_lang.parser import Parser
 
     if args.demo:
-        source = '''module hello: core
+        source = """module hello: core
 
 glass greet(name: String) {
     return "hello, " + name + "!"
@@ -221,12 +372,13 @@ glass greet(name: String) {
 drink main = "thirsty world"
 drink result = greet(main)
 pour result
-'''
+"""
         file_path = "<demo>"
     else:
         file_path = args.file
-        if file_path.endswith('.thirstofgods'):
+        if file_path.endswith(".thirstofgods"):
             from utf.thirst_of_gods.cli import run as gods_run
+
             gods_run(file_path)
             return
         if not os.path.exists(file_path):
@@ -253,10 +405,13 @@ pour result
         sys.exit(1)
 
     # --locked flag: verify thirsty.lock exists before executing
-    if getattr(args, 'locked', False):
+    if getattr(args, "locked", False):
         lock = load_lockfile(".")
         if not lock or "dependencies" not in lock or not lock["dependencies"]:
-            print("Error: Lockfile check failed — thirsty.lock not found or empty.", file=sys.stderr)
+            print(
+                "Error: Lockfile check failed — thirsty.lock not found or empty.",
+                file=sys.stderr,
+            )
             print("Run 'thirsty lock' first to generate it.", file=sys.stderr)
             sys.exit(1)
         print("Lockfile verified. Running with integrity checks enabled.")
@@ -277,6 +432,7 @@ pour result
             sys.exit(1)
         from utf.tarl.core import PolicyParser
         from utf.tarl.runtime import TarlRuntime
+
         with open(policy_path) as pf:
             policy = PolicyParser.parse(pf.read())
         runtime = TarlRuntime(policy)
@@ -314,30 +470,38 @@ pour result
     token_path = getattr(args, "authority_token", None)
     if token_path:
         from utf.tarl.authority import AuthorityClaim, AuthorityVerifier
+
         if not os.path.isfile(token_path):
             print(f"Error: authority token not found: {token_path}", file=sys.stderr)
             sys.exit(1)
         verifier = AuthorityVerifier()
-        for spec in (getattr(args, "authority_key", None) or []):
+        for spec in getattr(args, "authority_key", None) or []:
             kid, _, hexkey = spec.partition(":")
             try:
                 verifier.add_ed25519_key(kid, bytes.fromhex(hexkey))
             except ValueError as e:
                 print(f"Error: invalid --authority-key {spec!r}: {e}", file=sys.stderr)
                 sys.exit(1)
-        for key_path in (getattr(args, "authority_key_file", None) or []):
+        for key_path in getattr(args, "authority_key_file", None) or []:
             from utf.tarl import keystore
+
             try:
                 kf = keystore.load(key_path)
                 verifier.add_ed25519_key(kf.key_id, kf.public_bytes())
             except (OSError, ValueError) as e:
-                print(f"Error: invalid --authority-key-file {key_path!r}: {e}", file=sys.stderr)
+                print(
+                    f"Error: invalid --authority-key-file {key_path!r}: {e}",
+                    file=sys.stderr,
+                )
                 sys.exit(1)
         with open(token_path) as tf:
             claim = AuthorityClaim.from_json(tf.read())
         auth_result = verifier.verify(claim)
         if not auth_result.valid:
-            print(f"Error: authority token rejected: {auth_result.reason}", file=sys.stderr)
+            print(
+                f"Error: authority token rejected: {auth_result.reason}",
+                file=sys.stderr,
+            )
             sys.exit(1)
         interpreter.set_verified_authority(auth_result.authority)
 
@@ -347,11 +511,14 @@ pour result
     sign_file = getattr(args, "sign_proofs_file", None)
     if sign_file and runtime is not None:
         from utf.tarl import keystore
+
         try:
             kf = keystore.load(sign_file)
             runtime.set_ed25519_signing_key(kf.key_id, kf.private_bytes())
         except (OSError, ValueError) as e:
-            print(f"Error: invalid --sign-proofs-file {sign_file!r}: {e}", file=sys.stderr)
+            print(
+                f"Error: invalid --sign-proofs-file {sign_file!r}: {e}", file=sys.stderr
+            )
             sys.exit(1)
     elif sign_spec and runtime is not None:
         kid, _, hexseed = sign_spec.partition(":")
@@ -371,8 +538,10 @@ pour result
     except GovernanceViolation as e:
         print(f"governance denied: {e.name}: {e.reason}", file=sys.stderr)
         if e.proof is not None:
-            print(f"  proof: verdict={e.proof.verdict} "
-                  f"policy={e.proof.policy_hash}", file=sys.stderr)
+            print(
+                f"  proof: verdict={e.proof.verdict} " f"policy={e.proof.policy_hash}",
+                file=sys.stderr,
+            )
         sys.exit(2)
     except Exception as e:
         if args.release:
@@ -444,7 +613,11 @@ def cmd_repl(args):
             if errors:
                 needs_more = False
                 for e in errors:
-                    msg = str(e.message).lower() if hasattr(e, 'message') else str(e).lower()
+                    msg = (
+                        str(e.message).lower()
+                        if hasattr(e, "message")
+                        else str(e).lower()
+                    )
                     if "unexpected end" in msg or "eof" in msg or "expect" in msg:
                         if not pending:
                             needs_more = True
@@ -467,6 +640,7 @@ def cmd_repl(args):
                 print(f"Error: {e}")
                 if debug_enabled:
                     import traceback
+
                     traceback.print_exc()
                 source_buffer = ""
 
@@ -477,9 +651,11 @@ def cmd_repl(args):
             print(f"Error: {e}")
             if debug_enabled:
                 import traceback
+
                 traceback.print_exc()
             source_buffer = ""
             pending = False
+
 
 def cmd_fmt(args):
     """Format .thirsty files."""
@@ -531,7 +707,7 @@ def cmd_new(args):
     # Create main.thirsty
     main_path = os.path.join(project_dir, "src", "main.thirsty")
     with open(main_path, "w") as f:
-        f.write(f'''module {args.name}: {args.mode}
+        f.write(f"""module {args.name}: {args.mode}
 
 glass greet(name: String) {{
     return "hello, " + name + "!"
@@ -539,7 +715,7 @@ glass greet(name: String) {{
 
 drink main = greet("thirsty world")
 pour main
-''')
+""")
 
     # Create thirsty.toml
     create_thirsty_toml(project_dir, args.name)
@@ -563,7 +739,10 @@ def cmd_build(args):
         if os.path.exists(main_path):
             args.file = main_path
         else:
-            print("Error: No file specified and no src/main.thirsty found", file=sys.stderr)
+            print(
+                "Error: No file specified and no src/main.thirsty found",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
     if not os.path.exists(args.file):
@@ -637,12 +816,12 @@ def cmd_build(args):
 def _transpile_to_js(ast) -> str:
     """Simple transpilation of Thirsty-Lang AST to JavaScript."""
 
-    lines = ['// Generated by Thirsty-Lang compiler', '']
+    lines = ["// Generated by Thirsty-Lang compiler", ""]
 
     # Track function definitions
     for stmt in ast.stmts:
-        if hasattr(stmt, 'name'):
-            if hasattr(stmt, 'params') and hasattr(stmt, 'body'):
+        if hasattr(stmt, "name"):
+            if hasattr(stmt, "params") and hasattr(stmt, "body"):
                 # Function
                 params = ", ".join(p[0] for p in stmt.params)
                 lines.append(f"function {stmt.name}({params}) {{")
@@ -653,16 +832,16 @@ def _transpile_to_js(ast) -> str:
     # Track main expression
     main_expr = None
     for stmt in ast.stmts:
-        if hasattr(stmt, 'name') and getattr(stmt, 'name', None) == 'main':
-            if hasattr(stmt, 'init_expr') and stmt.init_expr:
+        if hasattr(stmt, "name") and getattr(stmt, "name", None) == "main":
+            if hasattr(stmt, "init_expr") and stmt.init_expr:
                 main_expr = stmt.init_expr
             break
 
     # Generate main execution
     for stmt in ast.stmts:
-        if hasattr(stmt, 'name') and getattr(stmt, 'name', None) == 'main':
+        if hasattr(stmt, "name") and getattr(stmt, "name", None) == "main":
             continue
-        if not (hasattr(stmt, 'params') and hasattr(stmt, 'body')):
+        if not (hasattr(stmt, "params") and hasattr(stmt, "body")):
             _js_stmt(stmt, lines, indent=0)
             lines.append("")
 
@@ -690,13 +869,19 @@ def _js_expression(expr) -> str:
         return expr.name
     elif isinstance(expr, BinaryOp):
         op_map = {
-            TokenType.PLUS: "+", TokenType.MINUS: "-",
-            TokenType.STAR: "*", TokenType.SLASH: "/",
+            TokenType.PLUS: "+",
+            TokenType.MINUS: "-",
+            TokenType.STAR: "*",
+            TokenType.SLASH: "/",
             TokenType.PERCENT: "%",
-            TokenType.EQEQ: "===", TokenType.NE: "!==",
-            TokenType.LT: "<", TokenType.GT: ">",
-            TokenType.LE: "<=", TokenType.GE: ">=",
-            TokenType.AND: "&&", TokenType.OR: "||",
+            TokenType.EQEQ: "===",
+            TokenType.NE: "!==",
+            TokenType.LT: "<",
+            TokenType.GT: ">",
+            TokenType.LE: "<=",
+            TokenType.GE: ">=",
+            TokenType.AND: "&&",
+            TokenType.OR: "||",
         }
         js_op = op_map.get(expr.op, expr.op.name.lower())
         return f"({_js_expression(expr.left)} {js_op} {_js_expression(expr.right)})"
@@ -766,14 +951,19 @@ class _LLVMExpr:
             left = self.emit(expr.left, env)
             right = self.emit(expr.right, env)
             arith = {
-                TokenType.PLUS: "add", TokenType.MINUS: "sub",
-                TokenType.STAR: "mul", TokenType.SLASH: "sdiv",
+                TokenType.PLUS: "add",
+                TokenType.MINUS: "sub",
+                TokenType.STAR: "mul",
+                TokenType.SLASH: "sdiv",
                 TokenType.PERCENT: "srem",
             }
             cmps = {
-                TokenType.EQEQ: "eq", TokenType.NE: "ne",
-                TokenType.LT: "slt", TokenType.GT: "sgt",
-                TokenType.LE: "sle", TokenType.GE: "sge",
+                TokenType.EQEQ: "eq",
+                TokenType.NE: "ne",
+                TokenType.LT: "slt",
+                TokenType.GT: "sgt",
+                TokenType.LE: "sle",
+                TokenType.GE: "sge",
             }
             if expr.op in arith:
                 reg = self._tmp()
@@ -792,7 +982,9 @@ class _LLVMExpr:
             return reg
         if isinstance(expr, CallExpr):
             args = [self.emit(a, env) for a in expr.args]
-            callee = expr.callee.name if isinstance(expr.callee, Identifier) else "unknown"
+            callee = (
+                expr.callee.name if isinstance(expr.callee, Identifier) else "unknown"
+            )
             arglist = ", ".join(f"i32 {a}" for a in args)
             reg = self._tmp()
             self.body.append(f"  {reg} = call i32 @{callee}({arglist})")
@@ -1041,6 +1233,7 @@ def cmd_govern(args):
     if not args.file:
         # Scan for .thirsty files
         import glob
+
         files = glob.glob("**/*.thirsty", recursive=True)
         if not files:
             print("No .thirsty files found.", file=sys.stderr)
@@ -1052,7 +1245,9 @@ def cmd_govern(args):
     if args.report:
         print(f"Governance Report for: {args.file}")
         print(f"  Mode: {ast.header.mode if ast.header else 'core'}")
-        print(f"  Functions: {sum(1 for s in ast.stmts if hasattr(s, 'name') and hasattr(s, 'params'))}")
+        print(
+            f"  Functions: {sum(1 for s in ast.stmts if hasattr(s, 'name') and hasattr(s, 'params'))}"
+        )
         print(f"  Errors: {len(errors)}")
         for e in errors:
             print(f"    [{e.code}] {e.message}")
@@ -1061,7 +1256,7 @@ def cmd_govern(args):
         # Auto-generate T.A.R.L. policy
         tarl_policy = "# Auto-generated T.A.R.L. Policy\n"
         for stmt in ast.stmts:
-            if hasattr(stmt, 'name') and getattr(stmt, 'name', None):
+            if hasattr(stmt, "name") and getattr(stmt, "name", None):
                 tarl_policy += f'\nwhen action == "{stmt.name}" => ALLOW\n'
         tarl_policy += "\nwhen true => DENY  # Default deny\n"
 
@@ -1074,18 +1269,28 @@ def cmd_govern(args):
         verdicts = []
 
         for stmt in ast.stmts:
-            if hasattr(stmt, 'name') and hasattr(stmt, 'params'):
+            if hasattr(stmt, "name") and hasattr(stmt, "params"):
                 context = {
                     "action": stmt.name,
-                    "params": len(getattr(stmt, 'params', [])),
+                    "params": len(getattr(stmt, "params", [])),
                     "body_len": (
-                        len(stmt.body.stmts)
-                        if hasattr(stmt.body, 'stmts') else 0
+                        len(stmt.body.stmts) if hasattr(stmt.body, "stmts") else 0
                     ),
                 }
                 decision = evaluate_policy(context, policy_text=tarl_policy)
-                verdicts.append((stmt.name, decision.verdict.value if hasattr(decision, 'verdict') else str(decision)))
-                print(f"  [{decision.verdict.value if hasattr(decision, 'verdict') else decision}] {stmt.name}")
+                verdicts.append(
+                    (
+                        stmt.name,
+                        (
+                            decision.verdict.value
+                            if hasattr(decision, "verdict")
+                            else str(decision)
+                        ),
+                    )
+                )
+                print(
+                    f"  [{decision.verdict.value if hasattr(decision, 'verdict') else decision}] {stmt.name}"
+                )
 
         # Write policy file
         tarl_path = os.path.splitext(args.file)[0] + ".tarl"
@@ -1096,8 +1301,12 @@ def cmd_govern(args):
         if args.enforce:
             denied = [name for name, v in verdicts if v == "DENY"]
             if denied:
-                print(f"Enforce failed: {len(denied)} function(s) denied: {' '.join(denied)}", file=sys.stderr)
+                print(
+                    f"Enforce failed: {len(denied)} function(s) denied: {' '.join(denied)}",
+                    file=sys.stderr,
+                )
                 sys.exit(1)
+
 
 def cmd_add(args):
     """Add a dependency."""
@@ -1191,7 +1400,9 @@ def cmd_doctor(args):
         checks_failed += 1
 
     # Check Python environment
-    print(f"✓ Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+    print(
+        f"✓ Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
     checks_passed += 1
 
     # Summary
@@ -1203,6 +1414,7 @@ def cmd_doctor(args):
             create_thirsty_lock,
             create_thirsty_toml,
         )
+
         if not os.path.exists("thirsty.toml"):
             create_thirsty_toml(".", "my-project")
             print("Created thirsty.toml")
@@ -1283,7 +1495,7 @@ def cmd_docs(args):
     <h1>🌊 Thirsty-Lang Documentation</h1>
      <p>Version __VERSION__: a governance-first language family with
      proof-carrying T.A.R.L. policy decisions.</p>
-     <p><a href="https://github.com/IAmSoThirsty/Thirsty-lang/blob/master/docs/THIRSTY_LANG_101.md">Canonical Thirsty-Lang 101 manual</a></p>
+     <p><a href="https://github.com/IAmSoThirsty/Thirsty-lang/blob/master/docs/THIRSTY_LANG_UTF_101.md">Canonical Thirsty-Lang UTF 101 manual</a></p>
 
     <h2>Quick Start</h2>
     <pre><code><span class="keyword">module</span> hello: core

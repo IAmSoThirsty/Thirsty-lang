@@ -1,4 +1,5 @@
 """Full coverage for the package manager (manifest/lockfile/deps)."""
+
 import json
 import os
 
@@ -131,19 +132,20 @@ def test_write_manifest_failure(tmp_path):
 
 def test_format_toml():
     pm = PackageManager()
-    out = pm._format_toml({
-        "package": {"name": "x", "version": "1"},
-        "scalar": 5,
-        "dependencies": {"a": "1"},
-    })
+    out = pm._format_toml(
+        {
+            "package": {"name": "x", "version": "1"},
+            "scalar": 5,
+            "dependencies": {"a": "1"},
+        }
+    )
     assert "[package]" in out
     assert "[dependencies]" in out
     assert "scalar = 5" in out
 
 
 def test_audit_dependencies(tmp_path):
-    (tmp_path / "thirsty.toml").write_text(
-        "[dependencies]\nfoo = \"1\"\nbar = \"1\"\n")
+    (tmp_path / "thirsty.toml").write_text('[dependencies]\nfoo = "1"\nbar = "1"\n')
     pm = PackageManager(str(tmp_path))
     pm.parse_manifest()
     # lockfile: bar has wrong integrity, baz is orphan, foo missing entirely
@@ -156,9 +158,9 @@ def test_audit_dependencies(tmp_path):
     (tmp_path / "thirsty.lock").write_text(json.dumps(lock))
     issues = pm.audit_dependencies()
     types = {i["type"] for i in issues}
-    assert "missing_lock" in types       # foo
+    assert "missing_lock" in types  # foo
     assert "integrity_mismatch" in types  # bar
-    assert "orphan_lock" in types         # baz
+    assert "orphan_lock" in types  # baz
 
 
 def test_create_helpers(tmp_path):

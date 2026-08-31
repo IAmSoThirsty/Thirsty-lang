@@ -14,6 +14,7 @@ Supported set operators (TarlPolicySet):
 
 Multiple groups in a policy_set are combined via meet (strictest wins).
 """
+
 from __future__ import annotations
 
 import os
@@ -66,9 +67,7 @@ class PolicyComposer:
         self._sets[policy_set.name] = policy_set
         return self
 
-    def register_from_text(
-        self, text: str, name: str | None = None
-    ) -> PolicyComposer:
+    def register_from_text(self, text: str, name: str | None = None) -> PolicyComposer:
         """
         Parse text and register all policies and policy_sets it contains.
         Returns self for chaining.
@@ -91,10 +90,7 @@ class PolicyComposer:
         Paths are resolved relative to self._base_path.
         Returns self for chaining.
         """
-        full = (
-            path if os.path.isabs(path)
-            else os.path.join(self._base_path, path)
-        )
+        full = path if os.path.isabs(path) else os.path.join(self._base_path, path)
         with open(full, encoding="utf-8") as fh:
             return self.register_from_text(fh.read())
 
@@ -116,13 +112,10 @@ class PolicyComposer:
         if name in self._sets:
             return self._evaluate_set(name, context)
         if name in self._policies:
-            return self._evaluate_policy(
-                self._policies[name], context, frozenset()
-            )
+            return self._evaluate_policy(self._policies[name], context, frozenset())
         registered = sorted(self._policies) + sorted(self._sets)
         raise CompositionError(
-            f"Unknown policy or policy_set: {name!r}. "
-            f"Registered: {registered}"
+            f"Unknown policy or policy_set: {name!r}. " f"Registered: {registered}"
         )
 
     # ── Internal policy evaluation ────────────────────────────────────────────
@@ -200,9 +193,7 @@ class PolicyComposer:
             return DEFAULT_DENY
 
         parent = self._require(policy.parent, policy.name)
-        return self._evaluate_policy(
-            parent, context, chain | {policy.name}
-        )
+        return self._evaluate_policy(parent, context, chain | {policy.name})
 
     def _evaluate_restricts(
         self,
@@ -226,9 +217,7 @@ class PolicyComposer:
         child_dec = evaluate_policy(context, policy=child_only)
 
         parent = self._require(policy.parent, policy.name)
-        parent_dec = self._evaluate_policy(
-            parent, context, chain | {policy.name}
-        )
+        parent_dec = self._evaluate_policy(parent, context, chain | {policy.name})
 
         meet = TarlVerdict.meet(child_dec.verdict, parent_dec.verdict)
         src = child_dec if meet == child_dec.verdict else parent_dec
@@ -273,9 +262,10 @@ class PolicyComposer:
                     except OSError:
                         ctx = compose_context_layers(
                             ("composition context", ctx),
-                            (f"include '{alias}'", {
-                                alias: {"verdict": "DENY", "rule_index": -1}
-                            }),
+                            (
+                                f"include '{alias}'",
+                                {alias: {"verdict": "DENY", "rule_index": -1}},
+                            ),
                         )
                         continue
                 policy_name = stem
@@ -283,9 +273,10 @@ class PolicyComposer:
             if policy_name not in self._policies:
                 ctx = compose_context_layers(
                     ("composition context", ctx),
-                    (f"include '{alias}'", {
-                        alias: {"verdict": "DENY", "rule_index": -1}
-                    }),
+                    (
+                        f"include '{alias}'",
+                        {alias: {"verdict": "DENY", "rule_index": -1}},
+                    ),
                 )
                 continue
 
@@ -293,12 +284,15 @@ class PolicyComposer:
             inc_dec = self._evaluate_policy(inc_policy, ctx, chain)
             ctx = compose_context_layers(
                 ("composition context", ctx),
-                (f"include '{alias}'", {
-                    alias: {
-                        "verdict": inc_dec.verdict.value,
-                        "rule_index": inc_dec.rule_index,
-                    }
-                }),
+                (
+                    f"include '{alias}'",
+                    {
+                        alias: {
+                            "verdict": inc_dec.verdict.value,
+                            "rule_index": inc_dec.rule_index,
+                        }
+                    },
+                ),
             )
 
         return ctx
@@ -347,9 +341,7 @@ class PolicyComposer:
         verdicts: list[TarlVerdict] = []
         for pname in policy_names:
             if pname in self._policies:
-                dec = self._evaluate_policy(
-                    self._policies[pname], context, frozenset()
-                )
+                dec = self._evaluate_policy(self._policies[pname], context, frozenset())
                 verdicts.append(dec.verdict)
             else:
                 verdicts.append(TarlVerdict.DENY)
@@ -369,9 +361,7 @@ class PolicyComposer:
             for v in verdicts[1:]:
                 result = TarlVerdict.meet(result, v)
         elif op == SetOp.MAJORITY:
-            allow_count = sum(
-                1 for v in verdicts if v == TarlVerdict.ALLOW
-            )
+            allow_count = sum(1 for v in verdicts if v == TarlVerdict.ALLOW)
             result = (
                 TarlVerdict.ALLOW
                 if allow_count > len(verdicts) / 2
@@ -402,6 +392,4 @@ class PolicyComposer:
     def _check_cycle(self, name: str, chain: frozenset[str]) -> None:
         if name in chain:
             path = " -> ".join(sorted(chain)) + f" -> {name}"
-            raise CompositionError(
-                f"Circular policy reference detected: {path}"
-            )
+            raise CompositionError(f"Circular policy reference detected: {path}")

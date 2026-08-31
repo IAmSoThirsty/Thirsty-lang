@@ -1,7 +1,7 @@
 # Feature Status
 
 Edition: Thirsty-Lang 0.8.6. The integrated navigation and reference layer is
-[THIRSTY_LANG_101.md](THIRSTY_LANG_101.md); security acceptance details remain
+[THIRSTY_LANG_UTF_101.md](THIRSTY_LANG_UTF_101.md); security acceptance details remain
 authoritative in [THREAT_MODEL.md](THREAT_MODEL.md).
 
 Every capability below is marked **Real** (implemented and enforced, with a

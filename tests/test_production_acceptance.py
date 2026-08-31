@@ -5,6 +5,7 @@ a re-presented proof. This is the scenario the CI 'production acceptance' job
 runs; keeping it as a test makes the production deployment requirement
 regression-proof.
 """
+
 import json
 
 import pytest
@@ -14,16 +15,12 @@ from utf.tarl.authority import AuthorityIssuer
 from utf.thirsty_lang import cli
 
 ALLOW_WRITE = (
-    'policy p\n'
+    "policy p\n"
     'when action == "import" => ALLOW\n'
     'when action == "write" => ALLOW\n'
-    'when true => DENY\n'
+    "when true => DENY\n"
 )
-DENY_WRITE = (
-    'policy p\n'
-    'when action == "import" => ALLOW\n'
-    'when true => DENY\n'
-)
+DENY_WRITE = "policy p\n" 'when action == "import" => ALLOW\n' "when true => DENY\n"
 PROGRAM = (
     "module m: governed\n"
     'import "thirst::log" as log\n'
@@ -48,7 +45,9 @@ def _provision(tmp_path):
     with open(token, "w") as f:
         f.write(claim.to_json())
     return {
-        "issuer_pub": issuer_pub, "signer_priv": signer_priv, "token": token,
+        "issuer_pub": issuer_pub,
+        "signer_priv": signer_priv,
+        "token": token,
     }
 
 
@@ -68,11 +67,22 @@ def test_hardened_run_with_keyfiles_allows_granted_effect(
     with open(prog, "w") as f:
         f.write(PROGRAM)
 
-    _run(monkeypatch, "run", prog, "--thirst-level", "governed",
-         "--hardened", "--policy", policy,
-         "--authority-token", keys["token"],
-         "--authority-key-file", keys["issuer_pub"],
-         "--sign-proofs-file", keys["signer_priv"])
+    _run(
+        monkeypatch,
+        "run",
+        prog,
+        "--thirst-level",
+        "governed",
+        "--hardened",
+        "--policy",
+        policy,
+        "--authority-token",
+        keys["token"],
+        "--authority-key-file",
+        keys["issuer_pub"],
+        "--sign-proofs-file",
+        keys["signer_priv"],
+    )
     assert "governed-hello" in capsys.readouterr().out
 
 
@@ -86,11 +96,22 @@ def test_hardened_run_fails_closed_without_grant(monkeypatch, tmp_path):
         f.write(PROGRAM)
 
     with pytest.raises(SystemExit) as exc:
-        _run(monkeypatch, "run", prog, "--thirst-level", "governed",
-             "--hardened", "--policy", policy,
-             "--authority-token", keys["token"],
-             "--authority-key-file", keys["issuer_pub"],
-             "--sign-proofs-file", keys["signer_priv"])
+        _run(
+            monkeypatch,
+            "run",
+            prog,
+            "--thirst-level",
+            "governed",
+            "--hardened",
+            "--policy",
+            policy,
+            "--authority-token",
+            keys["token"],
+            "--authority-key-file",
+            keys["issuer_pub"],
+            "--sign-proofs-file",
+            keys["signer_priv"],
+        )
     assert exc.value.code == 2  # governance denial exit code
 
 

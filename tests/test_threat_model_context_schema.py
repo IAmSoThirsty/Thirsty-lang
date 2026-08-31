@@ -4,6 +4,7 @@ Missing required context fields and type-confused values must fail closed before
 any rule runs — never slip through to a permissive later rule or the wrong
 DEFAULT-DENY reason.
 """
+
 import pytest
 
 from utf.tarl.core import PolicyParser
@@ -13,16 +14,14 @@ from utf.tarl.spec import TarlVerdict
 from utf.tarl.verifier import ProofVerifier
 
 # A policy that would ALLOW generously if the context reached the rules.
-PERMISSIVE = (
-    'policy p\n'
-    'when amount > 100 => ALLOW\n'
-    'when true => ALLOW\n'
-)
+PERMISSIVE = "policy p\n" "when amount > 100 => ALLOW\n" "when true => ALLOW\n"
 
-SCHEMA = ContextSchema(fields=[
-    FieldSpec("amount", kinds=("number",), required=True),
-    FieldSpec("action", kinds=("string",), required=True),
-])
+SCHEMA = ContextSchema(
+    fields=[
+        FieldSpec("amount", kinds=("number",), required=True),
+        FieldSpec("action", kinds=("string",), required=True),
+    ]
+)
 
 
 def _runtime(schema=SCHEMA, policy=PERMISSIVE):
@@ -79,20 +78,23 @@ def test_schema_violation_proof_is_consistent_and_records_fields():
 
 
 def test_schema_from_dict_round_trips():
-    schema = ContextSchema.from_dict({
-        "on_violation": "DENY",
-        "fields": [
-            {"name": "amount", "kinds": ["number"], "required": True},
-            {"name": "note", "kinds": ["string"], "required": False},
-        ],
-    })
-    assert schema.validate({"amount": 5}) == []                  # optional 'note' absent
-    assert schema.validate({"amount": "5"})                       # type confusion
-    assert schema.validate({})                                    # missing required
+    schema = ContextSchema.from_dict(
+        {
+            "on_violation": "DENY",
+            "fields": [
+                {"name": "amount", "kinds": ["number"], "required": True},
+                {"name": "note", "kinds": ["string"], "required": False},
+            ],
+        }
+    )
+    assert schema.validate({"amount": 5}) == []  # optional 'note' absent
+    assert schema.validate({"amount": "5"})  # type confusion
+    assert schema.validate({})  # missing required
 
 
 @pytest.mark.parametrize("value", [5, 5.0, 0, -3])
 def test_number_kind_accepts_int_and_float(value):
-    assert ContextSchema(fields=[FieldSpec("a", kinds=("number",))]).validate(
-        {"a": value}
-    ) == []
+    assert (
+        ContextSchema(fields=[FieldSpec("a", kinds=("number",))]).validate({"a": value})
+        == []
+    )

@@ -43,12 +43,12 @@ class TokenType(Enum):
     # use by Shadow Thirst / TSCG governance transformers at higher
     # tiers. See tarl/spec.py for T.A.R.L. policy definitions and
     # docs/governance_model.md for the tier escalation model.
-    SHIELD = auto()      # identity/access context barrier
-    SANITIZE = auto()    # data scrubbing annotation
-    ARMOR = auto()       # runtime safety wrap
-    MORPH = auto()       # type coercion boundary
-    DETECT = auto()      # anomaly tap point
-    DEFEND = auto()      # invariant enforcement hook
+    SHIELD = auto()  # identity/access context barrier
+    SANITIZE = auto()  # data scrubbing annotation
+    ARMOR = auto()  # runtime safety wrap
+    MORPH = auto()  # type coercion boundary
+    DETECT = auto()  # anomaly tap point
+    DEFEND = auto()  # invariant enforcement hook
 
     # --- Thirst of Gods Keywords ---
     CASCADE = auto()
@@ -111,16 +111,16 @@ class TokenType(Enum):
     COMMA = auto()
     DOT = auto()
     COLON = auto()
-    COLONEQ = auto()    # := (define-and-assign)
+    COLONEQ = auto()  # := (define-and-assign)
     SEMICOLON = auto()
     EQ = auto()
 
     # --- Multi-char Operators ---
-    ARROW = auto()      # ->
-    PIPE = auto()        # |
-    BACKSLASH = auto()   # \ (lambda)
-    HATHAT = auto()      # ^ (AND-combine)
-    PIPEPIPE = auto()    # || (OR-combine)
+    ARROW = auto()  # ->
+    PIPE = auto()  # |
+    BACKSLASH = auto()  # \ (lambda)
+    HATHAT = auto()  # ^ (AND-combine)
+    PIPEPIPE = auto()  # || (OR-combine)
 
     # --- Single-char Operators ---
     PLUS = auto()

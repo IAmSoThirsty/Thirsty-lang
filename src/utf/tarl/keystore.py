@@ -23,6 +23,7 @@ Rotation is operational, not cryptographic: mint a new key with a fresh
 are keyed by ``key_id``, so both validate in-flight artifacts), then switch
 signing to the new key. See ``docs/PRODUCTION_DEPLOYMENT.md``.
 """
+
 from __future__ import annotations
 
 import json
@@ -67,8 +68,7 @@ class KeyFile:
 
     def private_bytes(self) -> bytes:
         if not self.private_key_hex:
-            raise ValueError(
-                f"key {self.key_id!r} is public-only; no private key")
+            raise ValueError(f"key {self.key_id!r} is public-only; no private key")
         return bytes.fromhex(self.private_key_hex)
 
     def public_key(self) -> Ed25519PublicKey:
@@ -80,9 +80,12 @@ class KeyFile:
     def public_only(self) -> KeyFile:
         """A copy without the private half, for distribution to verifiers."""
         return KeyFile(
-            key_id=self.key_id, role=self.role,
-            public_key_hex=self.public_key_hex, private_key_hex="",
-            created_at=self.created_at)
+            key_id=self.key_id,
+            role=self.role,
+            public_key_hex=self.public_key_hex,
+            private_key_hex="",
+            created_at=self.created_at,
+        )
 
     def to_dict(self, include_private: bool = False) -> dict:
         d = {
@@ -128,14 +131,21 @@ def generate(key_id: str, role: str) -> KeyFile:
         format=serialization.PrivateFormat.Raw,
         encryption_algorithm=serialization.NoEncryption(),
     ).hex()
-    public_hex = private.public_key().public_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PublicFormat.Raw,
-    ).hex()
+    public_hex = (
+        private.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
+        .hex()
+    )
     return KeyFile(
-        key_id=key_id, role=role, public_key_hex=public_hex,
+        key_id=key_id,
+        role=role,
+        public_key_hex=public_hex,
         private_key_hex=private_hex,
-        created_at=datetime.now(UTC).isoformat(timespec="seconds"))
+        created_at=datetime.now(UTC).isoformat(timespec="seconds"),
+    )
 
 
 def load(path: str) -> KeyFile:
@@ -145,7 +155,8 @@ def load(path: str) -> KeyFile:
     fmt = data.get("format")
     if fmt != KEY_FORMAT:
         raise ValueError(
-            f"{path}: unsupported key format {fmt!r} (expected {KEY_FORMAT})")
+            f"{path}: unsupported key format {fmt!r} (expected {KEY_FORMAT})"
+        )
     if data.get("alg") != "ed25519":
         raise ValueError(f"{path}: unsupported alg {data.get('alg')!r}")
     public_hex = data.get("public_key", "")
@@ -156,7 +167,8 @@ def load(path: str) -> KeyFile:
         role=data.get("role", ""),
         public_key_hex=public_hex,
         private_key_hex=data.get("private_key", ""),
-        created_at=data.get("created_at", ""))
+        created_at=data.get("created_at", ""),
+    )
 
 
 __all__ = [

@@ -2,10 +2,11 @@
 Tests for Shadow Thirst (Tier 4)
 Tests mutation parsing, 6 analyzers, promote/reject flow, and Mermaid visualization.
 """
+
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from utf.shadow_thirst.core import (
     CanonicalConvergenceAnalyzer,
@@ -113,7 +114,7 @@ class TestAnalyzers:
             name="test",
             shadow_code="drink x = compute(input)",
             invariant_code="x > 0",
-            canonical_code="drink result = compute(input)"
+            canonical_code="drink result = compute(input)",
         )
         result = analyzer.analyze(module)
         assert result.passed is True
@@ -126,7 +127,7 @@ class TestAnalyzers:
             name="test",
             shadow_code="drink x = input + 1",
             invariant_code="",
-            canonical_code=""
+            canonical_code="",
         )
         result = analyzer.analyze(module)
         assert result.passed is True
@@ -138,7 +139,7 @@ class TestAnalyzers:
             name="test",
             shadow_code="drink x = get_time()",
             invariant_code="",
-            canonical_code=""
+            canonical_code="",
         )
         result = analyzer.analyze(module)
         assert result.passed is False
@@ -149,7 +150,7 @@ class TestAnalyzers:
             name="test",
             shadow_code="drink x = [1,2,3]",
             invariant_code="",
-            canonical_code=""
+            canonical_code="",
         )
         result = analyzer.analyze(module)
         assert result.name == "ResourceEstimator"
@@ -162,7 +163,7 @@ class TestAnalyzers:
             name="test",
             shadow_code="",
             invariant_code="x > 0 and x < 100",
-            canonical_code=""
+            canonical_code="",
         )
         result = analyzer.analyze(module)
         assert result.name == "PuritySpring"
@@ -174,7 +175,7 @@ class TestAnalyzers:
             name="test",
             shadow_code="drink x = [1,2,3,4,5]",
             invariant_code="",
-            canonical_code=""
+            canonical_code="",
         )
         result = analyzer.analyze(module)
         assert result.name == "MemoryEvaporation"
@@ -185,7 +186,7 @@ class TestAnalyzers:
             name="test",
             shadow_code="drink x = compute(input)",
             invariant_code="",
-            canonical_code="drink x = compute(input)"
+            canonical_code="drink x = compute(input)",
         )
         result = analyzer.analyze(module)
         assert result.name == "CanonicalConvergence"
@@ -194,10 +195,7 @@ class TestAnalyzers:
     def test_canonical_convergence_analyzer_fail(self):
         analyzer = CanonicalConvergenceAnalyzer()
         module = ShadowModule(
-            name="test",
-            shadow_code="",
-            invariant_code="",
-            canonical_code=""
+            name="test", shadow_code="", invariant_code="", canonical_code=""
         )
         result = analyzer.analyze(module)
         assert result.name == "CanonicalConvergence"
@@ -281,7 +279,7 @@ class TestPromotionEngine:
             name="test_promote",
             shadow_code="let x = compute(input)",
             invariant_code="x > 0",
-            canonical_code="let x = compute(input)"
+            canonical_code="let x = compute(input)",
         )
         verdict, results = engine.evaluate(module)
         # Verify results
@@ -290,10 +288,7 @@ class TestPromotionEngine:
     def test_reject_on_critical(self):
         engine = PromotionEngine()
         module = ShadowModule(
-            name="test_reject",
-            shadow_code="",
-            invariant_code="",
-            canonical_code=""
+            name="test_reject", shadow_code="", invariant_code="", canonical_code=""
         )
         verdict, results = engine.evaluate(module)
         assert verdict is not None
@@ -304,7 +299,7 @@ class TestPromotionEngine:
             name="viz_test",
             shadow_code="let x = input",
             invariant_code="x > 0",
-            canonical_code="let x = input"
+            canonical_code="let x = input",
         )
         mermaid = engine.generate_mermaid(module)
         assert "mermaid" in mermaid.lower()
@@ -361,7 +356,7 @@ if __name__ == "__main__":
         if isinstance(obj, type) and name.startswith("Test"):
             print(f"\n{'='*60}")
             print(f"Running {name}...")
-            print('='*60)
+            print("=" * 60)
             instance = obj()
             for attr in dir(instance):
                 if attr.startswith("test_"):

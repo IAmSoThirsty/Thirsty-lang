@@ -1,4 +1,5 @@
 """Broad parser coverage: every declaration, statement, and expression form."""
+
 from utf.thirsty_lang.lexer import Lexer
 from utf.thirsty_lang.parser import Parser
 
@@ -78,8 +79,10 @@ def test_function_return_type():
 
 
 def test_governed_all_clauses():
-    ok("glass w(a: int) -> int requires a > 0 ensures result > 0 "
-       "invariant a < 100 { return a }")
+    ok(
+        "glass w(a: int) -> int requires a > 0 ensures result > 0 "
+        "invariant a < 100 { return a }"
+    )
 
 
 def test_while_loop():

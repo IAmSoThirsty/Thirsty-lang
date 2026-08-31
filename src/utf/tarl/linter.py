@@ -7,6 +7,7 @@ authority/role/grant, or a missing default-DENY floor. These pass evaluation
 silently but defeat least-privilege. The linter is a fast, dependency-free static
 pass (no Z3) that surfaces them so a human reviews before deployment.
 """
+
 from __future__ import annotations
 
 import re
@@ -16,7 +17,12 @@ from utf.tarl.spec import TarlPolicy, TarlVerdict
 
 # Tokens that indicate a rule is gated by *who* is acting rather than open to all.
 _AUTHORITY_TOKENS = (
-    "authority", "role", "subject", "authenticated", "grant", "identity",
+    "authority",
+    "role",
+    "subject",
+    "authenticated",
+    "grant",
+    "identity",
 )
 
 _TAUTOLOGY = re.compile(r"^\s*(true|1)\s*$", re.IGNORECASE)
@@ -26,8 +32,8 @@ _TAUTOLOGY = re.compile(r"^\s*(true|1)\s*$", re.IGNORECASE)
 class LintFinding:
     """One policy-lint observation."""
 
-    rule_index: int       # -1 for whole-policy findings
-    severity: str         # "high" | "medium" | "low"
+    rule_index: int  # -1 for whole-policy findings
+    severity: str  # "high" | "medium" | "low"
     code: str
     message: str
 
@@ -52,23 +58,38 @@ def lint_policy(policy: TarlPolicy) -> list[LintFinding]:
         if rule.verdict != TarlVerdict.ALLOW:
             continue
         if _TAUTOLOGY.match(rule.condition):
-            findings.append(LintFinding(
-                i, "high", "TARL-LINT-BROAD-ALLOW",
-                "unconditional 'when true => ALLOW' grants every request; "
-                "scope it or require explicit review"))
+            findings.append(
+                LintFinding(
+                    i,
+                    "high",
+                    "TARL-LINT-BROAD-ALLOW",
+                    "unconditional 'when true => ALLOW' grants every request; "
+                    "scope it or require explicit review",
+                )
+            )
         elif not _gated_by_authority(rule.condition):
-            findings.append(LintFinding(
-                i, "medium", "TARL-LINT-UNGATED-ALLOW",
-                f"ALLOW on '{rule.condition}' is not gated by any authority/"
-                "role/grant; confirm this is intentionally open"))
+            findings.append(
+                LintFinding(
+                    i,
+                    "medium",
+                    "TARL-LINT-UNGATED-ALLOW",
+                    f"ALLOW on '{rule.condition}' is not gated by any authority/"
+                    "role/grant; confirm this is intentionally open",
+                )
+            )
 
     # A policy with ALLOW rules but no terminal default-DENY relies on the
     # engine's implicit DEFAULT_DENY; flag it so the floor is explicit.
     if allow_indices and not _has_explicit_default_deny(policy):
-        findings.append(LintFinding(
-            -1, "low", "TARL-LINT-NO-DEFAULT-DENY",
-            "policy has ALLOW rules but no explicit 'when true => DENY' floor; "
-            "add one to make the deny-by-default posture self-documenting"))
+        findings.append(
+            LintFinding(
+                -1,
+                "low",
+                "TARL-LINT-NO-DEFAULT-DENY",
+                "policy has ALLOW rules but no explicit 'when true => DENY' floor; "
+                "add one to make the deny-by-default posture self-documenting",
+            )
+        )
 
     return findings
 

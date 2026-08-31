@@ -4,6 +4,7 @@ Resource exhaustion / evaluator errors must DENY, never fail open (C037), and
 execution must fail closed when a required audit record cannot be persisted
 (C038).
 """
+
 import pytest
 
 from utf.tarl.core import PolicyParser
@@ -13,11 +14,7 @@ from utf.thirsty_lang.interpreter import GovernanceViolation, Interpreter
 from utf.thirsty_lang.lexer import Lexer
 from utf.thirsty_lang.parser import Parser
 
-ALLOW_WRITE = (
-    'policy p\n'
-    'when action == "write" => ALLOW\n'
-    'when true => DENY\n'
-)
+ALLOW_WRITE = "policy p\n" 'when action == "write" => ALLOW\n' "when true => DENY\n"
 
 
 class _ExplodingArchive:
@@ -36,11 +33,12 @@ class _ExplodingRuntime(TarlRuntime):
 
 # ── C037: evaluator errors fail closed (DENY, not ALLOW) ──────────────────────
 
+
 def test_rule_evaluation_exception_does_not_match_and_falls_to_default_deny():
     # A source provider that raises must not cause its rule to match.
-    rt = TarlRuntime(PolicyParser.parse(
-        'policy p\nwhen source:boom => ALLOW\nwhen true => DENY\n'
-    ))
+    rt = TarlRuntime(
+        PolicyParser.parse("policy p\nwhen source:boom => ALLOW\nwhen true => DENY\n")
+    )
     rt.register_source("boom", lambda: (_ for _ in ()).throw(RuntimeError("x")))
     assert rt.evaluate({"action": "write"}).verdict == TarlVerdict.DENY
 
@@ -77,6 +75,7 @@ def test_evaluation_error_denial_is_not_swallowed_by_spillage(capsys):
 
 
 # ── C038: required audit that cannot persist fails closed ──────────────────────
+
 
 def test_required_audit_persistence_failure_downgrades_to_deny():
     rt = TarlRuntime(PolicyParser.parse(ALLOW_WRITE))

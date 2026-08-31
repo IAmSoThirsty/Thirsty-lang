@@ -4,6 +4,7 @@ Covers FFI/native brokering (C033) and AI/MCP tool-adapter brokering
 (C040-C041): every external side-effect path must call the same broker and is
 denied by default.
 """
+
 import pytest
 
 from utf.tarl.authority import AuthorityIssuer, AuthorityVerifier
@@ -17,16 +18,12 @@ from utf.tarl.core import PolicyParser
 from utf.tarl.runtime import TarlRuntime
 from utf.tarl.spec import TarlVerdict
 
-DENY_ALL = 'policy p\nwhen true => DENY\n'
-ALLOW_EXECUTE = (
-    'policy p\n'
-    'when action == "execute" => ALLOW\n'
-    'when true => DENY\n'
-)
+DENY_ALL = "policy p\nwhen true => DENY\n"
+ALLOW_EXECUTE = "policy p\n" 'when action == "execute" => ALLOW\n' "when true => DENY\n"
 ALLOW_TOOL_FOR_AUTH = (
-    'policy p\n'
+    "policy p\n"
     'when action == "tool" and authority_authenticated == true => ALLOW\n'
-    'when true => DENY\n'
+    "when true => DENY\n"
 )
 
 
@@ -35,6 +32,7 @@ def _runtime(policy):
 
 
 # ── Fail-closed: no runtime, default deny ──────────────────────────────────────
+
 
 def test_broker_without_runtime_fails_closed():
     broker = CapabilityBroker()  # no runtime
@@ -56,6 +54,7 @@ def test_deny_all_policy_denies_every_capability():
 
 # ── C033: FFI / native is denied unless brokered ───────────────────────────────
 
+
 def test_ffi_native_call_denied_by_default():
     broker = CapabilityBroker(_runtime(DENY_ALL), authority="admin")
     with pytest.raises(CapabilityDenied) as exc:
@@ -71,6 +70,7 @@ def test_ffi_native_call_allowed_when_policy_permits():
 
 
 # ── C040-C041: AI/MCP tool adapters must broker before invoking ────────────────
+
 
 def test_mcp_tool_invocation_denied_by_default():
     broker = CapabilityBroker(_runtime(DENY_ALL), authority="agent")
@@ -107,6 +107,7 @@ def test_require_authenticated_flag_fails_closed_for_bare_authority():
 def test_broker_proof_can_be_archived_and_chained(tmp_path):
     # Brokered decisions produce real proofs that flow into the audit chain.
     from utf.tarl.archive import TarlAuditArchive
+
     runtime = _runtime(ALLOW_EXECUTE)
     db = str(tmp_path / "broker_audit.db")
     with TarlAuditArchive(db) as arc:

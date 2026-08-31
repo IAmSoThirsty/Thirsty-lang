@@ -2,6 +2,7 @@
 Thirsty-Lang Module System
 Import resolution, 16 stdlib namespaces, and 16 global builtins.
 """
+
 import hashlib
 import json
 import os
@@ -80,8 +81,10 @@ SENSITIVE_STDLIB_CAPABILITIES: dict[str, dict[str, str]] = {
 # Stdlib Namespace Implementations
 # ============================================================
 
+
 def _make_time_module() -> dict:
     """thirst::time — Time utilities."""
+
     def now() -> str:
         return datetime.now(UTC).isoformat()
 
@@ -100,6 +103,7 @@ def _make_time_module() -> dict:
 
 def _make_crypto_module() -> dict:
     """thirst::crypto — Cryptographic utilities."""
+
     def sha256(data: str) -> str:
         return hashlib.sha256(data.encode()).hexdigest()
 
@@ -128,6 +132,7 @@ def _make_crypto_module() -> dict:
 
 def _make_reservoir_module() -> dict:
     """thirst::reservoir — Reservoir (list) operations."""
+
     def size(r: list) -> int:
         return len(r) if isinstance(r, list) else 0
 
@@ -163,12 +168,13 @@ def _make_reservoir_module() -> dict:
 
 def _make_fs_module() -> dict:
     """thirst::fs — File system operations."""
+
     def read_file(path: str) -> str:
         with open(path) as f:
             return f.read()
 
     def write_file(path: str, data: str) -> int:
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             return f.write(data)
 
     def exists(path: str) -> bool:
@@ -202,6 +208,7 @@ def _make_fs_module() -> dict:
 
 def _make_path_module() -> dict:
     """thirst::path — Path manipulation."""
+
     def join(*parts: str) -> str:
         return os.path.join(*parts)
 
@@ -233,6 +240,7 @@ def _make_path_module() -> dict:
 
 def _make_json_module() -> dict:
     """thirst::json — JSON parsing and serialization."""
+
     def parse(s: str) -> object:
         return json.loads(s)
 
@@ -269,8 +277,9 @@ def _make_http_module() -> dict:
     def post(url: str, data: object = None) -> str:
         try:
             data_bytes = json.dumps(data).encode() if data else b""
-            req = urllib.request.Request(url, data=data_bytes,
-                                          headers={"Content-Type": "application/json"})
+            req = urllib.request.Request(
+                url, data=data_bytes, headers={"Content-Type": "application/json"}
+            )
             with urllib.request.urlopen(req, timeout=10) as response:
                 return str(response.read().decode())
         except Exception as e:
@@ -279,9 +288,12 @@ def _make_http_module() -> dict:
     def put(url: str, data: object = None) -> str:
         try:
             data_bytes = json.dumps(data).encode() if data else b""
-            req = urllib.request.Request(url, data=data_bytes,
-                                          headers={"Content-Type": "application/json"},
-                                          method="PUT")
+            req = urllib.request.Request(
+                url,
+                data=data_bytes,
+                headers={"Content-Type": "application/json"},
+                method="PUT",
+            )
             with urllib.request.urlopen(req, timeout=10) as response:
                 return str(response.read().decode())
         except Exception as e:
@@ -305,6 +317,7 @@ def _make_http_module() -> dict:
 
 def _make_env_module() -> dict:
     """thirst::env — Environment variables."""
+
     def get(k: str, default: str = "") -> str:
         return os.environ.get(k, default)
 
@@ -328,7 +341,9 @@ def _make_process_module() -> dict:
 
     def run(cmd: str) -> str:
         try:
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
+            result = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, timeout=30
+            )
             return result.stdout + result.stderr
         except Exception as e:
             return str(e)
@@ -352,6 +367,7 @@ def _make_process_module() -> dict:
 
 def _make_log_module() -> dict:
     """thirst::log — Logging utilities."""
+
     def info(msg: str) -> None:
         print(f"[INFO] {msg}")
 
@@ -374,6 +390,7 @@ def _make_log_module() -> dict:
 
 def _make_test_module() -> dict:
     """thirst::test — Testing utilities."""
+
     def assert_eq(a: object, b: object) -> None:
         assert a == b, f"AssertionError: {a!r} != {b!r}"
 
@@ -447,6 +464,7 @@ def _make_collections_module() -> dict:
 
     def zip(*lsts: list) -> list:
         import builtins
+
         return list(builtins.zip(*lsts, strict=False))
 
     return {
@@ -462,6 +480,7 @@ def _make_collections_module() -> dict:
 
 def _make_net_module() -> dict:
     """thirst::net — Networking (stub)."""
+
     def tcp_connect(host: str, port: int) -> dict:
         return {"type": "tcp", "host": host, "port": port, "connected": True}
 
@@ -524,6 +543,7 @@ def _make_sqlite_module() -> dict:
 
 def _make_yaml_module() -> dict:
     """thirst::yaml — YAML parsing (basic)."""
+
     def parse(s: str) -> dict:
         """Simple YAML parser for basic key-value pairs."""
         result = {}
@@ -556,8 +576,10 @@ def _make_yaml_module() -> dict:
 
 def _make_toml_module() -> dict:
     """thirst::toml — TOML parsing (using tomllib in Python 3.11+)."""
+
     def parse(s: str) -> dict:
         import tomllib
+
         return tomllib.loads(s)
 
     def dump(v: dict) -> str:
@@ -614,19 +636,23 @@ STDLIB_MODULES = {
 # ============================================================
 
 BUILTINS: dict[str, Callable[..., Any]] = {
-    "length": lambda x: len(x) if hasattr(x, '__len__') else 0,
-    "contains": lambda x, y: y in x if hasattr(x, '__contains__') else False,
+    "length": lambda x: len(x) if hasattr(x, "__len__") else 0,
+    "contains": lambda x, y: y in x if hasattr(x, "__contains__") else False,
     "split": lambda s, sep=None: s.split(sep) if isinstance(s, str) else [],
-    "abs": lambda x: abs(x) if hasattr(x, '__abs__') else 0,
+    "abs": lambda x: abs(x) if hasattr(x, "__abs__") else 0,
     "min": lambda *args: min(args) if args else 0,
     "max": lambda *args: max(args) if args else 0,
     "push": lambda r, v: (r.append(v), len(r))[-1] if isinstance(r, list) else 0,  # type: ignore[func-returns-value]
     "pop": lambda r: r.pop() if isinstance(r, list) and r else None,
-    "size": lambda x: len(x) if hasattr(x, '__len__') else 0,
-    "get": lambda x, i: x[i] if hasattr(x, '__getitem__') else None,
+    "size": lambda x: len(x) if hasattr(x, "__len__") else 0,
+    "get": lambda x, i: x[i] if hasattr(x, "__getitem__") else None,
     "flood": lambda r, v: (r.append(v), r)[-1] if isinstance(r, list) else r,  # type: ignore[func-returns-value]
-    "condense": lambda q: q.get("value") if isinstance(q, dict) and "value" in q else None,
-    "evaporate": lambda q: q.pop("value") if isinstance(q, dict) and "value" in q else None,
+    "condense": lambda q: (
+        q.get("value") if isinstance(q, dict) and "value" in q else None
+    ),
+    "evaporate": lambda q: (
+        q.pop("value") if isinstance(q, dict) and "value" in q else None
+    ),
     "strain": lambda x: x,
     "transmute": lambda x, t: x,
     "distill": lambda x: x,
@@ -636,6 +662,7 @@ BUILTINS: dict[str, Callable[..., Any]] = {
 # ============================================================
 # Lockfile-aware Module Resolution
 # ============================================================
+
 
 def load_lockfile(cwd: str = ".") -> dict[str, Any]:
     """
@@ -672,6 +699,7 @@ def check_lock_integrity(dep_name: str, dep_version: str, lock: dict) -> bool:
 # Public API
 # ============================================================
 
+
 def resolve_import(path_str: str, locked: bool = False) -> object:
     """
     Resolve an import path string to a module object.
@@ -690,7 +718,7 @@ def resolve_import(path_str: str, locked: bool = False) -> object:
         # Extract dependency name from path_str (e.g. "thirst::crypto" -> "crypto")
         dep_name = path_str
         if path_str.startswith("thirst::"):
-            dep_name = path_str[len("thirst::"):]
+            dep_name = path_str[len("thirst::") :]
         if not check_lock_integrity(dep_name, "*", lock):
             raise ImportError(
                 f"Lockfile integrity check failed: '{dep_name}' not found in thirsty.lock. "

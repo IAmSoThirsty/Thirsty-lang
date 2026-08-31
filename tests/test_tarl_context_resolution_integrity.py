@@ -117,7 +117,7 @@ def test_missing_simple_identifier_is_not_false_either():
     "condition",
     [
         'LOWER(user.role) == "admin"',
-        'LEN(user.role) != 0',
+        "LEN(user.role) != 0",
     ],
 )
 def test_resolved_wrong_value_type_fails_closed(condition):
@@ -137,9 +137,7 @@ def test_resolved_wrong_value_type_fails_closed(condition):
 def test_flat_nested_and_equivalent_mixed_normalize_to_one_context(context):
     prepared = prepare_context(context)
     assert prepared.canonical == {"user": {"role": "admin"}}
-    assert prepared.canonical_context_hash == hash_context(
-        {"user": {"role": "admin"}}
-    )
+    assert prepared.canonical_context_hash == hash_context({"user": {"role": "admin"}})
     assert evaluate_policy(context, policy_text=DOTTED_POLICY).verdict == (
         TarlVerdict.ALLOW
     )
@@ -169,18 +167,13 @@ def test_preserved_four_case_matrix():
     assert [
         evaluate_policy(context, policy_text=policy).verdict
         for _case_id, policy, context, _expected in cases
-    ] == [
-        TarlVerdict(expected)
-        for _case_id, _policy, _context, expected in cases
-    ]
+    ] == [TarlVerdict(expected) for _case_id, _policy, _context, expected in cases]
 
 
 @pytest.mark.parametrize(
     ("case_id", "policy_text", "context", "expected"), _matrix_cases()
 )
-def test_permanent_matrix_through_safe_expr(
-    case_id, policy_text, context, expected
-):
+def test_permanent_matrix_through_safe_expr(case_id, policy_text, context, expected):
     condition = PolicyParser.parse(policy_text).rules[0].condition
     if case_id in {
         "flat-and-nested-conflicting",
@@ -209,9 +202,7 @@ def test_permanent_matrix_through_evaluate_policy(
 @pytest.mark.parametrize(
     ("_case_id", "policy_text", "context", "expected"), _matrix_cases()
 )
-def test_permanent_matrix_through_runtime(
-    _case_id, policy_text, context, expected
-):
+def test_permanent_matrix_through_runtime(_case_id, policy_text, context, expected):
     runtime = TarlRuntime(PolicyParser.parse(policy_text))
     assert runtime.evaluate(context).verdict == TarlVerdict(expected)
 
@@ -258,9 +249,7 @@ def test_permanent_matrix_through_proof_creation_and_verification(
         "simple-identifier-allow",
         "simple-identifier-deny",
     }
-    result = verifier.verify(
-        proof, expected_context=context if authoritative else None
-    )
+    result = verifier.verify(proof, expected_context=context if authoritative else None)
     assert result.valid is True
     assert result.checks["context_coherence"] is True
 
@@ -304,9 +293,7 @@ def test_permanent_matrix_through_governed_runtime(
     interpreter = Interpreter()
     interpreter.mode = "governed"
     schema = ContextSchema.from_dict(derive_context_schema(policy_text).to_dict())
-    runtime = TarlRuntime(PolicyParser.parse(policy_text)).set_context_schema(
-        schema
-    )
+    runtime = TarlRuntime(PolicyParser.parse(policy_text)).set_context_schema(schema)
     interpreter.attach_tarl(runtime)
     interpreter.set_authority("matrix-authority")
     decl = SimpleNamespace(
@@ -338,9 +325,7 @@ def test_schema_and_evaluator_resolve_the_same_nested_path():
 def test_derived_schema_declares_the_authoritative_representation():
     schema = derive_context_schema(DOTTED_POLICY).to_dict()
     assert schema["representation"]["id"] == "tarl.context.nested-json.v1"
-    assert schema["representation"]["normalization"] == (
-        NORMALIZATION_ALGORITHM_ID
-    )
+    assert schema["representation"]["normalization"] == (NORMALIZATION_ALGORITHM_ID)
     assert schema["fields"] == [
         {"name": "user.role", "kinds": ["string"], "required": True}
     ]
@@ -349,9 +334,7 @@ def test_derived_schema_declares_the_authoritative_representation():
 def test_runtime_proof_binds_the_exact_evaluated_context():
     context = {"user": {"role": "admin"}}
     schema = ContextSchema.from_dict(derive_context_schema(DOTTED_POLICY).to_dict())
-    runtime = TarlRuntime(PolicyParser.parse(DOTTED_POLICY)).set_context_schema(
-        schema
-    )
+    runtime = TarlRuntime(PolicyParser.parse(DOTTED_POLICY)).set_context_schema(schema)
     runtime.set_signing_key("context-key", b"context-secret")
     decision, proof = runtime.evaluate_with_proof(context)
 
@@ -365,9 +348,7 @@ def test_runtime_proof_binds_the_exact_evaluated_context():
     assert proof.normalization_version == "1"
     assert proof.context_conflict_status == "none"
     assert proof.context_schema_hash == schema.fingerprint()
-    assert proof.context_schema_representation_id == (
-        proof.context_representation_id
-    )
+    assert proof.context_schema_representation_id == (proof.context_representation_id)
     assert proof.context_schema_validation_status == "passed"
 
     verifier = ProofVerifier()
@@ -382,9 +363,7 @@ def test_flat_context_proof_binds_original_and_canonical_representations():
     original = {"user.role": "admin"}
     canonical = {"user": {"role": "admin"}}
     schema = ContextSchema.from_dict(derive_context_schema(DOTTED_POLICY).to_dict())
-    runtime = TarlRuntime(PolicyParser.parse(DOTTED_POLICY)).set_context_schema(
-        schema
-    )
+    runtime = TarlRuntime(PolicyParser.parse(DOTTED_POLICY)).set_context_schema(schema)
     runtime.set_signing_key("context-key", b"context-secret")
 
     decision, proof = runtime.evaluate_with_proof(original)
@@ -398,9 +377,7 @@ def test_flat_context_proof_binds_original_and_canonical_representations():
     assert proof.normalization_version == "1"
     assert proof.context_conflict_status == "none"
 
-    verifier = ProofVerifier().add_hmac_key(
-        "context-key", b"context-secret"
-    )
+    verifier = ProofVerifier().add_hmac_key("context-key", b"context-secret")
     assert verifier.verify(proof, expected_context=original).valid is True
     rebound = verifier.verify(proof, expected_context=canonical)
     assert rebound.valid is False
@@ -422,9 +399,11 @@ def test_conflicting_context_produces_deny_proof_not_allow_proof():
     assert proof.context_hash == proof.canonical_context_hash
     assert proof.normalization_version == "1"
 
-    result = ProofVerifier().add_hmac_key(
-        "context-key", b"context-secret"
-    ).verify(proof, expected_context=context)
+    result = (
+        ProofVerifier()
+        .add_hmac_key("context-key", b"context-secret")
+        .verify(proof, expected_context=context)
+    )
     assert result.valid is True
     assert result.checks["context_coherence"] is True
     assert result.checks["context_binding"] is True
@@ -432,18 +411,14 @@ def test_conflicting_context_produces_deny_proof_not_allow_proof():
 
 def test_positive_proof_metadata_tampering_is_inadmissible():
     schema = ContextSchema.from_dict(derive_context_schema(DOTTED_POLICY).to_dict())
-    runtime = TarlRuntime(PolicyParser.parse(DOTTED_POLICY)).set_context_schema(
-        schema
-    )
+    runtime = TarlRuntime(PolicyParser.parse(DOTTED_POLICY)).set_context_schema(schema)
     runtime.set_signing_key("context-key", b"context-secret")
-    _decision_result, proof = runtime.evaluate_with_proof(
-        {"user": {"role": "admin"}}
-    )
+    _decision_result, proof = runtime.evaluate_with_proof({"user": {"role": "admin"}})
     proof.context_representation_id = "attacker.flat-dotted.v1"
 
-    result = ProofVerifier().add_hmac_key(
-        "context-key", b"context-secret"
-    ).verify(proof)
+    result = (
+        ProofVerifier().add_hmac_key("context-key", b"context-secret").verify(proof)
+    )
     assert result.valid is False
     assert result.checks["context_coherence"] is False
     assert result.checks["signature"] is False
@@ -452,7 +427,7 @@ def test_positive_proof_metadata_tampering_is_inadmissible():
 def test_unresolved_registered_source_cannot_be_negated_into_allow():
     policy = PolicyParser.parse(
         "policy source_gate\n"
-        'when role NOT IN source:trusted_roles => ALLOW\n'
+        "when role NOT IN source:trusted_roles => ALLOW\n"
         "when true => DENY\n"
     )
     runtime = TarlRuntime(policy)
@@ -467,7 +442,7 @@ def test_failed_registered_source_cannot_be_negated_into_allow():
 
     policy = PolicyParser.parse(
         "policy source_gate\n"
-        'when role NOT IN source:trusted_roles => ALLOW\n'
+        "when role NOT IN source:trusted_roles => ALLOW\n"
         "when true => DENY\n"
     )
     runtime = TarlRuntime(policy).register_source("trusted_roles", unavailable)
@@ -530,9 +505,7 @@ def test_governed_call_rejects_argument_collision_with_authority_context():
     assert proof.verdict == TarlVerdict.DENY
 
 
-def test_tarl_eval_cli_rejects_conflicting_context(
-    monkeypatch, tmp_path, capsys
-):
+def test_tarl_eval_cli_rejects_conflicting_context(monkeypatch, tmp_path, capsys):
     policy_path = tmp_path / "dotted-context.tarl"
     policy_path.write_text(DOTTED_POLICY, encoding="utf-8")
     monkeypatch.setattr(
@@ -555,9 +528,7 @@ def test_tarl_eval_cli_rejects_conflicting_context(
     )
 
 
-def test_tarl_eval_cli_rejects_duplicate_json_keys(
-    monkeypatch, tmp_path, capsys
-):
+def test_tarl_eval_cli_rejects_duplicate_json_keys(monkeypatch, tmp_path, capsys):
     policy_path = tmp_path / "simple-context.tarl"
     policy_path.write_text(SIMPLE_POLICY, encoding="utf-8")
     monkeypatch.setattr(
@@ -579,14 +550,10 @@ def test_tarl_eval_cli_rejects_duplicate_json_keys(
     )
 
 
-def test_tarl_verify_binds_the_original_context(
-    monkeypatch, tmp_path, capsys
-):
+def test_tarl_verify_binds_the_original_context(monkeypatch, tmp_path, capsys):
     context = {"user": {"role": "admin"}}
     schema = ContextSchema.from_dict(derive_context_schema(DOTTED_POLICY).to_dict())
-    runtime = TarlRuntime(PolicyParser.parse(DOTTED_POLICY)).set_context_schema(
-        schema
-    )
+    runtime = TarlRuntime(PolicyParser.parse(DOTTED_POLICY)).set_context_schema(schema)
     runtime.set_signing_key("context-key", b"context-secret")
     _decision_result, proof = runtime.evaluate_with_proof(context)
     proof_path = tmp_path / "proof.json"
@@ -615,8 +582,7 @@ def test_tarl_verify_binds_the_original_context(
 
 def test_governed_thirsty_runtime_rejects_malformed_dotted_context():
     source = (
-        "module demo: governed\n"
-        "glass inspect(user) requires true { return 1 }\n"
+        "module demo: governed\n" "glass inspect(user) requires true { return 1 }\n"
     )
     program = Parser(Lexer(source).lex()).parse()
     interpreter = Interpreter()

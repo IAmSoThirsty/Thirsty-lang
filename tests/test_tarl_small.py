@@ -1,5 +1,6 @@
 """Coverage for the tarl audit archive query/count filters and the proof
 verifier's signature/summary branches."""
+
 from types import SimpleNamespace
 
 from utf.tarl.archive import TarlAuditArchive
@@ -21,12 +22,12 @@ def test_archive_query_and_count_filters(tmp_path):
     with TarlAuditArchive(db) as arc:
         arc.store(_proof())
         # query with all filters exercised
-        rows = arc.query(verdict="ALLOW", from_dt="2000-01-01",
-                         to_dt="2100-01-01", limit=10)
+        rows = arc.query(
+            verdict="ALLOW", from_dt="2000-01-01", to_dt="2100-01-01", limit=10
+        )
         assert len(rows) == 1
         # count with the same filters
-        assert arc.count(verdict="ALLOW", from_dt="2000-01-01",
-                         to_dt="2100-01-01") == 1
+        assert arc.count(verdict="ALLOW", from_dt="2000-01-01", to_dt="2100-01-01") == 1
         # query with a verifier applies the signature filter
         filtered = arc.query(verifier=ProofVerifier(require_signature=False))
         assert len(filtered) == 1
@@ -39,8 +40,10 @@ def test_verifier_signature_no_separator():
 
 def test_verifier_signature_unknown_algorithm():
     v = ProofVerifier(require_signature=False)
-    assert v._check_signature(
-        SimpleNamespace(signature="weird-alg:abcd", key_id=None)) is False
+    assert (
+        v._check_signature(SimpleNamespace(signature="weird-alg:abcd", key_id=None))
+        is False
+    )
 
 
 def test_verifier_signature_none():

@@ -3,6 +3,7 @@
 Traversal and symlink escapes from an allowed filesystem root must be denied on
 the canonical (symlink-resolved) path, not the attacker-supplied string.
 """
+
 import os
 
 import pytest
@@ -13,9 +14,9 @@ from utf.tarl.pathguard import PathGuard, canonical_path, is_within_root
 from utf.tarl.runtime import TarlRuntime
 
 ALLOW_WRITE_IN_ROOT = (
-    'policy p\n'
+    "policy p\n"
     'when action == "write" and within_root == true => ALLOW\n'
-    'when true => DENY\n'
+    "when true => DENY\n"
 )
 
 
@@ -72,6 +73,7 @@ def test_pathguard_requires_a_root():
 
 # ── Broker integration: require_path confines before brokering ─────────────────
 
+
 def _broker(tmp_path):
     rt = TarlRuntime(PolicyParser.parse(ALLOW_WRITE_IN_ROOT))
     return CapabilityBroker(
@@ -80,9 +82,7 @@ def _broker(tmp_path):
 
 
 def test_require_path_allows_inside_root(tmp_path):
-    decision = _broker(tmp_path).require_path(
-        ACTION_WRITE, str(tmp_path / "out.txt")
-    )
+    decision = _broker(tmp_path).require_path(ACTION_WRITE, str(tmp_path / "out.txt"))
     assert decision.allowed
 
 

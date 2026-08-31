@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Build the canonical Thirsty-Lang 101 PDF from maintained Markdown sources.
+"""Build the canonical Thirsty-Lang UTF 101 PDF from maintained Markdown sources.
 
 The builder intentionally implements a small, deterministic Markdown subset
 instead of depending on a browser or platform HTML renderer. The source list,
 order, authority class, fixed document date, and output path live in
-``docs/thirsty_lang_101.toml``.
+``docs/thirsty_lang_utf_101.toml``.
 """
 
 from __future__ import annotations
@@ -54,13 +54,12 @@ try:
     from reportlab.platypus.tableofcontents import TableOfContents
 except ImportError as exc:  # pragma: no cover - exercised by user environment
     raise SystemExit(
-        "PDF dependencies are missing. Run: "
-        'python -m pip install -e ".[docs]"'
+        "PDF dependencies are missing. Run: " 'python -m pip install -e ".[docs]"'
     ) from exc
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MANIFEST = ROOT / "docs" / "thirsty_lang_101.toml"
+DEFAULT_MANIFEST = ROOT / "docs" / "thirsty_lang_utf_101.toml"
 GITHUB_BLOB_ROOT = "https://github.com/IAmSoThirsty/Thirsty-lang/blob/master/"
 
 NAVY = colors.HexColor("#102A43")
@@ -112,9 +111,7 @@ def load_manifest(path: Path) -> ManualConfig:
             raise ValueError(f"manual source escapes repository: {source}") from exc
         if not source.is_file():
             raise FileNotFoundError(f"manual source not found: {source}")
-        documents.append(
-            SourceDocument(source, item["title"], item["authority"])
-        )
+        documents.append(SourceDocument(source, item["title"], item["authority"]))
     if not documents:
         raise ValueError("manual manifest contains no documents")
     output = (ROOT / manual["output"]).resolve()
@@ -194,19 +191,37 @@ def make_styles() -> dict[str, ParagraphStyle]:
     styles["CoverTitle"] = ParagraphStyle(
         "CoverTitle",
         fontName="VeraBd",
-        fontSize=35,
-        leading=41,
+        fontSize=30,
+        leading=35,
         textColor=WHITE,
         alignment=TA_LEFT,
-        spaceAfter=14,
+        spaceAfter=10,
+    )
+    styles["CoverKicker"] = ParagraphStyle(
+        "CoverKicker",
+        fontName="VeraBd",
+        fontSize=8.2,
+        leading=10,
+        textColor=CYAN,
+        tracking=1.6,
+        spaceAfter=13,
     )
     styles["CoverSubtitle"] = ParagraphStyle(
         "CoverSubtitle",
         fontName="Vera",
-        fontSize=15.5,
-        leading=21,
+        fontSize=14,
+        leading=18,
         textColor=colors.HexColor("#DFF7FF"),
-        spaceAfter=24,
+        spaceAfter=9,
+    )
+    styles["CoverStatement"] = ParagraphStyle(
+        "CoverStatement",
+        fontName="VeraBd",
+        fontSize=12.5,
+        leading=16,
+        textColor=WHITE,
+        tracking=0.5,
+        spaceAfter=18,
     )
     styles["CoverMeta"] = ParagraphStyle(
         "CoverMeta",
@@ -508,10 +523,53 @@ class CanonicalDocTemplate(BaseDocTemplate):
         canv.saveState()
         canv.setFillColor(NAVY)
         canv.rect(0, 0, width, height, fill=1, stroke=0)
+
+        # Layered current lines give the flagship edition a dynamic water mark
+        # while remaining deterministic, vector-only, and print-safe.
+        canv.setFillColor(colors.HexColor("#0B3A5B"))
+        path = canv.beginPath()
+        path.moveTo(0, height * 0.78)
+        path.lineTo(width, height * 0.98)
+        path.lineTo(width, height)
+        path.lineTo(0, height)
+        path.close()
+        canv.drawPath(path, fill=1, stroke=0)
+        canv.setFillColor(colors.HexColor("#075985"))
+        path = canv.beginPath()
+        path.moveTo(width * 0.58, 0)
+        path.lineTo(width, height * 0.23)
+        path.lineTo(width, 0)
+        path.close()
+        canv.drawPath(path, fill=1, stroke=0)
+
         canv.setFillColor(colors.HexColor("#0C4A6E"))
-        canv.circle(width * 0.92, height * 0.86, 1.35 * inch, fill=1, stroke=0)
-        canv.setFillColor(colors.HexColor("#0369A1"))
-        canv.circle(width * 0.84, height * 0.15, 1.85 * inch, fill=1, stroke=0)
+        canv.circle(width * 0.94, height * 0.87, 1.55 * inch, fill=1, stroke=0)
+        canv.setStrokeColor(colors.HexColor("#38BDF8"))
+        canv.setLineWidth(1.2)
+        for radius in (0.72, 1.00, 1.28):
+            canv.circle(
+                width * 0.90,
+                height * 0.13,
+                radius * inch,
+                fill=0,
+                stroke=1,
+            )
+        canv.setStrokeColor(CYAN)
+        canv.setLineWidth(4)
+        canv.line(0.72 * inch, height - 0.66 * inch, 1.50 * inch, height - 0.66 * inch)
+        canv.setFillColor(colors.HexColor("#0EA5E9"))
+        canv.roundRect(
+            width - 1.76 * inch,
+            height - 0.91 * inch,
+            1.05 * inch,
+            0.34 * inch,
+            8,
+            fill=1,
+            stroke=0,
+        )
+        canv.setFillColor(WHITE)
+        canv.setFont("VeraBd", 8.2)
+        canv.drawCentredString(width - 1.235 * inch, height - 0.79 * inch, "UTF / 101")
         canv.setStrokeColor(CYAN)
         canv.setLineWidth(2)
         canv.line(0.72 * inch, 0.58 * inch, width - 0.72 * inch, 0.58 * inch)
@@ -529,10 +587,12 @@ class CanonicalDocTemplate(BaseDocTemplate):
         canv.saveState()
         canv.setStrokeColor(LINE)
         canv.setLineWidth(0.55)
-        canv.line(0.58 * inch, height - 0.43 * inch, width - 0.58 * inch, height - 0.43 * inch)
+        canv.line(
+            0.58 * inch, height - 0.43 * inch, width - 0.58 * inch, height - 0.43 * inch
+        )
         canv.setFont("VeraBd", 6.8)
         canv.setFillColor(NAVY)
-        canv.drawString(0.58 * inch, height - 0.30 * inch, "THIRSTY-LANG 101")
+        canv.drawString(0.58 * inch, height - 0.30 * inch, "THIRSTY-LANG UTF 101")
         canv.setFont("Vera", 6.6)
         canv.setFillColor(MUTED)
         header = self.current_heading[:82]
@@ -561,7 +621,9 @@ class CanonicalDocTemplate(BaseDocTemplate):
         level = flowable.toc_level
         self.canv.bookmarkPage(key)
         if level <= 2:
-            self.canv.addOutlineEntry(flowable.plain_text, key, level=level, closed=level > 0)
+            self.canv.addOutlineEntry(
+                flowable.plain_text, key, level=level, closed=level > 0
+            )
         self.notify("TOCEntry", (level, flowable.plain_text, self.page, key))
 
 
@@ -750,12 +812,15 @@ class MarkdownRenderer:
         source_label = document.path.relative_to(ROOT).as_posix()
         flows: list[Flowable] = [NextPageTemplate("portrait"), PageBreak()]
         flows.append(
-            Paragraph(f"PART {number:02d}  /  {document.authority.upper()}", self.styles["PartKicker"])
+            Paragraph(
+                f"PART {number:02d}  /  {document.authority.upper()}",
+                self.styles["PartKicker"],
+            )
         )
         flows.append(self.heading(html.escape(document.title), 0, "PartTitle"))
         flows.append(
             Paragraph(
-                f"Maintained source: <font name=\"Courier\">{html.escape(source_label)}</font>",
+                f'Maintained source: <font name="Courier">{html.escape(source_label)}</font>',
                 self.styles["Source"],
             )
         )
@@ -784,7 +849,11 @@ class MarkdownRenderer:
             paragraph.clear()
             if not joined:
                 return
-            style = self.styles["Warning"] if joined.lower().startswith(("warning:", "security:")) else self.styles["Body"]
+            style = (
+                self.styles["Warning"]
+                if joined.lower().startswith(("warning:", "security:"))
+                else self.styles["Body"]
+            )
             flows.append(Paragraph(inline_markup(joined, source), style))
 
         index = 0
@@ -800,7 +869,11 @@ class MarkdownRenderer:
                 while index < len(lines) and not lines[index].strip().startswith(fence):
                     code.append(lines[index])
                     index += 1
-                label = "DIAGRAM SOURCE - MERMAID" if language.lower() == "mermaid" else language.upper()
+                label = (
+                    "DIAGRAM SOURCE - MERMAID"
+                    if language.lower() == "mermaid"
+                    else language.upper()
+                )
                 flows.append(Paragraph(html.escape(label), self.styles["CodeLabel"]))
                 flows.append(CodeBlock(wrap_code("\n".join(code)), self.styles["Code"]))
                 index += 1
@@ -822,7 +895,9 @@ class MarkdownRenderer:
                 if markdown_level >= 4:
                     style_name = "H4"
                     toc_level = 2
-                flows.append(self.heading(inline_markup(title, source), toc_level, style_name))
+                flows.append(
+                    self.heading(inline_markup(title, source), toc_level, style_name)
+                )
                 index += 1
                 continue
             if (
@@ -833,7 +908,9 @@ class MarkdownRenderer:
                 flush_paragraph()
                 raw_rows = [split_table_row(line)]
                 index += 2
-                while index < len(lines) and lines[index].strip() and "|" in lines[index]:
+                while (
+                    index < len(lines) and lines[index].strip() and "|" in lines[index]
+                ):
                     raw_rows.append(split_table_row(lines[index]))
                     index += 1
                 flows.extend(self.render_table(raw_rows, source))
@@ -852,7 +929,9 @@ class MarkdownRenderer:
                     cursor = index + 1
                     while cursor < len(lines):
                         candidate = lines[cursor]
-                        if not candidate.strip() or re.match(r"^\s*([-+*]|\d+[.)])\s+", candidate):
+                        if not candidate.strip() or re.match(
+                            r"^\s*([-+*]|\d+[.)])\s+", candidate
+                        ):
                             break
                         if re.match(r"^\s{2,}\S", candidate):
                             continuation.append(candidate.strip())
@@ -866,7 +945,9 @@ class MarkdownRenderer:
                         index += 1
                     items.append(
                         ListItem(
-                            Paragraph(inline_markup(item_text, source), self.styles["Body"]),
+                            Paragraph(
+                                inline_markup(item_text, source), self.styles["Body"]
+                            ),
                             leftIndent=13,
                         )
                     )
@@ -890,7 +971,9 @@ class MarkdownRenderer:
                     quote_lines.append(lines[index].strip()[1:].strip())
                     index += 1
                 quote = " ".join(quote_lines)
-                warning = any(word in quote.lower() for word in ("warning", "critical", "danger"))
+                warning = any(
+                    word in quote.lower() for word in ("warning", "critical", "danger")
+                )
                 flows.append(
                     Paragraph(
                         inline_markup(quote, source),
@@ -900,7 +983,15 @@ class MarkdownRenderer:
                 continue
             if stripped in {"---", "***", "___"}:
                 flush_paragraph()
-                flows.append(HRFlowable(width="100%", color=LINE, thickness=0.65, spaceBefore=5, spaceAfter=8))
+                flows.append(
+                    HRFlowable(
+                        width="100%",
+                        color=LINE,
+                        thickness=0.65,
+                        spaceBefore=5,
+                        spaceAfter=8,
+                    )
+                )
                 index += 1
                 continue
             if stripped.startswith("<!--"):
@@ -923,7 +1014,9 @@ class MarkdownRenderer:
         normalized = [row + [""] * (column_count - len(row)) for row in rows]
         total_chars = max(sum(len(cell) for cell in row) for row in normalized)
         wide = column_count >= 5 or total_chars > 280
-        available = (landscape(LETTER)[0] - 1.16 * inch) if wide else (LETTER[0] - 1.34 * inch)
+        available = (
+            (landscape(LETTER)[0] - 1.16 * inch) if wide else (LETTER[0] - 1.34 * inch)
+        )
         weights = []
         for col in range(column_count):
             largest = max(len(row[col]) for row in normalized)
@@ -952,7 +1045,13 @@ class MarkdownRenderer:
             )
         )
         if wide:
-            return [NextPageTemplate("landscape"), PageBreak(), table, NextPageTemplate("portrait"), PageBreak()]
+            return [
+                NextPageTemplate("landscape"),
+                PageBreak(),
+                table,
+                NextPageTemplate("portrait"),
+                PageBreak(),
+            ]
         return [table, Spacer(1, 8)]
 
 
@@ -963,7 +1062,11 @@ def cover_story(
 ) -> list[Flowable]:
     width = LETTER[0] - 1.44 * inch
     meta = [
-        [Paragraph("SOFTWARE", styles["CoverMeta"]), Paragraph("DOCUMENT", styles["CoverMeta"]), Paragraph("SOURCE SET", styles["CoverMeta"])],
+        [
+            Paragraph("SOFTWARE", styles["CoverMeta"]),
+            Paragraph("DOCUMENT", styles["CoverMeta"]),
+            Paragraph("SOURCE SET", styles["CoverMeta"]),
+        ],
         [
             Paragraph(f"v{config.software_version}", styles["CoverMeta"]),
             Paragraph(config.document_revision, styles["CoverMeta"]),
@@ -984,9 +1087,17 @@ def cover_story(
         )
     )
     return [
-        Spacer(1, 1.05 * inch),
+        Spacer(1, 0.57 * inch),
+        Paragraph(
+            "UNIVERSAL THIRSTY FAMILY  /  CANONICAL FIELD MANUAL",
+            styles["CoverKicker"],
+        ),
         Paragraph(config.title, styles["CoverTitle"]),
         Paragraph(config.subtitle, styles["CoverSubtitle"]),
+        Paragraph(
+            "ONE FAMILY. SIX TIERS. ONE GOVERNED CURRENT.",
+            styles["CoverStatement"],
+        ),
         ArchitectureFlow(width, dark=True),
         Spacer(1, 0.27 * inch),
         table,
@@ -1058,11 +1169,13 @@ def colophon_story(
     styles: dict[str, ParagraphStyle],
 ) -> list[Flowable]:
     flows: list[Flowable] = [NextPageTemplate("portrait"), PageBreak()]
-    flows.append(Paragraph("COLOPHON  /  REPRODUCIBLE SOURCE MANIFEST", styles["PartKicker"]))
+    flows.append(
+        Paragraph("COLOPHON  /  REPRODUCIBLE SOURCE MANIFEST", styles["PartKicker"])
+    )
     flows.append(renderer.heading("Document Provenance", 0, "PartTitle"))
     flows.append(
         Paragraph(
-            f"Aggregate source SHA-256: <font name=\"Courier\">{digest}</font>. "
+            f'Aggregate source SHA-256: <font name="Courier">{digest}</font>. '
             "The aggregate hashes each repository-relative path, a NUL separator, "
             "its exact bytes, and a final NUL in sorted path order. It includes the "
             "composition manifest and PDF builder, but not the generated PDF, avoiding "
@@ -1141,7 +1254,7 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         "--manifest",
         type=Path,
         default=DEFAULT_MANIFEST,
-        help="composition manifest (default: docs/thirsty_lang_101.toml)",
+        help="composition manifest (default: docs/thirsty_lang_utf_101.toml)",
     )
     parser.add_argument(
         "--output",

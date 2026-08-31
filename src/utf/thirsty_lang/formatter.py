@@ -2,6 +2,7 @@
 Thirsty-Lang AST-based Code Formatter
 Pretty-prints Thirsty-Lang AST nodes with proper indentation and canonical style.
 """
+
 from utf.thirsty_lang.ast import (
     ArmorExpr,
     ArrayLiteral,
@@ -97,7 +98,11 @@ def format_stmt(node: Stmt, indent: int = 0) -> str:
     elif isinstance(node, FunctionDecl):
         params = ", ".join(f"{n}: {t}" if t else n for n, t in node.params)
         ret = f": {node.return_type}" if node.return_type else ""
-        body = format_block(node.body, indent + 1) if isinstance(node.body, BlockStmt) else format_stmt(node.body, indent + 1)
+        body = (
+            format_block(node.body, indent + 1)
+            if isinstance(node.body, BlockStmt)
+            else format_stmt(node.body, indent + 1)
+        )
         return f"{prefix}glass {node.name}({params}){ret} {{\n{body}\n{prefix}}}"
 
     elif isinstance(node, ClassDecl):
@@ -110,6 +115,7 @@ def format_stmt(node: Stmt, indent: int = 0) -> str:
             if default is not None:
                 line += f" = {format_expr(default)}"
             return line
+
         fields_str = "\n".join(_fmt_field(f) for f in node.fields)
         body_parts = [p for p in [fields_str, methods] if p]
         body = "\n".join(body_parts)
@@ -117,30 +123,54 @@ def format_stmt(node: Stmt, indent: int = 0) -> str:
 
     elif isinstance(node, IfStmt):
         cond = format_expr(node.condition, 0)
-        then_block = format_block(node.then_block, indent + 1) if isinstance(node.then_block, BlockStmt) else format_stmt(node.then_block, indent + 1)
+        then_block = (
+            format_block(node.then_block, indent + 1)
+            if isinstance(node.then_block, BlockStmt)
+            else format_stmt(node.then_block, indent + 1)
+        )
         result = f"{prefix}thirsty {cond} {{\n{then_block}\n{prefix}}}"
         if node.else_block:
             if isinstance(node.else_block, IfStmt):
                 result += f" hydrated {format_else_if(node.else_block, indent)}"
             else:
-                else_block = format_block(node.else_block, indent + 1) if isinstance(node.else_block, BlockStmt) else format_stmt(node.else_block, indent + 1)
+                else_block = (
+                    format_block(node.else_block, indent + 1)
+                    if isinstance(node.else_block, BlockStmt)
+                    else format_stmt(node.else_block, indent + 1)
+                )
                 result += f" hydrated {{\n{else_block}\n{prefix}}}"
         return result
 
     elif isinstance(node, WhileStmt):
         cond = format_expr(node.condition, 0)
-        body = format_block(node.body, indent + 1) if isinstance(node.body, BlockStmt) else format_stmt(node.body, indent + 1)
+        body = (
+            format_block(node.body, indent + 1)
+            if isinstance(node.body, BlockStmt)
+            else format_stmt(node.body, indent + 1)
+        )
         return f"{prefix}refill {cond} {{\n{body}\n{prefix}}}"
 
     elif isinstance(node, ForStmt):
-        var = node.variable.name if isinstance(node.variable, Identifier) else str(node.variable)
+        var = (
+            node.variable.name
+            if isinstance(node.variable, Identifier)
+            else str(node.variable)
+        )
         iterable = format_expr(node.iterable, 0)
-        body = format_block(node.body, indent + 1) if isinstance(node.body, BlockStmt) else format_stmt(node.body, indent + 1)
+        body = (
+            format_block(node.body, indent + 1)
+            if isinstance(node.body, BlockStmt)
+            else format_stmt(node.body, indent + 1)
+        )
         return f"{prefix}refill {var} in {iterable} {{\n{body}\n{prefix}}}"
 
     elif isinstance(node, TimesStmt):
         count = format_expr(node.count, 0)
-        body = format_block(node.body, indent + 1) if isinstance(node.body, BlockStmt) else format_stmt(node.body, indent + 1)
+        body = (
+            format_block(node.body, indent + 1)
+            if isinstance(node.body, BlockStmt)
+            else format_stmt(node.body, indent + 1)
+        )
         return f"{prefix}times {count} {{\n{body}\n{prefix}}}"
 
     elif isinstance(node, ReturnStmt):
@@ -168,20 +198,40 @@ def format_stmt(node: Stmt, indent: int = 0) -> str:
         return f"{prefix}{format_expr(node.expr, 0)}"
 
     elif isinstance(node, SecurityBlock):
-        body = format_block(node.body, indent + 1) if isinstance(node.body, BlockStmt) else format_stmt(node.body, indent + 1)
+        body = (
+            format_block(node.body, indent + 1)
+            if isinstance(node.body, BlockStmt)
+            else format_stmt(node.body, indent + 1)
+        )
         return f"{prefix}{node.block_type} {{\n{body}\n{prefix}}}"
 
     elif isinstance(node, SpillageStmt):
-        body = format_block(node.body, indent + 1) if isinstance(node.body, BlockStmt) else format_stmt(node.body, indent + 1)
+        body = (
+            format_block(node.body, indent + 1)
+            if isinstance(node.body, BlockStmt)
+            else format_stmt(node.body, indent + 1)
+        )
         handlers_str = ""
         for error_type, handler in node.handlers:
-            h = format_block(handler, indent + 2) if isinstance(handler, BlockStmt) else format_stmt(handler, indent + 2)
+            h = (
+                format_block(handler, indent + 2)
+                if isinstance(handler, BlockStmt)
+                else format_stmt(handler, indent + 2)
+            )
             handlers_str += f"\n{INDENT * (indent + 1)}spillage {error_type} {{\n{h}\n{INDENT * (indent + 1)}}}"
         return f"{prefix}spillage {{\n{body}\n{prefix}}}{handlers_str}"
 
     elif isinstance(node, CleanupStmt):
-        body = format_block(node.body, indent + 1) if isinstance(node.body, BlockStmt) else format_stmt(node.body, indent + 1)
-        finalizer = format_block(node.finalizer, indent + 1) if isinstance(node.finalizer, BlockStmt) else format_stmt(node.finalizer, indent + 1)
+        body = (
+            format_block(node.body, indent + 1)
+            if isinstance(node.body, BlockStmt)
+            else format_stmt(node.body, indent + 1)
+        )
+        finalizer = (
+            format_block(node.finalizer, indent + 1)
+            if isinstance(node.finalizer, BlockStmt)
+            else format_stmt(node.finalizer, indent + 1)
+        )
         return f"{prefix}cleanup {{\n{body}\n{prefix}}} finally {{\n{finalizer}\n{prefix}}}"
 
     elif isinstance(node, ThrowStmt):
@@ -201,12 +251,22 @@ def format_stmt(node: Stmt, indent: int = 0) -> str:
             clauses += f" ensures {node.ensures_annotation}"
         if node.invariant_annotation:
             clauses += f" invariant {node.invariant_annotation}"
-        body = format_block(node.body, indent + 1) if isinstance(node.body, BlockStmt) else format_stmt(node.body, indent + 1)
-        return f"{prefix}glass {node.name}({params}){ret}{clauses} {{\n{body}\n{prefix}}}"
+        body = (
+            format_block(node.body, indent + 1)
+            if isinstance(node.body, BlockStmt)
+            else format_stmt(node.body, indent + 1)
+        )
+        return (
+            f"{prefix}glass {node.name}({params}){ret}{clauses} {{\n{body}\n{prefix}}}"
+        )
 
     elif isinstance(node, MorphDef):
         params = ", ".join(f"{n}: {t}" if t else n for n, t in node.params)
-        body = format_block(node.body, indent + 1) if isinstance(node.body, BlockStmt) else format_stmt(node.body, indent + 1)
+        body = (
+            format_block(node.body, indent + 1)
+            if isinstance(node.body, BlockStmt)
+            else format_stmt(node.body, indent + 1)
+        )
         return f"{prefix}morph {node.name}({params}) {{\n{body}\n{prefix}}}"
 
     elif isinstance(node, DefendStrat):
@@ -226,16 +286,32 @@ def format_stmt(node: Stmt, indent: int = 0) -> str:
         return f"{prefix}interface {node.name}({methods_str})"
 
     elif isinstance(node, ShadowThirstMutation):
-        shadow = format_block(node.shadow_block, indent + 2) if node.shadow_block else ""
-        invariant = format_block(node.invariant_block, indent + 2) if node.invariant_block else ""
-        canonical = format_block(node.canonical_block, indent + 2) if node.canonical_block else ""
+        shadow = (
+            format_block(node.shadow_block, indent + 2) if node.shadow_block else ""
+        )
+        invariant = (
+            format_block(node.invariant_block, indent + 2)
+            if node.invariant_block
+            else ""
+        )
+        canonical = (
+            format_block(node.canonical_block, indent + 2)
+            if node.canonical_block
+            else ""
+        )
         parts = []
         if shadow:
-            parts.append(f"{INDENT * (indent + 1)}shadow {{\n{shadow}\n{INDENT * (indent + 1)}}}")
+            parts.append(
+                f"{INDENT * (indent + 1)}shadow {{\n{shadow}\n{INDENT * (indent + 1)}}}"
+            )
         if invariant:
-            parts.append(f"{INDENT * (indent + 1)}invariant {{\n{invariant}\n{INDENT * (indent + 1)}}}")
+            parts.append(
+                f"{INDENT * (indent + 1)}invariant {{\n{invariant}\n{INDENT * (indent + 1)}}}"
+            )
         if canonical:
-            parts.append(f"{INDENT * (indent + 1)}canonical {{\n{canonical}\n{INDENT * (indent + 1)}}}")
+            parts.append(
+                f"{INDENT * (indent + 1)}canonical {{\n{canonical}\n{INDENT * (indent + 1)}}}"
+            )
         body = "\n".join(parts)
         return f"{prefix}mutation {node.name} {{\n{body}\n{prefix}}}"
 
@@ -255,13 +331,21 @@ def format_else_if(node: IfStmt, indent: int = 0) -> str:
     """Format an else-if chain."""
     prefix = INDENT * indent
     cond = format_expr(node.condition, 0)
-    then_block = format_block(node.then_block, indent + 1) if isinstance(node.then_block, BlockStmt) else format_stmt(node.then_block, indent + 1)
+    then_block = (
+        format_block(node.then_block, indent + 1)
+        if isinstance(node.then_block, BlockStmt)
+        else format_stmt(node.then_block, indent + 1)
+    )
     result = f"thirsty {cond} {{\n{then_block}\n{prefix}}}"
     if node.else_block:
         if isinstance(node.else_block, IfStmt):
             result += f" hydrated {format_else_if(node.else_block, indent)}"
         else:
-            else_block = format_block(node.else_block, indent + 1) if isinstance(node.else_block, BlockStmt) else format_stmt(node.else_block, indent + 1)
+            else_block = (
+                format_block(node.else_block, indent + 1)
+                if isinstance(node.else_block, BlockStmt)
+                else format_stmt(node.else_block, indent + 1)
+            )
             result += f" hydrated {{\n{else_block}\n{prefix}}}"
     return result
 
@@ -271,7 +355,11 @@ def format_expr(node: Expr, precedence: int = 0) -> str:
     if isinstance(node, LambdaExpr):
         params = ", ".join(f"{n}: {t}" if t else n for n, t in node.params)
         ret = f" -> {node.return_type}" if node.return_type else ""
-        body = format_block(node.body, 1) if isinstance(node.body, BlockStmt) else format_stmt(node.body, 1)
+        body = (
+            format_block(node.body, 1)
+            if isinstance(node.body, BlockStmt)
+            else format_stmt(node.body, 1)
+        )
         return f"glass({params}){ret} {{\n{body}\n}}"
     if isinstance(node, Subscript):
         return f"{format_expr(node.obj, 9)}[{format_expr(node.index, 0)}]"
@@ -282,7 +370,12 @@ def format_expr(node: Expr, precedence: int = 0) -> str:
         return str(node.value)
 
     elif isinstance(node, StringLiteral):
-        escaped = node.value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
+        escaped = (
+            node.value.replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\n", "\\n")
+            .replace("\t", "\\t")
+        )
         return f'"{escaped}"'
 
     elif isinstance(node, BoolLiteral):
@@ -306,20 +399,33 @@ def format_expr(node: Expr, precedence: int = 0) -> str:
         prec_map = {
             TokenType.OR: 2,
             TokenType.AND: 2,
-            TokenType.EQEQ: 3, TokenType.NE: 3,
-            TokenType.LT: 3, TokenType.GT: 3, TokenType.LE: 3, TokenType.GE: 3,
-            TokenType.PLUS: 4, TokenType.MINUS: 4,
-            TokenType.STAR: 5, TokenType.SLASH: 5, TokenType.PERCENT: 5,
+            TokenType.EQEQ: 3,
+            TokenType.NE: 3,
+            TokenType.LT: 3,
+            TokenType.GT: 3,
+            TokenType.LE: 3,
+            TokenType.GE: 3,
+            TokenType.PLUS: 4,
+            TokenType.MINUS: 4,
+            TokenType.STAR: 5,
+            TokenType.SLASH: 5,
+            TokenType.PERCENT: 5,
         }
         op_prec = prec_map.get(node.op, 0)
         op_str = {
-            TokenType.PLUS: " + ", TokenType.MINUS: " - ",
-            TokenType.STAR: " * ", TokenType.SLASH: " / ",
+            TokenType.PLUS: " + ",
+            TokenType.MINUS: " - ",
+            TokenType.STAR: " * ",
+            TokenType.SLASH: " / ",
             TokenType.PERCENT: " % ",
-            TokenType.EQEQ: " == ", TokenType.NE: " != ",
-            TokenType.LT: " < ", TokenType.GT: " > ",
-            TokenType.LE: " <= ", TokenType.GE: " >= ",
-            TokenType.AND: " and ", TokenType.OR: " or ",
+            TokenType.EQEQ: " == ",
+            TokenType.NE: " != ",
+            TokenType.LT: " < ",
+            TokenType.GT: " > ",
+            TokenType.LE: " <= ",
+            TokenType.GE: " >= ",
+            TokenType.AND: " and ",
+            TokenType.OR: " or ",
         }.get(node.op, f" {node.op.name.lower()} ")
         left = format_expr(node.left, op_prec)
         right = format_expr(node.right, op_prec)

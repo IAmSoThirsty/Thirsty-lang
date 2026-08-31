@@ -387,11 +387,11 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
             <span class="name">MAGIC</span>        =
 <span class="default_value">b&#39;TSGB&#39;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MAGIC"></a>
-    
-    
+
+
 
                 </section>
                 <section id="VERSION">
@@ -399,11 +399,11 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
             <span class="name">VERSION</span>        =
 <span class="default_value">1</span>
 
-        
+
     </div>
     <a class="headerlink" href="#VERSION"></a>
-    
-    
+
+
 
                 </section>
                 <section id="HEADER_SIZE">
@@ -411,11 +411,11 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
             <span class="name">HEADER_SIZE</span>        =
 <span class="default_value">8</span>
 
-        
+
     </div>
     <a class="headerlink" href="#HEADER_SIZE"></a>
-    
-    
+
+
 
                 </section>
                 <section id="CRC32_SIZE">
@@ -423,11 +423,11 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
             <span class="name">CRC32_SIZE</span>        =
 <span class="default_value">4</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CRC32_SIZE"></a>
-    
-    
+
+
 
                 </section>
                 <section id="SHA256_SIZE">
@@ -435,11 +435,11 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
             <span class="name">SHA256_SIZE</span>        =
 <span class="default_value">32</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SHA256_SIZE"></a>
-    
-    
+
+
 
                 </section>
                 <section id="MIN_FRAME_SIZE">
@@ -447,11 +447,11 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
             <span class="name">MIN_FRAME_SIZE</span>        =
 <span class="default_value">44</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MIN_FRAME_SIZE"></a>
-    
-    
+
+
 
                 </section>
                 <section id="FLAG_NONE">
@@ -459,11 +459,11 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
             <span class="name">FLAG_NONE</span>        =
 <span class="default_value">0</span>
 
-        
+
     </div>
     <a class="headerlink" href="#FLAG_NONE"></a>
-    
-    
+
+
 
                 </section>
                 <section id="FLAG_EOF">
@@ -471,11 +471,11 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
             <span class="name">FLAG_EOF</span>        =
 <span class="default_value">1</span>
 
-        
+
     </div>
     <a class="headerlink" href="#FLAG_EOF"></a>
-    
-    
+
+
 
                 </section>
                 <section id="FLAG_FRAGMENT">
@@ -483,17 +483,17 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
             <span class="name">FLAG_FRAGMENT</span>        =
 <span class="default_value">2</span>
 
-        
+
     </div>
     <a class="headerlink" href="#FLAG_FRAGMENT"></a>
-    
-    
+
+
 
                 </section>
                 <section id="opcode_for_symbol">
                             <input id="opcode_for_symbol-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">opcode_for_symbol</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
 
@@ -517,7 +517,7 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
                 <section id="symbol_for_opcode">
                             <input id="symbol_for_opcode-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">symbol_for_opcode</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">opcode</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>:</span></span>
 
@@ -539,7 +539,7 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
                 <section id="encode_text_to_opcodes">
                             <input id="encode_text_to_opcodes-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">encode_text_to_opcodes</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">text</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>:</span></span>
 
@@ -569,7 +569,7 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
                 <section id="decode_opcodes_to_text">
                             <input id="decode_opcodes_to_text-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">decode_opcodes_to_text</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">opcodes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
 
@@ -607,7 +607,7 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
                 <section id="pack_text">
                             <input id="pack_text-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">pack_text</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">text</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">flags</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span></span><span class="return-annotation">) -> <span class="nb">bytes</span>:</span></span>
 
@@ -667,7 +667,7 @@ Binary frame format with magic bytes, CRC32, SHA-256, and stream decoding.</p>
                 <section id="unpack_frame">
                             <input id="unpack_frame-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">unpack_frame</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span>, </span><span class="param"><span class="n">verify</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -761,7 +761,7 @@ Raises ValueError on verification failure.</p>
                 <section id="StreamDecoder">
                             <input id="StreamDecoder-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">StreamDecoder</span>:
 
@@ -865,28 +865,28 @@ Maintains internal buffer and yields complete frames as they arrive.</p>
                                 <div class="attr variable">
             <span class="name">buffer</span>
 
-        
+
     </div>
     <a class="headerlink" href="#StreamDecoder.buffer"></a>
-    
-    
+
+
 
                             </div>
                             <div id="StreamDecoder.frames_decoded" class="classattr">
                                 <div class="attr variable">
             <span class="name">frames_decoded</span>
 
-        
+
     </div>
     <a class="headerlink" href="#StreamDecoder.frames_decoded"></a>
-    
-    
+
+
 
                             </div>
                             <div id="StreamDecoder.feed" class="classattr">
                                         <input id="StreamDecoder.feed-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">feed</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]]</span>:</span></span>
 
@@ -922,7 +922,7 @@ Returns list of fully decoded frames found in the data.</p>
                             <div id="StreamDecoder.flush" class="classattr">
                                         <input id="StreamDecoder.flush-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">flush</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]]</span>:</span></span>
 
@@ -958,7 +958,7 @@ Returns list of fully decoded frames found in the data.</p>
 </span></pre></div>
 
 
-    
+
 
                             </div>
                 </section>

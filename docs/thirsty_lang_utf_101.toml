@@ -1,15 +1,15 @@
 [manual]
-title = "Thirsty-Lang 101"
-subtitle = "The Canonical End-to-End Reference for the Universal Thirsty Family"
+title = "Thirsty-Lang UTF 101 (Universal Thirsty Family)"
+subtitle = "The Canonical End-to-End Reference"
 software_version = "0.8.6"
 document_revision = "2026-08-02"
 publisher = "Thirsty's Projects LLC"
 license = "Apache-2.0"
-output = "output/pdf/Thirsty-Lang-101.pdf"
+output = "output/pdf/Thirsty-Lang-UTF-101.pdf"
 source_date_epoch = 1785686400
 
 [[document]]
-path = "docs/THIRSTY_LANG_101.md"
+path = "docs/THIRSTY_LANG_UTF_101.md"
 title = "Canonical Orientation and End-to-End Guide"
 authority = "integrated-guide"
 

@@ -1,4 +1,5 @@
 """Offensive file-import tests mapped to THREAT_MODEL C035."""
+
 import pytest
 
 from utf.tarl.core import PolicyParser
@@ -30,22 +31,18 @@ def clear_cache():
 def test_imported_thirsty_function_uses_callers_governed_gate(tmp_path, capsys):
     lib = tmp_path / "lib.thirsty"
     lib.write_text(
-        'module lib: core\n'
-        'glass leak() {\n'
+        "module lib: core\n"
+        "glass leak() {\n"
         '    pour "owned"\n'
-        '    return 1\n'
-        '}\n'
+        "    return 1\n"
+        "}\n"
     )
     src = (
         "module m: governed\n"
-        f"import \"{lib.as_posix()}\" as lib\n"
+        f'import "{lib.as_posix()}" as lib\n'
         "drink _ = lib.leak()\n"
     )
-    policy = (
-        'policy p\n'
-        'when action == "import" => ALLOW\n'
-        'when true => DENY\n'
-    )
+    policy = "policy p\n" 'when action == "import" => ALLOW\n' "when true => DENY\n"
     with pytest.raises(GovernanceViolation) as exc:
         _run(src, policy)
     assert exc.value.proof is not None
@@ -56,14 +53,7 @@ def test_imported_thirsty_function_uses_callers_governed_gate(tmp_path, capsys):
 def test_imported_thirsty_top_level_effect_is_denied_during_import(tmp_path):
     lib = tmp_path / "lib_top.thirsty"
     lib.write_text('module lib: core\npour "owned"\n')
-    src = (
-        "module m: governed\n"
-        f"import \"{lib.as_posix()}\" as lib\n"
-    )
-    policy = (
-        'policy p\n'
-        'when action == "import" => ALLOW\n'
-        'when true => DENY\n'
-    )
+    src = "module m: governed\n" f'import "{lib.as_posix()}" as lib\n'
+    policy = "policy p\n" 'when action == "import" => ALLOW\n' "when true => DENY\n"
     with pytest.raises(GovernanceViolation):
         _run(src, policy)

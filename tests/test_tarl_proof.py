@@ -9,6 +9,7 @@ Covers:
   - Tamper detection (modified proof fields)
   - Public API exports
 """
+
 import datetime
 import hashlib
 import hmac
@@ -20,7 +21,7 @@ import unittest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))  # noqa: E402
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))  # noqa: E402
 
 from utf.tarl.context import prepare_context  # noqa: E402
 from utf.tarl.core import PolicyParser  # noqa: E402
@@ -40,8 +41,8 @@ from utf.tarl.verifier import (  # noqa: E402
 
 _POLICY_TEXT = (
     "policy access:\n"
-    "  when role == \"admin\" => ALLOW\n"
-    "  when role == \"guest\" => DENY\n"
+    '  when role == "admin" => ALLOW\n'
+    '  when role == "guest" => DENY\n'
 )
 
 _SECRET = b"thirsty-test-secret-key-32bytes!"
@@ -77,21 +78,22 @@ def _ed25519_public_bytes() -> bytes:
 
 def _make_proof(**overrides) -> TarlProof:
     defaults = {
-        'policy_hash': "sha256:abc123",
-        'context_hash': "sha256:def456",
-        'rule_index': 0,
-        'matched_condition': 'role == "admin"',
-        'verdict': TarlVerdict.ALLOW,
-        'evaluated_at': "2026-06-20T12:00:00Z",
-        'trace': [{"rule_index": 0, "condition": 'role == "admin"', "matched": True}],
-        'signature': "",
-        'key_id': "",
+        "policy_hash": "sha256:abc123",
+        "context_hash": "sha256:def456",
+        "rule_index": 0,
+        "matched_condition": 'role == "admin"',
+        "verdict": TarlVerdict.ALLOW,
+        "evaluated_at": "2026-06-20T12:00:00Z",
+        "trace": [{"rule_index": 0, "condition": 'role == "admin"', "matched": True}],
+        "signature": "",
+        "key_id": "",
     }
     defaults.update(overrides)
     return TarlProof(**defaults)
 
 
 # ── TarlProof dataclass ───────────────────────────────────────────────────────
+
 
 class TestTarlProofDataclass(unittest.TestCase):
 
@@ -102,8 +104,9 @@ class TestTarlProofDataclass(unittest.TestCase):
         self.assertEqual(p.verdict, TarlVerdict.ALLOW)
 
     def test_default_deny_sentinel(self):
-        p = _make_proof(rule_index=-1, matched_condition="",
-                         verdict=TarlVerdict.DENY, trace=[])
+        p = _make_proof(
+            rule_index=-1, matched_condition="", verdict=TarlVerdict.DENY, trace=[]
+        )
         self.assertEqual(p.rule_index, -1)
         self.assertEqual(p.matched_condition, "")
 
@@ -118,6 +121,7 @@ class TestTarlProofDataclass(unittest.TestCase):
 
 
 # ── TarlProof serialisation ───────────────────────────────────────────────────
+
 
 class TestTarlProofSerialisation(unittest.TestCase):
 
@@ -176,6 +180,7 @@ class TestTarlProofSerialisation(unittest.TestCase):
 
 # ── canonical_bytes ───────────────────────────────────────────────────────────
 
+
 class TestCanonicalBytes(unittest.TestCase):
 
     def test_returns_bytes(self):
@@ -214,6 +219,7 @@ class TestCanonicalBytes(unittest.TestCase):
 
 # ── TarlRuntime.set_signing_key ───────────────────────────────────────────────
 
+
 class TestSetSigningKey(unittest.TestCase):
 
     def test_returns_self_for_chaining(self):
@@ -248,6 +254,7 @@ class TestSetSigningKey(unittest.TestCase):
 
 
 # ── TarlRuntime.evaluate_with_proof ──────────────────────────────────────────
+
 
 class TestEvaluateWithProof(unittest.TestCase):
 
@@ -379,6 +386,7 @@ class TestEvaluateWithProof(unittest.TestCase):
 
 # ── ProofVerifier ─────────────────────────────────────────────────────────────
 
+
 class TestProofVerifier(unittest.TestCase):
 
     def test_returns_self_from_add_key(self):
@@ -408,7 +416,9 @@ class TestProofVerifier(unittest.TestCase):
     def test_signed_proof_invalid_with_wrong_key(self):
         rt = _signed_runtime()
         _, proof = rt.evaluate_with_proof({"role": "admin"})
-        v = ProofVerifier(require_signature=False).add_hmac_key("k1", b"wrong-secret-32-bytes-padding!!")
+        v = ProofVerifier(require_signature=False).add_hmac_key(
+            "k1", b"wrong-secret-32-bytes-padding!!"
+        )
         result = v.verify(proof)
         self.assertFalse(result.valid)
         self.assertFalse(result.checks["signature"])
@@ -432,7 +442,9 @@ class TestProofVerifier(unittest.TestCase):
     def test_ed25519_signed_proof_valid_with_public_key(self):
         rt = _ed25519_runtime()
         _, proof = rt.evaluate_with_proof({"role": "admin"})
-        v = ProofVerifier(require_signature=False).add_ed25519_key("ed1", _ed25519_public_bytes())
+        v = ProofVerifier(require_signature=False).add_ed25519_key(
+            "ed1", _ed25519_public_bytes()
+        )
         result = v.verify(proof)
         self.assertTrue(result.valid)
 
@@ -462,19 +474,25 @@ class TestProofVerifier(unittest.TestCase):
                 self.assertEqual(
                     ReplayGuard.proof_id(proof),
                     ReplayGuard.proof_id(
-                        TarlProof.from_dict({
-                            **proof.to_dict(),
-                            "signature": original_signature,
-                        })
+                        TarlProof.from_dict(
+                            {
+                                **proof.to_dict(),
+                                "signature": original_signature,
+                            }
+                        )
                     ),
                 )
 
     def test_ed25519_signed_proof_invalid_with_wrong_public_key(self):
         rt = _ed25519_runtime()
         _, proof = rt.evaluate_with_proof({"role": "admin"})
-        wrong_public = Ed25519PrivateKey.generate().public_key().public_bytes(
-            encoding=serialization.Encoding.Raw,
-            format=serialization.PublicFormat.Raw,
+        wrong_public = (
+            Ed25519PrivateKey.generate()
+            .public_key()
+            .public_bytes(
+                encoding=serialization.Encoding.Raw,
+                format=serialization.PublicFormat.Raw,
+            )
         )
         v = ProofVerifier(require_signature=False).add_ed25519_key("ed1", wrong_public)
         result = v.verify(proof)
@@ -527,12 +545,10 @@ class TestProofVerifier(unittest.TestCase):
             "  when feature.enabled == 0 => ALLOW\n"
             "  when true => DENY\n"
         )
-        runtime = TarlRuntime(
-            PolicyParser.parse(policy_text)
-        ).set_context_schema(ContextSchema())
-        decision, proof = runtime.evaluate_with_proof(
-            {"feature": {"enabled": False}}
+        runtime = TarlRuntime(PolicyParser.parse(policy_text)).set_context_schema(
+            ContextSchema()
         )
+        decision, proof = runtime.evaluate_with_proof({"feature": {"enabled": False}})
 
         result = ProofVerifier(require_signature=False).verify(
             proof,
@@ -568,9 +584,7 @@ class TestProofExpiryBinding(unittest.TestCase):
         return decision, proof
 
     def _verifier(self):
-        return ProofVerifier(require_policy_source=True).add_hmac_key(
-            "k1", _SECRET
-        )
+        return ProofVerifier(require_policy_source=True).add_hmac_key("k1", _SECRET)
 
     def test_runtime_binds_decision_expiry_into_signed_proof(self):
         decision, proof = self._signed_timed_proof()
@@ -644,9 +658,9 @@ class TestProofExpiryBinding(unittest.TestCase):
     def test_time_bound_proof_requires_policy_and_trusted_now(self):
         _decision, proof = self._signed_timed_proof()
 
-        missing_policy = ProofVerifier().add_hmac_key(
-            "k1", _SECRET
-        ).verify(proof, now=self.NOW)
+        missing_policy = (
+            ProofVerifier().add_hmac_key("k1", _SECRET).verify(proof, now=self.NOW)
+        )
         missing_now = self._verifier().verify(
             proof,
             policy_source=self.POLICY,
@@ -702,13 +716,9 @@ class TestProofExpiryBinding(unittest.TestCase):
                 self.assertFalse(result.checks["signature"])
 
     def test_invalid_attempt_does_not_consume_replay_identifier(self):
-        _decision, proof = _signed_runtime().evaluate_with_proof(
-            {"role": "admin"}
-        )
+        _decision, proof = _signed_runtime().evaluate_with_proof({"role": "admin"})
         guard = ReplayGuard()
-        verifier = ProofVerifier(replay_guard=guard).add_hmac_key(
-            "k1", _SECRET
-        )
+        verifier = ProofVerifier(replay_guard=guard).add_hmac_key("k1", _SECRET)
 
         invalid = verifier.verify(
             proof,
@@ -727,6 +737,7 @@ class TestProofExpiryBinding(unittest.TestCase):
 
 # ── VerificationResult dataclass ──────────────────────────────────────────────
 
+
 class TestVerificationResult(unittest.TestCase):
 
     def test_str_valid(self):
@@ -739,7 +750,8 @@ class TestVerificationResult(unittest.TestCase):
 
     def test_summary_shows_checks(self):
         r = VerificationResult(
-            valid=True, message="ok",
+            valid=True,
+            message="ok",
             checks={"signature": True, "trace": True, "policy_hash": None},
         )
         s = r.summary
@@ -753,6 +765,7 @@ class TestVerificationResult(unittest.TestCase):
 
 
 # ── Tamper detection ──────────────────────────────────────────────────────────
+
 
 class TestTamperDetection(unittest.TestCase):
 
@@ -818,6 +831,7 @@ class TestTamperDetection(unittest.TestCase):
 
 # ── _check_policy_hash ────────────────────────────────────────────────────────
 
+
 class TestCheckPolicyHash(unittest.TestCase):
 
     def test_correct_hash_passes(self):
@@ -843,10 +857,10 @@ class TestCheckPolicyHash(unittest.TestCase):
 
 # ── _check_trace ──────────────────────────────────────────────────────────────
 
+
 class TestCheckTrace(unittest.TestCase):
 
-    def _entry(self, idx: int, cond: str = "x > 0",
-               matched: bool = False) -> dict:
+    def _entry(self, idx: int, cond: str = "x > 0", matched: bool = False) -> dict:
         return {"rule_index": idx, "condition": cond, "matched": matched}
 
     def test_single_match_at_0_passes(self):
@@ -887,10 +901,12 @@ class TestCheckTrace(unittest.TestCase):
 
     def test_terminal_evaluation_error_trace_passes(self):
         terminal = self._entry(1)
-        terminal.update({
-            "kind": "evaluation-error",
-            "error": "Evaluation error: missing field",
-        })
+        terminal.update(
+            {
+                "kind": "evaluation-error",
+                "error": "Evaluation error: missing field",
+            }
+        )
         proof = _make_proof(
             rule_index=-1,
             matched_condition="",
@@ -944,7 +960,7 @@ class TestCheckTrace(unittest.TestCase):
         proof = _make_proof(
             rule_index=1,
             trace=[
-                self._entry(0, matched=True),   # earlier rule matched → inconsistent
+                self._entry(0, matched=True),  # earlier rule matched → inconsistent
                 self._entry(1, matched=True),
             ],
         )
@@ -996,25 +1012,30 @@ class TestContextSchemaProofBinding(unittest.TestCase):
         original_binding = prepare_context(original)
         evaluated_binding = prepare_context(evaluated, allow_source_keys=True)
         proof.original_context_hash = original_binding.original_context_hash
-        proof.canonical_context_hash = (
-            evaluated_binding.canonical_context_hash
-        )
+        proof.canonical_context_hash = evaluated_binding.canonical_context_hash
         proof.context_hash = evaluated_binding.canonical_context_hash
-        proof.signature = "hmac-sha256:" + hmac.new(
-            _SECRET,
-            proof.canonical_bytes(),
-            hashlib.sha256,
-        ).hexdigest()
+        proof.signature = (
+            "hmac-sha256:"
+            + hmac.new(
+                _SECRET,
+                proof.canonical_bytes(),
+                hashlib.sha256,
+            ).hexdigest()
+        )
 
     def test_schema_fingerprint_is_semantically_deterministic(self):
-        first = ContextSchema(fields=[
-            FieldSpec("user.role", kinds=("string",)),
-            FieldSpec("risk", kinds=("float", "int"), required=False),
-        ])
-        second = ContextSchema(fields=[
-            FieldSpec("risk", kinds=("int", "float"), required=False),
-            FieldSpec("user.role", kinds=("string",)),
-        ])
+        first = ContextSchema(
+            fields=[
+                FieldSpec("user.role", kinds=("string",)),
+                FieldSpec("risk", kinds=("float", "int"), required=False),
+            ]
+        )
+        second = ContextSchema(
+            fields=[
+                FieldSpec("risk", kinds=("int", "float"), required=False),
+                FieldSpec("user.role", kinds=("string",)),
+            ]
+        )
         self.assertEqual(first.fingerprint(), second.fingerprint())
         self.assertTrue(first.fingerprint().startswith("sha256:"))
 
@@ -1045,10 +1066,7 @@ class TestContextSchemaProofBinding(unittest.TestCase):
         _, proof = _runtime().evaluate_with_proof({"role": "admin"})
         proof.rule_index = -1
         proof.matched_condition = ""
-        proof.trace = [
-            {**entry, "matched": False}
-            for entry in proof.trace
-        ]
+        proof.trace = [{**entry, "matched": False} for entry in proof.trace]
         self.assertFalse(positive_context_authority_admissible(proof))
 
     def test_schema_binding_tamper_invalidates_signature(self):
@@ -1065,9 +1083,7 @@ class TestContextSchemaProofBinding(unittest.TestCase):
             "when role IN source:trusted_roles => ALLOW\n"
             "when true => DENY\n"
         )
-        runtime = _signed_runtime(policy).register_source(
-            "trusted_roles", ["admin"]
-        )
+        runtime = _signed_runtime(policy).register_source("trusted_roles", ["admin"])
         original = {"role": "admin"}
         evaluated = {
             "role": "admin",
@@ -1102,16 +1118,18 @@ class TestContextSchemaProofBinding(unittest.TestCase):
             "role": "guest",
             "source:trusted_roles": ["admin"],
         }
-        runtime = _signed_runtime(policy).register_source(
-            "trusted_roles", ["admin"]
-        )
+        runtime = _signed_runtime(policy).register_source("trusted_roles", ["admin"])
         _, proof = runtime.evaluate_with_proof(original)
         self._retarget_source_proof(proof, original, divergent_evaluated)
 
-        result = ProofVerifier().add_hmac_key("k1", _SECRET).verify(
-            proof,
-            expected_context=original,
-            expected_evaluated_context=divergent_evaluated,
+        result = (
+            ProofVerifier()
+            .add_hmac_key("k1", _SECRET)
+            .verify(
+                proof,
+                expected_context=original,
+                expected_evaluated_context=divergent_evaluated,
+            )
         )
 
         self.assertTrue(result.checks["signature"])
@@ -1137,16 +1155,16 @@ class TestContextSchemaProofBinding(unittest.TestCase):
                     "role": "admin",
                     source_key: ["admin"],
                 }
-                self._retarget_source_proof(
-                    proof, original, invalid_evaluated
-                )
+                self._retarget_source_proof(proof, original, invalid_evaluated)
 
-                result = ProofVerifier().add_hmac_key(
-                    "k1", _SECRET
-                ).verify(
-                    proof,
-                    expected_context=original,
-                    expected_evaluated_context=invalid_evaluated,
+                result = (
+                    ProofVerifier()
+                    .add_hmac_key("k1", _SECRET)
+                    .verify(
+                        proof,
+                        expected_context=original,
+                        expected_evaluated_context=invalid_evaluated,
+                    )
                 )
 
                 self.assertTrue(result.checks["signature"])
@@ -1164,30 +1182,35 @@ class TestContextSchemaProofBinding(unittest.TestCase):
 
 # ── Public API exports ────────────────────────────────────────────────────────
 
+
 class TestPublicAPIExports(unittest.TestCase):
 
     def test_tarlproof_exported(self):
         import utf.tarl as tarl
-        self.assertTrue(hasattr(tarl, 'TarlProof'))
+
+        self.assertTrue(hasattr(tarl, "TarlProof"))
 
     def test_proofverifier_exported(self):
         import utf.tarl as tarl
-        self.assertTrue(hasattr(tarl, 'ProofVerifier'))
+
+        self.assertTrue(hasattr(tarl, "ProofVerifier"))
 
     def test_verificationresult_exported(self):
         import utf.tarl as tarl
-        self.assertTrue(hasattr(tarl, 'VerificationResult'))
+
+        self.assertTrue(hasattr(tarl, "VerificationResult"))
 
     def test_positive_context_authority_helper_exported(self):
         import utf.tarl as tarl
-        self.assertTrue(hasattr(tarl, 'positive_context_authority_admissible'))
+
+        self.assertTrue(hasattr(tarl, "positive_context_authority_admissible"))
 
     def test_runtime_has_evaluate_with_proof(self):
-        self.assertTrue(hasattr(TarlRuntime, 'evaluate_with_proof'))
+        self.assertTrue(hasattr(TarlRuntime, "evaluate_with_proof"))
 
     def test_runtime_has_set_signing_key(self):
-        self.assertTrue(hasattr(TarlRuntime, 'set_signing_key'))
+        self.assertTrue(hasattr(TarlRuntime, "set_signing_key"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -7,6 +7,7 @@ Covers:
   5c  Policy succession (if_unresolved_after / revert_to)
   5d  Temporal audit archive (TarlAuditArchive)
 """
+
 import datetime
 import unittest
 
@@ -40,6 +41,7 @@ policy access:
 
 
 # ── 5a: _parse_duration ───────────────────────────────────────────────────────
+
 
 class TestParseDuration(unittest.TestCase):
 
@@ -80,33 +82,28 @@ class TestParseDuration(unittest.TestCase):
 
 # ── 5a: parser support for "for: <duration>" ──────────────────────────────────
 
+
 class TestRuleDurationParsing(unittest.TestCase):
 
     def test_for_hours_parsed(self):
-        policy = PolicyParser.parse(
-            'when role == "admin" => ALLOW for: 4h'
-        )
+        policy = PolicyParser.parse('when role == "admin" => ALLOW for: 4h')
         assert policy.rules[0].duration_seconds == 14400
 
     def test_for_minutes_parsed(self):
-        policy = PolicyParser.parse(
-            'when role == "user" => ESCALATE for: 30m'
-        )
+        policy = PolicyParser.parse('when role == "user" => ESCALATE for: 30m')
         assert policy.rules[0].duration_seconds == 1800
 
     def test_for_days_parsed(self):
-        policy = PolicyParser.parse(
-            'when env == "prod" => ALLOW for: 1d'
-        )
+        policy = PolicyParser.parse('when env == "prod" => ALLOW for: 1d')
         assert policy.rules[0].duration_seconds == 86400
 
     def test_no_duration_is_none(self):
-        policy = PolicyParser.parse('when x == 1 => ALLOW')
+        policy = PolicyParser.parse("when x == 1 => ALLOW")
         assert policy.rules[0].duration_seconds is None
 
     def test_malformed_rule_duration_is_rejected(self):
         with self.assertRaisesRegex(SafeExpr.ParseError, "invalid rule duration"):
-            PolicyParser.parse('when true => ALLOW for: bananas')
+            PolicyParser.parse("when true => ALLOW for: bananas")
 
     def test_rule_str_shows_duration(self):
         rule = TarlRule("x == 1", TarlVerdict.ALLOW, duration_seconds=7200)
@@ -123,6 +120,7 @@ class TestRuleDurationParsing(unittest.TestCase):
 
 # ── 5a: expires_at in TarlDecision ───────────────────────────────────────────
 
+
 class TestExpiresAt(unittest.TestCase):
 
     def test_evaluate_policy_sets_expires_at(self):
@@ -132,7 +130,7 @@ class TestExpiresAt(unittest.TestCase):
         )
         assert decision.verdict == TarlVerdict.ALLOW
         assert decision.expires_at is not None
-        assert "T" in decision.expires_at   # ISO-8601 contains T
+        assert "T" in decision.expires_at  # ISO-8601 contains T
 
     def test_no_duration_no_expires_at(self):
         decision = evaluate_policy(
@@ -142,7 +140,7 @@ class TestExpiresAt(unittest.TestCase):
         assert decision.expires_at is None
 
     def test_default_deny_no_expires_at(self):
-        decision = evaluate_policy({}, policy_text='when x == 1 => ALLOW')
+        decision = evaluate_policy({}, policy_text="when x == 1 => ALLOW")
         assert decision.expires_at is None
 
     def test_runtime_sets_expires_at(self):
@@ -174,6 +172,7 @@ class TestExpiresAt(unittest.TestCase):
 
 
 # ── 5b: valid_from / valid_until parsing ─────────────────────────────────────
+
 
 class TestTemporalWindowParsing(unittest.TestCase):
 
@@ -253,6 +252,7 @@ class TestTemporalWindowParsing(unittest.TestCase):
 
 # ── 5b: _check_policy_temporal ────────────────────────────────────────────────
 
+
 class TestCheckPolicyTemporal(unittest.TestCase):
 
     def test_no_window_returns_none(self):
@@ -271,9 +271,7 @@ class TestCheckPolicyTemporal(unittest.TestCase):
         assert "not yet effective" in result.reason
 
     def test_future_valid_from_with_on_expiry_deny(self):
-        policy = TarlPolicy(
-            name="p", valid_from=FAR_FUTURE, on_expiry=TarlVerdict.DENY
-        )
+        policy = TarlPolicy(name="p", valid_from=FAR_FUTURE, on_expiry=TarlVerdict.DENY)
         result = _check_policy_temporal(policy)
         assert result is not None
         assert result.verdict == TarlVerdict.DENY
@@ -308,9 +306,7 @@ class TestCheckPolicyTemporal(unittest.TestCase):
         assert "on_expiry cannot grant ALLOW" in result.reason
 
     def test_window_open_both_bounds(self):
-        policy = TarlPolicy(
-            name="p", valid_from=FAR_PAST, valid_until=FAR_FUTURE
-        )
+        policy = TarlPolicy(name="p", valid_from=FAR_PAST, valid_until=FAR_FUTURE)
         assert _check_policy_temporal(policy) is None
 
     def test_if_unresolved_after_triggers_when_elapsed(self):
@@ -338,6 +334,7 @@ class TestCheckPolicyTemporal(unittest.TestCase):
 
 
 # ── 5b: evaluate_policy enforces temporal window ─────────────────────────────
+
 
 class TestEvaluatePolicyTemporalWindow(unittest.TestCase):
 
@@ -397,6 +394,7 @@ class TestEvaluatePolicyTemporalWindow(unittest.TestCase):
 
 # ── 5b: TarlRuntime enforces temporal window ──────────────────────────────────
 
+
 class TestRuntimeTemporalWindow(unittest.TestCase):
 
     def test_not_yet_active(self):
@@ -449,7 +447,7 @@ class TestRuntimeTemporalWindow(unittest.TestCase):
         d2 = rt.evaluate({"role": "admin"}, policy_text=policy_text)
         assert d1.verdict == TarlVerdict.ALLOW
         assert d2.verdict == TarlVerdict.ALLOW
-        assert rt.cache.size == 0   # not cached
+        assert rt.cache.size == 0  # not cached
 
     def test_evaluate_with_proof_temporal_window(self):
         rt = TarlRuntime()
@@ -469,12 +467,13 @@ class TestRuntimeTemporalWindow(unittest.TestCase):
 
 # ── 5c: policy succession in PolicyComposer ──────────────────────────────────
 
+
 class TestPolicySuccession(unittest.TestCase):
 
     def test_succession_revert_to_baseline(self):
         """Expired emergency policy reverts to baseline via revert_to."""
         baseline = PolicyParser.parse(
-            'policy baseline:\n  when x == 1 => ALLOW\n  when x == 2 => DENY'
+            "policy baseline:\n  when x == 1 => ALLOW\n  when x == 2 => DENY"
         )
         emergency = TarlPolicy(
             name="emergency",
@@ -520,7 +519,7 @@ class TestPolicySuccession(unittest.TestCase):
         """Full round-trip: parse if_unresolved_after directive, then evaluate."""
         composer = PolicyComposer()
         composer.register_from_text(
-            "policy baseline:\n  when role == \"admin\" => ALLOW\n"
+            'policy baseline:\n  when role == "admin" => ALLOW\n'
         )
         composer.register_from_text(
             f"policy emerg:\n"
@@ -534,6 +533,7 @@ class TestPolicySuccession(unittest.TestCase):
 
 
 # ── 5d: TarlAuditArchive ─────────────────────────────────────────────────────
+
 
 class TestTarlAuditArchive(unittest.TestCase):
 
@@ -633,6 +633,7 @@ class TestTarlAuditArchive(unittest.TestCase):
 
 # ── 5d: runtime auto-archives proofs ─────────────────────────────────────────
 
+
 class TestRuntimeArchiveIntegration(unittest.TestCase):
 
     def test_auto_store_on_evaluate_with_proof(self):
@@ -657,10 +658,12 @@ class TestRuntimeArchiveIntegration(unittest.TestCase):
         arc = TarlAuditArchive(":memory:")
         rt = TarlRuntime()
         rt.set_archive(arc)
-        rt.evaluate_with_proof({"role": "admin"},
-                                policy_text='when role == "admin" => ALLOW')
-        rt.evaluate_with_proof({"role": "guest"},
-                                policy_text='when role == "admin" => ALLOW')
+        rt.evaluate_with_proof(
+            {"role": "admin"}, policy_text='when role == "admin" => ALLOW'
+        )
+        rt.evaluate_with_proof(
+            {"role": "guest"}, policy_text='when role == "admin" => ALLOW'
+        )
         assert arc.count() == 2
         arc.close()
 
@@ -694,6 +697,7 @@ class TestRuntimeArchiveIntegration(unittest.TestCase):
 
 # ── is_expired() — re-check contract ────────────────────────────────────────
 
+
 class TestIsExpired(unittest.TestCase):
 
     def test_no_expires_at_not_expired(self):
@@ -715,7 +719,7 @@ class TestIsExpired(unittest.TestCase):
             policy_text='when role == "admin" => ALLOW for: 4h',
         )
         assert decision.expires_at is not None
-        assert not decision.is_expired()   # 4h from now is not past yet
+        assert not decision.is_expired()  # 4h from now is not past yet
 
     def test_deny_with_duration_can_be_expired(self):
         d = TarlDecision(verdict=TarlVerdict.DENY, expires_at=FAR_PAST)
@@ -732,6 +736,7 @@ class TestIsExpired(unittest.TestCase):
 
 
 # ── succession cycle detection ────────────────────────────────────────────────
+
 
 class TestSuccessionCycles(unittest.TestCase):
 
@@ -795,6 +800,7 @@ class TestSuccessionCycles(unittest.TestCase):
 
 # ── query() verifier parameter ────────────────────────────────────────────────
 
+
 class TestArchiveQueryVerifier(unittest.TestCase):
 
     def _make_signed_proof(self):
@@ -824,6 +830,7 @@ class TestArchiveQueryVerifier(unittest.TestCase):
 
     def test_query_with_verifier_keeps_valid_sig(self):
         from utf.tarl.verifier import ProofVerifier
+
         proof = self._make_signed_proof()
         verifier = ProofVerifier(require_signature=False)
         verifier.add_hmac_key("k1", b"secret-key-for-testing")
@@ -835,6 +842,7 @@ class TestArchiveQueryVerifier(unittest.TestCase):
     def test_query_with_verifier_excludes_tampered_sig(self):
         """A proof with a valid-looking but wrong signature is filtered out."""
         from utf.tarl.verifier import ProofVerifier
+
         proof = self._make_signed_proof()
         # Register the WRONG key → signature will fail verification
         verifier = ProofVerifier(require_signature=False)
@@ -847,6 +855,7 @@ class TestArchiveQueryVerifier(unittest.TestCase):
     def test_query_with_verifier_keeps_unsigned_proofs(self):
         """Unsigned proofs (sig='') pass through even with a verifier attached."""
         from utf.tarl.verifier import ProofVerifier
+
         proof = self._make_unsigned_proof()
         verifier = ProofVerifier(require_signature=False)
         with TarlAuditArchive(":memory:") as arc:
@@ -858,26 +867,31 @@ class TestArchiveQueryVerifier(unittest.TestCase):
 
 # ── public API export check ───────────────────────────────────────────────────
 
+
 class TestPhase5APIExports(unittest.TestCase):
 
     def test_tarl_audit_archive_in_all(self):
         import utf.tarl as pkg
+
         assert "TarlAuditArchive" in pkg.__all__
 
     def test_expires_at_on_decision(self):
         from utf.tarl.spec import TarlDecision, TarlVerdict
+
         d = TarlDecision(verdict=TarlVerdict.ALLOW)
         assert hasattr(d, "expires_at")
         assert d.expires_at is None
 
     def test_duration_seconds_on_rule(self):
         from utf.tarl.spec import TarlRule, TarlVerdict
+
         r = TarlRule(condition="x==1", verdict=TarlVerdict.ALLOW)
         assert hasattr(r, "duration_seconds")
         assert r.duration_seconds is None
 
     def test_if_unresolved_and_revert_to_on_policy(self):
         from utf.tarl.spec import TarlPolicy
+
         p = TarlPolicy(name="p")
         assert hasattr(p, "if_unresolved_after")
         assert hasattr(p, "revert_to")

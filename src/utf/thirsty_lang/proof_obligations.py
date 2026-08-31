@@ -5,6 +5,7 @@ policy text, but it never creates an Interpreter and never evaluates program
 expressions. It is used by `thirsty prove`, denial explanations, checker effect
 warnings, and build manifests.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -123,14 +124,11 @@ def load_explicit_context_schema(path: str) -> DerivedContextSchema:
     }
     if unknown_top_level:
         raise ValueError(
-            "unknown context schema fields: "
-            + ", ".join(sorted(unknown_top_level))
+            "unknown context schema fields: " + ", ".join(sorted(unknown_top_level))
         )
     status = data.get("status")
     if status is not None and status not in {"complete", "explicit"}:
-        raise ValueError(
-            "only complete or explicit context schemas may be loaded"
-        )
+        raise ValueError("only complete or explicit context schemas may be loaded")
     representation = data.get("representation", {})
     if representation is None:
         representation = {}
@@ -164,9 +162,7 @@ def load_explicit_context_schema(path: str) -> DerivedContextSchema:
             "unsupported context representation: "
             f"{representation_id!r}; expected {CONTEXT_REPRESENTATION_ID!r}"
         )
-    normalization = representation.get(
-        "normalization", NORMALIZATION_ALGORITHM_ID
-    )
+    normalization = representation.get("normalization", NORMALIZATION_ALGORITHM_ID)
     if normalization != NORMALIZATION_ALGORITHM_ID:
         raise ValueError(
             "unsupported context schema normalization: "
@@ -201,8 +197,7 @@ def _normalize_explicit_schema_fields(raw_fields: Any) -> list[dict[str, Any]]:
     fields_out: list[dict[str, Any]] = []
     if isinstance(raw_fields, dict):
         iterable = [
-            _field_item_from_mapping(name, spec)
-            for name, spec in raw_fields.items()
+            _field_item_from_mapping(name, spec) for name, spec in raw_fields.items()
         ]
     elif isinstance(raw_fields, list):
         iterable = raw_fields
@@ -224,9 +219,7 @@ def _normalize_explicit_schema_fields(raw_fields: Any) -> list[dict[str, Any]]:
                 + ", ".join(sorted(unknown_field_keys))
             )
         if "kind" in item and "kinds" in item:
-            raise ValueError(
-                "context schema field cannot declare both kind and kinds"
-            )
+            raise ValueError("context schema field cannot declare both kind and kinds")
         name = item.get("name")
         if not isinstance(name, str) or not name:
             raise ValueError("context schema field entries require a string name")
@@ -242,11 +235,13 @@ def _normalize_explicit_schema_fields(raw_fields: Any) -> list[dict[str, Any]]:
             raise ValueError(
                 f"context schema field '{name}' required must be a boolean"
             )
-        fields_out.append({
-            "name": name,
-            "kinds": sorted(set(kinds)),
-            "required": required,
-        })
+        fields_out.append(
+            {
+                "name": name,
+                "kinds": sorted(set(kinds)),
+                "required": required,
+            }
+        )
     return fields_out
 
 
@@ -271,9 +266,7 @@ def _field_item_from_mapping(name: str, spec: Any) -> dict[str, Any]:
             "kinds": spec.get("kinds", [spec.get("kind", "string")]),
             "required": spec.get("required", True),
         }
-    raise ValueError(
-        f"context schema field '{name}' must be a string, list, or object"
-    )
+    raise ValueError(f"context schema field '{name}' must be a string, list, or object")
 
 
 def derive_context_schema(policy_text: str) -> DerivedContextSchema:
@@ -301,9 +294,7 @@ def derive_context_schema(policy_text: str) -> DerivedContextSchema:
             node = parser.parse_expr()
             _infer_node(node, refs, gaps, expected="bool")
         except Exception as exc:
-            gaps.append(
-                f"rule {rule.source_line or '?'} could not be analyzed: {exc}"
-            )
+            gaps.append(f"rule {rule.source_line or '?'} could not be analyzed: {exc}")
 
     fields_out: list[dict[str, Any]] = []
     for name, kinds in sorted(refs.items()):
@@ -314,11 +305,13 @@ def derive_context_schema(policy_text: str) -> DerivedContextSchema:
                 f"{', '.join(sorted(kinds))}"
             )
             continue
-        fields_out.append({
-            "name": name,
-            "kinds": list(norm),
-            "required": True,
-        })
+        fields_out.append(
+            {
+                "name": name,
+                "kinds": list(norm),
+                "required": True,
+            }
+        )
 
     status = "complete" if not gaps else "incomplete"
     return DerivedContextSchema(status=status, fields=fields_out, gaps=gaps)
@@ -418,9 +411,7 @@ def _infer_node(
                 refs.setdefault(left_name, set()).add(right_kind)
             else:
                 refs.setdefault(left_name, set())
-                gaps.append(
-                    f"field '{left_name}' membership kind is ambiguous"
-                )
+                gaps.append(f"field '{left_name}' membership kind is ambiguous")
         elif left_kind is not None:
             _infer_node(right, refs, gaps, expected="list", bound=bound)
         return
@@ -522,12 +513,9 @@ def extract_proof_obligations(
     governed_module = mode == "governed"
     functions = _functions(ast)
     imports = _imports(ast)
-    governed_names = {
-        f["name"] for f in functions if f.get("governed") is True
-    }
+    governed_names = {f["name"] for f in functions if f.get("governed") is True}
     alias_to_module = {
-        item["alias"] or item["module_path"]: item["module_path"]
-        for item in imports
+        item["alias"] or item["module_path"]: item["module_path"] for item in imports
     }
 
     capabilities: list[CapabilityObligation] = []
@@ -546,8 +534,7 @@ def extract_proof_obligations(
 
     contract_obligations = _contract_obligations(ast)
     required_actions = sorted(
-        {c.action for c in capabilities}
-        | {call["name"] for call in governed_calls}
+        {c.action for c in capabilities} | {call["name"] for call in governed_calls}
     )
     unresolved_gaps: list[dict[str, str]] = []
     schema = None
@@ -585,15 +572,19 @@ def extract_proof_obligations(
         else:
             schema = derive_context_schema(policy_text)
         if not schema.complete:
-            unresolved_gaps.append({
-                "category": "context_schema",
-                "detail": "derived context schema is incomplete or ambiguous",
-            })
+            unresolved_gaps.append(
+                {
+                    "category": "context_schema",
+                    "detail": "derived context schema is incomplete or ambiguous",
+                }
+            )
     elif capabilities or governed_calls or governed_module:
-        unresolved_gaps.append({
-            "category": "policy",
-            "detail": "policy source is required before proof can be verified",
-        })
+        unresolved_gaps.append(
+            {
+                "category": "policy",
+                "detail": "policy source is required before proof can be verified",
+            }
+        )
         schema = DerivedContextSchema(
             status="missing",
             source="none",
@@ -602,25 +593,31 @@ def extract_proof_obligations(
         )
 
     if capabilities or governed_calls or governed_module:
-        unresolved_gaps.append({
-            "category": "authority",
-            "detail": "runtime execution requires authority context",
-        })
+        unresolved_gaps.append(
+            {
+                "category": "authority",
+                "detail": "runtime execution requires authority context",
+            }
+        )
 
     if contract_obligations:
-        unresolved_gaps.append({
-            "category": "contracts",
-            "detail": "contract predicates require runtime argument/result values",
-        })
+        unresolved_gaps.append(
+            {
+                "category": "contracts",
+                "detail": "contract predicates require runtime argument/result values",
+            }
+        )
 
     diag_out = []
     for diag in diagnostics or []:
-        diag_out.append({
-            "code": diag.code,
-            "severity": diag.severity,
-            "message": diag.message,
-            "span": list(diag.span),
-        })
+        diag_out.append(
+            {
+                "code": diag.code,
+                "severity": diag.severity,
+                "message": diag.message,
+                "span": list(diag.span),
+            }
+        )
 
     return {
         "format": "thirsty.proof_obligations.v1",
@@ -632,14 +629,17 @@ def extract_proof_obligations(
         "stdlib_sensitive_calls": sensitive_calls,
         "governed_calls": governed_calls,
         "required_capabilities": [
-            c.to_dict() for c in sorted(
+            c.to_dict()
+            for c in sorted(
                 set(capabilities),
                 key=lambda c: (c.action, c.target, c.source, c.function or ""),
             )
         ],
         "required_tarl_actions": required_actions,
         "authority_requirements": {
-            "authority_required": bool(capabilities or governed_calls or governed_module),
+            "authority_required": bool(
+                capabilities or governed_calls or governed_module
+            ),
             "authenticated_authority_required": "hardened-runtime-only",
             "fields": [
                 {"name": name, "kinds": list(kinds), "required": True}
@@ -679,23 +679,29 @@ def denial_explanation(report: dict[str, Any]) -> dict[str, Any]:
     missing = []
     emitted_categories: set[str] = set()
     if report["policy_dependencies"]["hash"] is None:
-        missing.append({
-            "category": "policy",
-            "detail": "attach a TARL policy with --policy",
-        })
+        missing.append(
+            {
+                "category": "policy",
+                "detail": "attach a TARL policy with --policy",
+            }
+        )
         emitted_categories.add("policy")
     schema = report.get("context_schema") or {}
     if schema.get("status") not in {"complete", "explicit"}:
-        missing.append({
-            "category": "context",
-            "detail": "provide an explicit schema or make policy references derivable",
-        })
+        missing.append(
+            {
+                "category": "context",
+                "detail": "provide an explicit schema or make policy references derivable",
+            }
+        )
         emitted_categories.add("context")
     if report["authority_requirements"]["authority_required"]:
-        missing.append({
-            "category": "authority",
-            "detail": "runtime execution must provide authority context",
-        })
+        missing.append(
+            {
+                "category": "authority",
+                "detail": "runtime execution must provide authority context",
+            }
+        )
     for gap in report.get("unresolved_proof_gaps", []):
         if gap.get("category") in emitted_categories:
             continue
@@ -717,22 +723,26 @@ def effect_warning_diagnostics(ast: Program) -> list[Diagnostic]:
     report = extract_proof_obligations(ast, source, "<checker>")
     diagnostics: list[Diagnostic] = []
     for cap in report["required_capabilities"]:
-        diagnostics.append(Diagnostic(
-            "W050",
-            (
-                f"effect requires proof obligation: action={cap['action']} "
-                f"target={cap['target']}"
-            ),
-            (0, 0, 0, 0),
-            "warning",
-        ))
+        diagnostics.append(
+            Diagnostic(
+                "W050",
+                (
+                    f"effect requires proof obligation: action={cap['action']} "
+                    f"target={cap['target']}"
+                ),
+                (0, 0, 0, 0),
+                "warning",
+            )
+        )
     for call in report["governed_calls"]:
-        diagnostics.append(Diagnostic(
-            "W051",
-            f"governed call requires proof obligation: {call['name']}",
-            (0, 0, 0, 0),
-            "warning",
-        ))
+        diagnostics.append(
+            Diagnostic(
+                "W051",
+                f"governed call requires proof obligation: {call['name']}",
+                (0, 0, 0, 0),
+                "warning",
+            )
+        )
     return diagnostics
 
 
@@ -753,8 +763,7 @@ def _function_info(stmt: FunctionDecl | GovernedFunctionDecl) -> dict[str, Any]:
     info: dict[str, Any] = {
         "name": stmt.name,
         "params": [
-            {"name": name, "type": ptype}
-            for name, ptype in getattr(stmt, "params", [])
+            {"name": name, "type": ptype} for name, ptype in getattr(stmt, "params", [])
         ],
         "return_type": stmt.return_type,
         "governed": isinstance(stmt, GovernedFunctionDecl),
@@ -772,11 +781,13 @@ def _imports(ast: Program) -> list[dict[str, Any]]:
     result = []
     for stmt in ast.stmts:
         if isinstance(stmt, ImportStmt):
-            result.append({
-                "module_path": stmt.module_path,
-                "alias": stmt.alias,
-                "sensitive": stmt.module_path in SENSITIVE_STDLIB_CAPABILITIES,
-            })
+            result.append(
+                {
+                    "module_path": stmt.module_path,
+                    "alias": stmt.alias,
+                    "sensitive": stmt.module_path in SENSITIVE_STDLIB_CAPABILITIES,
+                }
+            )
     return result
 
 
@@ -793,26 +804,32 @@ def _collect_effects(
     if isinstance(node, (FunctionDecl, GovernedFunctionDecl)):
         current_function = node.name
     if isinstance(node, ImportStmt) and governed_module:
-        capabilities.append(CapabilityObligation(
-            action="import",
-            target=node.module_path,
-            source="import",
-            function=current_function,
-        ))
+        capabilities.append(
+            CapabilityObligation(
+                action="import",
+                target=node.module_path,
+                source="import",
+                function=current_function,
+            )
+        )
     elif isinstance(node, PourStmt) and governed_module:
-        capabilities.append(CapabilityObligation(
-            action="write",
-            target="stdout",
-            source="pour",
-            function=current_function,
-        ))
+        capabilities.append(
+            CapabilityObligation(
+                action="write",
+                target="stdout",
+                source="pour",
+                function=current_function,
+            )
+        )
     elif isinstance(node, SipStmt) and governed_module:
-        capabilities.append(CapabilityObligation(
-            action="read",
-            target="stdin",
-            source="sip",
-            function=current_function,
-        ))
+        capabilities.append(
+            CapabilityObligation(
+                action="read",
+                target="stdin",
+                source="sip",
+                function=current_function,
+            )
+        )
     elif isinstance(node, CallExpr):
         _collect_call_effects(
             node,
@@ -849,11 +866,13 @@ def _collect_call_effects(
     governed_module: bool,
 ) -> None:
     if isinstance(expr.callee, Identifier) and expr.callee.name in governed_names:
-        governed_calls.append({
-            "name": expr.callee.name,
-            "function": current_function,
-            "span": list(expr.span),
-        })
+        governed_calls.append(
+            {
+                "name": expr.callee.name,
+                "function": current_function,
+                "span": list(expr.span),
+            }
+        )
     if not isinstance(expr.callee, MemberAccess):
         return
     receiver = expr.callee.obj
@@ -862,26 +881,28 @@ def _collect_call_effects(
     module_path = alias_to_module.get(receiver.name)
     if module_path is None:
         return
-    action = SENSITIVE_STDLIB_CAPABILITIES.get(module_path, {}).get(
-        expr.callee.member
-    )
+    action = SENSITIVE_STDLIB_CAPABILITIES.get(module_path, {}).get(expr.callee.member)
     if action is None:
         return
     target = f"{module_path}.{expr.callee.member}"
-    sensitive_calls.append({
-        "module": module_path,
-        "function": expr.callee.member,
-        "action": action,
-        "called_from": current_function,
-        "span": list(expr.span),
-    })
+    sensitive_calls.append(
+        {
+            "module": module_path,
+            "function": expr.callee.member,
+            "action": action,
+            "called_from": current_function,
+            "span": list(expr.span),
+        }
+    )
     if governed_module:
-        capabilities.append(CapabilityObligation(
-            action=action,
-            target=target,
-            source="sensitive-stdlib-call",
-            function=current_function,
-        ))
+        capabilities.append(
+            CapabilityObligation(
+                action=action,
+                target=target,
+                source="sensitive-stdlib-call",
+                function=current_function,
+            )
+        )
 
 
 def _contract_obligations(ast: Program) -> list[ContractObligation]:
@@ -896,14 +917,19 @@ def _contract_obligations(ast: Program) -> list[ContractObligation]:
             )
         for decl in candidates:
             if decl.requires_annotation:
-                obligations.append(ContractObligation(
-                    decl.name, "entry", decl.requires_annotation))
+                obligations.append(
+                    ContractObligation(decl.name, "entry", decl.requires_annotation)
+                )
             if decl.ensures_annotation:
-                obligations.append(ContractObligation(
-                    decl.name, "exit", decl.ensures_annotation))
+                obligations.append(
+                    ContractObligation(decl.name, "exit", decl.ensures_annotation)
+                )
             if decl.invariant_annotation:
-                obligations.append(ContractObligation(
-                    decl.name, "entry_exit", decl.invariant_annotation))
+                obligations.append(
+                    ContractObligation(
+                        decl.name, "entry_exit", decl.invariant_annotation
+                    )
+                )
     return obligations
 
 

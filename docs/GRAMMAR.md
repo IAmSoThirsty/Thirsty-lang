@@ -5,7 +5,7 @@
 **Scope:** syntax accepted by `utf.thirsty_lang.lexer.Lexer` and
 `utf.thirsty_lang.parser.Parser`
 
-**Canonical handbook:** [Thirsty-Lang 101](THIRSTY_LANG_101.md)
+**Canonical handbook:** [Thirsty-Lang UTF 101](THIRSTY_LANG_UTF_101.md)
 
 This is the source-authoritative EBNF-style reference for the Tier 1 parser.
 It describes accepted syntax, not every semantic or governance guarantee. The

@@ -1,4 +1,5 @@
 """T.A.R.L. — Thirsty's Active Resistance Language"""
+
 from utf.tarl.analyzer import (
     AnalysisResult,
     ConflictPair,

@@ -25,6 +25,7 @@ cheapest/strongest to most general:
 The verdict shape (:class:`AnalysisResult`) and levels are unchanged; this module
 only decides ``passed`` and the message/counterexample.
 """
+
 from __future__ import annotations
 
 import concurrent.futures
@@ -58,6 +59,7 @@ from utf.thirsty_lang.token import TokenType
 _z3: Any
 try:
     import z3 as _z3  # type: ignore[no-redef,import-untyped,import-not-found]
+
     _Z3_AVAILABLE = True
 except ImportError:  # pragma: no cover - exercised only without the extra
     _z3 = None
@@ -74,6 +76,7 @@ class ConvergenceVerdict:
       - ``"unsupported"`` — this layer can't model the blocks; try the next
       - ``"unavailable"`` — the layer's dependency (z3) is absent
     """
+
     status: str
     detail: str = ""
     counterexample: dict | None = None
@@ -81,8 +84,10 @@ class ConvergenceVerdict:
 
 # ── free-variable / bound-name analysis ───────────────────────────────────────
 
+
 def _walk(node):
     import dataclasses
+
     if node is None or not dataclasses.is_dataclass(node):
         return
     yield node
@@ -125,6 +130,7 @@ def free_variables(block) -> set:
 
 
 # ── Layer 2: Z3 symbolic equivalence (integer-arithmetic subset) ──────────────
+
 
 class _SymUnsupported(Exception):
     """The block uses a construct outside the symbolic subset."""
@@ -241,7 +247,8 @@ def z3_equivalence(shadow_block, canonical_block) -> ConvergenceVerdict:
         result = solver.check()
         if result == _z3.unsat:
             return ConvergenceVerdict(
-                "equivalent", "Z3 proved equal return value for all inputs")
+                "equivalent", "Z3 proved equal return value for all inputs"
+            )
         if result == _z3.sat:
             model = solver.model()
             ce = {}
@@ -252,7 +259,8 @@ def z3_equivalence(shadow_block, canonical_block) -> ConvergenceVerdict:
                 except Exception:
                     pass
             return ConvergenceVerdict(
-                "diverge", "Z3 found a diverging input", counterexample=ce)
+                "diverge", "Z3 found a diverging input", counterexample=ce
+            )
         return ConvergenceVerdict("unsupported", "z3 returned unknown")
     except Exception as exc:  # incl. native OSError from a flaky z3 build
         return ConvergenceVerdict("unsupported", f"z3 unavailable: {exc}")
@@ -273,7 +281,13 @@ _NO_RETURN = object()
 # about whether two blocks *printed*, *read*, *imported*, or *threw* differently,
 # so the execute-and-compare layer abstains rather than claim equivalence.
 _IMPURE_CALLS = {
-    "pour", "print", "sip", "write", "read", "input", "open",
+    "pour",
+    "print",
+    "sip",
+    "write",
+    "read",
+    "input",
+    "open",
 }
 
 
@@ -287,8 +301,11 @@ def is_effect_free(block) -> bool:
     for n in _walk(block):
         if isinstance(n, (PourStmt, SipStmt, ImportStmt, ThrowStmt)):
             return False
-        if (isinstance(n, CallExpr) and isinstance(n.callee, Identifier)
-                and n.callee.name.lower() in _IMPURE_CALLS):
+        if (
+            isinstance(n, CallExpr)
+            and isinstance(n.callee, Identifier)
+            and n.callee.name.lower() in _IMPURE_CALLS
+        ):
             return False
     return True
 
@@ -327,21 +344,26 @@ def _seed_vectors(names, limit=8):
     vectors = []
     for i in range(min(limit, len(_SEED_VALUES))):
         # Stagger each variable so they don't all move together.
-        vectors.append({
-            name: _SEED_VALUES[(i + j) % len(_SEED_VALUES)]
-            for j, name in enumerate(names)
-        })
+        vectors.append(
+            {
+                name: _SEED_VALUES[(i + j) % len(_SEED_VALUES)]
+                for j, name in enumerate(names)
+            }
+        )
     return vectors
 
 
 def execute_and_compare(shadow_block, canonical_block) -> ConvergenceVerdict:
     """Run both blocks over seeded inputs and compare returned values."""
-    if not isinstance(shadow_block, BlockStmt) or not isinstance(canonical_block, BlockStmt):
+    if not isinstance(shadow_block, BlockStmt) or not isinstance(
+        canonical_block, BlockStmt
+    ):
         return ConvergenceVerdict("unsupported", "missing block AST")
     # Return-value comparison is only sound for effect-free blocks.
     if not (is_effect_free(shadow_block) and is_effect_free(canonical_block)):
         return ConvergenceVerdict(
-            "unsupported", "block has observable effects; not sampled")
+            "unsupported", "block has observable effects; not sampled"
+        )
     names = free_variables(shadow_block) | free_variables(canonical_block)
     compared = 0
     for bindings in _seed_vectors(names):
@@ -355,14 +377,17 @@ def execute_and_compare(shadow_block, canonical_block) -> ConvergenceVerdict:
                 return ConvergenceVerdict(
                     "diverge",
                     "one block returns a value while the other does not",
-                    counterexample=dict(bindings) or {"<no-inputs>": True})
+                    counterexample=dict(bindings) or {"<no-inputs>": True},
+                )
             continue
         if s_val != c_val:
             return ConvergenceVerdict(
                 "diverge",
                 f"diverging output (shadow={s_val!r}, canonical={c_val!r})",
-                counterexample=dict(bindings) or {"<no-inputs>": True})
+                counterexample=dict(bindings) or {"<no-inputs>": True},
+            )
     if compared == 0:
         return ConvergenceVerdict("unsupported", "no input vector ran cleanly")
     return ConvergenceVerdict(
-        "equivalent", f"identical output on {compared} sampled input(s)")
+        "equivalent", f"identical output on {compared} sampled input(s)"
+    )

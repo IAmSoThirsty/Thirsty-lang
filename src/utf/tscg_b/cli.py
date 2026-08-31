@@ -2,6 +2,7 @@
 TSCG-B CLI — Command-line interface for TSCG Binary Protocol
 encode/decode commands.
 """
+
 import json
 import sys
 
@@ -13,7 +14,7 @@ def cmd_encode(args: list):
     if not args:
         text = sys.stdin.read().strip()
     else:
-        text = ' '.join(args)
+        text = " ".join(args)
 
     frame = pack_text(text)
     sys.stdout.buffer.write(frame)
@@ -28,12 +29,12 @@ def cmd_decode(args: list):
 
     result = unpack_frame(data)
     output = {
-        'text': result['text'],
-        'payload_length': result['payload_length'],
-        'crc32': result['crc32_hex'],
-        'sha256': result['sha256_hex'],
-        'flags': result['flags'],
-        'version': result['version'],
+        "text": result["text"],
+        "payload_length": result["payload_length"],
+        "crc32": result["crc32_hex"],
+        "sha256": result["sha256_hex"],
+        "flags": result["flags"],
+        "version": result["version"],
     }
     print(json.dumps(output, indent=2))
 
@@ -50,28 +51,30 @@ def cmd_stream(args: list):
 
     results = []
     for f in frames:
-        results.append({
-            'text': f['text'],
-            'payload_length': f['payload_length'],
-            'crc32': f['crc32_hex'],
-            'sha256': f['sha256_hex'],
-        })
+        results.append(
+            {
+                "text": f["text"],
+                "payload_length": f["payload_length"],
+                "crc32": f["crc32_hex"],
+                "sha256": f["sha256_hex"],
+            }
+        )
 
     print(json.dumps(results, indent=2))
 
 
 def main():
     from utf.console import enable_utf8
+
     enable_utf8()
     if len(sys.argv) < 2:
         print("Usage: tscg-b <encode|decode|stream> [args...]")
         sys.exit(1)
 
-    if sys.argv[1] in ('--help', '-h'):
+    if sys.argv[1] in ("--help", "-h"):
         print("Usage: tscg-b <encode|decode|stream> [args...]")
         print("  encode [text...]  - Encode text into TSCG-B binary frame")
-        print("  decode [hex]      - Decode TSCG-B binary frame from hex"
-              " or stdin")
+        print("  decode [hex]      - Decode TSCG-B binary frame from hex" " or stdin")
         print("  stream [hex]      - Decode a stream of TSCG-B frames")
         sys.exit(0)
 
@@ -79,9 +82,9 @@ def main():
     args = sys.argv[2:]
 
     commands = {
-        'encode': cmd_encode,
-        'decode': cmd_decode,
-        'stream': cmd_stream,
+        "encode": cmd_encode,
+        "decode": cmd_decode,
+        "stream": cmd_stream,
     }
 
     if cmd not in commands:
@@ -96,5 +99,5 @@ def main():
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

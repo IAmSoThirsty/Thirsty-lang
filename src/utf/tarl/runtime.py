@@ -8,6 +8,7 @@ Phase 4: evaluate_with_proof() — evaluate and return a TarlProof alongside
          registered; HMAC-SHA256 is retained for compatibility, and Ed25519 is
          available for non-repudiable asymmetric signatures.
 """
+
 import datetime
 import hashlib
 import hmac
@@ -59,8 +60,7 @@ def _is_temporally_constrained(policy: TarlPolicy) -> bool:
         except Exception:
             return True
         if any(
-            isinstance(token.value, str)
-            and token.value.upper() in temporal_names
+            isinstance(token.value, str) and token.value.upper() in temporal_names
             for token in tokens
         ):
             return True
@@ -115,16 +115,16 @@ class TarlRuntime:
         self.cache = LRUCache(maxsize=128)
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self._hit_counts: dict = {}
-        self._throw_counts: dict = {}   # rule_index -> number of evaluation exceptions
+        self._throw_counts: dict = {}  # rule_index -> number of evaluation exceptions
         self._sources: dict = {}
-        self._signing_keys: dict = {}   # key_id -> bytes (HMAC secrets)
+        self._signing_keys: dict = {}  # key_id -> bytes (HMAC secrets)
         self._ed25519_signing_keys: dict = {}  # key_id -> Ed25519PrivateKey
         self._signing_key_id: str = ""  # active key
-        self._signing_alg: str = ""     # "hmac-sha256" or "ed25519"
-        self._archive = None            # TarlAuditArchive | None
+        self._signing_alg: str = ""  # "hmac-sha256" or "ed25519"
+        self._archive = None  # TarlAuditArchive | None
         self._context_schema: ContextSchema | None = None
         self._context_schema_origin = "none"
-        self._require_audit = False     # fail closed if audit cannot persist
+        self._require_audit = False  # fail closed if audit cannot persist
         # Trusted time source for temporal checks; None => host clock.
         self._clock: Callable[[], datetime.datetime | None] | None = None
 
@@ -190,16 +190,16 @@ class TarlRuntime:
                 reason=f"fail-closed: required audit could not be persisted: {exc}",
             )
             denied_proof = self._generate_proof(
-                policy, ctx, denied, -1,
+                policy,
+                ctx,
+                denied,
+                -1,
                 [{"kind": "audit-fail", "matched": False, "reason": str(exc)}],
                 schema_binding={
                     "hash": proof.context_schema_hash or "",
-                    "representation_id": (
-                        proof.context_schema_representation_id or ""
-                    ),
+                    "representation_id": (proof.context_schema_representation_id or ""),
                     "status": (
-                        proof.context_schema_validation_status
-                        or "not_evaluated"
+                        proof.context_schema_validation_status or "not_evaluated"
                     ),
                 },
                 evaluation_time=datetime.datetime.fromisoformat(
@@ -348,8 +348,7 @@ class TarlRuntime:
         if (
             not context_unchanged
             or after_binding["hash"] != before_binding["hash"]
-            or after_binding["representation_id"]
-            != before_binding["representation_id"]
+            or after_binding["representation_id"] != before_binding["representation_id"]
         ):
             after_binding["status"] = "error"
             return (
@@ -397,9 +396,7 @@ class TarlRuntime:
 
     # ── Signing key registry ──────────────────────────────────────────────────
 
-    def set_signing_key(
-        self, key_id: str, secret: bytes
-    ) -> "TarlRuntime":
+    def set_signing_key(self, key_id: str, secret: bytes) -> "TarlRuntime":
         """
         Register an HMAC-SHA256 signing key for proof generation.
         The most recently set key becomes the active key.
@@ -431,9 +428,7 @@ class TarlRuntime:
 
     # ── Source registry ───────────────────────────────────────────────────────
 
-    def register_source(
-        self, name: str, provider
-    ) -> "TarlRuntime":
+    def register_source(self, name: str, provider) -> "TarlRuntime":
         """
         Bind a data provider to source:<name> condition references.
 
@@ -581,9 +576,7 @@ class TarlRuntime:
                 prepared.canonical_context_hash,
                 prepared.normalization_algorithm_id,
                 prepared.normalization_version,
-                self._binding_for_schema(
-                    evaluation_schema, "not_evaluated"
-                )["hash"],
+                self._binding_for_schema(evaluation_schema, "not_evaluated")["hash"],
             )
         )
 
@@ -641,9 +634,7 @@ class TarlRuntime:
         for idx in range(len(policy.rules)):
             matched, decision, rule, threw = results[idx]
             if threw:
-                self._throw_counts[idx] = (
-                    self._throw_counts.get(idx, 0) + 1
-                )
+                self._throw_counts[idx] = self._throw_counts.get(idx, 0) + 1
                 return TarlDecision(
                     verdict=TarlVerdict.DENY,
                     reason=(
@@ -654,12 +645,8 @@ class TarlRuntime:
                     matched_rule=str(rule),
                 )
             if matched:
-                self._hit_counts[idx] = (
-                    self._hit_counts.get(idx, 0) + 1
-                )
-                authority_expiry = _policy_authority_expiry(
-                    policy, rule, trusted_now
-                )
+                self._hit_counts[idx] = self._hit_counts.get(idx, 0) + 1
+                authority_expiry = _policy_authority_expiry(policy, rule, trusted_now)
                 expires_at = (
                     authority_expiry.isoformat(timespec="seconds")
                     if authority_expiry is not None
@@ -698,19 +685,31 @@ class TarlRuntime:
             tokens = PolicyParser._tokenize(rule.condition)
             matched = SafeExpr.evaluate(tokens, context, now=now)
             if matched:
-                return True, TarlDecision(
+                return (
+                    True,
+                    TarlDecision(
+                        verdict=rule.verdict,
+                        reason=f"Condition '{rule.condition}' matched",
+                    ),
+                    False,
+                )
+            return (
+                False,
+                TarlDecision(
                     verdict=rule.verdict,
-                    reason=f"Condition '{rule.condition}' matched",
-                ), False
-            return False, TarlDecision(
-                verdict=rule.verdict,
-                reason="Condition did not match",
-            ), False
+                    reason="Condition did not match",
+                ),
+                False,
+            )
         except Exception as exc:
-            return False, TarlDecision(
-                verdict=TarlVerdict.DENY,
-                reason=f"Evaluation error: {exc}",
-            ), True
+            return (
+                False,
+                TarlDecision(
+                    verdict=TarlVerdict.DENY,
+                    reason=f"Evaluation error: {exc}",
+                ),
+                True,
+            )
 
     # ── Proof-carrying evaluation ─────────────────────────────────────────────
 
@@ -756,12 +755,14 @@ class TarlRuntime:
                 verdict=TarlVerdict.DENY,
                 reason=f"fail-closed: {exc}",
             )
-            trace = [{
-                "kind": "trusted-time-failure",
-                "matched": False,
-                "reason": str(exc),
-                "state": exc.state.value,
-            }]
+            trace = [
+                {
+                    "kind": "trusted-time-failure",
+                    "matched": False,
+                    "reason": str(exc),
+                    "state": exc.state.value,
+                }
+            ]
             proof = self._generate_proof(
                 policy,
                 prepared,
@@ -810,11 +811,13 @@ class TarlRuntime:
                 verdict=TarlVerdict.DENY,
                 reason=f"fail-closed: {schema_resolution_error}",
             )
-            trace = [{
-                "kind": "context-schema-unavailable",
-                "matched": False,
-                "reason": schema_resolution_error,
-            }]
+            trace = [
+                {
+                    "kind": "context-schema-unavailable",
+                    "matched": False,
+                    "reason": schema_resolution_error,
+                }
+            ]
             proof = self._generate_proof(
                 policy,
                 prepared,
@@ -833,8 +836,13 @@ class TarlRuntime:
             evaluation_schema,
         )
         if schema_decision is not None:
-            trace = [{"kind": "schema-violation", "matched": False,
-                      "reason": schema_decision.reason}]
+            trace = [
+                {
+                    "kind": "schema-violation",
+                    "matched": False,
+                    "reason": schema_decision.reason,
+                }
+            ]
             proof = self._generate_proof(
                 policy,
                 prepared,
@@ -866,21 +874,19 @@ class TarlRuntime:
         trusted_now = evaluation_now
 
         for i, rule in enumerate(policy.rules):
-            matched, rule_dec, threw = self._evaluate_rule(
-                rule, prepared, trusted_now
-            )
+            matched, rule_dec, threw = self._evaluate_rule(rule, prepared, trusted_now)
             if threw:
-                self._throw_counts[i] = (
-                    self._throw_counts.get(i, 0) + 1
-                )
-            trace.append({
-                **({"kind": "evaluation-error"} if threw else {}),
-                "rule_index": i,
-                "condition": rule.condition,
-                "verdict": rule.verdict.value,
-                "matched": matched,
-                **({"error": rule_dec.reason} if threw else {}),
-            })
+                self._throw_counts[i] = self._throw_counts.get(i, 0) + 1
+            trace.append(
+                {
+                    **({"kind": "evaluation-error"} if threw else {}),
+                    "rule_index": i,
+                    "condition": rule.condition,
+                    "verdict": rule.verdict.value,
+                    "matched": matched,
+                    **({"error": rule_dec.reason} if threw else {}),
+                }
+            )
             if threw:
                 decision = TarlDecision(
                     verdict=TarlVerdict.DENY,
@@ -895,9 +901,7 @@ class TarlRuntime:
                 break
             if matched:
                 matched_idx = i
-                authority_expiry = _policy_authority_expiry(
-                    policy, rule, trusted_now
-                )
+                authority_expiry = _policy_authority_expiry(policy, rule, trusted_now)
                 expires_at = (
                     authority_expiry.isoformat(timespec="seconds")
                     if authority_expiry is not None
@@ -933,18 +937,13 @@ class TarlRuntime:
         schema_binding: dict[str, str] | None = None,
         evaluation_time: datetime.datetime | None = None,
     ) -> TarlProof:
-        policy_hash = "sha256:" + hashlib.sha256(
-            policy.source.encode("utf-8")
-        ).hexdigest()
-        context_hash = (
-            context.canonical_context_hash or context.original_context_hash
+        policy_hash = (
+            "sha256:" + hashlib.sha256(policy.source.encode("utf-8")).hexdigest()
         )
+        context_hash = context.canonical_context_hash or context.original_context_hash
         if evaluation_time is None:
             evaluation_time = datetime.datetime.now(datetime.UTC)
-        if (
-            evaluation_time.tzinfo is None
-            or evaluation_time.utcoffset() is None
-        ):
+        if evaluation_time.tzinfo is None or evaluation_time.utcoffset() is None:
             raise ValueError("proof evaluation time must be timezone-aware")
         evaluated_at = (
             evaluation_time.astimezone(datetime.UTC)
@@ -972,9 +971,7 @@ class TarlRuntime:
             normalization_version=context.normalization_version,
             context_conflict_status=context.context_conflict_status,
             context_schema_hash=schema_binding["hash"],
-            context_schema_representation_id=(
-                schema_binding["representation_id"]
-            ),
+            context_schema_representation_id=(schema_binding["representation_id"]),
             context_schema_validation_status=schema_binding["status"],
             expires_at=decision.expires_at,
         )

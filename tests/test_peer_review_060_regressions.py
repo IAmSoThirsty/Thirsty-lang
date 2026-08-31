@@ -1,7 +1,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 
@@ -28,12 +28,15 @@ def _policy(text='policy p\nwhen action == "moveFunds" => ALLOW\nwhen true => DE
     return TarlRuntime(PolicyParser.parse(text))
 
 
-@pytest.mark.parametrize("expr,expected", [
-    ("true || false", True),
-    ("false ^ true", False),
-    ("true ^ false", False),
-    ("false || false", False),
-])
+@pytest.mark.parametrize(
+    "expr,expected",
+    [
+        ("true || false", True),
+        ("false ^ true", False),
+        ("true ^ false", False),
+        ("false || false", False),
+    ],
+)
 def test_boolean_combine_uses_truth_table(expr, expected):
     assert _eval(expr) is expected
 
@@ -79,8 +82,9 @@ glass id(v) { return v }
 drink y = id(x = 7)
 """
     errors = check_ast(_program(src))
-    assert any("Assignment cannot be used as an expression" in e.message
-               for e in errors)
+    assert any(
+        "Assignment cannot be used as an expression" in e.message for e in errors
+    )
 
 
 def test_assignment_in_call_argument_rejected_at_runtime():

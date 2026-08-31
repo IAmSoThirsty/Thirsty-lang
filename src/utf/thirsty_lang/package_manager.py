@@ -2,6 +2,7 @@
 Thirsty-Lang Package Manager
 thirsty.toml files, thirsty.lock with SHA-256, and dependency management.
 """
+
 import hashlib
 import json
 import os
@@ -41,7 +42,7 @@ class PackageManager:
                 continue
 
             # Section header: [section]
-            section_match = re.match(r'^\[([^\]]+)\]$', line)
+            section_match = re.match(r"^\[([^\]]+)\]$", line)
             if section_match:
                 section_name = section_match.group(1)
                 parts = section_name.split(".")
@@ -53,7 +54,7 @@ class PackageManager:
                 continue
 
             # Key-value: key = value
-            kv_match = re.match(r'^([^=]+)=(.+)$', line)
+            kv_match = re.match(r"^([^=]+)=(.+)$", line)
             if kv_match:
                 key = kv_match.group(1).strip()
                 raw_value = kv_match.group(2).strip()
@@ -80,14 +81,14 @@ class PackageManager:
             if not inner:
                 return []
             items = []
-            for item in re.split(r',\s*', inner):
+            for item in re.split(r",\s*", inner):
                 items.append(self._parse_toml_value(item.strip()))
             return items
         # Inline table: {key = value}
         if raw.startswith("{") and raw.endswith("}"):
             inner = raw[1:-1].strip()
             result = {}
-            for pair in re.split(r',\s*', inner):
+            for pair in re.split(r",\s*", inner):
                 if "=" in pair:
                     k, v = pair.split("=", 1)
                     result[k.strip()] = self._parse_toml_value(v.strip())
@@ -119,7 +120,9 @@ class PackageManager:
 
         lock_entries = {}
         for name, version_spec in dependencies.items():
-            version = version_spec if isinstance(version_spec, str) else str(version_spec)
+            version = (
+                version_spec if isinstance(version_spec, str) else str(version_spec)
+            )
             entry = {
                 "version": version,
                 "resolved": f"thirsty-registry://{name}@{version}",
@@ -143,7 +146,7 @@ class PackageManager:
         if path:
             self.lock_path = path
         try:
-            with open(self.lock_path, 'w') as f:
+            with open(self.lock_path, "w") as f:
                 json.dump(self.lock, f, indent=2)
             return True
         except Exception:
@@ -156,11 +159,13 @@ class PackageManager:
             expected = entry.get("integrity", "")
             computed = self._compute_integrity(name, entry.get("version", ""))
             if expected != computed:
-                violations.append({
-                    "name": name,
-                    "expected": expected,
-                    "computed": computed,
-                })
+                violations.append(
+                    {
+                        "name": name,
+                        "expected": expected,
+                        "computed": computed,
+                    }
+                )
         return violations
 
     def add_dependency(self, name: str, version_spec: str = "*") -> bool:
@@ -181,7 +186,7 @@ class PackageManager:
         """Write the manifest back to disk."""
         try:
             content = self._format_toml(self.manifest)
-            with open(self.manifest_path, 'w') as f:
+            with open(self.manifest_path, "w") as f:
                 f.write(content)
             return True
         except Exception:
@@ -194,13 +199,17 @@ class PackageManager:
             if isinstance(value, dict) and key != "dependencies":
                 lines.append(f"\n[{prefix}{key}]")
                 for k2, v2 in value.items():
-                    lines.append(f"{k2} = {json.dumps(v2) if isinstance(v2, str) else v2}")
+                    lines.append(
+                        f"{k2} = {json.dumps(v2) if isinstance(v2, str) else v2}"
+                    )
             elif key == "dependencies" and isinstance(value, dict):
                 lines.append("\n[dependencies]")
                 for dep_name, dep_ver in value.items():
                     lines.append(f"{dep_name} = {json.dumps(str(dep_ver))}")
             else:
-                lines.append(f"{key} = {json.dumps(value) if isinstance(value, str) else value}")
+                lines.append(
+                    f"{key} = {json.dumps(value) if isinstance(value, str) else value}"
+                )
         return "\n".join(lines)
 
     def audit_dependencies(self) -> list[dict]:
@@ -216,29 +225,37 @@ class PackageManager:
 
         for name in manifest_deps:
             if name not in lock_deps:
-                issues.append({
-                    "type": "missing_lock",
-                    "name": name,
-                    "message": f"Dependency '{name}' is in manifest but not in lockfile"
-                })
+                issues.append(
+                    {
+                        "type": "missing_lock",
+                        "name": name,
+                        "message": f"Dependency '{name}' is in manifest but not in lockfile",
+                    }
+                )
             else:
                 # Verify integrity
                 expected = lock_deps[name].get("integrity", "")
-                computed = self._compute_integrity(name, lock_deps[name].get("version", ""))
+                computed = self._compute_integrity(
+                    name, lock_deps[name].get("version", "")
+                )
                 if expected != computed:
-                    issues.append({
-                        "type": "integrity_mismatch",
-                        "name": name,
-                        "message": f"Integrity mismatch for '{name}'"
-                    })
+                    issues.append(
+                        {
+                            "type": "integrity_mismatch",
+                            "name": name,
+                            "message": f"Integrity mismatch for '{name}'",
+                        }
+                    )
 
         for name in lock_deps:
             if name not in manifest_deps:
-                issues.append({
-                    "type": "orphan_lock",
-                    "name": name,
-                    "message": f"Dependency '{name}' is in lockfile but not in manifest"
-                })
+                issues.append(
+                    {
+                        "type": "orphan_lock",
+                        "name": name,
+                        "message": f"Dependency '{name}' is in lockfile but not in manifest",
+                    }
+                )
 
         return issues
 
@@ -254,18 +271,15 @@ mode = "core"
 [dependencies]
 """
     path = os.path.join(project_dir, "thirsty.toml")
-    with open(path, 'w') as f:
+    with open(path, "w") as f:
         f.write(content)
     return path
 
 
 def create_thirsty_lock(project_dir: str) -> str:
     """Create an empty thirsty.lock lockfile."""
-    content = json.dumps({
-        "lockfile_version": 1,
-        "dependencies": {}
-    }, indent=2)
+    content = json.dumps({"lockfile_version": 1, "dependencies": {}}, indent=2)
     path = os.path.join(project_dir, "thirsty.lock")
-    with open(path, 'w') as f:
+    with open(path, "w") as f:
         f.write(content)
     return path

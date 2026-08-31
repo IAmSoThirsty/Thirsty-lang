@@ -27,7 +27,7 @@ Workspace: `thirsty_lang_exploration_0754`
   `CR-CONTEXT-RESOLUTION-INTEGRITY`; both remain critical FAIL pending
   independent constitutional acceptance.
 - Documentation is being reconciled to the released behavior and assembled
-  into `docs/THIRSTY_LANG_101.md` plus the generated single-file canonical PDF.
+  into `docs/THIRSTY_LANG_UTF_101.md` plus the generated single-file canonical PDF.
 
 ---
 

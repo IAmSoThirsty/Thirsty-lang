@@ -1,4 +1,5 @@
 """Coverage for the main `thirsty` CLI dispatch and every subcommand."""
+
 import builtins
 import os
 
@@ -32,6 +33,7 @@ def write(tmp_path, name, text):
 
 # === main dispatch ========================================================
 
+
 def test_main_no_command(monkeypatch, capsys):
     run_cli(monkeypatch)
     assert "usage" in capsys.readouterr().out.lower()
@@ -44,21 +46,24 @@ def test_main_version(monkeypatch, capsys):
 
 
 def test_main_exception_handler(monkeypatch):
-    monkeypatch.setattr(cli, "cmd_fmt",
-                        lambda _a: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(
+        cli, "cmd_fmt", lambda _a: (_ for _ in ()).throw(RuntimeError("boom"))
+    )
     with pytest.raises(SystemExit):
         run_cli(monkeypatch, "fmt", "x.thirsty")
 
 
 def test_main_exception_with_debug(monkeypatch):
     monkeypatch.setenv("THIRSTY_DEBUG", "1")
-    monkeypatch.setattr(cli, "cmd_lock",
-                        lambda _a: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(
+        cli, "cmd_lock", lambda _a: (_ for _ in ()).throw(RuntimeError("boom"))
+    )
     with pytest.raises(SystemExit):
         run_cli(monkeypatch, "lock")
 
 
 # === run ==================================================================
+
 
 def test_run_demo(monkeypatch, capsys):
     run_cli(monkeypatch, "run", "--demo")
@@ -71,8 +76,11 @@ def test_run_file(monkeypatch, tmp_path, capsys):
 
 
 def test_run_prints_result(monkeypatch, tmp_path, capsys):
-    run_cli(monkeypatch, "run", write(tmp_path, "p.thirsty",
-                                       "module m: core\ndrink x = 5\nx"))
+    run_cli(
+        monkeypatch,
+        "run",
+        write(tmp_path, "p.thirsty", "module m: core\ndrink x = 5\nx"),
+    )
     assert "5" in capsys.readouterr().out
 
 
@@ -97,49 +105,59 @@ RUNTIME_ERR = "module m: core\ndrink x = 1 / 0"
 
 def test_run_runtime_error(monkeypatch, tmp_path):
     with pytest.raises(SystemExit):
-        run_cli(monkeypatch, "run",
-                write(tmp_path, "e.thirsty", RUNTIME_ERR))
+        run_cli(monkeypatch, "run", write(tmp_path, "e.thirsty", RUNTIME_ERR))
 
 
 def test_run_runtime_error_release(monkeypatch, tmp_path, capsys):
     with pytest.raises(SystemExit):
-        run_cli(monkeypatch, "run", "--release",
-                write(tmp_path, "e.thirsty", RUNTIME_ERR))
+        run_cli(
+            monkeypatch, "run", "--release", write(tmp_path, "e.thirsty", RUNTIME_ERR)
+        )
     assert "Error:" in capsys.readouterr().err
 
 
 def test_run_runtime_error_trace(monkeypatch, tmp_path):
     with pytest.raises(SystemExit):
-        run_cli(monkeypatch, "run", "--trace",
-                write(tmp_path, "e.thirsty", RUNTIME_ERR))
+        run_cli(
+            monkeypatch, "run", "--trace", write(tmp_path, "e.thirsty", RUNTIME_ERR)
+        )
 
 
 def test_run_locked_no_lockfile(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     with pytest.raises(SystemExit):
-        run_cli(monkeypatch, "run", "--locked",
-                write(tmp_path, "p.thirsty", PROG))
+        run_cli(monkeypatch, "run", "--locked", write(tmp_path, "p.thirsty", PROG))
 
 
 def test_run_locked_ok(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "thirsty.lock").write_text(
-        '{"dependencies": {"a": {"version": "1"}}}')
-    run_cli(monkeypatch, "run", "--locked",
-            write(tmp_path, "p.thirsty", PROG))
+    (tmp_path / "thirsty.lock").write_text('{"dependencies": {"a": {"version": "1"}}}')
+    run_cli(monkeypatch, "run", "--locked", write(tmp_path, "p.thirsty", PROG))
     assert "Lockfile verified" in capsys.readouterr().out
 
 
 def test_run_policy_not_found(monkeypatch, tmp_path):
     with pytest.raises(SystemExit):
-        run_cli(monkeypatch, "run", "--policy", "missing.tarl",
-                write(tmp_path, "p.thirsty", PROG))
+        run_cli(
+            monkeypatch,
+            "run",
+            "--policy",
+            "missing.tarl",
+            write(tmp_path, "p.thirsty", PROG),
+        )
 
 
 def test_run_with_authority_and_policy(monkeypatch, tmp_path, capsys):
     policy = write(tmp_path, "p.tarl", "when true => ALLOW\n")
-    run_cli(monkeypatch, "run", "--authority", "admin", "--policy", policy,
-            write(tmp_path, "p.thirsty", PROG))
+    run_cli(
+        monkeypatch,
+        "run",
+        "--authority",
+        "admin",
+        "--policy",
+        policy,
+        write(tmp_path, "p.thirsty", PROG),
+    )
     assert "hello" in capsys.readouterr().out
 
 
@@ -159,6 +177,7 @@ def test_run_governance_violation(monkeypatch, tmp_path):
 
 # === fmt ==================================================================
 
+
 def test_fmt_write(monkeypatch, tmp_path, capsys):
     run_cli(monkeypatch, "fmt", write(tmp_path, "p.thirsty", PROG))
     assert "Formatted" in capsys.readouterr().out
@@ -166,8 +185,12 @@ def test_fmt_write(monkeypatch, tmp_path, capsys):
 
 def test_fmt_check_would_reformat(monkeypatch, tmp_path):
     with pytest.raises(SystemExit):
-        run_cli(monkeypatch, "fmt", "--check",
-                write(tmp_path, "p.thirsty", "module m: core\ndrink   x=1"))
+        run_cli(
+            monkeypatch,
+            "fmt",
+            "--check",
+            write(tmp_path, "p.thirsty", "module m: core\ndrink   x=1"),
+        )
 
 
 def test_fmt_file_not_found(monkeypatch, capsys):
@@ -176,6 +199,7 @@ def test_fmt_file_not_found(monkeypatch, capsys):
 
 
 # === new ==================================================================
+
 
 def test_new_project(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
@@ -193,9 +217,9 @@ def test_new_existing_dir(monkeypatch, tmp_path):
 
 # === govern ===============================================================
 
+
 def test_govern_report(monkeypatch, tmp_path, capsys):
-    run_cli(monkeypatch, "govern", "--report",
-            write(tmp_path, "p.thirsty", PROG))
+    run_cli(monkeypatch, "govern", "--report", write(tmp_path, "p.thirsty", PROG))
     assert "Governance Report" in capsys.readouterr().out
 
 
@@ -219,6 +243,7 @@ def test_govern_auto_tarl(monkeypatch, tmp_path, capsys):
 
 
 # === add / audit / lock ===================================================
+
 
 def test_add(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
@@ -253,6 +278,7 @@ def test_lock(monkeypatch, tmp_path, capsys):
 
 # === doctor ===============================================================
 
+
 def test_doctor_failing(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     with pytest.raises(SystemExit):
@@ -280,6 +306,7 @@ def test_doctor_passing(monkeypatch, tmp_path, capsys):
 
 # === docs =================================================================
 
+
 def test_docs(monkeypatch, tmp_path, capsys):
     outdir = tmp_path / "docs"
     run_cli(monkeypatch, "docs", "--output-dir", str(outdir))
@@ -287,6 +314,7 @@ def test_docs(monkeypatch, tmp_path, capsys):
 
 
 # === repl =================================================================
+
 
 def _feed_input(monkeypatch, lines):
     it = iter(lines)
@@ -301,14 +329,17 @@ def _feed_input(monkeypatch, lines):
 
 
 def test_repl_session(monkeypatch, capsys):
-    _feed_input(monkeypatch, [
-        "help",
-        "",
-        "drink x = 5",
-        "x",
-        ".clear",
-        "exit",
-    ])
+    _feed_input(
+        monkeypatch,
+        [
+            "help",
+            "",
+            "drink x = 5",
+            "x",
+            ".clear",
+            "exit",
+        ],
+    )
     run_cli(monkeypatch, "repl")
     out = capsys.readouterr().out
     assert "REPL" in out

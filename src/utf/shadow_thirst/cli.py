@@ -1,6 +1,7 @@
 """
 Shadow Thirst CLI — Check mutations and visualize promotion flow.
 """
+
 import argparse
 import json
 import sys
@@ -10,22 +11,24 @@ from utf.shadow_thirst.core import AnalysisLevel, MutationParser, PromotionEngin
 
 def main():
     from utf.console import enable_utf8
+
     enable_utf8()
     parser = argparse.ArgumentParser(
         description="Shadow Thirst — Mutation Analysis and Promotion Engine"
     )
-    subparsers = parser.add_subparsers(dest='command', help='Sub-commands')
+    subparsers = parser.add_subparsers(dest="command", help="Sub-commands")
 
     # check command
-    check_parser = subparsers.add_parser('check', help='Analyze a mutation file')
-    check_parser.add_argument('mutation_file', help='Path to mutation file')
-    check_parser.add_argument('--json', '-j', action='store_true',
-                              help='Output as JSON')
+    check_parser = subparsers.add_parser("check", help="Analyze a mutation file")
+    check_parser.add_argument("mutation_file", help="Path to mutation file")
+    check_parser.add_argument(
+        "--json", "-j", action="store_true", help="Output as JSON"
+    )
 
     # visualize command
-    viz_parser = subparsers.add_parser('visualize', help='Generate Mermaid flowchart')
-    viz_parser.add_argument('mutation_file', help='Path to mutation file')
-    viz_parser.add_argument('--output', '-o', help='Output file (default stdout)')
+    viz_parser = subparsers.add_parser("visualize", help="Generate Mermaid flowchart")
+    viz_parser.add_argument("mutation_file", help="Path to mutation file")
+    viz_parser.add_argument("--output", "-o", help="Output file (default stdout)")
 
     args = parser.parse_args()
 
@@ -50,23 +53,23 @@ def main():
 
     engine = PromotionEngine()
 
-    if args.command == 'check':
+    if args.command == "check":
         verdict, results = engine.evaluate(module)
 
         if args.json:
             output = {
-                'name': module.name,
-                'verdict': verdict,
-                'replay_hash': module.replay_hash(),
-                'results': [
+                "name": module.name,
+                "verdict": verdict,
+                "replay_hash": module.replay_hash(),
+                "results": [
                     {
-                        'analyzer': r.analyzer,
-                        'passed': r.passed,
-                        'level': r.level,
-                        'message': r.message
+                        "analyzer": r.analyzer,
+                        "passed": r.passed,
+                        "level": r.level,
+                        "message": r.message,
                     }
                     for r in results
-                ]
+                ],
             }
             print(json.dumps(output, indent=2))
         else:
@@ -75,24 +78,28 @@ def main():
             print(f"{'─' * 60}")
             for r in results:
                 status = "✅" if r.passed else "❌"
-                level_tag = "[CRITICAL]" if r.level == AnalysisLevel.CRITICAL else "[WARN]"
+                level_tag = (
+                    "[CRITICAL]" if r.level == AnalysisLevel.CRITICAL else "[WARN]"
+                )
                 print(f"  {status} {level_tag} {r.analyzer}")
                 print(f"     {r.message}")
             print(f"{'─' * 60}")
-            verdict_icon = "🚀" if verdict == "PROMOTE" else "❌" if verdict == "REJECT" else "⚠️"
+            verdict_icon = (
+                "🚀" if verdict == "PROMOTE" else "❌" if verdict == "REJECT" else "⚠️"
+            )
             print(f"  {verdict_icon} VERDICT: {verdict}")
 
-    elif args.command == 'visualize':
+    elif args.command == "visualize":
         verdict, results = engine.evaluate(module)
         mermaid = engine.generate_mermaid(module, verdict, results)
 
         if args.output:
-            with open(args.output, 'w', encoding='utf-8') as f:
+            with open(args.output, "w", encoding="utf-8") as f:
                 f.write(mermaid)
             print(f"Mermaid flowchart written to {args.output}")
         else:
             print(mermaid)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

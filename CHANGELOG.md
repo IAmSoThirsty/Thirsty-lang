@@ -12,8 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reconciled README, security, governance, deployment, contribution, signing,
   Docker, shipping, status, threat-model, whitepaper, specification, grammar,
   and continuity guidance with the released 0.8.6 behavior and receipts.
-- Added `docs/THIRSTY_LANG_101.md` as the integrated canonical source and a
-  reproducible `output/pdf/Thirsty-Lang-101.pdf` single-file edition with a
+- Added `docs/THIRSTY_LANG_UTF_101.md` as the integrated canonical source and a
+  reproducible `output/pdf/Thirsty-Lang-UTF-101.pdf` single-file edition with a
   checked source manifest, bookmarks, table of contents, and validation tooling.
 - Distinguished proof records from signed proofs and explicit durable audit
   configuration; removed claims that hardened mode automatically provisions an

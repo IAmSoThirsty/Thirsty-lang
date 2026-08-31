@@ -3,7 +3,7 @@
 **Applies to:** Thirsty-Lang 0.8.6+ · **Audience:** operators embedding the
 governed runtime to authorize real-world, high-risk actions.
 
-Canonical end-to-end reference: [THIRSTY_LANG_101.md](THIRSTY_LANG_101.md).
+Canonical end-to-end reference: [THIRSTY_LANG_UTF_101.md](THIRSTY_LANG_UTF_101.md).
 
 The reference runtime meets its hardened-runtime acceptance bar (WHITEPAPER §8)
 and, as of 0.7.0, ships the operational machinery that earlier releases left to

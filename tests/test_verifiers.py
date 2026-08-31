@@ -7,10 +7,11 @@ Phase 2 — layered semantic verifiers.
   - Thirst of Gods: a cascade is linked to an enclosing spillage handler, not
     merely co-present with one.
 """
+
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 
@@ -34,16 +35,20 @@ def _block(code):
 
 def _converge(shadow, canonical):
     return CanonicalConvergenceAnalyzer().analyze(
-        ShadowModule(name="t", shadow_code=shadow, canonical_code=canonical))
+        ShadowModule(name="t", shadow_code=shadow, canonical_code=canonical)
+    )
 
 
 # ── Convergence: layered ─────────────────────────────────────────────────────
 
+
 class TestConvergence:
     def test_structural_alpha_equivalent_promotes(self):
         # Layer 1: same shape up to variable naming.
-        r = _converge("drink x = compute(input)\nreturn x",
-                      "drink result = compute(input)\nreturn result")
+        r = _converge(
+            "drink x = compute(input)\nreturn x",
+            "drink result = compute(input)\nreturn result",
+        )
         assert r.passed
 
     def test_semantically_equal_different_shape_promotes(self):
@@ -59,15 +64,13 @@ class TestConvergence:
         assert "counterexample" in r.message.lower()
 
     def test_execute_and_compare_finds_diverging_input(self):
-        v = conv.execute_and_compare(_block("return x + 1"),
-                                     _block("return x + 2"))
+        v = conv.execute_and_compare(_block("return x + 1"), _block("return x + 2"))
         assert v.status == "diverge"
         assert v.counterexample is not None
 
     def test_execute_and_compare_abstains_on_effects(self):
         # Return-value comparison is unsound when a block has observable effects.
-        v = conv.execute_and_compare(_block("pour x\nreturn x"),
-                                     _block("return x"))
+        v = conv.execute_and_compare(_block("pour x\nreturn x"), _block("return x"))
         assert v.status == "unsupported"
 
 
@@ -78,13 +81,13 @@ class TestConvergenceZ3:
         pytest.importorskip("z3")
 
     def test_z3_proves_equivalence(self):
-        v = conv.z3_equivalence(_block("drink y = x + x\nreturn y"),
-                                _block("return x * 2"))
+        v = conv.z3_equivalence(
+            _block("drink y = x + x\nreturn y"), _block("return x * 2")
+        )
         assert v.status == "equivalent"
 
     def test_z3_finds_counterexample(self):
-        v = conv.z3_equivalence(_block("return x + 1"),
-                                _block("return x + 2"))
+        v = conv.z3_equivalence(_block("return x + 1"), _block("return x + 2"))
         assert v.status == "diverge"
         assert v.counterexample is not None
 
@@ -96,20 +99,28 @@ class TestConvergenceZ3:
 
 # ── Determinism effect pass ──────────────────────────────────────────────────
 
+
 class TestEffectPass:
     def test_direct_nondeterministic_call_flagged(self):
-        assert not DeterminismAnalyzer().analyze(
-            ShadowModule(name="t", shadow_code="drink x = now()")).passed
+        assert (
+            not DeterminismAnalyzer()
+            .analyze(ShadowModule(name="t", shadow_code="drink x = now()"))
+            .passed
+        )
 
     def test_alias_indirection_flagged(self):
         # The evasion: alias `now` into a variable, then call the variable.
-        r = DeterminismAnalyzer().analyze(ShadowModule(
-            name="t", shadow_code="drink f = now\ndrink x = f()"))
+        r = DeterminismAnalyzer().analyze(
+            ShadowModule(name="t", shadow_code="drink f = now\ndrink x = f()")
+        )
         assert not r.passed
 
     def test_transitive_alias_chain_flagged(self):
-        r = DeterminismAnalyzer().analyze(ShadowModule(
-            name="t", shadow_code="drink f = now\ndrink g = f\ndrink x = g()"))
+        r = DeterminismAnalyzer().analyze(
+            ShadowModule(
+                name="t", shadow_code="drink f = now\ndrink g = f\ndrink x = g()"
+            )
+        )
         assert not r.passed
 
     def test_taint_set_tracks_aliases(self):
@@ -117,15 +128,22 @@ class TestEffectPass:
         assert {"f", "g"} <= eff.tainted
 
     def test_clean_block_passes(self):
-        assert DeterminismAnalyzer().analyze(
-            ShadowModule(name="t", shadow_code="drink x = input + 1")).passed
+        assert (
+            DeterminismAnalyzer()
+            .analyze(ShadowModule(name="t", shadow_code="drink x = input + 1"))
+            .passed
+        )
 
     def test_variable_named_like_source_not_flagged(self):
-        assert DeterminismAnalyzer().analyze(
-            ShadowModule(name="t", shadow_code="drink nowhere = a + 1")).passed
+        assert (
+            DeterminismAnalyzer()
+            .analyze(ShadowModule(name="t", shadow_code="drink nowhere = a + 1"))
+            .passed
+        )
 
 
 # ── Thirst of Gods: cascade→spillage linking ─────────────────────────────────
+
 
 def _ast(src):
     return Parser(Lexer(src).lex()).parse()

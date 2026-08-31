@@ -6,7 +6,7 @@
 covered by a test) or *Roadmap / Deferred* (reserved surface, not yet enforced).
 The test suite is the authority; see [STATUS.md](STATUS.md) and
 [THREAT_MODEL.md](THREAT_MODEL.md). The integrated tutorial and reference is
-[THIRSTY_LANG_101.md](THIRSTY_LANG_101.md).
+[THIRSTY_LANG_UTF_101.md](THIRSTY_LANG_UTF_101.md).
 
 ---
 
@@ -465,7 +465,7 @@ stores and trust-root keys, per `docs/PRODUCTION_DEPLOYMENT.md`.
 
 ---
 
-*Canonical manual:* [THIRSTY_LANG_101.md](THIRSTY_LANG_101.md)
+*Canonical manual:* [THIRSTY_LANG_UTF_101.md](THIRSTY_LANG_UTF_101.md)
 
 *References:* [LANGUAGE_SPEC.md](LANGUAGE_SPEC.md) · [GRAMMAR.md](GRAMMAR.md) ·
 [governance_model.md](governance_model.md) · [THREAT_MODEL.md](THREAT_MODEL.md) ·

@@ -28,16 +28,18 @@ NORMALIZATION_VERSION = "1"
 SOURCE_INJECTION_ALGORITHM_ID = (
     "tarl.context.dotted-path-expansion+registered-source-injection"
 )
-RESERVED_CONTEXT_IDENTIFIERS = frozenset({
-    "true",
-    "false",
-    "CURRENT_HOUR",
-    "CURRENT_DAY",
-    "CURRENT_WEEKDAY",
-    "CURRENT_MONTH",
-    "CURRENT_YEAR",
-    "CURRENT_TIMESTAMP",
-})
+RESERVED_CONTEXT_IDENTIFIERS = frozenset(
+    {
+        "true",
+        "false",
+        "CURRENT_HOUR",
+        "CURRENT_DAY",
+        "CURRENT_WEEKDAY",
+        "CURRENT_MONTH",
+        "CURRENT_YEAR",
+        "CURRENT_TIMESTAMP",
+    }
+)
 
 
 class ContextResolutionState(StrEnum):
@@ -163,9 +165,7 @@ def _rejected_value(value: Any, active: set[int]) -> Any:
         if isinstance(value, (set, frozenset)):
             items = [_rejected_value(item, active) for item in value]
             items.sort(key=canonical_context_bytes)
-            return {
-                "$frozenset" if isinstance(value, frozenset) else "$set": items
-            }
+            return {"$frozenset" if isinstance(value, frozenset) else "$set": items}
         try:
             display = repr(value)
         except Exception:
@@ -180,9 +180,7 @@ def _rejected_value(value: Any, active: set[int]) -> Any:
 
 def hash_rejected_context(context: Any) -> str:
     diagnostic = _rejected_value(context, set())
-    return "sha256:" + hashlib.sha256(
-        canonical_context_bytes(diagnostic)
-    ).hexdigest()
+    return "sha256:" + hashlib.sha256(canonical_context_bytes(diagnostic)).hexdigest()
 
 
 def hash_rejected_canonical_binding(
@@ -205,6 +203,7 @@ def load_context_json(raw: str) -> Any:
     Python's ordinary ``json.loads`` silently keeps the last duplicate key,
     which would let validation and authorization observe different values.
     """
+
     def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         result: dict[str, Any] = {}
         for key, value in pairs:
@@ -566,9 +565,7 @@ def rejected_context_binding(
 ) -> PreparedContext:
     """Bind an invalid input to a DENY proof without claiming it was evaluated."""
     original_hash = hash_rejected_context(context)
-    canonical_hash = hash_rejected_canonical_binding(
-        original_hash, conflict_status
-    )
+    canonical_hash = hash_rejected_canonical_binding(original_hash, conflict_status)
     return PreparedContext(
         canonical={},
         original_context_hash=original_hash,

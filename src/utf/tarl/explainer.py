@@ -4,6 +4,7 @@ T.A.R.L. Policy Explainer — Phase 6
 Produces a human-readable trace of how a policy decision was reached,
 showing each rule evaluated in order with its match result.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -15,11 +16,12 @@ from utf.tarl.spec import TarlPolicy, TarlVerdict
 @dataclass
 class RuleTrace:
     """Evaluation trace for a single rule."""
+
     rule_index: int
     condition: str
     verdict: TarlVerdict
     matched: bool
-    evaluated: bool = True       # False if skipped — earlier rule already matched
+    evaluated: bool = True  # False if skipped — earlier rule already matched
     error: str | None = None
 
     def __str__(self) -> str:
@@ -37,9 +39,10 @@ class RuleTrace:
 @dataclass
 class PolicyExplanation:
     """Full explanation of a policy evaluation."""
+
     policy_name: str
     verdict: TarlVerdict
-    matched_rule_index: int               # -1 = DEFAULT_DENY
+    matched_rule_index: int  # -1 = DEFAULT_DENY
     rule_traces: list[RuleTrace] = field(default_factory=list)
     temporal_reason: str | None = None
     expires_at: str | None = None
@@ -146,13 +149,15 @@ class TarlExplainer:
 
         for i, rule in enumerate(policy.rules):
             if matched_index >= 0:
-                traces.append(RuleTrace(
-                    rule_index=i,
-                    condition=rule.condition,
-                    verdict=rule.verdict,
-                    matched=False,
-                    evaluated=False,
-                ))
+                traces.append(
+                    RuleTrace(
+                        rule_index=i,
+                        condition=rule.condition,
+                        verdict=rule.verdict,
+                        matched=False,
+                        evaluated=False,
+                    )
+                )
                 continue
 
             error = None
@@ -162,14 +167,16 @@ class TarlExplainer:
             except Exception as exc:
                 error = str(exc)
 
-            traces.append(RuleTrace(
-                rule_index=i,
-                condition=rule.condition,
-                verdict=rule.verdict,
-                matched=matched,
-                evaluated=True,
-                error=error,
-            ))
+            traces.append(
+                RuleTrace(
+                    rule_index=i,
+                    condition=rule.condition,
+                    verdict=rule.verdict,
+                    matched=matched,
+                    evaluated=True,
+                    error=error,
+                )
+            )
 
             # An unresolved or ill-typed value is not an ordinary non-match.
             # Stop the trace at the failing rule so a later permissive rule is

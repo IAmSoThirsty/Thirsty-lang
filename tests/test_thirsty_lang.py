@@ -1,10 +1,11 @@
 """
 Unit tests for Thirsty-Lang core: lexer, parser, checker, interpreter.
 """
+
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from utf.thirsty_lang.ast import (
     BinaryOp,
@@ -55,7 +56,7 @@ class TestLexer:
         assert TokenType.FLOAT in types
 
     def test_strings(self):
-        code = '"hello" \'world\''
+        code = "\"hello\" 'world'"
         tokens = Lexer(code).lex()
         strings = [t for t in tokens if t.type == TokenType.STRING]
         assert len(strings) == 2
@@ -130,33 +131,68 @@ class TestInterpreter:
     """Tests for the Thirsty-Lang interpreter."""
 
     def test_literal_expr(self):
-        ast = Program(stmts=[ExprStmt(expr=IntLiteral(value=42, span=(0, 0, 0, 0)), span=(0, 0, 0, 0))], header=None)
+        ast = Program(
+            stmts=[
+                ExprStmt(
+                    expr=IntLiteral(value=42, span=(0, 0, 0, 0)), span=(0, 0, 0, 0)
+                )
+            ],
+            header=None,
+        )
         result = Interpreter().interpret(ast)
         assert result == 42
 
     def test_string_concat(self):
-        ast = Program(stmts=[
-            ExprStmt(expr=BinaryOp(
-                left=StringLiteral(value="hello", span=(0, 0, 0, 0)),
-                op=TokenType.PLUS,
-                right=StringLiteral(value=" world", span=(0, 0, 0, 0)),
-                span=(0, 0, 0, 0)
-            ), span=(0, 0, 0, 0))
-        ], header=None)
+        ast = Program(
+            stmts=[
+                ExprStmt(
+                    expr=BinaryOp(
+                        left=StringLiteral(value="hello", span=(0, 0, 0, 0)),
+                        op=TokenType.PLUS,
+                        right=StringLiteral(value=" world", span=(0, 0, 0, 0)),
+                        span=(0, 0, 0, 0),
+                    ),
+                    span=(0, 0, 0, 0),
+                )
+            ],
+            header=None,
+        )
         result = Interpreter().interpret(ast)
         assert result == "hello world"
 
     def test_binary_ops(self):
-        ast = Program(stmts=[
-            ExprStmt(expr=BinaryOp(left=IntLiteral(value=6, span=(0, 0, 0, 0)), op=TokenType.STAR, right=IntLiteral(value=7, span=(0, 0, 0, 0)), span=(0, 0, 0, 0)), span=(0, 0, 0, 0))
-        ], header=None)
+        ast = Program(
+            stmts=[
+                ExprStmt(
+                    expr=BinaryOp(
+                        left=IntLiteral(value=6, span=(0, 0, 0, 0)),
+                        op=TokenType.STAR,
+                        right=IntLiteral(value=7, span=(0, 0, 0, 0)),
+                        span=(0, 0, 0, 0),
+                    ),
+                    span=(0, 0, 0, 0),
+                )
+            ],
+            header=None,
+        )
         result = Interpreter().interpret(ast)
         assert result == 42
 
     def test_comparison(self):
-        ast = Program(stmts=[
-            ExprStmt(expr=BinaryOp(left=IntLiteral(value=5, span=(0, 0, 0, 0)), op=TokenType.GT, right=IntLiteral(value=3, span=(0, 0, 0, 0)), span=(0, 0, 0, 0)), span=(0, 0, 0, 0))
-        ], header=None)
+        ast = Program(
+            stmts=[
+                ExprStmt(
+                    expr=BinaryOp(
+                        left=IntLiteral(value=5, span=(0, 0, 0, 0)),
+                        op=TokenType.GT,
+                        right=IntLiteral(value=3, span=(0, 0, 0, 0)),
+                        span=(0, 0, 0, 0),
+                    ),
+                    span=(0, 0, 0, 0),
+                )
+            ],
+            header=None,
+        )
         result = Interpreter().interpret(ast)
         assert result is True
 
@@ -202,7 +238,7 @@ if __name__ == "__main__":
         if isinstance(obj, type) and name.startswith("Test"):
             print(f"\n{'='*60}")
             print(f"Running {name}...")
-            print('='*60)
+            print("=" * 60)
             instance = obj()
             for attr in dir(instance):
                 if attr.startswith("test_"):

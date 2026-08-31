@@ -3,8 +3,8 @@ name: Build and Push Docker Image
 on:
   push:
     tags:
-      - 'v*'         # release tags (also publishes to PyPI via release.yml)
-      - 'docker-v*'  # docker-only publish, no PyPI re-release
+      - "v*" # release tags (also publishes to PyPI via release.yml)
+      - "docker-v*" # docker-only publish, no PyPI re-release
   workflow_dispatch:
     inputs:
       version:

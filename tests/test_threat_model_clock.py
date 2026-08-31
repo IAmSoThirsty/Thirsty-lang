@@ -3,6 +3,7 @@
 Temporal policy windows must be decided against a verified signed time, so a
 spoofed host clock cannot satisfy (or dodge) a window.
 """
+
 import datetime
 
 import pytest
@@ -29,6 +30,7 @@ def _clock(authority=None):
 
 
 # ── TrustedClock verification ──────────────────────────────────────────────────
+
 
 def test_valid_signed_time_verifies():
     auth = _authority()
@@ -100,10 +102,10 @@ def test_naive_local_skew_reference_is_rejected():
 # ── Runtime uses trusted time for temporal windows ─────────────────────────────
 
 WINDOW_POLICY = (
-    'policy p\n'
-    '  valid_from: 2026-01-01T00:00:00Z\n'
-    '  valid_until: 2026-12-31T23:59:59Z\n'
-    'when true => ALLOW\n'
+    "policy p\n"
+    "  valid_from: 2026-01-01T00:00:00Z\n"
+    "  valid_until: 2026-12-31T23:59:59Z\n"
+    "when true => ALLOW\n"
 )
 
 

@@ -1,6 +1,7 @@
 """
 TSCG CLI — Parse, canonicalize, and checksum TSCG expressions.
 """
+
 import argparse
 import json
 import sys
@@ -21,16 +22,25 @@ from utf.tscg.core import (
 
 def _node_to_dict(n):
     if isinstance(n, SymbolExpr):
-        return {'type': 'symbol', 'name': n.symbol_name, 'opcode': n.opcode}
+        return {"type": "symbol", "name": n.symbol_name, "opcode": n.opcode}
     elif isinstance(n, PipelineExpr):
-        return {'type': 'pipeline', 'left': _node_to_dict(n.left), 'right': _node_to_dict(n.right)}
+        return {
+            "type": "pipeline",
+            "left": _node_to_dict(n.left),
+            "right": _node_to_dict(n.right),
+        }
     elif isinstance(n, CombineExpr):
-        return {'type': 'combine', 'op': n.op, 'left': _node_to_dict(n.left), 'right': _node_to_dict(n.right)}
+        return {
+            "type": "combine",
+            "op": n.op,
+            "left": _node_to_dict(n.left),
+            "right": _node_to_dict(n.right),
+        }
     return {}
 
 
 def _node_to_str(n, indent=0):
-    pad = '  ' * indent
+    pad = "  " * indent
     if isinstance(n, SymbolExpr):
         return f"{pad}${n.symbol_name} (0x{n.opcode:02X})"
     elif isinstance(n, PipelineExpr):
@@ -42,32 +52,43 @@ def _node_to_str(n, indent=0):
 
 def main():
     from utf.console import enable_utf8
+
     enable_utf8()
     parser = argparse.ArgumentParser(
         description="TSCG — Thirst's Symbolic Constitutional Grammar"
     )
-    subparsers = parser.add_subparsers(dest='command', help='Sub-commands')
+    subparsers = parser.add_subparsers(dest="command", help="Sub-commands")
 
     # parse command
-    parse_parser = subparsers.add_parser('parse', help='Parse and display a TSCG expression AST')
-    parse_parser.add_argument('expression', help="TSCG expression (e.g. '$COG -> $DNT')")
-    parse_parser.add_argument('--json', '-j', action='store_true', help='Output as JSON')
+    parse_parser = subparsers.add_parser(
+        "parse", help="Parse and display a TSCG expression AST"
+    )
+    parse_parser.add_argument(
+        "expression", help="TSCG expression (e.g. '$COG -> $DNT')"
+    )
+    parse_parser.add_argument(
+        "--json", "-j", action="store_true", help="Output as JSON"
+    )
 
     # canonical command
-    canon_parser = subparsers.add_parser('canonical', help='Output canonical normalized form')
-    canon_parser.add_argument('expression', help='TSCG expression')
+    canon_parser = subparsers.add_parser(
+        "canonical", help="Output canonical normalized form"
+    )
+    canon_parser.add_argument("expression", help="TSCG expression")
 
     # checksum command
-    cs_parser = subparsers.add_parser('checksum', help='Output SHA-256 checksum')
-    cs_parser.add_argument('expression', help='TSCG expression')
+    cs_parser = subparsers.add_parser("checksum", help="Output SHA-256 checksum")
+    cs_parser.add_argument("expression", help="TSCG expression")
 
     # validate command
-    val_parser = subparsers.add_parser('validate', help='Validate symbols in expression')
-    val_parser.add_argument('expression', help='TSCG expression')
+    val_parser = subparsers.add_parser(
+        "validate", help="Validate symbols in expression"
+    )
+    val_parser.add_argument("expression", help="TSCG expression")
 
     # list command
-    list_parser = subparsers.add_parser('list', help='List all recognized symbols')
-    list_parser.add_argument('--json', '-j', action='store_true', help='Output as JSON')
+    list_parser = subparsers.add_parser("list", help="List all recognized symbols")
+    list_parser.add_argument("--json", "-j", action="store_true", help="Output as JSON")
 
     args = parser.parse_args()
 
@@ -75,7 +96,7 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    if args.command == 'list':
+    if args.command == "list":
         if args.json:
             print(json.dumps(ALL_SYMBOLS, indent=2))
         else:
@@ -88,7 +109,7 @@ def main():
                 print(f"    ${name:<15} 0x{opcode:02X} ({opcode})")
         return
 
-    if args.command == 'validate':
+    if args.command == "validate":
         errors = validate_symbols(args.expression)
         if errors:
             print(f"Validation errors ({len(errors)}):")
@@ -104,18 +125,18 @@ def main():
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    if args.command == 'parse':
+    if args.command == "parse":
         if args.json:
             print(json.dumps(_node_to_dict(ast), indent=2))
         else:
             print(_node_to_str(ast))
 
-    elif args.command == 'canonical':
+    elif args.command == "canonical":
         print(canonical_form(ast))
 
-    elif args.command == 'checksum':
+    elif args.command == "checksum":
         print(checksum(args.expression))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

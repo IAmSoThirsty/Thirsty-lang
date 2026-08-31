@@ -1,4 +1,4 @@
-# Thirsty-Lang 101
+# Thirsty-Lang UTF 101 (Universal Thirsty Family)
 
 - **Canonical bridge manual for Thirsty-Lang 0.8.6**
 - **Python:** 3.11 or later
@@ -1737,7 +1737,7 @@ Security reports should be sent privately to
 
 ---
 
-- **Document identity:** Thirsty-Lang 101 for release 0.8.6
+- **Document identity:** Thirsty-Lang UTF 101 (Universal Thirsty Family) for release 0.8.6
 - **Canonical context representation:** `tarl.context.nested-json.v1`
 - **Default governed verdict:** `DENY`
 **Published package boundary:** `utf`, `utf.*`, and compatibility package

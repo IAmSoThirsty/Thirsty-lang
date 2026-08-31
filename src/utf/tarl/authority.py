@@ -23,6 +23,7 @@ The governance context exposes:
 
 so policies can require ``authority_authenticated == true`` and gate on grants.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -61,9 +62,9 @@ class AuthorityClaim:
             "expires_at": self.expires_at,
             "key_id": self.key_id,
         }
-        return json.dumps(
-            payload, sort_keys=True, separators=(",", ":")
-        ).encode("utf-8")
+        return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(
+            "utf-8"
+        )
 
     def to_dict(self) -> dict:
         return {
@@ -155,9 +156,9 @@ class AuthorityIssuer:
         issued_at = now.isoformat(timespec="seconds")
         expires_at = None
         if ttl_seconds is not None:
-            expires_at = (
-                now + datetime.timedelta(seconds=ttl_seconds)
-            ).isoformat(timespec="seconds")
+            expires_at = (now + datetime.timedelta(seconds=ttl_seconds)).isoformat(
+                timespec="seconds"
+            )
         claim = AuthorityClaim(
             subject=subject,
             grants=tuple(grants),
@@ -165,9 +166,7 @@ class AuthorityIssuer:
             expires_at=expires_at,
             key_id=self.key_id,
         )
-        claim.signature = "ed25519:" + self._key.sign(
-            claim.signing_bytes()
-        ).hex()
+        claim.signature = "ed25519:" + self._key.sign(claim.signing_bytes()).hex()
         return claim
 
 

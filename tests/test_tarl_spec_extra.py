@@ -1,4 +1,5 @@
 """Extra coverage for tarl.spec: verdict ordering, durations, expiry."""
+
 from utf.tarl.spec import (
     CompositionOp,
     TarlDecision,
@@ -41,10 +42,16 @@ def test_rule_str_durations():
 def test_policy_str_full():
     p = TarlPolicy(
         rules=[TarlRule("true", TarlVerdict.ALLOW)],
-        name="p", parent="base", composition=CompositionOp.EXTENDS,
-        version="2", supersedes="old", valid_from="2020-01-01",
-        valid_until="2030-01-01", on_expiry=TarlVerdict.DENY,
-        if_unresolved_after=120, revert_to="fallback",
+        name="p",
+        parent="base",
+        composition=CompositionOp.EXTENDS,
+        version="2",
+        supersedes="old",
+        valid_from="2020-01-01",
+        valid_until="2030-01-01",
+        on_expiry=TarlVerdict.DENY,
+        if_unresolved_after=120,
+        revert_to="fallback",
     )
     s = str(p)
     assert "supersedes: old" in s
@@ -59,10 +66,13 @@ def test_policy_str_duration_variants():
 
 
 def test_decision_str_and_expiry():
-    d = TarlDecision(verdict=TarlVerdict.ALLOW, reason="ok",
-                     expires_at="2000-01-01T00:00:00")  # naive, in the past
+    d = TarlDecision(
+        verdict=TarlVerdict.ALLOW, reason="ok", expires_at="2000-01-01T00:00:00"
+    )  # naive, in the past
     assert "expires" in str(d)
     assert d.is_expired() is True
     assert TarlDecision(verdict=TarlVerdict.ALLOW).is_expired() is False
-    assert TarlDecision(verdict=TarlVerdict.ALLOW,
-                        expires_at="not-a-date").is_expired() is True
+    assert (
+        TarlDecision(verdict=TarlVerdict.ALLOW, expires_at="not-a-date").is_expired()
+        is True
+    )

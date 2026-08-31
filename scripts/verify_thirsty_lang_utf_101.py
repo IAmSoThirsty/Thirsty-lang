@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the canonical Thirsty-Lang 101 PDF and its source binding."""
+"""Validate the canonical Thirsty-Lang UTF 101 PDF and its source binding."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ except ImportError as exc:  # pragma: no cover
         'python -m pip install -e ".[docs]"'
     ) from exc
 
-from build_thirsty_lang_101 import (
+from build_thirsty_lang_utf_101 import (
     DEFAULT_MANIFEST,
     ROOT,
     build_pdf,
@@ -26,7 +26,8 @@ from build_thirsty_lang_101 import (
 )
 
 REQUIRED_TEXT = (
-    "Thirsty-Lang 101",
+    "Thirsty-Lang UTF 101",
+    "Universal Thirsty Family",
     "Authoritative context contract",
     "tarl.context.nested-json.v1",
     "REPRESENTATION_CONFLICT",
@@ -127,7 +128,9 @@ def validate_pdf(pdf_path: Path, manifest_path: Path = DEFAULT_MANIFEST) -> dict
     if landscape == 0:
         warnings.append("manual has no landscape reference pages")
     if len(full_text) < 100_000:
-        errors.append(f"extracted text is unexpectedly short: {len(full_text)} characters")
+        errors.append(
+            f"extracted text is unexpectedly short: {len(full_text)} characters"
+        )
     for phrase in REQUIRED_TEXT:
         if phrase.lower() not in full_text.lower():
             errors.append(f"required content missing: {phrase!r}")
@@ -167,7 +170,7 @@ def check_determinism(manifest_path: Path, expected_pdf: Path) -> str:
     config = load_manifest(manifest_path)
     temp_dir = ROOT / "tmp" / "pdfs"
     temp_dir.mkdir(parents=True, exist_ok=True)
-    probe = temp_dir / "thirsty-lang-101-determinism-probe.pdf"
+    probe = temp_dir / "thirsty-lang-utf-101-determinism-probe.pdf"
     try:
         build_pdf(config, probe)
         first = probe.read_bytes()
@@ -177,8 +180,7 @@ def check_determinism(manifest_path: Path, expected_pdf: Path) -> str:
         second_digest = hashlib.sha256(second).hexdigest()
         if first != second:
             raise ValueError(
-                "deterministic rebuild mismatch: "
-                f"{first_digest} != {second_digest}"
+                "deterministic rebuild mismatch: " f"{first_digest} != {second_digest}"
             )
         expected_digest = hashlib.sha256(expected_pdf.read_bytes()).hexdigest()
         if first_digest != expected_digest:
@@ -207,9 +209,7 @@ def render_pages(pdf_path: Path, render_dir: Path, dpi: int = 120) -> int:
     try:
         render_dir.relative_to(allowed_root)
     except ValueError as exc:
-        raise ValueError(
-            f"render directory must be inside {allowed_root}"
-        ) from exc
+        raise ValueError(f"render directory must be inside {allowed_root}") from exc
     render_dir.mkdir(parents=True, exist_ok=True)
     for previous in render_dir.glob("page-*.png"):
         if previous.is_file():
@@ -228,7 +228,12 @@ def render_pages(pdf_path: Path, render_dir: Path, dpi: int = 120) -> int:
 
 def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("pdf", type=Path, nargs="?", default=Path("output/pdf/Thirsty-Lang-101.pdf"))
+    parser.add_argument(
+        "pdf",
+        type=Path,
+        nargs="?",
+        default=Path("output/pdf/Thirsty-Lang-UTF-101.pdf"),
+    )
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--check-determinism", action="store_true")
     parser.add_argument("--render-dir", type=Path)
@@ -255,7 +260,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         digest = check_determinism(manifest.resolve(), pdf_path.resolve())
         print(f"Deterministic rebuild: PASS ({digest})")
     if args.render_dir and not result["errors"]:
-        render_dir = args.render_dir if args.render_dir.is_absolute() else ROOT / args.render_dir
+        render_dir = (
+            args.render_dir if args.render_dir.is_absolute() else ROOT / args.render_dir
+        )
         count = render_pages(pdf_path.resolve(), render_dir.resolve(), args.render_dpi)
         print(f"Rendered pages: {count} -> {render_dir.resolve()}")
     for warning in result["warnings"]:

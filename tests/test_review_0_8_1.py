@@ -8,6 +8,7 @@ F3 — combine operators (`^`/`||`) require both operands bool, never coerce a
      mixed bool/non-bool (was a governance fail-open), and never silently drop
      an operand.
 """
+
 import pytest
 
 from utf.thirsty_lang.checker import check_ast
@@ -34,6 +35,7 @@ def _run(src, capsys, mode="core"):
 
 # ── F1: subscript indexing ───────────────────────────────────────────────
 
+
 def test_subscript_reads_element(capsys):
     src = "module p: core\ndrink xs = [10, 20, 30]\ndrink y = xs[1]\npour y"
     assert _check(src) == []
@@ -50,8 +52,7 @@ def test_subscript_out_of_bounds_errors(capsys):
 
 
 def test_subscript_assignment_mutates(capsys):
-    src = ("module p: core\ndrink xs = [10, 20, 30]\n"
-           "xs[0] = 99\npour xs")
+    src = "module p: core\ndrink xs = [10, 20, 30]\n" "xs[0] = 99\npour xs"
     assert _run(src, capsys) == "[99, 20, 30]"
 
 
@@ -67,32 +68,40 @@ def test_subscript_does_not_misparse(capsys):
 
 # ── F2: un-annotated return type is Any, not Void ─────────────────────────
 
+
 def test_unannotated_value_used_arithmetically(capsys):
-    src = ("module f: core\n"
-           "glass helper(x: Int) { return x * 2 }\n"
-           "glass main_calc(n: Int) { return helper(n) + 1 }\n"
-           "pour main_calc(5)")
+    src = (
+        "module f: core\n"
+        "glass helper(x: Int) { return x * 2 }\n"
+        "glass main_calc(n: Int) { return helper(n) + 1 }\n"
+        "pour main_calc(5)"
+    )
     assert "E022" not in _check(src)
     assert _run(src, capsys) == "11"
 
 
 def test_unannotated_recursion(capsys):
-    src = ("module f: core\n"
-           "glass fact(n: Int) {\n"
-           "    thirsty (n <= 1) { return 1 }\n"
-           "    return n * fact(n - 1)\n"
-           "}\n"
-           "pour fact(5)")
+    src = (
+        "module f: core\n"
+        "glass fact(n: Int) {\n"
+        "    thirsty (n <= 1) { return 1 }\n"
+        "    return n * fact(n - 1)\n"
+        "}\n"
+        "pour fact(5)"
+    )
     assert "E022" not in _check(src)
     assert _run(src, capsys) == "120"
 
 
 # ── F3: combine operator soundness ────────────────────────────────────────
 
+
 def test_combine_both_bool_truth_tables(capsys):
-    src = ("module p: core\n"
-           "pour true ^ false\n"      # AND -> False
-           "pour true || false")      # OR  -> True
+    src = (
+        "module p: core\n"
+        "pour true ^ false\n"  # AND -> False
+        "pour true || false"
+    )  # OR  -> True
     assert _run(src, capsys) == "False\nTrue"
 
 
@@ -117,22 +126,26 @@ def test_malformed_combine_predicate_fails_closed():
     # A `requires` whose combine mixes bool and non-bool must DENY, never
     # silently authorize (the original fail-open). Method contracts are
     # design-by-contract and enforced in core mode.
-    src = ("module m: core\n"
-           "fountain Gate {\n"
-           "    glass bad(self, x) requires (x > 0) ^ x { return x }\n"
-           "}\n"
-           "drink g = new Gate()\n"
-           "drink r = g.bad(50)")
+    src = (
+        "module m: core\n"
+        "fountain Gate {\n"
+        "    glass bad(self, x) requires (x > 0) ^ x { return x }\n"
+        "}\n"
+        "drink g = new Gate()\n"
+        "drink r = g.bad(50)"
+    )
     with pytest.raises(GovernanceViolation):
         Interpreter().interpret(_parse(src), mode="core")
 
 
 def test_wellformed_combine_predicate_passes(capsys):
     # Positive control: a valid bool ^ bool predicate authorizes the call.
-    src = ("module m: core\n"
-           "fountain Gate {\n"
-           "    glass ok(self, x) requires (x > 0) ^ (x < 100) { return x }\n"
-           "}\n"
-           "drink g = new Gate()\n"
-           "pour g.ok(50)")
+    src = (
+        "module m: core\n"
+        "fountain Gate {\n"
+        "    glass ok(self, x) requires (x > 0) ^ (x < 100) { return x }\n"
+        "}\n"
+        "drink g = new Gate()\n"
+        "pour g.ok(50)"
+    )
     assert _run(src, capsys) == "50"

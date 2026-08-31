@@ -82,7 +82,7 @@ verification procedure. Never recommend an unprotected private release key.
 
 TARL proof signatures establish authority over an evaluated policy decision,
 not provenance for a wheel file. See the
-[canonical Thirsty-Lang 101 manual](THIRSTY_LANG_101.md) and
+[canonical Thirsty-Lang UTF 101 manual](THIRSTY_LANG_UTF_101.md) and
 [`governance_model.md`](governance_model.md) for proof canonicalization, HMAC
 compatibility, Ed25519 attribution, key identifiers, replay identity, expiry,
 and revocation.

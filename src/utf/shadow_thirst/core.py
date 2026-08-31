@@ -10,6 +10,7 @@ because comments and incidental substrings simply aren't nodes in the tree.
 When a block cannot be parsed, each analyzer falls back to the original lexical
 heuristic so partial/garbled input still produces a verdict.
 """
+
 import dataclasses
 import hashlib
 import re
@@ -51,6 +52,7 @@ class AnalysisLevel:
 
 
 # --- AST utilities (shared by the analyzers) ---
+
 
 def _iter_child_values(value):
     """Yield AST nodes reachable from a dataclass-field value."""
@@ -163,6 +165,7 @@ class ShadowModule:
     analyzers reason over; they are filled in automatically from the code
     strings (or supplied directly by :class:`MutationParser`).
     """
+
     name: str
     shadow_code: str = ""
     invariant_code: str = ""
@@ -183,25 +186,18 @@ class ShadowModule:
             self.canonical_ast = parse_block(self.canonical_code)
 
     def replay_hash(self) -> str:
-        return hashlib.sha256(self.source.encode('utf-8')).hexdigest()
+        return hashlib.sha256(self.source.encode("utf-8")).hexdigest()
 
 
 class MutationParser:
     """Parses mutation definitions from source text."""
 
     MUTATION_RE = re.compile(
-        r'mutation\s+(\w+)\s*\{\s*'
-        r'validated_canonical\s*\{'
-        r'(.*)\}'
-        r'\s*\}',
-        re.DOTALL
+        r"mutation\s+(\w+)\s*\{\s*" r"validated_canonical\s*\{" r"(.*)\}" r"\s*\}",
+        re.DOTALL,
     )
 
-    BLOCK_RE = re.compile(
-        r'(shadow|invariant|canonical)\s*\{'
-        r'(.*?)\}',
-        re.DOTALL
-    )
+    BLOCK_RE = re.compile(r"(shadow|invariant|canonical)\s*\{" r"(.*?)\}", re.DOTALL)
 
     @classmethod
     def parse(cls, text: str) -> ShadowModule:
@@ -223,27 +219,27 @@ class MutationParser:
             block_type = block_match.group(1).strip()
             block_content = block_match.group(2).strip()
 
-            if block_type == 'shadow':
+            if block_type == "shadow":
                 shadow_code = block_content
                 module.shadow_code = shadow_code
-            elif block_type == 'invariant':
+            elif block_type == "invariant":
                 invariant_code = block_content
                 module.invariant_code = invariant_code
-            elif block_type == 'canonical':
+            elif block_type == "canonical":
                 canonical_code = block_content
                 module.canonical_code = canonical_code
 
         # Also try parsing without the nested validated_canonical wrapper
         if not shadow_code and not invariant_code and not canonical_code:
-            direct_blocks = cls.BLOCK_RE.finditer(text[len(f"mutation {name}"):])
+            direct_blocks = cls.BLOCK_RE.finditer(text[len(f"mutation {name}") :])
             for block_match in direct_blocks:
                 block_type = block_match.group(1).strip()
                 block_content = block_match.group(2).strip()
-                if block_type == 'shadow':
+                if block_type == "shadow":
                     module.shadow_code = block_content
-                elif block_type == 'invariant':
+                elif block_type == "invariant":
                     module.invariant_code = block_content
-                elif block_type == 'canonical':
+                elif block_type == "canonical":
                     module.canonical_code = block_content
 
         # Prefer the language's own grammar: parse the whole mutation through
@@ -276,6 +272,7 @@ class MutationParser:
 # named `nowhere`, and a write to a `canonical_*` binding from the word
 # "canonical" appearing in a comment.
 
+
 def _is_canonical_name(name: str) -> bool:
     low = name.lower()
     return low == "canonical_state" or low.startswith("canonical")
@@ -291,36 +288,47 @@ class PlaneIsolationAnalyzer:
             for node in astwalk(ast):
                 if isinstance(node, VariableDecl) and _is_canonical_name(node.name):
                     writes.append(node.name)
-                elif (isinstance(node, AssignStmt)
-                      and isinstance(node.target, Identifier)
-                      and _is_canonical_name(node.target.name)):
+                elif (
+                    isinstance(node, AssignStmt)
+                    and isinstance(node.target, Identifier)
+                    and _is_canonical_name(node.target.name)
+                ):
                     writes.append(node.target.name)
-                elif (isinstance(node, CallExpr)
-                      and isinstance(node.callee, Identifier)
-                      and "canonical" in node.callee.name.lower()):
+                elif (
+                    isinstance(node, CallExpr)
+                    and isinstance(node.callee, Identifier)
+                    and "canonical" in node.callee.name.lower()
+                ):
                     writes.append(node.callee.name + "()")
             if writes:
                 return AnalysisResult(
-                    analyzer="PlaneIsolation", passed=False,
+                    analyzer="PlaneIsolation",
+                    passed=False,
                     level=AnalysisLevel.CRITICAL,
                     message=f"Shadow block writes to canonical state: {', '.join(sorted(set(writes)))}",
                 )
             return AnalysisResult(
-                analyzer="PlaneIsolation", passed=True,
+                analyzer="PlaneIsolation",
+                passed=True,
                 level=AnalysisLevel.CRITICAL,
                 message="Shadow block properly isolated from canonical state",
             )
         return self._lexical(module)
 
     def _lexical(self, module: ShadowModule) -> AnalysisResult:
-        if 'canonical.' in module.shadow_code or 'canonical_state' in module.shadow_code:
+        if (
+            "canonical." in module.shadow_code
+            or "canonical_state" in module.shadow_code
+        ):
             return AnalysisResult(
-                analyzer="PlaneIsolation", passed=False,
+                analyzer="PlaneIsolation",
+                passed=False,
                 level=AnalysisLevel.CRITICAL,
                 message="Shadow block writes to canonical state (lexical)",
             )
         return AnalysisResult(
-            analyzer="PlaneIsolation", passed=True,
+            analyzer="PlaneIsolation",
+            passed=True,
             level=AnalysisLevel.CRITICAL,
             message="Shadow block properly isolated from canonical state (lexical)",
         )
@@ -328,8 +336,20 @@ class PlaneIsolationAnalyzer:
 
 # Calls whose results vary across replays (matched on the callee name).
 _NON_DET_CALLS = {
-    'now', 'rand', 'random', 'randint', 'time', 'gettime', 'get_time',
-    'uuid', 'uuid4', 'date', 'today', 'clock', 'utcnow', 'timestamp',
+    "now",
+    "rand",
+    "random",
+    "randint",
+    "time",
+    "gettime",
+    "get_time",
+    "uuid",
+    "uuid4",
+    "date",
+    "today",
+    "clock",
+    "utcnow",
+    "timestamp",
 }
 
 
@@ -355,9 +375,9 @@ class EffectAnalysis:
 
     def _refs_nondet(self, expr) -> bool:
         for node in astwalk(expr):
-            if (isinstance(node, Identifier)
-                    and (node.name.lower() in self.NON_DET
-                         or node.name in self.tainted)):
+            if isinstance(node, Identifier) and (
+                node.name.lower() in self.NON_DET or node.name in self.tainted
+            ):
                 return True
         return False
 
@@ -367,8 +387,7 @@ class EffectAnalysis:
         for node in astwalk(ast):
             if isinstance(node, VariableDecl) and node.init_expr is not None:
                 assigns.append((node.name, node.init_expr))
-            elif (isinstance(node, AssignStmt)
-                  and isinstance(node.target, Identifier)):
+            elif isinstance(node, AssignStmt) and isinstance(node.target, Identifier):
                 assigns.append((node.target.name, node.value))
         # Propagate taint to a fixpoint.
         changed = True
@@ -382,8 +401,7 @@ class EffectAnalysis:
                     changed = True
         # A call to a non-deterministic name *or a tainted alias* is a finding.
         for node in astwalk(ast):
-            if (isinstance(node, CallExpr)
-                    and isinstance(node.callee, Identifier)):
+            if isinstance(node, CallExpr) and isinstance(node.callee, Identifier):
                 name = node.callee.name
                 if name.lower() in self.NON_DET or name in self.tainted:
                     self.nondet_calls.append(name)
@@ -393,7 +411,7 @@ class EffectAnalysis:
 class DeterminismAnalyzer:
     """Ensures the shadow block calls no non-deterministic functions."""
 
-    NON_DETERMINISTIC = {'now', 'rand', 'random', 'time', 'uuid', 'date', 'clock'}
+    NON_DETERMINISTIC = {"now", "rand", "random", "time", "uuid", "date", "clock"}
     # Calls whose results vary across replays (matched on the callee name).
     NON_DET_CALLS = _NON_DET_CALLS
 
@@ -403,28 +421,33 @@ class DeterminismAnalyzer:
             found = EffectAnalysis().run(ast).nondet_calls
             if found:
                 return AnalysisResult(
-                    analyzer="Determinism", passed=False,
+                    analyzer="Determinism",
+                    passed=False,
                     level=AnalysisLevel.CRITICAL,
                     message=f"Non-deterministic calls found: {', '.join(sorted(set(found)))}",
                 )
             return AnalysisResult(
-                analyzer="Determinism", passed=True,
+                analyzer="Determinism",
+                passed=True,
                 level=AnalysisLevel.NON_CRITICAL,
                 message="Shadow block is deterministic",
             )
         return self._lexical(module)
 
     def _lexical(self, module: ShadowModule) -> AnalysisResult:
-        found_ops = [op for op in self.NON_DETERMINISTIC
-                     if op in module.shadow_code.lower()]
+        found_ops = [
+            op for op in self.NON_DETERMINISTIC if op in module.shadow_code.lower()
+        ]
         if found_ops:
             return AnalysisResult(
-                analyzer="Determinism", passed=False,
+                analyzer="Determinism",
+                passed=False,
                 level=AnalysisLevel.CRITICAL,
                 message=f"Non-deterministic operations found: {', '.join(found_ops)} (lexical)",
             )
         return AnalysisResult(
-            analyzer="Determinism", passed=True,
+            analyzer="Determinism",
+            passed=True,
             level=AnalysisLevel.NON_CRITICAL,
             message="Shadow block is deterministic (lexical)",
         )
@@ -438,11 +461,21 @@ class ResourceEstimator:
 
     # Per-node CPU weights (ms) for the AST path.
     NODE_WEIGHTS = {
-        ForStmt: 10, WhileStmt: 20, CallExpr: 5, NewExpr: 8, FloodExpr: 4,
+        ForStmt: 10,
+        WhileStmt: 20,
+        CallExpr: 5,
+        NewExpr: 8,
+        FloodExpr: 4,
     }
     CPU_WEIGHTS = {
-        'for': 10, 'while': 20, 'sort': 50, 'map': 5, 'filter': 5,
-        'reduce': 10, 'recursion': 50, 'loop': 15,
+        "for": 10,
+        "while": 20,
+        "sort": 50,
+        "map": 5,
+        "filter": 5,
+        "reduce": 10,
+        "recursion": 50,
+        "loop": 15,
     }
 
     def analyze(self, module: ShadowModule) -> AnalysisResult:
@@ -463,17 +496,27 @@ class ResourceEstimator:
     def _verdict(self, estimated_cpu, estimated_memory) -> AnalysisResult:
         issues = []
         if estimated_cpu > self.CPU_LIMIT_MS:
-            issues.append(f"CPU estimate {estimated_cpu}ms exceeds {self.CPU_LIMIT_MS}ms limit")
+            issues.append(
+                f"CPU estimate {estimated_cpu}ms exceeds {self.CPU_LIMIT_MS}ms limit"
+            )
         if estimated_memory > self.MEMORY_LIMIT_BYTES:
-            issues.append(f"Memory estimate {estimated_memory} bytes exceeds {self.MEMORY_LIMIT_BYTES} bytes limit")
+            issues.append(
+                f"Memory estimate {estimated_memory} bytes exceeds {self.MEMORY_LIMIT_BYTES} bytes limit"
+            )
         if issues:
             return AnalysisResult(
-                analyzer="ResourceEstimator", passed=False,
-                level=AnalysisLevel.CRITICAL if estimated_cpu > self.CPU_LIMIT_MS else AnalysisLevel.NON_CRITICAL,
+                analyzer="ResourceEstimator",
+                passed=False,
+                level=(
+                    AnalysisLevel.CRITICAL
+                    if estimated_cpu > self.CPU_LIMIT_MS
+                    else AnalysisLevel.NON_CRITICAL
+                ),
                 message="; ".join(issues),
             )
         return AnalysisResult(
-            analyzer="ResourceEstimator", passed=True,
+            analyzer="ResourceEstimator",
+            passed=True,
             level=AnalysisLevel.CRITICAL,
             message=f"Resources within limits (CPU: ~{estimated_cpu}ms, Mem: ~{estimated_memory} bytes)",
         )
@@ -481,7 +524,7 @@ class ResourceEstimator:
     def _lexical(self, module: ShadowModule) -> AnalysisResult:
         code = module.shadow_code.lower()
         estimated_cpu = sum(code.count(k) * w for k, w in self.CPU_WEIGHTS.items())
-        estimated_cpu += len(code.split('\n')) * 5
+        estimated_cpu += len(code.split("\n")) * 5
         estimated_memory = len(code) * 2
         return self._verdict(estimated_cpu, estimated_memory)
 
@@ -489,16 +532,37 @@ class ResourceEstimator:
 class PuritySpringAnalyzer:
     """Ensures the invariant block is a pure expression (no side effects)."""
 
-    IMPURE_KEYWORDS = {'print', 'write', 'read', 'input', 'open', 'exec', 'eval', 'import'}
+    IMPURE_KEYWORDS = {
+        "print",
+        "write",
+        "read",
+        "input",
+        "open",
+        "exec",
+        "eval",
+        "import",
+    }
     IMPURE_CALLS = {
-        'print', 'pour', 'sip', 'write', 'read', 'input', 'open', 'exec',
-        'eval', 'flood', 'evaporate', 'push', 'pop',
+        "print",
+        "pour",
+        "sip",
+        "write",
+        "read",
+        "input",
+        "open",
+        "exec",
+        "eval",
+        "flood",
+        "evaporate",
+        "push",
+        "pop",
     }
 
     def analyze(self, module: ShadowModule) -> AnalysisResult:
         if not module.invariant_code and module.invariant_ast is None:
             return AnalysisResult(
-                analyzer="PuritySpring", passed=True,
+                analyzer="PuritySpring",
+                passed=True,
                 level=AnalysisLevel.CRITICAL,
                 message="No invariant block to check",
             )
@@ -508,18 +572,22 @@ class PuritySpringAnalyzer:
             for node in astwalk(ast):
                 if isinstance(node, (PourStmt, SipStmt, ImportStmt)):
                     impure.append(type(node).__name__)
-                elif (isinstance(node, CallExpr)
-                      and isinstance(node.callee, Identifier)
-                      and node.callee.name.lower() in self.IMPURE_CALLS):
+                elif (
+                    isinstance(node, CallExpr)
+                    and isinstance(node.callee, Identifier)
+                    and node.callee.name.lower() in self.IMPURE_CALLS
+                ):
                     impure.append(node.callee.name + "()")
             if impure:
                 return AnalysisResult(
-                    analyzer="PuritySpring", passed=False,
+                    analyzer="PuritySpring",
+                    passed=False,
                     level=AnalysisLevel.CRITICAL,
                     message=f"Impure operations in invariant: {', '.join(sorted(set(impure)))}",
                 )
             return AnalysisResult(
-                analyzer="PuritySpring", passed=True,
+                analyzer="PuritySpring",
+                passed=True,
                 level=AnalysisLevel.CRITICAL,
                 message="Invariant block is pure",
             )
@@ -530,12 +598,14 @@ class PuritySpringAnalyzer:
         found_impure = [kw for kw in self.IMPURE_KEYWORDS if kw in code]
         if found_impure:
             return AnalysisResult(
-                analyzer="PuritySpring", passed=False,
+                analyzer="PuritySpring",
+                passed=False,
                 level=AnalysisLevel.CRITICAL,
                 message=f"Impure operations in invariant: {', '.join(found_impure)} (lexical)",
             )
         return AnalysisResult(
-            analyzer="PuritySpring", passed=True,
+            analyzer="PuritySpring",
+            passed=True,
             level=AnalysisLevel.CRITICAL,
             message="Invariant block is pure (lexical)",
         )
@@ -564,12 +634,14 @@ class MemoryEvaporationAnalyzer:
     def _verdict(self, estimated_peak) -> AnalysisResult:
         if estimated_peak > self.PEAK_LIMIT:
             return AnalysisResult(
-                analyzer="MemoryEvaporation", passed=False,
+                analyzer="MemoryEvaporation",
+                passed=False,
                 level=AnalysisLevel.NON_CRITICAL,
                 message=f"Estimated peak memory {estimated_peak} bytes exceeds {self.PEAK_LIMIT} bytes limit",
             )
         return AnalysisResult(
-            analyzer="MemoryEvaporation", passed=True,
+            analyzer="MemoryEvaporation",
+            passed=True,
             level=AnalysisLevel.NON_CRITICAL,
             message=f"Peak memory within limits (~{estimated_peak} bytes)",
         )
@@ -577,11 +649,11 @@ class MemoryEvaporationAnalyzer:
     def _lexical(self, module: ShadowModule) -> AnalysisResult:
         code = module.shadow_code
         estimated_peak = len(code) * 4
-        estimated_peak += code.count('new') * 1000
-        estimated_peak += code.count('list') * 500
-        estimated_peak += code.count('map') * 500
-        estimated_peak += code.count('string') * 200
-        estimated_peak += code.count('reservoir') * 2000
+        estimated_peak += code.count("new") * 1000
+        estimated_peak += code.count("list") * 500
+        estimated_peak += code.count("map") * 500
+        estimated_peak += code.count("string") * 200
+        estimated_peak += code.count("reservoir") * 2000
         return self._verdict(estimated_peak)
 
 
@@ -606,7 +678,8 @@ class CanonicalConvergenceAnalyzer:
     def analyze(self, module: ShadowModule) -> AnalysisResult:
         if not module.shadow_code or not module.canonical_code:
             return AnalysisResult(
-                analyzer="CanonicalConvergence", passed=False,
+                analyzer="CanonicalConvergence",
+                passed=False,
                 level=AnalysisLevel.CRITICAL,
                 message="Both shadow and canonical blocks must be present",
             )
@@ -620,7 +693,8 @@ class CanonicalConvergenceAnalyzer:
         c_sig = _structural_signature(c_ast, {})
         if s_sig == c_sig:
             return AnalysisResult(
-                analyzer="CanonicalConvergence", passed=True,
+                analyzer="CanonicalConvergence",
+                passed=True,
                 level=AnalysisLevel.CRITICAL,
                 message="Shadow and canonical blocks are structurally equivalent",
             )
@@ -636,12 +710,14 @@ class CanonicalConvergenceAnalyzer:
         c_returns = sum(1 for n in astwalk(c_ast) if isinstance(n, ReturnStmt))
         if s_returns != c_returns:
             return AnalysisResult(
-                analyzer="CanonicalConvergence", passed=False,
+                analyzer="CanonicalConvergence",
+                passed=False,
                 level=AnalysisLevel.NON_CRITICAL,
                 message=f"Return arity differs (shadow {s_returns}, canonical {c_returns}) — possible divergence",
             )
         return AnalysisResult(
-            analyzer="CanonicalConvergence", passed=False,
+            analyzer="CanonicalConvergence",
+            passed=False,
             level=AnalysisLevel.NON_CRITICAL,
             message="Shadow and canonical AST shapes differ — possible divergence",
         )
@@ -654,14 +730,20 @@ class CanonicalConvergenceAnalyzer:
             verdict = layer(s_ast, c_ast)
             if verdict.status == "equivalent":
                 return AnalysisResult(
-                    analyzer="CanonicalConvergence", passed=True,
+                    analyzer="CanonicalConvergence",
+                    passed=True,
                     level=AnalysisLevel.CRITICAL,
                     message=f"Shadow and canonical blocks converge — {verdict.detail}",
                 )
             if verdict.status == "diverge":
-                ce = f" (counterexample: {verdict.counterexample})" if verdict.counterexample else ""
+                ce = (
+                    f" (counterexample: {verdict.counterexample})"
+                    if verdict.counterexample
+                    else ""
+                )
                 return AnalysisResult(
-                    analyzer="CanonicalConvergence", passed=False,
+                    analyzer="CanonicalConvergence",
+                    passed=False,
                     level=AnalysisLevel.NON_CRITICAL,
                     message=f"Shadow diverges from canonical — {verdict.detail}{ce}",
                 )
@@ -669,33 +751,41 @@ class CanonicalConvergenceAnalyzer:
         return None
 
     def _lexical(self, module: ShadowModule) -> AnalysisResult:
-        shadow_lines = [ln.strip() for ln in module.shadow_code.split('\n') if ln.strip()]
-        canonical_lines = [ln.strip() for ln in module.canonical_code.split('\n') if ln.strip()]
+        shadow_lines = [
+            ln.strip() for ln in module.shadow_code.split("\n") if ln.strip()
+        ]
+        canonical_lines = [
+            ln.strip() for ln in module.canonical_code.split("\n") if ln.strip()
+        ]
         if len(shadow_lines) == 0 or len(canonical_lines) == 0:
             return AnalysisResult(
-                analyzer="CanonicalConvergence", passed=False,
+                analyzer="CanonicalConvergence",
+                passed=False,
                 level=AnalysisLevel.CRITICAL,
                 message="Shadow or canonical block is empty",
             )
-        shadow_return_count = module.shadow_code.count('return')
-        canonical_return_count = module.canonical_code.count('return')
+        shadow_return_count = module.shadow_code.count("return")
+        canonical_return_count = module.canonical_code.count("return")
         if shadow_return_count != canonical_return_count:
             return AnalysisResult(
-                analyzer="CanonicalConvergence", passed=False,
+                analyzer="CanonicalConvergence",
+                passed=False,
                 level=AnalysisLevel.NON_CRITICAL,
                 message=f"Shadow ({shadow_return_count} returns) and canonical ({canonical_return_count} returns) may not converge",
             )
-        shadow_ops = set(re.findall(r'\b[a-z_]+\b', module.shadow_code.lower()))
-        canonical_ops = set(re.findall(r'\b[a-z_]+\b', module.canonical_code.lower()))
+        shadow_ops = set(re.findall(r"\b[a-z_]+\b", module.shadow_code.lower()))
+        canonical_ops = set(re.findall(r"\b[a-z_]+\b", module.canonical_code.lower()))
         overlap = shadow_ops & canonical_ops
         if len(overlap) < max(1, min(len(shadow_ops), len(canonical_ops)) * 0.3):
             return AnalysisResult(
-                analyzer="CanonicalConvergence", passed=False,
+                analyzer="CanonicalConvergence",
+                passed=False,
                 level=AnalysisLevel.NON_CRITICAL,
                 message="Shadow and canonical blocks use very different operations — possible divergence",
             )
         return AnalysisResult(
-            analyzer="CanonicalConvergence", passed=True,
+            analyzer="CanonicalConvergence",
+            passed=True,
             level=AnalysisLevel.CRITICAL,
             message="Shadow and canonical blocks converge (lexical)",
         )
@@ -726,16 +816,22 @@ class PromotionEngine:
                 result = analyzer.analyze(module)
                 results.append(result)
             except Exception as e:
-                results.append(AnalysisResult(
-                    analyzer=name,
-                    passed=False,
-                    level=AnalysisLevel.CRITICAL,
-                    message=f"Analysis error: {e}"
-                ))
+                results.append(
+                    AnalysisResult(
+                        analyzer=name,
+                        passed=False,
+                        level=AnalysisLevel.CRITICAL,
+                        message=f"Analysis error: {e}",
+                    )
+                )
 
         # Determine verdict
-        critical_failures = [r for r in results if not r.passed and r.level == AnalysisLevel.CRITICAL]
-        non_critical_failures = [r for r in results if not r.passed and r.level == AnalysisLevel.NON_CRITICAL]
+        critical_failures = [
+            r for r in results if not r.passed and r.level == AnalysisLevel.CRITICAL
+        ]
+        non_critical_failures = [
+            r for r in results if not r.passed and r.level == AnalysisLevel.NON_CRITICAL
+        ]
 
         if critical_failures:
             verdict = "REJECT"
@@ -747,39 +843,49 @@ class PromotionEngine:
         return verdict, results
 
     @staticmethod
-    def generate_mermaid(module: ShadowModule, verdict: str = "PROMOTE", results: list[AnalysisResult] | None = None) -> str:
+    def generate_mermaid(
+        module: ShadowModule,
+        verdict: str = "PROMOTE",
+        results: list[AnalysisResult] | None = None,
+    ) -> str:
         if results is None:
             results = []
         """Generate a Mermaid flowchart visualization of the promotion flow."""
         lines = ["```mermaid", "flowchart TD"]
-        lines.append(f"    M[\"Mutation: {module.name}\"]")
+        lines.append(f'    M["Mutation: {module.name}"]')
 
-        for i, (name, _) in enumerate([
-            ("PlaneIsolationAnalyzer", None),
-            ("DeterminismAnalyzer", None),
-            ("ResourceEstimator", None),
-            ("PuritySpringAnalyzer", None),
-            ("MemoryEvaporationAnalyzer", None),
-            ("CanonicalConvergenceAnalyzer", None),
-        ]):
-            r = results[i] if i < len(results) else AnalysisResult(analyzer=name, passed=True)
+        for i, (name, _) in enumerate(
+            [
+                ("PlaneIsolationAnalyzer", None),
+                ("DeterminismAnalyzer", None),
+                ("ResourceEstimator", None),
+                ("PuritySpringAnalyzer", None),
+                ("MemoryEvaporationAnalyzer", None),
+                ("CanonicalConvergenceAnalyzer", None),
+            ]
+        ):
+            r = (
+                results[i]
+                if i < len(results)
+                else AnalysisResult(analyzer=name, passed=True)
+            )
             status = "✅" if r.passed else "❌"
-            lines.append(f"    A{i}[\"{status} {name}\"]")
+            lines.append(f'    A{i}["{status} {name}"]')
 
             if i == 0:
                 lines.append(f"    M --> A{i}")
             else:
                 lines.append(f"    A{i - 1} --> A{i}")
 
-        lines.append(f"    V[\"Verdict: {verdict}\"]")
+        lines.append(f'    V["Verdict: {verdict}"]')
         lines.append(f"    A{min(5, len(results) - 1)} --> V")
 
         if verdict == "PROMOTE":
-            lines.append("    V --> P[\"🚀 PROMOTE\"]")
+            lines.append('    V --> P["🚀 PROMOTE"]')
         elif verdict == "REJECT":
-            lines.append("    V --> R[\"❌ REJECT\"]")
+            lines.append('    V --> R["❌ REJECT"]')
         else:
-            lines.append("    V --> F[\"⚠️ FLAGGED\"]")
+            lines.append('    V --> F["⚠️ FLAGGED"]')
 
         lines.append("```")
         return "\n".join(lines)

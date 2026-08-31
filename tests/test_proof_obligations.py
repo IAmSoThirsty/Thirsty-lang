@@ -55,9 +55,13 @@ def test_proof_obligation_extraction_reports_core_surfaces(tmp_path):
     )
     assert report["format"] == "thirsty.proof_obligations.v1"
     assert report["side_effects_executed"] is False
-    assert any(fn["name"] == "withdraw" and fn["governed"] for fn in report["functions"])
+    assert any(
+        fn["name"] == "withdraw" and fn["governed"] for fn in report["functions"]
+    )
     assert any(item["module_path"] == "thirst::fs" for item in report["imports"])
-    assert any(call["function"] == "write_file" for call in report["stdlib_sensitive_calls"])
+    assert any(
+        call["function"] == "write_file" for call in report["stdlib_sensitive_calls"]
+    )
     assert any(call["name"] == "withdraw" for call in report["governed_calls"])
     assert {"import", "write", "withdraw"} <= set(report["required_tarl_actions"])
 
@@ -107,9 +111,7 @@ def test_derived_schema_keeps_quantifier_binder_local():
     ).to_dict()
 
     assert schema["status"] == "complete"
-    assert schema["fields"] == [
-        {"name": "users", "kinds": ["list"], "required": True}
-    ]
+    assert schema["fields"] == [{"name": "users", "kinds": ["list"], "required": True}]
     assert not any(field["name"].startswith("user.") for field in schema["fields"])
 
 
@@ -119,9 +121,7 @@ def test_derived_schema_infers_contains_arguments_as_strings():
     ).to_dict()
 
     assert schema["status"] == "complete"
-    assert schema["fields"] == [
-        {"name": "name", "kinds": ["string"], "required": True}
-    ]
+    assert schema["fields"] == [{"name": "name", "kinds": ["string"], "required": True}]
 
 
 def test_missing_schema_fails_closed_in_prove(tmp_path, monkeypatch, capsys):
@@ -143,13 +143,15 @@ def test_explicit_schema_mapping_shape_is_authoritative(tmp_path):
     schema_file = _write(
         tmp_path,
         "schema.json",
-        json.dumps({
-            "fields": {
-                "user.role": "string",
-                "risk": {"kind": "number", "required": False},
-                "flags": ["string", "bool"],
+        json.dumps(
+            {
+                "fields": {
+                    "user.role": "string",
+                    "risk": {"kind": "number", "required": False},
+                    "flags": ["string", "bool"],
+                }
             }
-        }),
+        ),
     )
     schema = load_explicit_context_schema(schema_file).to_dict()
     fields = {field["name"]: field for field in schema["fields"]}
@@ -165,12 +167,16 @@ def test_sensitive_stdlib_call_appears_in_cli_manifest(tmp_path, monkeypatch, ca
     policy = _write(tmp_path, "p.tarl", POLICY)
     _run_cli(monkeypatch, "prove", source, "--policy", policy, "--emit-manifest")
     report = json.loads(capsys.readouterr().out)
-    assert any(call["function"] == "write_file" for call in report["stdlib_sensitive_calls"])
+    assert any(
+        call["function"] == "write_file" for call in report["stdlib_sensitive_calls"]
+    )
     assert os.path.exists(os.path.splitext(source)[0] + ".proof-obligations.json")
 
 
 def test_governed_build_manifest_records_proof_requirements(
-    tmp_path, monkeypatch, capsys,
+    tmp_path,
+    monkeypatch,
+    capsys,
 ):
     source = _write(tmp_path, "p.thirsty", PROGRAM)
     policy = _write(tmp_path, "p.tarl", POLICY)
@@ -197,7 +203,9 @@ def test_governed_build_manifest_records_proof_requirements(
 
 
 def test_denial_explanation_identifies_missing_authority_policy_context(
-    tmp_path, monkeypatch, capsys,
+    tmp_path,
+    monkeypatch,
+    capsys,
 ):
     source = _write(tmp_path, "p.thirsty", "module m: governed\ndrink main = 1\n")
     _run_cli(monkeypatch, "explain-denial", source)
@@ -226,7 +234,9 @@ def test_thirsty_prove_does_not_execute_side_effects(tmp_path, monkeypatch, caps
 
 
 def test_replay_audit_proof_behavior_remains_unchanged():
-    runtime = TarlRuntime(PolicyParser.parse('policy p\nwhen role == "admin" => ALLOW\n'))
+    runtime = TarlRuntime(
+        PolicyParser.parse('policy p\nwhen role == "admin" => ALLOW\n')
+    )
     decision, proof = runtime.evaluate_with_proof({"role": "admin"})
     assert decision.verdict == TarlVerdict.ALLOW
     assert proof.verdict == TarlVerdict.ALLOW

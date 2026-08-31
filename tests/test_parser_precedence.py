@@ -9,10 +9,11 @@ right-associative level. The fatal consequence was that governed
 wrote, so deny-by-default guards failed open (``balance - amount >= 0`` parsed
 as ``balance - (amount >= 0)``).
 """
+
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 
@@ -31,51 +32,65 @@ def _eval(expr):
 
 
 # The exact rows from the audit reproduction — these were all WRONG before.
-@pytest.mark.parametrize("expr,expected", [
-    ("2 * 3 + 4", 10),       # was 14  (2 * (3 + 4))
-    ("10 - 2 - 3", 5),       # was 11  (10 - (2 - 3))   left-assoc
-    ("20 / 2 / 5", 2),       # was 50  (20 / (2 / 5))   left-assoc
-    ("1 + 2 * 3 + 4", 11),   # was 15
-    ("2 + 3 == 5", True),    # was 2   (== folded into the chain)
-])
+@pytest.mark.parametrize(
+    "expr,expected",
+    [
+        ("2 * 3 + 4", 10),  # was 14  (2 * (3 + 4))
+        ("10 - 2 - 3", 5),  # was 11  (10 - (2 - 3))   left-assoc
+        ("20 / 2 / 5", 2),  # was 50  (20 / (2 / 5))   left-assoc
+        ("1 + 2 * 3 + 4", 11),  # was 15
+        ("2 + 3 == 5", True),  # was 2   (== folded into the chain)
+    ],
+)
 def test_audit_precedence_rows(expr, expected):
     assert _eval(expr) == expected
 
 
-@pytest.mark.parametrize("expr,expected", [
-    # multiplicative binds tighter than additive
-    ("10 - 2 * 3", 4),
-    ("1 + 2 * 3 - 4 / 2", 5),
-    # comparison binds looser than arithmetic
-    ("1 + 2 < 4", True),
-    ("100 - 200 >= 0", False),   # the overdraft predicate, as written
-    ("2 * 3 == 6", True),
-    # logical binds loosest; and tighter than or
-    ("1 < 2 and 3 < 4", True),
-    ("1 < 2 and 3 > 4", False),
-    ("1 > 2 or 3 < 4", True),
-])
+@pytest.mark.parametrize(
+    "expr,expected",
+    [
+        # multiplicative binds tighter than additive
+        ("10 - 2 * 3", 4),
+        ("1 + 2 * 3 - 4 / 2", 5),
+        # comparison binds looser than arithmetic
+        ("1 + 2 < 4", True),
+        ("100 - 200 >= 0", False),  # the overdraft predicate, as written
+        ("2 * 3 == 6", True),
+        # logical binds loosest; and tighter than or
+        ("1 < 2 and 3 < 4", True),
+        ("1 < 2 and 3 > 4", False),
+        ("1 > 2 or 3 < 4", True),
+    ],
+)
 def test_mixed_precedence(expr, expected):
     assert _eval(expr) == expected
 
 
-@pytest.mark.parametrize("expr,expected", [
-    # unary minus binds tighter than every binary operator
-    ("-2 + 3", 1),
-    ("-2 * 3", -6),
-    # logical not binds looser than comparison, tighter than and/or
-    ("not 2 == 3", True),
-    ("not 2 == 2", False),
-    ("not 1 > 2 and 2 > 1", True),
-])
+@pytest.mark.parametrize(
+    "expr,expected",
+    [
+        # unary minus binds tighter than every binary operator
+        ("-2 + 3", 1),
+        ("-2 * 3", -6),
+        # logical not binds looser than comparison, tighter than and/or
+        ("not 2 == 3", True),
+        ("not 2 == 2", False),
+        ("not 1 > 2 and 2 > 1", True),
+    ],
+)
 def test_unary_binding(expr, expected):
     assert _eval(expr) == expected
 
 
 def _run_governed(src):
     interp = Interpreter()
-    interp.attach_tarl(TarlRuntime(PolicyParser.parse(
-        'policy p\nwhen action == "withdraw" => ALLOW\nwhen true => DENY\n')))
+    interp.attach_tarl(
+        TarlRuntime(
+            PolicyParser.parse(
+                'policy p\nwhen action == "withdraw" => ALLOW\nwhen true => DENY\n'
+            )
+        )
+    )
     interp.set_authority("admin")
     interp.interpret(Parser(Lexer(src).lex()).parse(), mode="governed")
     return interp

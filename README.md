@@ -88,8 +88,8 @@ pip install -e .
 ## Canonical Manual
 
 The end-to-end reference is the
-[`Thirsty-Lang 101`](docs/THIRSTY_LANG_101.md) manual. Its generated single-file
-edition is [`Thirsty-Lang-101.pdf`](output/pdf/Thirsty-Lang-101.pdf). It unifies
+[`Thirsty-Lang UTF 101 (Universal Thirsty Family)`](docs/THIRSTY_LANG_UTF_101.md) manual. Its generated single-file
+edition is [`Thirsty-Lang-UTF-101.pdf`](output/pdf/Thirsty-Lang-UTF-101.pdf). It unifies
 the language tutorial, exact grammar, all seven CLIs, T.A.R.L. policy and proof
 contracts, the six-tier family, deployment, security, release evidence, and
 source/test traceability for version 0.8.6.
@@ -479,7 +479,7 @@ decision at `ESCALATE`.
 
 This project keeps defensive claims tied to files that can be inspected:
 
-- canonical end-to-end manual: [`docs/THIRSTY_LANG_101.md`](docs/THIRSTY_LANG_101.md)
+- canonical end-to-end manual: [`docs/THIRSTY_LANG_UTF_101.md`](docs/THIRSTY_LANG_UTF_101.md)
 - status matrix: [`docs/STATUS.md`](docs/STATUS.md)
 - adversary model and challenge catalog: [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
 - governance runtime model: [`docs/governance_model.md`](docs/governance_model.md)

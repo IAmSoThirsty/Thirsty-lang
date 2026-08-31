@@ -2,11 +2,13 @@
 Thirsty-Lang Type System
 Base types, generic types, unification, and assignability checking.
 """
+
 from dataclasses import dataclass, field
 
 
 class Type:
     """Base class for all types."""
+
     def __str__(self):
         return type_to_string(self)
 
@@ -47,6 +49,7 @@ class ErrorType(Type):
 
 
 # === Generic Types ===
+
 
 @dataclass
 class GenericType(Type):
@@ -97,6 +100,7 @@ class GovernedType(GenericType):
 
 # === Named Types ===
 
+
 @dataclass
 class EnumType(Type):
     name: str
@@ -112,10 +116,13 @@ class StructType(Type):
 @dataclass
 class InterfaceType(Type):
     name: str
-    method_sigs: dict[str, list[Type]] = field(default_factory=dict)  # name -> [param_types]
+    method_sigs: dict[str, list[Type]] = field(
+        default_factory=dict
+    )  # name -> [param_types]
 
 
 # === Type Variables ===
+
 
 @dataclass
 class TypeVariable(Type):
@@ -123,6 +130,7 @@ class TypeVariable(Type):
 
 
 # === Function Types ===
+
 
 @dataclass
 class FunctionType(Type):
@@ -149,8 +157,8 @@ def type_from_name(name: str) -> Type:
 
     # Check for generic type pattern: BaseType[Args]
     if "[" in name and name.endswith("]"):
-        base = name[:name.index("[")].strip()
-        inner = name[name.index("[") + 1:-1].strip()
+        base = name[: name.index("[")].strip()
+        inner = name[name.index("[") + 1 : -1].strip()
         inner_types = []
         # Split by comma, respecting nesting
         depth = 0
@@ -178,8 +186,10 @@ def type_from_name(name: str) -> Type:
         elif base_lower == "task":
             return TaskType(inner_types[0] if inner_types else AnyType())
         elif base_lower == "result":
-            return ResultType(inner_types[0] if inner_types else AnyType(),
-                              inner_types[1] if len(inner_types) > 1 else AnyType())
+            return ResultType(
+                inner_types[0] if inner_types else AnyType(),
+                inner_types[1] if len(inner_types) > 1 else AnyType(),
+            )
         elif base_lower == "governed":
             return GovernedType(inner_types[0] if inner_types else AnyType())
         else:
@@ -219,7 +229,10 @@ def unify(t1: Type, t2: Type) -> Type:
             return ReservoirType(inner)
         if isinstance(t1, FunctionType) and isinstance(t2, FunctionType):
             if len(t1.param_types) == len(t2.param_types):
-                params = [unify(p1, p2) for p1, p2 in zip(t1.param_types, t2.param_types, strict=False)]
+                params = [
+                    unify(p1, p2)
+                    for p1, p2 in zip(t1.param_types, t2.param_types, strict=False)
+                ]
                 ret = unify(t1.return_type, t2.return_type)
                 return FunctionType(params, ret)
         return t1

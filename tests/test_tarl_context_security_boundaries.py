@@ -43,8 +43,8 @@ def _allow_if(condition: str, context: dict) -> object:
     [
         ('user.role != "admin"', {"user": {"role": False}}),
         ("feature.enabled == 0", {"feature": {"enabled": False}}),
-        ('not user.role', {"user": {"role": "admin"}}),
-        ('user.role and true', {"user": {"role": "admin"}}),
+        ("not user.role", {"user": {"role": "admin"}}),
+        ("user.role and true", {"user": {"role": "admin"}}),
         ('user.role NOT IN ["admin"]', {"user": {"role": False}}),
         ('LOWER(user.role) == "admin"', {"user": {"role": 1}}),
         ("flags > expected", {"flags": [1], "expected": [0]}),
@@ -62,9 +62,7 @@ def test_resolved_false_is_distinct_from_missing_and_from_numeric_zero():
         "feature.enabled == false", {"feature": {"enabled": False}}
     )
     with pytest.raises(Exception, match="cannot compare bool and int"):
-        SafeExpr.evaluate(
-            "feature.enabled == 0", {"feature": {"enabled": False}}
-        )
+        SafeExpr.evaluate("feature.enabled == 0", {"feature": {"enabled": False}})
     with pytest.raises(Exception, match="context path 'feature.enabled'"):
         SafeExpr.evaluate("feature.enabled == false", {})
 
@@ -99,9 +97,7 @@ def test_numeric_strings_cannot_authorize_numeric_comparisons(condition, value):
 )
 def test_boolean_short_circuit_cannot_hide_invalid_context(condition, context):
     policy = PolicyParser.parse(
-        "policy hidden_invalid\n"
-        f"when {condition} => DENY\n"
-        "when true => ALLOW\n"
+        "policy hidden_invalid\n" f"when {condition} => DENY\n" "when true => ALLOW\n"
     )
     decision = evaluate_policy(context, policy=policy)
     assert decision.verdict == TarlVerdict.DENY
@@ -131,9 +127,7 @@ def test_quantifier_order_cannot_hide_malformed_elements(quantifier, users):
 def test_empty_quantifier_collection_is_not_authorization_evidence(quantifier):
     condition = f'{quantifier}(users, u -> user.role == "admin")'
     policy = PolicyParser.parse(
-        "policy empty_quantifier\n"
-        f"when {condition} => DENY\n"
-        "when true => ALLOW\n"
+        "policy empty_quantifier\n" f"when {condition} => DENY\n" "when true => ALLOW\n"
     )
     decision = evaluate_policy({"users": []}, policy=policy)
     assert decision.verdict == TarlVerdict.DENY
@@ -174,10 +168,7 @@ def test_elapsed_since_and_proof_timestamp_use_the_trusted_clock():
 
 def test_time_bound_verdict_expiry_uses_the_trusted_clock():
     trusted_now = datetime(2026, 1, 1, tzinfo=UTC)
-    policy = PolicyParser.parse(
-        "policy timed\n"
-        "when true => ESCALATE for: 5m\n"
-    )
+    policy = PolicyParser.parse("policy timed\n" "when true => ESCALATE for: 5m\n")
     runtime = TarlRuntime(policy).set_context_schema(ContextSchema())
     runtime.set_clock(lambda: trusted_now)
 
@@ -222,9 +213,7 @@ def test_elapsed_since_decision_is_never_reused_from_cache():
 
 def test_caller_and_schema_cannot_shadow_temporal_builtins():
     policy = PolicyParser.parse(
-        "policy temporal\n"
-        "when CURRENT_HOUR == 8 => ALLOW\n"
-        "when true => DENY\n"
+        "policy temporal\n" "when CURRENT_HOUR == 8 => ALLOW\n" "when true => DENY\n"
     )
     runtime = TarlRuntime(policy)
     runtime.set_clock(lambda: datetime(2026, 1, 1, 8, tzinfo=UTC))
@@ -343,13 +332,11 @@ def test_caller_cannot_inject_a_registered_source_namespace():
     runtime = TarlRuntime(
         PolicyParser.parse(
             "policy source_gate\n"
-            'when role IN source:trusted_roles => ALLOW\n'
+            "when role IN source:trusted_roles => ALLOW\n"
             "when true => DENY\n"
         )
     )
-    decision = runtime.evaluate(
-        {"role": "admin", "source:trusted_roles": ["admin"]}
-    )
+    decision = runtime.evaluate({"role": "admin", "source:trusted_roles": ["admin"]})
     assert decision.verdict == TarlVerdict.DENY
     assert "reserved source field 'source:trusted_roles'" in decision.reason
 
@@ -358,7 +345,7 @@ def test_registered_source_must_use_the_authoritative_json_domain():
     runtime = TarlRuntime(
         PolicyParser.parse(
             "policy source_gate\n"
-            'when role IN source:trusted_roles => ALLOW\n'
+            "when role IN source:trusted_roles => ALLOW\n"
             "when true => DENY\n"
         )
     ).register_source("trusted_roles", {"admin"})
@@ -378,7 +365,7 @@ def _source_bound_proof():
     runtime = TarlRuntime(
         PolicyParser.parse(
             "policy source_gate\n"
-            'when role IN source:trusted_roles => ALLOW\n'
+            "when role IN source:trusted_roles => ALLOW\n"
             "when true => DENY\n"
         )
     )
@@ -412,9 +399,10 @@ def test_tarl_verify_cli_requires_the_exact_source_enriched_context(
 
         tarl_cli.main()
     assert missing.value.code == 1
-    assert json.loads(capsys.readouterr().out)["checks"][
-        "evaluated_context_binding"
-    ] is False
+    assert (
+        json.loads(capsys.readouterr().out)["checks"]["evaluated_context_binding"]
+        is False
+    )
 
     monkeypatch.setattr(
         "sys.argv",
@@ -523,9 +511,7 @@ def test_cli_governed_run_rejects_incomplete_derived_context_schema(
     program = _write_cli_fixture(
         tmp_path, "context-gate.thirsty", _CLI_GOVERNED_PROGRAM
     )
-    policy = _write_cli_fixture(
-        tmp_path, "context-gate.tarl", _CLI_INCOMPLETE_POLICY
-    )
+    policy = _write_cli_fixture(tmp_path, "context-gate.tarl", _CLI_INCOMPLETE_POLICY)
     assert derive_context_schema(_CLI_INCOMPLETE_POLICY).complete is False
 
     with pytest.raises(SystemExit) as denied:
@@ -553,9 +539,7 @@ def test_cli_governed_run_accepts_matching_explicit_context_schema(
     program = _write_cli_fixture(
         tmp_path, "context-gate.thirsty", _CLI_GOVERNED_PROGRAM
     )
-    policy = _write_cli_fixture(
-        tmp_path, "context-gate.tarl", _CLI_INCOMPLETE_POLICY
-    )
+    policy = _write_cli_fixture(tmp_path, "context-gate.tarl", _CLI_INCOMPLETE_POLICY)
     schema = _write_cli_fixture(
         tmp_path,
         "context-schema.json",
@@ -606,9 +590,7 @@ def test_derived_context_schema_refreshes_after_set_policy():
     runtime = TarlRuntime(first_policy)
 
     assert runtime.ensure_context_schema() is True
-    first_decision, first_proof = runtime.evaluate_with_proof(
-        {"role": "admin"}
-    )
+    first_decision, first_proof = runtime.evaluate_with_proof({"role": "admin"})
     runtime.set_policy(second_policy)
     assert runtime.ensure_context_schema() is True
     second_decision, second_proof = runtime.evaluate_with_proof({"amount": 1})
@@ -628,9 +610,7 @@ def test_policy_text_override_binds_schema_derived_for_the_override():
         'policy base\nwhen role == "admin" => ALLOW\nwhen true => DENY\n'
     )
     override_text = (
-        "policy override\n"
-        "when amount > 100 => ALLOW\n"
-        "when true => DENY\n"
+        "policy override\n" "when amount > 100 => ALLOW\n" "when true => DENY\n"
     )
     runtime = TarlRuntime(base_policy)
     assert runtime.ensure_context_schema() is True
@@ -708,9 +688,7 @@ def test_incomplete_policy_text_override_fails_closed():
         },
     ],
 )
-def test_explicit_schema_loader_rejects_metadata_laundering(
-    schema_document, tmp_path
-):
+def test_explicit_schema_loader_rejects_metadata_laundering(schema_document, tmp_path):
     path = tmp_path / "context-schema.json"
     path.write_text(json.dumps(schema_document), encoding="utf-8")
     with pytest.raises(ValueError):
@@ -731,11 +709,7 @@ def test_explicit_schema_loader_rejects_duplicate_metadata(tmp_path):
 @pytest.mark.parametrize(
     "schema_document",
     [
-        {
-            "fields": [
-                {"name": "role", "kinds": ["string"], "required": 1}
-            ]
-        },
+        {"fields": [{"name": "role", "kinds": ["string"], "required": 1}]},
         {
             "fields": [
                 {"name": "role", "kinds": ["string"]},

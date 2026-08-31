@@ -17,6 +17,7 @@ violation short-circuits to a fail-closed verdict (DENY by default, or ESCALATE)
 with a proof recording exactly which fields were missing or mistyped — never a
 silent permissive default.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -56,8 +57,10 @@ class FieldSpec:
     required: bool = True
 
     def __post_init__(self) -> None:
-        if not isinstance(self.name, str) or not self.name or any(
-            not part for part in self.name.split(".")
+        if (
+            not isinstance(self.name, str)
+            or not self.name
+            or any(not part for part in self.name.split("."))
         ):
             raise ValueError("context schema field name must be a valid path")
         if self.name.split(".", 1)[0] in RESERVED_CONTEXT_IDENTIFIERS:
@@ -69,8 +72,7 @@ class FieldSpec:
         unknown = set(self.kinds) - set(_KIND_TYPES)
         if unknown:
             raise ValueError(
-                "unknown context schema field kinds: "
-                + ", ".join(sorted(unknown))
+                "unknown context schema field kinds: " + ", ".join(sorted(unknown))
             )
         if type(self.required) is not bool:
             raise ValueError("context schema field required must be a boolean")
@@ -119,9 +121,7 @@ class ContextSchema:
                 raise ValueError("context schema fields must be FieldSpec values")
             spec.__post_init__()
             if spec.name in names:
-                raise ValueError(
-                    f"duplicate context schema field '{spec.name}'"
-                )
+                raise ValueError(f"duplicate context schema field '{spec.name}'")
             names.add(spec.name)
 
     def to_dict(self) -> dict:
@@ -212,8 +212,7 @@ class ContextSchema:
         }
         if unknown_top_level:
             raise ValueError(
-                "unknown context schema fields: "
-                + ", ".join(sorted(unknown_top_level))
+                "unknown context schema fields: " + ", ".join(sorted(unknown_top_level))
             )
         status = data.get("status")
         if status is not None:
@@ -243,9 +242,7 @@ class ContextSchema:
             and nested_representation_id is not None
             and top_level_representation_id != nested_representation_id
         ):
-            raise ValueError(
-                "conflicting context schema representation identifiers"
-            )
+            raise ValueError("conflicting context schema representation identifiers")
         representation_id = (
             nested_representation_id
             or top_level_representation_id
@@ -256,9 +253,7 @@ class ContextSchema:
                 "unsupported context representation: "
                 f"{representation_id!r}; expected {CONTEXT_REPRESENTATION_ID!r}"
             )
-        normalization = representation.get(
-            "normalization", NORMALIZATION_ALGORITHM_ID
-        )
+        normalization = representation.get("normalization", NORMALIZATION_ALGORITHM_ID)
         if normalization != NORMALIZATION_ALGORITHM_ID:
             raise ValueError(
                 "unsupported context schema normalization: "
@@ -266,9 +261,7 @@ class ContextSchema:
             )
         path_model = representation.get("path_model", "nested-objects")
         if path_model != "nested-objects":
-            raise ValueError(
-                "context schema path_model must be 'nested-objects'"
-            )
+            raise ValueError("context schema path_model must be 'nested-objects'")
 
         on_violation = TarlVerdict(data.get("on_violation", "DENY"))
         if on_violation is TarlVerdict.ALLOW:
@@ -294,9 +287,7 @@ class ContextSchema:
             if not isinstance(raw_kinds, list) or not all(
                 type(kind) is str for kind in raw_kinds
             ):
-                raise ValueError(
-                    "context schema field kinds must be a list of strings"
-                )
+                raise ValueError("context schema field kinds must be a list of strings")
             fields.append(
                 FieldSpec(
                     name=raw_field["name"],

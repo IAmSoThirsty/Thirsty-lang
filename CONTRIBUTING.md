@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Thirsty-Lang. This guide tracks
 the checks enforced by the repository at version 0.8.6. Start with the
-[canonical Thirsty-Lang 101 manual](docs/THIRSTY_LANG_101.md) for the complete
+[canonical Thirsty-Lang UTF 101 manual](docs/THIRSTY_LANG_UTF_101.md) for the complete
 language, governance, security, and operations map.
 
 ## Code of Conduct
@@ -80,16 +80,24 @@ mypy -p utf
 python -m pytest tests/ -q --cov=utf --cov-report=term-missing --cov-fail-under=90
 ```
 
-The repository does not currently ship a pre-commit configuration. Do not rely
-on local hooks as evidence that CI will pass. The authoritative gates are
-`.github/workflows/smoke.yml` and `.github/workflows/release.yml`.
+The repository ships `.pre-commit-config.yaml`. Install the development extra
+and run every hook before delivery:
+
+```bash
+python -m pip install -e ".[dev]"
+pre-commit run --all-files
+```
+
+Local hooks supplement the authoritative gates in
+`.github/workflows/smoke.yml` and `.github/workflows/release.yml`; they do not
+replace CI evidence.
 
 For documentation or PDF changes, also run:
 
 ```bash
-python scripts/build_thirsty_lang_101.py
-python scripts/verify_thirsty_lang_101.py output/pdf/Thirsty-Lang-101.pdf
-python -m pytest tests/test_thirsty_lang_101_pdf.py -q
+python scripts/build_thirsty_lang_utf_101.py
+python scripts/verify_thirsty_lang_utf_101.py output/pdf/Thirsty-Lang-UTF-101.pdf
+python -m pytest tests/test_thirsty_lang_utf_101_pdf.py -q
 ```
 
 ### Code Standards
