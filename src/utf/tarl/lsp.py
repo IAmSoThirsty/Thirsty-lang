@@ -16,6 +16,7 @@ Capabilities:
   - Hover: rule verdict + condition at cursor position
   - Definition: jump to EXTENDS/RESTRICTS parent or INCLUDE file target
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,6 +35,7 @@ log = logging.getLogger(__name__)
 
 
 # ── JSON-RPC framing ──────────────────────────────────────────────────────────
+
 
 def _read_message(stream) -> dict | None:
     """Read one Length-prefixed JSON-RPC message. Returns None on EOF."""
@@ -67,18 +69,19 @@ def _write_message(stream, msg: dict) -> None:
 
 # ── Diagnostic construction ───────────────────────────────────────────────────
 
+
 def _diagnostic(
     start_line: int,
     start_char: int,
     end_line: int,
     end_char: int,
     message: str,
-    severity: int = 1,   # 1=Error 2=Warning 3=Info 4=Hint
+    severity: int = 1,  # 1=Error 2=Warning 3=Info 4=Hint
 ) -> dict:
     return {
         "range": {
             "start": {"line": start_line, "character": start_char},
-            "end":   {"line": end_line,   "character": end_char},
+            "end": {"line": end_line, "character": end_char},
         },
         "severity": severity,
         "source": "tarl",
@@ -87,6 +90,7 @@ def _diagnostic(
 
 
 # ── Language server ───────────────────────────────────────────────────────────
+
 
 class TarlLanguageServer:
     """
@@ -121,14 +125,14 @@ class TarlLanguageServer:
         msg_id = msg.get("id")
 
         handler = {
-            "initialize":              self._on_initialize,
-            "initialized":             self._on_initialized,
-            "shutdown":                self._on_shutdown,
-            "exit":                    self._on_exit,
-            "textDocument/didOpen":    self._on_did_open,
-            "textDocument/didChange":  self._on_did_change,
-            "textDocument/didClose":   self._on_did_close,
-            "textDocument/hover":      self._on_hover,
+            "initialize": self._on_initialize,
+            "initialized": self._on_initialized,
+            "shutdown": self._on_shutdown,
+            "exit": self._on_exit,
+            "textDocument/didOpen": self._on_did_open,
+            "textDocument/didChange": self._on_did_change,
+            "textDocument/didClose": self._on_did_close,
+            "textDocument/hover": self._on_hover,
             "textDocument/definition": self._on_definition,
         }.get(method)
 
@@ -148,29 +152,43 @@ class TarlLanguageServer:
 
     def _reply(self, msg_id, result) -> None:
         with self._write_lock:
-            _write_message(self._out, {
-                "jsonrpc": "2.0", "id": msg_id, "result": result,
-            })
+            _write_message(
+                self._out,
+                {
+                    "jsonrpc": "2.0",
+                    "id": msg_id,
+                    "result": result,
+                },
+            )
 
     def _error(self, msg_id, code: int, message: str) -> None:
         with self._write_lock:
-            _write_message(self._out, {
-                "jsonrpc": "2.0", "id": msg_id,
-                "error": {"code": code, "message": message},
-            })
+            _write_message(
+                self._out,
+                {
+                    "jsonrpc": "2.0",
+                    "id": msg_id,
+                    "error": {"code": code, "message": message},
+                },
+            )
 
     def _notify(self, method: str, params: dict) -> None:
         with self._write_lock:
-            _write_message(self._out, {
-                "jsonrpc": "2.0", "method": method, "params": params,
-            })
+            _write_message(
+                self._out,
+                {
+                    "jsonrpc": "2.0",
+                    "method": method,
+                    "params": params,
+                },
+            )
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
     def _on_initialize(self, params: dict) -> dict:
         return {
             "capabilities": {
-                "textDocumentSync": 1,    # Full sync
+                "textDocumentSync": 1,  # Full sync
                 "hoverProvider": True,
                 "definitionProvider": True,
             },
@@ -209,9 +227,13 @@ class TarlLanguageServer:
     def _on_did_close(self, params: dict):
         uri = params.get("textDocument", {}).get("uri", "")
         self._docs.pop(uri, None)
-        self._notify("textDocument/publishDiagnostics", {
-            "uri": uri, "diagnostics": [],
-        })
+        self._notify(
+            "textDocument/publishDiagnostics",
+            {
+                "uri": uri,
+                "diagnostics": [],
+            },
+        )
         return None
 
     # ── Diagnostics ───────────────────────────────────────────────────────────
@@ -230,17 +252,25 @@ class TarlLanguageServer:
         self._doc_versions[uri] = version
 
         syntax = self._syntax_diags(text)
-        self._notify("textDocument/publishDiagnostics", {
-            "uri": uri, "diagnostics": syntax,
-        })
+        self._notify(
+            "textDocument/publishDiagnostics",
+            {
+                "uri": uri,
+                "diagnostics": syntax,
+            },
+        )
 
         def _z3_task():
             z3 = self._z3_diags(text)
             if self._doc_versions.get(uri) != version:
-                return   # document changed; result is stale
-            self._notify("textDocument/publishDiagnostics", {
-                "uri": uri, "diagnostics": syntax + z3,
-            })
+                return  # document changed; result is stale
+            self._notify(
+                "textDocument/publishDiagnostics",
+                {
+                    "uri": uri,
+                    "diagnostics": syntax + z3,
+                },
+            )
 
         threading.Thread(target=_z3_task, daemon=True).start()
 
@@ -278,11 +308,16 @@ class TarlLanguageServer:
                     PolicyParser._tokenize(rule.condition)
                 except ValueError as exc:
                     col = raw.find("when") if "when" in raw else 0
-                    diags.append(_diagnostic(
-                        li, col, li, len(raw),
-                        f"Condition syntax error: {exc}",
-                        severity=1,
-                    ))
+                    diags.append(
+                        _diagnostic(
+                            li,
+                            col,
+                            li,
+                            len(raw),
+                            f"Condition syntax error: {exc}",
+                            severity=1,
+                        )
+                    )
 
         return diags
 
@@ -310,25 +345,35 @@ class TarlLanguageServer:
                     rule = item.rules[sh.shadowed_index]
                     li = max(0, rule.source_line - 1)
                     raw = doc_lines[li] if li < len(doc_lines) else ""
-                    diags.append(_diagnostic(
-                        li, 0, li, len(raw),
-                        (
-                            f"Dead rule: shadowed by rule"
-                            f" #{sh.shadowing_index} and can never match"
-                        ),
-                        severity=2,
-                    ))
+                    diags.append(
+                        _diagnostic(
+                            li,
+                            0,
+                            li,
+                            len(raw),
+                            (
+                                f"Dead rule: shadowed by rule"
+                                f" #{sh.shadowing_index} and can never match"
+                            ),
+                            severity=2,
+                        )
+                    )
 
                 cov = PolicyAnalyzer(item).check_coverage()
                 if not cov.passed:
-                    diags.append(_diagnostic(
-                        0, 0, 0, 0,
-                        (
-                            f"Coverage gap: {len(cov.gaps)} context region(s)"
-                            f" fall through to DEFAULT_DENY"
-                        ),
-                        severity=4,
-                    ))
+                    diags.append(
+                        _diagnostic(
+                            0,
+                            0,
+                            0,
+                            0,
+                            (
+                                f"Coverage gap: {len(cov.gaps)} context region(s)"
+                                f" fall through to DEFAULT_DENY"
+                            ),
+                            severity=4,
+                        )
+                    )
             except (ImportError, Exception):
                 pass
 
@@ -376,9 +421,9 @@ class TarlLanguageServer:
                     if rule.duration_seconds:
                         ds = rule.duration_seconds
                         label = (
-                            f"{ds // 3600}h" if ds % 3600 == 0
-                            else f"{ds // 60}m" if ds % 60 == 0
-                            else f"{ds}s"
+                            f"{ds // 3600}h"
+                            if ds % 3600 == 0
+                            else f"{ds // 60}m" if ds % 60 == 0 else f"{ds}s"
                         )
                         dur = f"\n\n_Time-bound: `{label}`_"
                     return (
@@ -392,9 +437,8 @@ class TarlLanguageServer:
                 continue
             for idx, raw in enumerate(doc_lines):
                 stripped = raw.strip()
-                if (
-                    stripped.startswith(f"policy {item.name}")
-                    or stripped.startswith(f"policy_set {item.name}")
+                if stripped.startswith(f"policy {item.name}") or stripped.startswith(
+                    f"policy_set {item.name}"
                 ):
                     if idx == line:
                         parts = [f"**Policy** `{item.name}`"]
@@ -424,9 +468,7 @@ class TarlLanguageServer:
 
         return self.definition_at(text, uri, line_idx)
 
-    def definition_at(
-        self, text: str, uri: str, line_idx: int
-    ) -> dict | None:
+    def definition_at(self, text: str, uri: str, line_idx: int) -> dict | None:
         """
         Return an LSP Location dict for the definition at line_idx, or None.
 
@@ -452,7 +494,7 @@ class TarlLanguageServer:
                         "uri": uri,
                         "range": {
                             "start": {"line": idx, "character": 0},
-                            "end":   {"line": idx, "character": len(ln)},
+                            "end": {"line": idx, "character": len(ln)},
                         },
                     }
             return None
@@ -462,17 +504,16 @@ class TarlLanguageServer:
         if m_inc and m_inc.group(1):
             import os
             from urllib.parse import quote, urlparse
+
             parsed = urlparse(uri)
             base_dir = os.path.dirname(parsed.path)
-            target = os.path.normpath(
-                os.path.join(base_dir, m_inc.group(1))
-            )
+            target = os.path.normpath(os.path.join(base_dir, m_inc.group(1)))
             target_uri = "file://" + quote(target, safe="/:\\")
             return {
                 "uri": target_uri,
                 "range": {
                     "start": {"line": 0, "character": 0},
-                    "end":   {"line": 0, "character": 0},
+                    "end": {"line": 0, "character": 0},
                 },
             }
 
@@ -480,6 +521,7 @@ class TarlLanguageServer:
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
+
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(

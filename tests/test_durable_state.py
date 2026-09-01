@@ -2,6 +2,7 @@
 checkpoints. Each test simulates a second process by opening a *fresh* store
 instance on the same database file.
 """
+
 import sqlite3
 
 from utf.tarl.archive import TarlAuditArchive
@@ -12,17 +13,11 @@ from utf.tarl.schema import ContextSchema
 from utf.tarl.spec import TarlVerdict
 from utf.tarl.verifier import ProofVerifier
 
-POLICY = (
-    'policy p\n'
-    'when role == "admin" => ALLOW\n'
-    'when true => DENY\n'
-)
+POLICY = "policy p\n" 'when role == "admin" => ALLOW\n' "when true => DENY\n"
 
 
 def _signed_proof(tmp_path):
-    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
-        ContextSchema()
-    )
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(ContextSchema())
     rt.set_signing_key("k1", b"secret-hmac-key")
     decision, proof = rt.evaluate_with_proof({"role": "admin"})
     assert decision.verdict == TarlVerdict.ALLOW

@@ -3,6 +3,10 @@
 **Version:** 0.8.6
 **Copyright:** 2026 Thirsty's Projects LLC (Apache 2.0)
 
+This is the concise normative family specification. For the integrated
+tutorial, CLI encyclopedia, security contract, deployment guidance, and source
+traceability, see [THIRSTY_LANG_UTF_101.md](THIRSTY_LANG_UTF_101.md).
+
 ---
 
 ## Overview
@@ -33,7 +37,6 @@ The base language with water-metaphor syntax.
 | `times` | TIMES | Repeat n times |
 | `module` | MODULE | Module declaration |
 | `import` | IMPORT | Import module |
-| `from` | FROM | From-import |
 | `as` | AS | Import alias |
 | `and` | AND | Logical AND |
 | `or` | OR | Logical OR |
@@ -110,11 +113,11 @@ pour add(2, 3)
 ```
 
 ```thirsty
-module guards: core
+module branches: core
 
-thirst (x > 0) {
+thirsty (x > 0) {
     pour "positive"
-} hydrated thirst (x < 0) {
+} hydrated thirsty (x < 0) {
     pour "negative"
 } hydrated {
     pour "zero"
@@ -136,6 +139,8 @@ thirst (x > 0) {
 | `thirsty run <file>` | Execute a .thirsty file |
 | `thirsty repl` | Start interactive REPL |
 | `thirsty build <file> --target js` | Build to JavaScript |
+| `thirsty prove <file> --policy <policy>` | Emit static proof obligations without executing effects |
+| `thirsty explain-denial <file> --policy <policy>` | Explain unmet static governance obligations |
 | `thirsty fmt <files>` | Format .thirsty files |
 | `thirsty new <name>` | Scaffold new project |
 | `thirsty govern <file>` | Governance operations |
@@ -143,14 +148,15 @@ thirst (x > 0) {
 | `thirsty audit` | Audit dependencies |
 | `thirsty lock` | Generate lockfile |
 | `thirsty doctor` | Project health check |
-| `thirsty lsp` | Start LSP server |
+| `thirsty lsp` | Start the TARL language server |
 | `thirsty docs` | Generate documentation |
 
 ---
 
 ## Tier 2 — Thirst of Gods
 
-Adds object-oriented programming, async execution, and structured error handling.
+Applies a structural AST contract over the Tier 1 object-oriented, cascade, and
+structured-error constructs before running the ordinary interpreter.
 
 ### Keywords
 
@@ -158,7 +164,6 @@ Adds object-oriented programming, async execution, and structured error handling
 |---------|-------|---------|
 | `fountain` | FOUNTAIN | Class declaration |
 | `cascade` | CASCADE | Async function |
-| `await` | AWAIT | Await async result |
 | `spillage` | SPILLAGE | Try block |
 | `cleanup` | CLEANUP | Resource cleanup |
 | `finally` | FINALLY | Finalizer |
@@ -166,8 +171,6 @@ Adds object-oriented programming, async execution, and structured error handling
 | `throw` | THROW | Throw error |
 | `this` | THIS | Self reference |
 | `new` | NEW | Instantiate class |
-| `public` | PUBLIC | Public visibility |
-| `private` | PRIVATE | Private visibility |
 
 ### Syntax Examples
 
@@ -176,7 +179,8 @@ fountain Counter {
     drink count: Int = 0
 
     glass increment() {
-        mut this.count = this.count + 1
+        this.count = this.count + 1
+        return this.count
     }
 }
 
@@ -219,6 +223,39 @@ policy example:
 
 TarlVerdict values: ALLOW, DENY, ESCALATE. Default-DENY applies when no rule matches.
 
+### Authoritative context contract
+
+T.A.R.L. 0.8.6 has exactly one caller-context representation:
+`tarl.context.nested-json.v1`. Dotted identifiers traverse nested JSON objects:
+
+```json
+{"user": {"role": "admin"}}
+```
+
+A flat key such as `{"user.role": "admin"}` is not normalized. Flat dotted
+keys, duplicate JSON keys, mixed flat/nested forms (even when their values are
+equal), non-string object keys, non-finite numbers, cycles, and values outside
+the finite JSON domain fail closed.
+
+Path resolution preserves four distinct states: `RESOLVED(value)`, `MISSING`,
+`TYPE_ERROR`, and `REPRESENTATION_CONFLICT`. Only `RESOLVED(value)` may enter
+ordinary comparison, membership, negation, safe functions, or boolean algebra.
+Missing is not false; invalid is not false; unresolved is not evidence.
+
+A raw evaluator may report `ALLOW` for diagnostic use. Load-bearing positive
+authority additionally requires a complete context schema that passed against
+the exact evaluated nested representation and is bound into the proof. The
+proof records the original and canonical/evaluated context hashes,
+representation identifier, normalization algorithm identifier and version,
+conflict status, schema fingerprint/representation/result, policy hash,
+matched rule and condition, verdict, trace, evaluation time, and applicable
+expiry.
+
+Registered sources are the only supported context transformation. The proof
+binds both the original request and exact source-enriched evaluated context;
+verification requires both, and removing only permitted top-level
+`source:<name>` additions must reproduce the original request.
+
 T.A.R.L. condition validation is eager and fail-closed. Both operands of
 `and`/`or` are evaluated, and `ALL(collection, item -> predicate)` and
 `ANY(collection, item -> predicate)` validate every collection element before
@@ -238,6 +275,14 @@ Temporal metadata is strict. Invalid `valid_from`/`valid_until` timestamps,
 policy. `on_expiry: ALLOW` is forbidden. `valid_until` is an exclusive cutoff,
 and a matched verdict expires at the earlier of that effective policy cutoff or
 its rule-level `for:` duration.
+
+Independent verification rejects unsigned proofs by default and can enforce
+exact policy/context/schema bindings, Ed25519-only attribution, freshness,
+expiry, revocation, and durable replay prevention. A configured trusted clock
+must return a timezone-aware verified value; it never silently falls back to
+host time after failure. Quorum promotion requires an independently verified,
+schema-passed, signed `ESCALATE` proof plus distinct Ed25519 approvals over the
+complete proof digest and explicit request/time/freshness/replay bindings.
 
 ---
 

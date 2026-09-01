@@ -1,4 +1,5 @@
 """CLI coverage for tscg and tscg-b."""
+
 import io
 
 import pytest
@@ -15,6 +16,7 @@ def _argv(monkeypatch, *args):
 
 
 # --- tscg -----------------------------------------------------------------
+
 
 def test_tscg_parse_text(monkeypatch, capsys):
     _argv(monkeypatch, "tscg", "parse", EXPR)
@@ -95,6 +97,7 @@ def test_tscg_node_helpers_fallback():
 
 
 # --- tscg-b ---------------------------------------------------------------
+
 
 class _FakeStdout:
     def __init__(self):

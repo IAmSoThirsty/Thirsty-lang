@@ -13,6 +13,7 @@ location and confines it to one or more allowed roots. Confinement is decided on
 the **canonical** path, so neither traversal nor a symlink can escape. Adapters
 check a path *before* opening it and deny on escape.
 """
+
 from __future__ import annotations
 
 import os
@@ -64,7 +65,8 @@ class PathGuard:
             except ValueError:
                 continue
         return PathCheck(
-            False, real,
+            False,
+            real,
             f"path {real!r} escapes the allowed root(s) "
             f"{', '.join(map(repr, self._roots))}",
         )

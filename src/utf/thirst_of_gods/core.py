@@ -4,6 +4,7 @@ The Thirst of Gods tier validates and enforces deity-level contracts
 on Thirsty-Lang programs. It operates on the existing AST from
 src.utf.thirsty_lang.ast and provides governance interpretation.
 """
+
 import dataclasses
 from dataclasses import dataclass, field
 from typing import Any
@@ -65,6 +66,7 @@ def _guarded_cascade_ids(ast) -> set:
 
 class ThirstOfGodsError(Exception):
     """Custom exception for Thirst of Gods violations."""
+
     pass
 
 
@@ -79,6 +81,7 @@ class DeityContract:
         has_cleanup: True if a cleanup function/block exists.
         violations: List of human-readable violation descriptions.
     """
+
     has_fountain_init: bool = False
     has_cascade_handler: bool = False
     has_spillage_handler: bool = False
@@ -141,7 +144,8 @@ def to_gods(ast: Program) -> DeityContract:
         if unguarded:
             violations.append(
                 f"{len(unguarded)} cascade call(s) not inside a spillage "
-                "handler (awaited error has no consumer)")
+                "handler (awaited error has no consumer)"
+            )
         else:
             violations.append("Missing cascade handler with error handling")
     if not has_spillage_handler:
@@ -174,36 +178,44 @@ def validate_deity_contract(ast: Program) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
 
     if not contract.has_fountain_init:
-        diagnostics.append(Diagnostic(
-            code="G001",
-            message="Deity contract violation: missing fountain with init method",
-            span=(ast.span[0] if ast.span else 0, 0, 0, 0),
-            severity=DiagnosticSeverity.ERROR.value,
-        ))
+        diagnostics.append(
+            Diagnostic(
+                code="G001",
+                message="Deity contract violation: missing fountain with init method",
+                span=(ast.span[0] if ast.span else 0, 0, 0, 0),
+                severity=DiagnosticSeverity.ERROR.value,
+            )
+        )
 
     if not contract.has_cascade_handler:
-        diagnostics.append(Diagnostic(
-            code="G002",
-            message="Deity contract violation: missing cascade handler with error handling",
-            span=(ast.span[0] if ast.span else 0, 0, 0, 0),
-            severity=DiagnosticSeverity.ERROR.value,
-        ))
+        diagnostics.append(
+            Diagnostic(
+                code="G002",
+                message="Deity contract violation: missing cascade handler with error handling",
+                span=(ast.span[0] if ast.span else 0, 0, 0, 0),
+                severity=DiagnosticSeverity.ERROR.value,
+            )
+        )
 
     if not contract.has_spillage_handler:
-        diagnostics.append(Diagnostic(
-            code="G003",
-            message="Deity contract violation: missing spillage block with error handlers",
-            span=(ast.span[0] if ast.span else 0, 0, 0, 0),
-            severity=DiagnosticSeverity.ERROR.value,
-        ))
+        diagnostics.append(
+            Diagnostic(
+                code="G003",
+                message="Deity contract violation: missing spillage block with error handlers",
+                span=(ast.span[0] if ast.span else 0, 0, 0, 0),
+                severity=DiagnosticSeverity.ERROR.value,
+            )
+        )
 
     if not contract.has_cleanup:
-        diagnostics.append(Diagnostic(
-            code="G004",
-            message="Deity contract violation: missing cleanup block",
-            span=(ast.span[0] if ast.span else 0, 0, 0, 0),
-            severity=DiagnosticSeverity.WARNING.value,
-        ))
+        diagnostics.append(
+            Diagnostic(
+                code="G004",
+                message="Deity contract violation: missing cleanup block",
+                span=(ast.span[0] if ast.span else 0, 0, 0, 0),
+                severity=DiagnosticSeverity.WARNING.value,
+            )
+        )
 
     return diagnostics
 
@@ -231,9 +243,7 @@ def interpret_gods(ast: Program, mode: str = "gods") -> Any:
 
     if not contract.passed:
         violation_msg = "; ".join(contract.violations)
-        raise ThirstOfGodsError(
-            f"Deity contract validation failed: {violation_msg}"
-        )
+        raise ThirstOfGodsError(f"Deity contract validation failed: {violation_msg}")
 
     interpreter = Interpreter(opt_level=0, debug_mode=False)
     result = interpreter.interpret(ast, mode=mode if mode == "gods" else "core")

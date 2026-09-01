@@ -16,6 +16,7 @@ ALLOW decision or raises :class:`CapabilityDenied`. It is **fail-closed**: with 
 runtime configured, or in a hardened broker with an unauthenticated authority,
 every request is denied with a proof.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -47,9 +48,7 @@ class CapabilityDenied(Exception):
         self.action = action
         self.target = target
         self.decision = decision
-        super().__init__(
-            f"capability denied: {action} {target}: {decision.reason}"
-        )
+        super().__init__(f"capability denied: {action} {target}: {decision.reason}")
 
 
 class CapabilityBroker:
@@ -84,6 +83,7 @@ class CapabilityBroker:
 
     def set_authority(self, authority) -> CapabilityBroker:
         from utf.tarl.authority import VerifiedAuthority
+
         if isinstance(authority, VerifiedAuthority):
             self._subject = authority.subject
             self._authenticated = bool(authority.authenticated)
@@ -112,6 +112,7 @@ class CapabilityBroker:
     ):
         import hashlib
         from datetime import UTC, datetime
+
         ctx = context or {
             **self._authority_context(),
             "action": action,
@@ -123,19 +124,24 @@ class CapabilityBroker:
             prepared = rejected_context_binding(
                 ctx, conflict_status=exc.conflict_status
             )
-        context_hash = (
-            prepared.canonical_context_hash or prepared.original_context_hash
-        )
+        context_hash = prepared.canonical_context_hash or prepared.original_context_hash
         return TarlProof(
-            policy_hash="sha256:" + hashlib.sha256(
-                b"<broker fail-closed: no policy>").hexdigest(),
+            policy_hash="sha256:"
+            + hashlib.sha256(b"<broker fail-closed: no policy>").hexdigest(),
             context_hash=context_hash,
             rule_index=-1,
             matched_condition="",
             verdict=TarlVerdict.DENY,
             evaluated_at=datetime.now(UTC).isoformat(timespec="seconds"),
-            trace=[{"kind": "fail-closed", "action": action,
-                    "target": str(target), "matched": False, "reason": reason}],
+            trace=[
+                {
+                    "kind": "fail-closed",
+                    "action": action,
+                    "target": str(target),
+                    "matched": False,
+                    "reason": reason,
+                }
+            ],
             signature="",
             key_id="",
             original_context_hash=prepared.original_context_hash,
@@ -159,14 +165,18 @@ class CapabilityBroker:
         requires authentication) the authority is not authenticated.
         """
         if self.runtime is None:
-            reason = ("fail-closed: no policy runtime configured to authorize "
-                      "this capability")
+            reason = (
+                "fail-closed: no policy runtime configured to authorize "
+                "this capability"
+            )
             proof = self._fail_closed_proof(action, target, reason)
             return BrokerDecision(False, TarlVerdict.DENY, proof, reason)
 
         if self.require_authenticated and not self._authenticated:
-            reason = ("fail-closed: broker requires an authenticated authority "
-                      "to authorize this capability")
+            reason = (
+                "fail-closed: broker requires an authenticated authority "
+                "to authorize this capability"
+            )
             proof = self._fail_closed_proof(action, target, reason)
             return BrokerDecision(False, TarlVerdict.DENY, proof, reason)
 
@@ -217,8 +227,11 @@ class CapabilityBroker:
             )
         allowed = decision.verdict == TarlVerdict.ALLOW
         return BrokerDecision(
-            allowed, decision.verdict, proof,
-            decision.reason or f"verdict: {decision.verdict}")
+            allowed,
+            decision.verdict,
+            proof,
+            decision.reason or f"verdict: {decision.verdict}",
+        )
 
     def require(
         self,
@@ -255,16 +268,15 @@ class CapabilityBroker:
             proof = self._fail_closed_proof(action, path, reason)
             decision = BrokerDecision(False, TarlVerdict.DENY, proof, reason)
             raise CapabilityDenied(action, path, decision)
-        return self.require(
-            action, check.canonical, within_root=True, **context)
+        return self.require(action, check.canonical, within_root=True, **context)
 
 
 # A reference vocabulary of broker actions, so adapters classify consistently.
 ACTION_READ = "read"
 ACTION_WRITE = "write"
 ACTION_NETWORK = "network"
-ACTION_EXECUTE = "execute"   # subprocess, FFI/native calls
-ACTION_TOOL = "tool"         # AI/MCP tool invocation
+ACTION_EXECUTE = "execute"  # subprocess, FFI/native calls
+ACTION_TOOL = "tool"  # AI/MCP tool invocation
 
 
 __all__ = [

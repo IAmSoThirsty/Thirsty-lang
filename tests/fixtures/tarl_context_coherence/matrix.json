@@ -6,7 +6,7 @@
       "id": "flat-dotted-key-only",
       "policy": "dotted-context.tarl",
       "context": {"user.role": "admin"},
-      "expected": "DENY"
+      "expected": "ALLOW"
     },
     {
       "id": "nested-object-only",
@@ -30,7 +30,7 @@
       "id": "flat-and-nested-equal",
       "policy": "dotted-context.tarl",
       "context": {"user.role": "admin", "user": {"role": "admin"}},
-      "expected": "DENY"
+      "expected": "ALLOW"
     },
     {
       "id": "flat-and-nested-conflicting",

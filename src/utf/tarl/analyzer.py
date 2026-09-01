@@ -9,6 +9,7 @@ Z3 SMT-backed analysis (optional: pip install thirsty-lang[analysis])
   equiv     — prove two policies produce identical verdicts for all contexts
   refines   — prove one policy is a strict subset of another
 """
+
 from __future__ import annotations
 
 import functools
@@ -29,6 +30,7 @@ from utf.tarl.spec import TarlPolicy, TarlRule, TarlVerdict
 _z3: Any
 try:
     import z3 as _z3  # type: ignore[no-redef,import-untyped,import-not-found]
+
     _Z3_AVAILABLE = True
 except ImportError:  # pragma: no cover - exercised only without the extra
     _z3 = None
@@ -56,6 +58,7 @@ _Z3_LOCK = threading.RLock()
 
 def _z3_serialized(fn):
     """Serialize z3 global-context access and collect z3 garbage under the lock."""
+
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         if not _Z3_AVAILABLE:
@@ -68,7 +71,9 @@ def _z3_serialized(fn):
                 # unreferenced; collect any cyclic z3 garbage here, on this
                 # thread, before another thread can touch the global context.
                 gc.collect()
+
     return wrapper
+
 
 # Verdict integer encoding for ITE chains
 _VERDICT_INT = {
@@ -89,9 +94,11 @@ _TEMPORAL_STR_BUILTINS = frozenset({"CURRENT_WEEKDAY", "CURRENT_TIMESTAMP"})
 
 # ── Result types ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class CoverageGap:
     """A context region where all rules fail and DEFAULT-DENY applies."""
+
     description: str = ""
     example_context: dict[str, Any] | None = None
 
@@ -99,6 +106,7 @@ class CoverageGap:
 @dataclass
 class ShadowedRule:
     """A rule that can never be reached because earlier rules always fire first."""
+
     rule_index: int = 0
     condition: str = ""
     verdict: TarlVerdict = TarlVerdict.DENY
@@ -109,6 +117,7 @@ class ShadowedRule:
 @dataclass
 class ConflictPair:
     """Two rules with different verdicts that can simultaneously match."""
+
     rule_i: int = 0
     rule_j: int = 0
     verdict_i: TarlVerdict = TarlVerdict.DENY
@@ -120,6 +129,7 @@ class ConflictPair:
 @dataclass
 class AnalysisResult:
     """Result of a static analysis query."""
+
     kind: str
     available: bool
     passed: bool
@@ -159,6 +169,7 @@ def _unavailable(kind: str) -> AnalysisResult:
 
 # ── Condition → Z3 translator ─────────────────────────────────────────────────
 
+
 class _ConditionToZ3:
     """
     Two-pass translator: type inference then AST → Z3 formula.
@@ -172,7 +183,7 @@ class _ConditionToZ3:
 
     def __init__(self) -> None:
         self._vars: dict = {}
-        self._types: dict = {}           # key -> "Int"|"String"|"Bool"|"opaque"
+        self._types: dict = {}  # key -> "Int"|"String"|"Bool"|"opaque"
         self._domain: list = []
         self._opaque_n: int = 0
 
@@ -201,7 +212,11 @@ class _ConditionToZ3:
                 self._merge(rk, lt)
             for side in (node[2], node[3]):
                 if isinstance(side, tuple) and side[0] in (
-                    "add", "sub", "mul", "div", "mod"
+                    "add",
+                    "sub",
+                    "mul",
+                    "div",
+                    "mod",
                 ):
                     for k in self._arith_vars(side):
                         self._merge(k, "Int")
@@ -280,8 +295,13 @@ class _ConditionToZ3:
             v = _z3.String(key)
             if key == "CURRENT_WEEKDAY":
                 days = [
-                    "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY",
-                    "FRIDAY", "SATURDAY", "SUNDAY",
+                    "MONDAY",
+                    "TUESDAY",
+                    "WEDNESDAY",
+                    "THURSDAY",
+                    "FRIDAY",
+                    "SATURDAY",
+                    "SUNDAY",
                 ]
                 self._domain.append(_z3.Or([v == _z3.StringVal(d) for d in days]))
             self._vars[key] = v
@@ -357,7 +377,11 @@ class _ConditionToZ3:
             except Exception:
                 return None
         _arith_ops = {
-            "add": "+", "sub": "-", "mul": "*", "div": "/", "mod": "%",
+            "add": "+",
+            "sub": "-",
+            "mul": "*",
+            "div": "/",
+            "mod": "%",
         }
         if tag in _arith_ops:
             return self._arith(node[1], node[2], _arith_ops[tag])
@@ -398,18 +422,16 @@ class _ConditionToZ3:
             lv, rv = self._coerce(lv, rv)
             return {
                 "EQEQ": lambda: lv == rv,
-                "NE":   lambda: lv != rv,
-                "LT":   lambda: lv < rv,
-                "GT":   lambda: lv > rv,
-                "LE":   lambda: lv <= rv,
-                "GE":   lambda: lv >= rv,
+                "NE": lambda: lv != rv,
+                "LT": lambda: lv < rv,
+                "GT": lambda: lv > rv,
+                "LE": lambda: lv <= rv,
+                "GE": lambda: lv >= rv,
             }[op]()
         except Exception:
             return self._fresh(f"cmp_{op}")
 
-    def _membership(
-        self, val_node: object, col_node: object, negate: bool
-    ) -> Any:
+    def _membership(self, val_node: object, col_node: object, negate: bool) -> Any:
         if not isinstance(col_node, tuple):
             return self._fresh("in")
         if col_node[0] == "set":
@@ -434,6 +456,7 @@ class _ConditionToZ3:
 
 
 # ── Module helpers ────────────────────────────────────────────────────────────
+
 
 def _build_formulas(tr: _ConditionToZ3, rules: list[TarlRule]) -> list[Any]:
     out = []
@@ -482,6 +505,7 @@ def _model_dict(model: Any, tr: _ConditionToZ3) -> dict[str, Any]:
 
 # ── PolicyAnalyzer ────────────────────────────────────────────────────────────
 
+
 class PolicyAnalyzer:
     """
     Static analysis engine for a single T.A.R.L. policy.
@@ -513,7 +537,9 @@ class PolicyAnalyzer:
             return _unavailable("coverage")
         if not self.policy.rules:
             return AnalysisResult(
-                kind="coverage", available=True, passed=False,
+                kind="coverage",
+                available=True,
+                passed=False,
                 message="No rules — every context reaches DEFAULT-DENY",
                 gaps=[CoverageGap(description="Policy has no rules")],
             )
@@ -524,20 +550,28 @@ class PolicyAnalyzer:
         r = s.check()
         if r == _z3.sat:
             return AnalysisResult(
-                kind="coverage", available=True, passed=False,
+                kind="coverage",
+                available=True,
+                passed=False,
                 message=f"Coverage gap found ({len(self.policy.rules)} rule(s) checked)",
-                gaps=[CoverageGap(
-                    description="Context region that falls through to DEFAULT-DENY",
-                    example_context=_model_dict(s.model(), tr),
-                )],
+                gaps=[
+                    CoverageGap(
+                        description="Context region that falls through to DEFAULT-DENY",
+                        example_context=_model_dict(s.model(), tr),
+                    )
+                ],
             )
         if r == _z3.unsat:
             return AnalysisResult(
-                kind="coverage", available=True, passed=True,
+                kind="coverage",
+                available=True,
+                passed=True,
                 message="Full coverage: every context matches at least one rule",
             )
         return AnalysisResult(
-            kind="coverage", available=True, passed=False,
+            kind="coverage",
+            available=True,
+            passed=False,
             message="Z3 returned unknown",
         )
 
@@ -554,7 +588,9 @@ class PolicyAnalyzer:
             return _unavailable("shadows")
         if len(self.policy.rules) < 2:
             return AnalysisResult(
-                kind="shadows", available=True, passed=True,
+                kind="shadows",
+                available=True,
+                passed=True,
                 message="No shadowing possible with fewer than 2 rules",
             )
         tr, formulas = self._translate()
@@ -567,24 +603,30 @@ class PolicyAnalyzer:
             s.add(formulas[k])
             if s.check() == _z3.unsat:
                 rule = self.policy.rules[k]
-                dead.append(ShadowedRule(
-                    rule_index=k,
-                    condition=rule.condition,
-                    verdict=rule.verdict,
-                    shadowed_by=list(range(k)),
-                    description=(
-                        f"Rule [{k}] `when {rule.condition}` is unreachable; "
-                        f"rule(s) {list(range(k))} always match first"
-                    ),
-                ))
+                dead.append(
+                    ShadowedRule(
+                        rule_index=k,
+                        condition=rule.condition,
+                        verdict=rule.verdict,
+                        shadowed_by=list(range(k)),
+                        description=(
+                            f"Rule [{k}] `when {rule.condition}` is unreachable; "
+                            f"rule(s) {list(range(k))} always match first"
+                        ),
+                    )
+                )
         if dead:
             return AnalysisResult(
-                kind="shadows", available=True, passed=False,
+                kind="shadows",
+                available=True,
+                passed=False,
                 message=f"{len(dead)} dead rule(s) found",
                 shadows=dead,
             )
         return AnalysisResult(
-            kind="shadows", available=True, passed=True,
+            kind="shadows",
+            available=True,
+            passed=True,
             message="No dead rules detected",
         )
 
@@ -611,26 +653,32 @@ class PolicyAnalyzer:
                 s.add(*tr.domain_constraints())
                 s.add(formulas[i], formulas[j])
                 if s.check() == _z3.sat:
-                    found.append(ConflictPair(
-                        rule_i=i,
-                        rule_j=j,
-                        verdict_i=rules[i].verdict,
-                        verdict_j=rules[j].verdict,
-                        example_context=_model_dict(s.model(), tr),
-                        description=(
-                            f"Rules [{i}] ({rules[i].verdict.value}) and "
-                            f"[{j}] ({rules[j].verdict.value}) overlap. "
-                            f"First-match-wins resolves to rule [{i}]."
-                        ),
-                    ))
+                    found.append(
+                        ConflictPair(
+                            rule_i=i,
+                            rule_j=j,
+                            verdict_i=rules[i].verdict,
+                            verdict_j=rules[j].verdict,
+                            example_context=_model_dict(s.model(), tr),
+                            description=(
+                                f"Rules [{i}] ({rules[i].verdict.value}) and "
+                                f"[{j}] ({rules[j].verdict.value}) overlap. "
+                                f"First-match-wins resolves to rule [{i}]."
+                            ),
+                        )
+                    )
         if found:
             return AnalysisResult(
-                kind="conflicts", available=True, passed=False,
+                kind="conflicts",
+                available=True,
+                passed=False,
                 message=f"{len(found)} conflicting rule pair(s)",
                 conflicts=found,
             )
         return AnalysisResult(
-            kind="conflicts", available=True, passed=True,
+            kind="conflicts",
+            available=True,
+            passed=True,
             message="No conflicts detected",
         )
 
@@ -657,17 +705,23 @@ class PolicyAnalyzer:
         r = s.check()
         if r == _z3.unsat:
             return AnalysisResult(
-                kind="equiv", available=True, passed=True,
+                kind="equiv",
+                available=True,
+                passed=True,
                 message=f"'{p1.name}' and '{p2.name}' are equivalent",
             )
         if r == _z3.sat:
             return AnalysisResult(
-                kind="equiv", available=True, passed=False,
+                kind="equiv",
+                available=True,
+                passed=False,
                 message=f"'{p1.name}' and '{p2.name}' differ",
                 counterexample=_model_dict(s.model(), tr),
             )
         return AnalysisResult(
-            kind="equiv", available=True, passed=False,
+            kind="equiv",
+            available=True,
+            passed=False,
             message="Z3 returned unknown",
         )
 
@@ -695,7 +749,9 @@ class PolicyAnalyzer:
         r = s.check()
         if r == _z3.unsat:
             return AnalysisResult(
-                kind="refines", available=True, passed=True,
+                kind="refines",
+                available=True,
+                passed=True,
                 message=(
                     f"'{strict.name}' ⊑ '{permissive.name}': "
                     "strict never allows what permissive would deny"
@@ -703,13 +759,15 @@ class PolicyAnalyzer:
             )
         if r == _z3.sat:
             return AnalysisResult(
-                kind="refines", available=True, passed=False,
-                message=(
-                    f"'{strict.name}' is NOT a refinement of '{permissive.name}'"
-                ),
+                kind="refines",
+                available=True,
+                passed=False,
+                message=(f"'{strict.name}' is NOT a refinement of '{permissive.name}'"),
                 counterexample=_model_dict(s.model(), tr),
             )
         return AnalysisResult(
-            kind="refines", available=True, passed=False,
+            kind="refines",
+            available=True,
+            passed=False,
             message="Z3 returned unknown",
         )

@@ -8,6 +8,7 @@ cryptographically sign their approval of *that exact verified proof*. A
 duplicate identity or key counts once; a replay from another policy or a
 forged approval cannot meet quorum.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -23,6 +24,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
 )
 
+from utf.tarl.context import SOURCE_INJECTION_ALGORITHM_ID
 from utf.tarl.core import PolicyParser
 from utf.tarl.spec import TarlDecision, TarlProof, TarlVerdict
 from utf.tarl.verifier import (
@@ -60,7 +62,8 @@ class Approval:
                 "proof_hash": self.proof_hash,
                 "key_id": self.key_id,
             },
-            sort_keys=True, separators=(",", ":"),
+            sort_keys=True,
+            separators=(",", ":"),
         ).encode("utf-8")
 
 
@@ -68,7 +71,9 @@ class ApprovalIssuer:
     """An individual approver: signs approvals for escalated decisions."""
 
     def __init__(
-        self, approver: str, key_id: str,
+        self,
+        approver: str,
+        key_id: str,
         private_key: bytes | Ed25519PrivateKey,
     ):
         if not approver or not key_id:
@@ -93,8 +98,7 @@ class ApprovalIssuer:
             proof_hash=proof_digest(proof),
             key_id=self.key_id,
         )
-        approval.signature = "ed25519:" + self._key.sign(
-            approval.signing_bytes()).hex()
+        approval.signature = "ed25519:" + self._key.sign(approval.signing_bytes()).hex()
         return approval
 
 
@@ -122,9 +126,7 @@ class QuorumResolver:
     ):
         if threshold < 1:
             raise ValueError("quorum threshold must be >= 1")
-        if proof_verifier is not None and not isinstance(
-            proof_verifier, ProofVerifier
-        ):
+        if proof_verifier is not None and not isinstance(proof_verifier, ProofVerifier):
             raise TypeError("proof verifier must be a ProofVerifier")
         if policy_source is not None and (
             not isinstance(policy_source, str) or not policy_source
@@ -254,10 +256,7 @@ class QuorumResolver:
                 expires_at = datetime.datetime.fromisoformat(
                     proof.expires_at.replace("Z", "+00:00")
                 )
-                if (
-                    expires_at.tzinfo is None
-                    or expires_at.utcoffset() is None
-                ):
+                if expires_at.tzinfo is None or expires_at.utcoffset() is None:
                     return False, (
                         "time-bound escalation timestamps must be timezone-aware"
                     )
@@ -266,7 +265,10 @@ class QuorumResolver:
                 return False, f"time-bound escalation expiry is invalid: {exc}"
             if verification_now >= expires_at:
                 return False, "escalated decision has expired"
-        if proof.normalization_algorithm_id == "tarl.registered-source-injection":
+        if proof.normalization_algorithm_id in {
+            SOURCE_INJECTION_ALGORITHM_ID,
+            "tarl.registered-source-injection",
+        }:
             if expected_context is None or expected_evaluated_context is None:
                 return False, (
                     "source-injected escalation requires original and "
@@ -279,10 +281,7 @@ class QuorumResolver:
             expected_evaluated_context=expected_evaluated_context,
             now=verification_now,
         )
-        if (
-            not verification.valid
-            or verification.checks.get("signature") is not True
-        ):
+        if not verification.valid or verification.checks.get("signature") is not True:
             return False, f"escalation proof is invalid: {verification.message}"
         if not context_authority_admissible(proof, TarlVerdict.ESCALATE):
             return False, (
@@ -309,16 +308,15 @@ class QuorumResolver:
         """
         if decision.verdict != TarlVerdict.ESCALATE:
             return QuorumResult(
-                decision, 0, self.threshold,
-                "not an ESCALATE decision; nothing to resolve")
-        if (
-            proof.normalization_algorithm_id
-            == "tarl.registered-source-injection"
-            and (
-                expected_context is None
-                or expected_evaluated_context is None
+                decision,
+                0,
+                self.threshold,
+                "not an ESCALATE decision; nothing to resolve",
             )
-        ):
+        if proof.normalization_algorithm_id in {
+            SOURCE_INJECTION_ALGORITHM_ID,
+            "tarl.registered-source-injection",
+        } and (expected_context is None or expected_evaluated_context is None):
             return QuorumResult(
                 decision,
                 0,
@@ -342,10 +340,7 @@ class QuorumResolver:
                     encoding=serialization.Encoding.Raw,
                     format=serialization.PublicFormat.Raw,
                 )
-                if (
-                    approval.approver in distinct
-                    or key_material in distinct_keys
-                ):
+                if approval.approver in distinct or key_material in distinct_keys:
                     continue
                 distinct.add(approval.approver)
                 distinct_keys.add(key_material)
@@ -366,21 +361,29 @@ class QuorumResolver:
                 )
             allowed = TarlDecision(
                 verdict=TarlVerdict.ALLOW,
-                reason=(f"escalation approved by quorum "
-                        f"({counted}/{self.threshold}): "
-                        f"{', '.join(sorted(distinct))}"),
+                reason=(
+                    f"escalation approved by quorum "
+                    f"({counted}/{self.threshold}): "
+                    f"{', '.join(sorted(distinct))}"
+                ),
                 rule_index=decision.rule_index,
                 matched_rule=decision.matched_rule,
                 expires_at=decision.expires_at,
             )
             return QuorumResult(allowed, counted, self.threshold, "quorum met")
         return QuorumResult(
-            decision, counted, self.threshold,
+            decision,
+            counted,
+            self.threshold,
             f"insufficient approvals ({counted}/{self.threshold}); "
-            "decision remains ESCALATE")
+            "decision remains ESCALATE",
+        )
 
 
 __all__ = [
-    "Approval", "ApprovalIssuer", "QuorumResolver", "QuorumResult",
+    "Approval",
+    "ApprovalIssuer",
+    "QuorumResolver",
+    "QuorumResult",
     "proof_digest",
 ]

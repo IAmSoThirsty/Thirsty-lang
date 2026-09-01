@@ -4,6 +4,7 @@ Authority must come from an authenticated, Ed25519-signed credential — never
 from a bare ``--authority`` string or the environment alone. In hardened mode a
 governed gate additionally requires the runtime to emit Ed25519-signed proofs.
 """
+
 import pytest
 
 from utf.tarl.authority import (
@@ -23,15 +24,9 @@ ISSUER_SEED = bytes(range(32))
 WRONG_SEED = bytes([255 - i for i in range(32)])
 PROOF_SEED = bytes(range(1, 33))
 
-ALLOW_WRITE = (
-    'policy p\n'
-    'when action == "write" => ALLOW\n'
-    'when true => DENY\n'
-)
+ALLOW_WRITE = "policy p\n" 'when action == "write" => ALLOW\n' "when true => DENY\n"
 REQUIRE_AUTHENTICATED = (
-    'policy p\n'
-    'when authority_authenticated == true => ALLOW\n'
-    'when true => DENY\n'
+    "policy p\n" "when authority_authenticated == true => ALLOW\n" "when true => DENY\n"
 )
 
 
@@ -41,12 +36,11 @@ def _issuer():
 
 def _verifier(issuer=None):
     issuer = issuer or _issuer()
-    return AuthorityVerifier().add_ed25519_key(
-        issuer.key_id, issuer.public_key_bytes()
-    )
+    return AuthorityVerifier().add_ed25519_key(issuer.key_id, issuer.public_key_bytes())
 
 
 # ── AuthorityVerifier unit tests ───────────────────────────────────────────────
+
 
 def test_issued_claim_verifies_and_carries_grants():
     issuer = _issuer()
@@ -79,11 +73,14 @@ def test_unknown_issuer_key_id_is_rejected():
     assert not AuthorityVerifier().verify(claim).valid
 
 
-@pytest.mark.parametrize("field,value", [
-    ("subject", "root"),
-    ("grants", ("charge", "drain")),
-    ("issued_at", "2099-01-01T00:00:00+00:00"),
-])
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("subject", "root"),
+        ("grants", ("charge", "drain")),
+        ("issued_at", "2099-01-01T00:00:00+00:00"),
+    ],
+)
 def test_tampered_claim_is_rejected(field, value):
     claim = _issuer().issue("admin", grants=("charge",))
     setattr(claim, field, value)  # tamper after signing
@@ -92,6 +89,7 @@ def test_tampered_claim_is_rejected(field, value):
 
 def test_expired_claim_is_rejected():
     import datetime
+
     past = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
     claim = _issuer().issue("admin", ttl_seconds=60, now=past)
     assert not _verifier().verify(claim).valid
@@ -104,6 +102,7 @@ def test_hmac_style_signature_is_rejected():
 
 
 # ── Interpreter hardened-mode integration ──────────────────────────────────────
+
 
 def _interp(policy_text, *, hardened, authority, sign_ed25519):
     interp = Interpreter()
@@ -120,7 +119,7 @@ def _interp(policy_text, *, hardened, authority, sign_ed25519):
     return interp
 
 
-def _run(interp, src="module m: governed\npour \"x\"\n"):
+def _run(interp, src='module m: governed\npour "x"\n'):
     ast = Parser(Lexer(src).lex()).parse()
     return interp.interpret(ast)
 
@@ -128,8 +127,7 @@ def _run(interp, src="module m: governed\npour \"x\"\n"):
 def test_c027_bare_string_authority_denied_in_hardened_mode(capsys):
     # Forging authority by passing `--authority admin` must not grant anything
     # in hardened mode, even when the policy would ALLOW the action.
-    interp = _interp(ALLOW_WRITE, hardened=True, authority="admin",
-                     sign_ed25519=True)
+    interp = _interp(ALLOW_WRITE, hardened=True, authority="admin", sign_ed25519=True)
     with pytest.raises(GovernanceViolation) as exc:
         _run(interp)
     assert exc.value.proof.verdict == TarlVerdict.DENY
@@ -141,8 +139,7 @@ def test_hardened_requires_ed25519_signed_proofs():
     issuer = _issuer()
     verified = _verifier(issuer).verify(issuer.issue("admin")).authority
     # Authenticated authority, but the runtime is not configured to sign proofs.
-    interp = _interp(ALLOW_WRITE, hardened=True, authority=verified,
-                     sign_ed25519=False)
+    interp = _interp(ALLOW_WRITE, hardened=True, authority=verified, sign_ed25519=False)
     with pytest.raises(GovernanceViolation) as exc:
         _run(interp)
     assert "Ed25519" in exc.value.reason
@@ -150,11 +147,10 @@ def test_hardened_requires_ed25519_signed_proofs():
 
 def test_hardened_allows_authenticated_authority_with_signed_proofs(capsys):
     issuer = _issuer()
-    verified = _verifier(issuer).verify(
-        issuer.issue("admin", grants=("charge",))
-    ).authority
-    interp = _interp(ALLOW_WRITE, hardened=True, authority=verified,
-                     sign_ed25519=True)
+    verified = (
+        _verifier(issuer).verify(issuer.issue("admin", grants=("charge",))).authority
+    )
+    interp = _interp(ALLOW_WRITE, hardened=True, authority=verified, sign_ed25519=True)
     _run(interp)
     assert "x" in capsys.readouterr().out
     assert interp._last_proof.signature.startswith("ed25519:")
@@ -163,8 +159,9 @@ def test_hardened_allows_authenticated_authority_with_signed_proofs(capsys):
 def test_policy_can_require_authenticated_authority(capsys):
     issuer = _issuer()
     verified = _verifier(issuer).verify(issuer.issue("admin")).authority
-    interp = _interp(REQUIRE_AUTHENTICATED, hardened=True, authority=verified,
-                     sign_ed25519=True)
+    interp = _interp(
+        REQUIRE_AUTHENTICATED, hardened=True, authority=verified, sign_ed25519=True
+    )
     _run(interp)
     assert "x" in capsys.readouterr().out
 
@@ -172,8 +169,9 @@ def test_policy_can_require_authenticated_authority(capsys):
 def test_unauthenticated_authority_fails_authenticity_policy(capsys):
     # Non-hardened, but the policy itself demands authenticity: a bare authority
     # is reported as authority_authenticated == False and is denied.
-    interp = _interp(REQUIRE_AUTHENTICATED, hardened=False, authority="admin",
-                     sign_ed25519=False)
+    interp = _interp(
+        REQUIRE_AUTHENTICATED, hardened=False, authority="admin", sign_ed25519=False
+    )
     with pytest.raises(GovernanceViolation):
         _run(interp)
     assert "x" not in capsys.readouterr().out
@@ -182,7 +180,6 @@ def test_unauthenticated_authority_fails_authenticity_policy(capsys):
 def test_non_hardened_bare_authority_still_works(capsys):
     # Backward compatibility: outside hardened mode a bare authority + an
     # ALLOW policy continues to authorize the capability.
-    interp = _interp(ALLOW_WRITE, hardened=False, authority="admin",
-                     sign_ed25519=False)
+    interp = _interp(ALLOW_WRITE, hardened=False, authority="admin", sign_ed25519=False)
     _run(interp)
     assert "x" in capsys.readouterr().out

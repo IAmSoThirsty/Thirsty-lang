@@ -1,4 +1,5 @@
 """CLI coverage for shadow-thirst and thirst-of-gods."""
+
 import os
 
 import pytest
@@ -32,6 +33,7 @@ def _argv(monkeypatch, *args):
 
 # === shadow-thirst ========================================================
 
+
 def _write_mutation(tmp_path):
     p = tmp_path / "m.shadow"
     p.write_text(MUTATION)
@@ -58,8 +60,14 @@ def test_shadow_visualize_stdout(monkeypatch, capsys, tmp_path):
 
 def test_shadow_visualize_output_file(monkeypatch, tmp_path, capsys):
     out = tmp_path / "flow.mmd"
-    _argv(monkeypatch, "shadow-thirst", "visualize",
-          _write_mutation(tmp_path), "--output", str(out))
+    _argv(
+        monkeypatch,
+        "shadow-thirst",
+        "visualize",
+        _write_mutation(tmp_path),
+        "--output",
+        str(out),
+    )
     shadow_cli.main()
     assert out.exists()
     assert "written to" in capsys.readouterr().out
@@ -86,6 +94,7 @@ def test_shadow_parse_error(monkeypatch, tmp_path):
 
 
 # === thirst-of-gods =======================================================
+
 
 def test_gods_run(monkeypatch, capsys):
     _argv(monkeypatch, "thirst-of-gods", "run", GODS_EXAMPLE)
@@ -139,6 +148,7 @@ def test_gods_run_parse_errors(monkeypatch, tmp_path):
 
 def test_gods_run_deity_error(monkeypatch, tmp_path):
     from utf.thirst_of_gods import core
+
     good = tmp_path / "g.thirstofgods"
     good.write_text(open(GODS_EXAMPLE).read())
 
@@ -153,6 +163,7 @@ def test_gods_run_deity_error(monkeypatch, tmp_path):
 
 def test_gods_run_runtime_error(monkeypatch, tmp_path):
     from utf.thirst_of_gods import core
+
     good = tmp_path / "g.thirstofgods"
     good.write_text(open(GODS_EXAMPLE).read())
 
@@ -181,6 +192,7 @@ def test_gods_check_parse_errors(monkeypatch, tmp_path):
 
 def test_gods_check_fail(monkeypatch, tmp_path):
     from utf.thirst_of_gods import core
+
     good = tmp_path / "g.thirstofgods"
     good.write_text(open(GODS_EXAMPLE).read())
 
@@ -217,6 +229,7 @@ def test_gods_transpile_unknown_target(monkeypatch, tmp_path):
 
 def test_gods_run_prints_result(monkeypatch, capsys, tmp_path):
     from utf.thirst_of_gods import core
+
     good = tmp_path / "g.thirstofgods"
     good.write_text(open(GODS_EXAMPLE).read())
     monkeypatch.setattr(core, "interpret_gods", lambda _ast: "RESULT_VALUE")
@@ -226,8 +239,9 @@ def test_gods_run_prints_result(monkeypatch, capsys, tmp_path):
 
 
 def test_gods_main_exception_handler(monkeypatch):
-    monkeypatch.setattr(gods_cli, "run_file",
-                        lambda _f: (_ for _ in ()).throw(RuntimeError("x")))
+    monkeypatch.setattr(
+        gods_cli, "run_file", lambda _f: (_ for _ in ()).throw(RuntimeError("x"))
+    )
     _argv(monkeypatch, "thirst-of-gods", "run", "whatever")
     with pytest.raises(SystemExit):
         gods_cli.main()

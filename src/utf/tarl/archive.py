@@ -11,6 +11,7 @@ Usage::
         for p in arc.query(verdict="DENY", from_dt="2026-01-01"):
             print(p.to_json())
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -72,9 +73,7 @@ class TarlAuditArchive:
 
     def _connect(self) -> sqlite3.Connection:
         if self._conn is None:
-            self._conn = sqlite3.connect(
-                self._path, check_same_thread=False
-            )
+            self._conn = sqlite3.connect(self._path, check_same_thread=False)
         return self._conn
 
     def _ensure_schema(self) -> None:
@@ -100,8 +99,9 @@ class TarlAuditArchive:
                     ON proofs (evaluated_at);
             """)
             # Migrate older archives that predate the hash chain.
-            existing = {r[1] for r in conn.execute(
-                "PRAGMA table_info(proofs)").fetchall()}
+            existing = {
+                r[1] for r in conn.execute("PRAGMA table_info(proofs)").fetchall()
+            }
             for col in ("prev_hash", "entry_hash"):
                 if col not in existing:
                     conn.execute(f"ALTER TABLE proofs ADD COLUMN {col} TEXT")
@@ -203,7 +203,8 @@ class TarlAuditArchive:
         proofs = [TarlProof.from_json(row[0]) for row in rows]
         if verifier is not None:
             proofs = [
-                p for p in proofs
+                p
+                for p in proofs
                 if verifier.verify(p).checks.get("signature") is not False
             ]
         return proofs
@@ -249,9 +250,7 @@ class TarlAuditArchive:
             ).fetchone()
         return str(row[0]) if row and row[0] else _GENESIS
 
-    def verify_chain(
-        self, expected_head: str | None = None
-    ) -> ChainVerification:
+    def verify_chain(self, expected_head: str | None = None) -> ChainVerification:
         """Walk the hash chain in insertion order and report its integrity.
 
         Detects record tampering (a modified ``proof_json`` no longer hashes to
@@ -273,20 +272,29 @@ class TarlAuditArchive:
         for row_id, proof_json, prev_hash, entry_hash in rows:
             if prev_hash != prev:
                 return ChainVerification(
-                    False, len(rows), row_id,
+                    False,
+                    len(rows),
+                    row_id,
                     "prev_hash does not match the preceding record "
-                    "(deletion, insertion, or reordering)")
+                    "(deletion, insertion, or reordering)",
+                )
             expected = _entry_hash(prev, proof_json)
             if entry_hash != expected:
                 return ChainVerification(
-                    False, len(rows), row_id,
-                    "record contents do not match entry_hash (tampered)")
+                    False,
+                    len(rows),
+                    row_id,
+                    "record contents do not match entry_hash (tampered)",
+                )
             prev = entry_hash
         if expected_head is not None and prev != expected_head:
             return ChainVerification(
-                False, len(rows), None,
+                False,
+                len(rows),
+                None,
                 f"chain head {prev!r} does not match the trusted checkpoint "
-                f"{expected_head!r} (suffix rewrite or truncation)")
+                f"{expected_head!r} (suffix rewrite or truncation)",
+            )
         return ChainVerification(True, len(rows))
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────

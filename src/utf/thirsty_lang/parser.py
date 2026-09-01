@@ -3,6 +3,7 @@ Thirsty-Lang Recursive Descent Parser
 Produces an AST Program from a list of Tokens. Supports error recovery
 and "did you mean?" suggestions within edit distance 3.
 """
+
 import json
 
 from utf.thirsty_lang.ast import (
@@ -108,8 +109,9 @@ class Parser:
                 else:
                     self._advance()  # Skip unrecognized
             except Exception as e:
-                self.errors.append(make_error("E901", span=self._current_span(),
-                                              detail=str(e)))
+                self.errors.append(
+                    make_error("E901", span=self._current_span(), detail=str(e))
+                )
                 self._synchronize()
         span = self._span_range()
         # Fail closed for governed modules: if parsing produced any errors, the
@@ -118,8 +120,7 @@ class Parser:
         # statements past a malformed boundary. The interpreter refuses to run a
         # program flagged this way.
         if self.errors and header is not None and header.mode == "governed":
-            return Program(stmts=[], header=header, span=span,
-                           parse_failed=True)
+            return Program(stmts=[], header=header, span=span, parse_failed=True)
         return Program(stmts=stmts, header=header, span=span)
 
     def _is_at_end(self) -> bool:
@@ -148,7 +149,9 @@ class Parser:
                 return True
         return False
 
-    def _expect(self, token_type: TokenType, error_code: str = "E901", **kwargs) -> Token:
+    def _expect(
+        self, token_type: TokenType, error_code: str = "E901", **kwargs
+    ) -> Token:
         if self._check(token_type):
             return self._advance()
         msg = f"Expected {token_type.name} but got {self._peek().type.name}"
@@ -172,8 +175,12 @@ class Parser:
         if start_token is None:
             start_token = self.tokens[0]
         end_token = self._previous()
-        return (start_token.line, start_token.col,
-                end_token.line, end_token.col + len(end_token.lexeme))
+        return (
+            start_token.line,
+            start_token.col,
+            end_token.line,
+            end_token.col + len(end_token.lexeme),
+        )
 
     def _synchronize(self):
         """Skip tokens until a statement boundary is found (error recovery)."""
@@ -181,11 +188,23 @@ class Parser:
             if self._previous().type == TokenType.SEMICOLON:
                 return
             t = self._peek().type
-            if t in (TokenType.DRINK, TokenType.POUR, TokenType.SIP,
-                     TokenType.THIRSTY, TokenType.REFILL, TokenType.RETURN,
-                     TokenType.IMPORT, TokenType.GLASS, TokenType.FOUNTAIN,
-                     TokenType.SPILLAGE, TokenType.SHIELD, TokenType.MUTATION,
-                     TokenType.REQUIRES, TokenType.RBRACE, TokenType.EOF):
+            if t in (
+                TokenType.DRINK,
+                TokenType.POUR,
+                TokenType.SIP,
+                TokenType.THIRSTY,
+                TokenType.REFILL,
+                TokenType.RETURN,
+                TokenType.IMPORT,
+                TokenType.GLASS,
+                TokenType.FOUNTAIN,
+                TokenType.SPILLAGE,
+                TokenType.SHIELD,
+                TokenType.MUTATION,
+                TokenType.REQUIRES,
+                TokenType.RBRACE,
+                TokenType.EOF,
+            ):
                 return
             self._advance()
 
@@ -194,7 +213,9 @@ class Parser:
     def _parse_module_header(self) -> ModuleHeader | None:
         if not self._match(TokenType.MODULE):
             return None
-        name_token = self._expect(TokenType.IDENTIFIER, "E901", detail="Expected module name")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected module name"
+        )
         self._expect(TokenType.COLON, "E901", detail="Expected ':' after module name")
         self._peek()
         mode = "core"
@@ -207,8 +228,11 @@ class Parser:
         elif self._match(TokenType.PURE):
             mode = "pure"
         else:
-            self._expect(TokenType.IDENTIFIER, "E901",
-                         detail="Expected mode (core/governed/strict/pure)")
+            self._expect(
+                TokenType.IDENTIFIER,
+                "E901",
+                detail="Expected mode (core/governed/strict/pure)",
+            )
         span = self._span(name_token)
         return ModuleHeader(name=name_token.lexeme, mode=mode, span=span)
 
@@ -292,7 +316,9 @@ class Parser:
         start = self._advance()  # consume PIPE
         self._match(TokenType.GT)  # optional > for |>
         expr = self._parse_expr()
-        self._expect(TokenType.SEMICOLON, "E901", detail="Expected ';' after pipe expression")
+        self._expect(
+            TokenType.SEMICOLON, "E901", detail="Expected ';' after pipe expression"
+        )
         return ExprStmt(expr=expr, span=self._span(start))
 
     def _parse_block(self) -> BlockStmt:
@@ -310,12 +336,14 @@ class Parser:
     def _parse_variable_decl(self) -> VariableDecl:
         start = self._advance()  # drink
         is_mut = self._match(TokenType.MUT)
-        name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                  detail="Expected variable name after 'drink'")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected variable name after 'drink'"
+        )
         var_type = None
         if self._match(TokenType.COLON):
-            type_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                      detail="Expected type after ':'")
+            type_token = self._expect(
+                TokenType.IDENTIFIER, "E901", detail="Expected type after ':'"
+            )
             var_type = type_token.lexeme
         init_expr = None
         if self._match(TokenType.ASSIGN):
@@ -323,18 +351,25 @@ class Parser:
         elif self._match(TokenType.EQ):
             init_expr = self._parse_expr()
         self._match(TokenType.SEMICOLON)
-        return VariableDecl(name=name_token.lexeme, var_type=var_type,
-                            init_expr=init_expr, is_mut=is_mut, span=self._span(start))
+        return VariableDecl(
+            name=name_token.lexeme,
+            var_type=var_type,
+            init_expr=init_expr,
+            is_mut=is_mut,
+            span=self._span(start),
+        )
 
     def _parse_let_decl(self) -> VariableDecl:
         """let name [: type] = expr — immutable binding (analogous to `drink`)."""
         start = self._advance()  # let
-        name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                  detail="Expected variable name after 'let'")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected variable name after 'let'"
+        )
         var_type = None
         if self._match(TokenType.COLON):
-            type_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                      detail="Expected type after ':'")
+            type_token = self._expect(
+                TokenType.IDENTIFIER, "E901", detail="Expected type after ':'"
+            )
             var_type = type_token.lexeme
         init_expr = None
         if self._match(TokenType.ASSIGN):
@@ -342,9 +377,13 @@ class Parser:
         elif self._match(TokenType.EQ):
             init_expr = self._parse_expr()
         self._match(TokenType.SEMICOLON)
-        return VariableDecl(name=name_token.lexeme, var_type=var_type,
-                            init_expr=init_expr, is_mut=False,
-                            span=self._span(start))
+        return VariableDecl(
+            name=name_token.lexeme,
+            var_type=var_type,
+            init_expr=init_expr,
+            is_mut=False,
+            span=self._span(start),
+        )
 
     def _parse_walrus_decl(self) -> VariableDecl:
         """name := expr — define-and-assign a new mutable binding."""
@@ -352,27 +391,32 @@ class Parser:
         self._advance()  # :=
         init_expr = self._parse_expr()
         self._match(TokenType.SEMICOLON)
-        return VariableDecl(name=name_token.lexeme, var_type=None,
-                            init_expr=init_expr, is_mut=True,
-                            span=self._span(name_token))
+        return VariableDecl(
+            name=name_token.lexeme,
+            var_type=None,
+            init_expr=init_expr,
+            is_mut=True,
+            span=self._span(name_token),
+        )
 
     def _parse_for_stmt(self) -> ForStmt:
         """for [(] x in iterable [)] { body } — keyword form of refill(x in xs)."""
         start = self._advance()  # for
         has_paren = self._match(TokenType.LPAREN)
-        var_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                 detail="Expected loop variable after 'for'")
-        self._expect(TokenType.IN, "E901",
-                     detail="Expected 'in' after loop variable")
+        var_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected loop variable after 'for'"
+        )
+        self._expect(TokenType.IN, "E901", detail="Expected 'in' after loop variable")
         iterable = self._parse_expr()
         if has_paren:
-            self._expect(TokenType.RPAREN, "E901",
-                         detail="Expected ')' after iterable")
+            self._expect(TokenType.RPAREN, "E901", detail="Expected ')' after iterable")
         body = self._parse_block()
         return ForStmt(
-            variable=Identifier(name=var_token.lexeme,
-                                span=self._span(var_token)),
-            iterable=iterable, body=body, span=self._span(start))
+            variable=Identifier(name=var_token.lexeme, span=self._span(var_token)),
+            iterable=iterable,
+            body=body,
+            span=self._span(start),
+        )
 
     def _parse_pour_stmt(self) -> PourStmt:
         start = self._advance()
@@ -398,21 +442,32 @@ class Parser:
                 else_block = self._parse_if_stmt()  # else if
             else:
                 else_block = self._parse_block()
-        return IfStmt(condition=condition, then_block=then_block,
-                      else_block=else_block, span=self._span(start))
+        return IfStmt(
+            condition=condition,
+            then_block=then_block,
+            else_block=else_block,
+            span=self._span(start),
+        )
 
     def _parse_refill_stmt(self) -> WhileStmt | ForStmt | BlockStmt:
         start = self._advance()  # refill
         self._expect(TokenType.LPAREN, "E901", detail="Expected '(' after 'refill'")
         # for-each loop: refill(var in iterable)
-        if self._check(TokenType.IDENTIFIER) and self._peek_next(1).type == TokenType.IN:
+        if (
+            self._check(TokenType.IDENTIFIER)
+            and self._peek_next(1).type == TokenType.IN
+        ):
             var_token = self._advance()
             self._advance()  # in
             iterable = self._parse_expr()
             self._expect(TokenType.RPAREN, "E901", detail="Expected ')' after iterable")
             body = self._parse_block()
-            return ForStmt(variable=Identifier(name=var_token.lexeme, span=self._span(var_token)),
-                           iterable=iterable, body=body, span=self._span(start))
+            return ForStmt(
+                variable=Identifier(name=var_token.lexeme, span=self._span(var_token)),
+                iterable=iterable,
+                body=body,
+                span=self._span(start),
+            )
         # C-style for: refill(init; cond; step). A declaration initializer
         # (drink/let) unambiguously marks this form; an expression initializer
         # is distinguished from a plain while condition by the trailing ';'.
@@ -424,8 +479,11 @@ class Parser:
             return self._finish_cstyle_for(start, init)
         first = self._parse_expr()
         if self._match(TokenType.SEMICOLON):
-            expr_init = first if isinstance(first, AssignStmt) else ExprStmt(
-                expr=first, span=first.span)
+            expr_init = (
+                first
+                if isinstance(first, AssignStmt)
+                else ExprStmt(expr=first, span=first.span)
+            )
             return self._finish_cstyle_for(start, expr_init)
         # While loop: refill(condition)
         self._expect(TokenType.RPAREN, "E901", detail="Expected ')' after condition")
@@ -441,18 +499,19 @@ class Parser:
         if isinstance(init, VariableDecl):
             init.is_mut = True
         condition = self._parse_expr()
-        self._expect(TokenType.SEMICOLON, "E901",
-                     detail="Expected ';' after loop condition")
+        self._expect(
+            TokenType.SEMICOLON, "E901", detail="Expected ';' after loop condition"
+        )
         step_expr = self._parse_expr()
-        step = step_expr if isinstance(step_expr, AssignStmt) else ExprStmt(
-            expr=step_expr, span=step_expr.span)
-        self._expect(TokenType.RPAREN, "E901",
-                     detail="Expected ')' after loop step")
+        step = (
+            step_expr
+            if isinstance(step_expr, AssignStmt)
+            else ExprStmt(expr=step_expr, span=step_expr.span)
+        )
+        self._expect(TokenType.RPAREN, "E901", detail="Expected ')' after loop step")
         body = self._parse_block()
-        inner = BlockStmt(statements=list(body.statements) + [step],
-                          span=body.span)
-        loop = WhileStmt(condition=condition, body=inner,
-                         span=self._span(start))
+        inner = BlockStmt(statements=list(body.statements) + [step], span=body.span)
+        loop = WhileStmt(condition=condition, body=inner, span=self._span(start))
         return BlockStmt(statements=[init, loop], span=self._span(start))
 
     def _parse_times_stmt(self) -> TimesStmt:
@@ -471,30 +530,37 @@ class Parser:
 
     def _parse_import_stmt(self) -> ImportStmt:
         start = self._advance()
-        path_token = self._expect(TokenType.STRING, "E901",
-                                  detail="Expected module path string after 'import'")
+        path_token = self._expect(
+            TokenType.STRING,
+            "E901",
+            detail="Expected module path string after 'import'",
+        )
         alias = None
         if self._match(TokenType.AS):
-            alias_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                       detail="Expected alias name after 'as'")
+            alias_token = self._expect(
+                TokenType.IDENTIFIER, "E901", detail="Expected alias name after 'as'"
+            )
             alias = alias_token.lexeme
         self._match(TokenType.SEMICOLON)
-        return ImportStmt(module_path=path_token.lexeme, alias=alias, span=self._span(start))
+        return ImportStmt(
+            module_path=path_token.lexeme, alias=alias, span=self._span(start)
+        )
 
     def _parse_function_decl(self) -> FunctionDecl | GovernedFunctionDecl:
         start = self._advance()  # glass
-        name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                  detail="Expected function name after 'glass'")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected function name after 'glass'"
+        )
         params = self._parse_params()
         return_type = None
         if self._match(TokenType.ARROW):
-            type_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                      detail="Expected return type after '->'")
+            type_token = self._expect(
+                TokenType.IDENTIFIER, "E901", detail="Expected return type after '->'"
+            )
             return_type = type_token.lexeme
         # Governance clauses (any order): requires / ensures / invariant.
         clauses = {}
-        while self._check(TokenType.REQUIRES, TokenType.ENSURES,
-                          TokenType.INVARIANT):
+        while self._check(TokenType.REQUIRES, TokenType.ENSURES, TokenType.INVARIANT):
             kind = self._advance().type
             c_start = self.current
             expr = self._parse_expr()
@@ -506,14 +572,25 @@ class Parser:
             ens = clauses.get(TokenType.ENSURES, (None, None))
             inv = clauses.get(TokenType.INVARIANT, (None, None))
             return GovernedFunctionDecl(
-                name=name_token.lexeme, params=params,
-                return_type=return_type, body=body,
-                requires_annotation=req[1], requires_expr=req[0],
-                ensures_annotation=ens[1], ensures_expr=ens[0],
-                invariant_annotation=inv[1], invariant_expr=inv[0],
-                span=self._span(start))
-        return FunctionDecl(name=name_token.lexeme, params=params,
-                            return_type=return_type, body=body, span=self._span(start))
+                name=name_token.lexeme,
+                params=params,
+                return_type=return_type,
+                body=body,
+                requires_annotation=req[1],
+                requires_expr=req[0],
+                ensures_annotation=ens[1],
+                ensures_expr=ens[0],
+                invariant_annotation=inv[1],
+                invariant_expr=inv[0],
+                span=self._span(start),
+            )
+        return FunctionDecl(
+            name=name_token.lexeme,
+            params=params,
+            return_type=return_type,
+            body=body,
+            span=self._span(start),
+        )
 
     def _annotation_text(self, start: int, end: int) -> str:
         parts = []
@@ -526,25 +603,27 @@ class Parser:
 
     def _parse_class_decl(self) -> ClassDecl:
         start = self._advance()
-        name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                  detail="Expected class name after 'fountain'")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected class name after 'fountain'"
+        )
         self._expect(TokenType.LBRACE, "E901", detail="Expected '{' for class body")
         fields = []
         methods = []
         while not self._check(TokenType.RBRACE) and not self._is_at_end():
             if self._check(TokenType.GLASS):
                 methods.append(self._parse_function_decl())
-            elif (self._check(TokenType.DRINK)
-                  or self._check(TokenType.IDENTIFIER)):
+            elif self._check(TokenType.DRINK) or self._check(TokenType.IDENTIFIER):
                 # field: [drink [mut]] name [: type] [= default]
                 self._match(TokenType.DRINK)
                 self._match(TokenType.MUT)
-                name_t = self._expect(TokenType.IDENTIFIER, "E901",
-                                      detail="Expected field name")
+                name_t = self._expect(
+                    TokenType.IDENTIFIER, "E901", detail="Expected field name"
+                )
                 var_type = None
                 if self._match(TokenType.COLON):
-                    type_t = self._expect(TokenType.IDENTIFIER, "E901",
-                                          detail="Expected field type")
+                    type_t = self._expect(
+                        TokenType.IDENTIFIER, "E901", detail="Expected field type"
+                    )
                     var_type = type_t.lexeme
                 default_expr = None
                 if self._match(TokenType.ASSIGN):
@@ -554,28 +633,36 @@ class Parser:
             else:
                 self._advance()
         self._expect(TokenType.RBRACE, "E901", detail="Expected '}' to close class")
-        return ClassDecl(name=name_token.lexeme, methods=methods,
-                         fields=fields, span=self._span(start))
+        return ClassDecl(
+            name=name_token.lexeme,
+            methods=methods,
+            fields=fields,
+            span=self._span(start),
+        )
 
     def _parse_params(self) -> list:
         params = []
         self._expect(TokenType.LPAREN, "E901", detail="Expected '(' for parameters")
         if not self._check(TokenType.RPAREN):
-            name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                      detail="Expected parameter name")
+            name_token = self._expect(
+                TokenType.IDENTIFIER, "E901", detail="Expected parameter name"
+            )
             param_type = None
             if self._match(TokenType.COLON):
-                type_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                          detail="Expected parameter type")
+                type_token = self._expect(
+                    TokenType.IDENTIFIER, "E901", detail="Expected parameter type"
+                )
                 param_type = type_token.lexeme
             params.append((name_token.lexeme, param_type))
             while self._match(TokenType.COMMA):
-                name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                          detail="Expected parameter name")
+                name_token = self._expect(
+                    TokenType.IDENTIFIER, "E901", detail="Expected parameter name"
+                )
                 param_type = None
                 if self._match(TokenType.COLON):
-                    type_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                              detail="Expected parameter type")
+                    type_token = self._expect(
+                        TokenType.IDENTIFIER, "E901", detail="Expected parameter type"
+                    )
                     param_type = type_token.lexeme
                 params.append((name_token.lexeme, param_type))
         self._expect(TokenType.RPAREN, "E901", detail="Expected ')' after parameters")
@@ -591,11 +678,14 @@ class Parser:
             error_var = None
             if self._match(TokenType.LPAREN):
                 name_token = self._expect(
-                    TokenType.IDENTIFIER, "E901",
-                    detail="Expected error binding name after '('")
+                    TokenType.IDENTIFIER,
+                    "E901",
+                    detail="Expected error binding name after '('",
+                )
                 error_var = name_token.lexeme
-                self._expect(TokenType.RPAREN, "E901",
-                             detail="Expected ')' after error binding")
+                self._expect(
+                    TokenType.RPAREN, "E901", detail="Expected ')' after error binding"
+                )
             handler_block = self._parse_block()
             handlers.append((error_var, handler_block))
         return SpillageStmt(body=body, handlers=handlers, span=self._span(start))
@@ -603,8 +693,9 @@ class Parser:
     def _parse_cleanup_stmt(self) -> CleanupStmt:
         start = self._advance()
         body = self._parse_block()
-        self._expect(TokenType.FINALLY, "E901",
-                      detail="Expected 'finally' after cleanup body")
+        self._expect(
+            TokenType.FINALLY, "E901", detail="Expected 'finally' after cleanup body"
+        )
         finalizer = self._parse_block()
         return CleanupStmt(body=body, finalizer=finalizer, span=self._span(start))
 
@@ -631,22 +722,26 @@ class Parser:
 
     def _parse_morph_def(self) -> MorphDef:
         start = self._advance()
-        name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                  detail="Expected morph name")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected morph name"
+        )
         params = self._parse_params()
         body = self._parse_block()
-        return MorphDef(name=name_token.lexeme, params=params,
-                        body=body, span=self._span(start))
+        return MorphDef(
+            name=name_token.lexeme, params=params, body=body, span=self._span(start)
+        )
 
     def _parse_defend_strat(self) -> DefendStrat:
         start = self._advance()
-        name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                  detail="Expected defend strategy name")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected defend strategy name"
+        )
         # Parse policy name
         policy = ""
         if self._match(TokenType.LPAREN):
-            policy_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                        detail="Expected policy name")
+            policy_token = self._expect(
+                TokenType.IDENTIFIER, "E901", detail="Expected policy name"
+            )
             policy = policy_token.lexeme
             self._expect(TokenType.RPAREN, "E901", detail="Expected ')' after policy")
         # Parse actions block
@@ -656,64 +751,89 @@ class Parser:
             actions.append(self._parse_expr())
             self._match(TokenType.SEMICOLON)
         self._expect(TokenType.RBRACE, "E901", detail="Expected '}' after actions")
-        return DefendStrat(name=name_token.lexeme, policy=policy,
-                           actions=actions, span=self._span(start))
+        return DefendStrat(
+            name=name_token.lexeme,
+            policy=policy,
+            actions=actions,
+            span=self._span(start),
+        )
 
     def _parse_enum_decl(self) -> EnumDecl:
         start = self._advance()
-        name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                  detail="Expected enum name")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected enum name"
+        )
         self._expect(TokenType.LBRACE, "E901", detail="Expected '{' for enum variants")
         variants = []
         if not self._check(TokenType.RBRACE):
-            var_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                     detail="Expected variant name")
+            var_token = self._expect(
+                TokenType.IDENTIFIER, "E901", detail="Expected variant name"
+            )
             variants.append(var_token.lexeme)
             while self._match(TokenType.COMMA):
-                var_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                         detail="Expected variant name")
+                var_token = self._expect(
+                    TokenType.IDENTIFIER, "E901", detail="Expected variant name"
+                )
                 variants.append(var_token.lexeme)
-        self._expect(TokenType.RBRACE, "E901", detail="Expected '}' after enum variants")
-        return EnumDecl(name=name_token.lexeme, variants=variants, span=self._span(start))
+        self._expect(
+            TokenType.RBRACE, "E901", detail="Expected '}' after enum variants"
+        )
+        return EnumDecl(
+            name=name_token.lexeme, variants=variants, span=self._span(start)
+        )
 
     def _parse_struct_decl(self) -> StructDecl:
         start = self._advance()
-        name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                  detail="Expected struct name")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected struct name"
+        )
         self._expect(TokenType.LBRACE, "E901", detail="Expected '{' for struct fields")
         fields = []
         while not self._check(TokenType.RBRACE) and not self._is_at_end():
-            field_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                       detail="Expected field name")
+            field_token = self._expect(
+                TokenType.IDENTIFIER, "E901", detail="Expected field name"
+            )
             field_type = None
             if self._match(TokenType.COLON):
-                type_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                          detail="Expected field type")
+                type_token = self._expect(
+                    TokenType.IDENTIFIER, "E901", detail="Expected field type"
+                )
                 field_type = type_token.lexeme
             fields.append((field_token.lexeme, field_type))
             self._match(TokenType.SEMICOLON)
-        self._expect(TokenType.RBRACE, "E901", detail="Expected '}' after struct fields")
+        self._expect(
+            TokenType.RBRACE, "E901", detail="Expected '}' after struct fields"
+        )
         return StructDecl(name=name_token.lexeme, fields=fields, span=self._span(start))
 
     def _parse_interface_decl(self) -> InterfaceDecl:
         start = self._advance()
-        name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                  detail="Expected interface name")
-        self._expect(TokenType.LBRACE, "E901", detail="Expected '{' for interface methods")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected interface name"
+        )
+        self._expect(
+            TokenType.LBRACE, "E901", detail="Expected '{' for interface methods"
+        )
         methods = []
         while not self._check(TokenType.RBRACE) and not self._is_at_end():
-            method_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                        detail="Expected method name")
+            method_token = self._expect(
+                TokenType.IDENTIFIER, "E901", detail="Expected method name"
+            )
             params = self._parse_params()
             ret_type = None
             if self._match(TokenType.ARROW):
-                type_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                          detail="Expected return type")
+                type_token = self._expect(
+                    TokenType.IDENTIFIER, "E901", detail="Expected return type"
+                )
                 ret_type = type_token.lexeme
             methods.append((method_token.lexeme, params, ret_type))
             self._match(TokenType.SEMICOLON)
-        self._expect(TokenType.RBRACE, "E901", detail="Expected '}' after interface methods")
-        return InterfaceDecl(name=name_token.lexeme, methods=methods, span=self._span(start))
+        self._expect(
+            TokenType.RBRACE, "E901", detail="Expected '}' after interface methods"
+        )
+        return InterfaceDecl(
+            name=name_token.lexeme, methods=methods, span=self._span(start)
+        )
 
     def _parse_cascade_call(self) -> CascadeCall:
         start = self._advance()
@@ -722,25 +842,34 @@ class Parser:
 
     def _parse_new_expr(self) -> NewExpr:
         start = self._advance()
-        name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                  detail="Expected class name after 'new'")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected class name after 'new'"
+        )
         args = []
         if self._match(TokenType.LPAREN):
             if not self._check(TokenType.RPAREN):
                 args.append(self._parse_expr())
                 while self._match(TokenType.COMMA):
                     args.append(self._parse_expr())
-            self._expect(TokenType.RPAREN, "E901", detail="Expected ')' after arguments")
+            self._expect(
+                TokenType.RPAREN, "E901", detail="Expected ')' after arguments"
+            )
         return NewExpr(class_name=name_token.lexeme, args=args, span=self._span(start))
 
     def _parse_shadow_thirst_mutation(self) -> ShadowThirstMutation:
         start = self._advance()
-        name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                  detail="Expected mutation name")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected mutation name"
+        )
         self._expect(TokenType.LBRACE, "E901", detail="Expected '{' for mutation body")
-        self._expect(TokenType.VALIDATED_CANONICAL, "E901",
-                      detail="Expected 'validated_canonical'")
-        self._expect(TokenType.LBRACE, "E901", detail="Expected '{' for validated_canonical")
+        self._expect(
+            TokenType.VALIDATED_CANONICAL,
+            "E901",
+            detail="Expected 'validated_canonical'",
+        )
+        self._expect(
+            TokenType.LBRACE, "E901", detail="Expected '{' for validated_canonical"
+        )
         shadow_block = None
         invariant_block = None
         canonical_block = None
@@ -753,20 +882,25 @@ class Parser:
                 canonical_block = self._parse_block()
             else:
                 self._advance()
-        self._expect(TokenType.RBRACE, "E901",
-                      detail="Expected '}' after validated_canonical")
-        self._expect(TokenType.RBRACE, "E901",
-                      detail="Expected '}' after mutation body")
-        return ShadowThirstMutation(name=name_token.lexeme,
-                                    shadow_block=shadow_block,
-                                    invariant_block=invariant_block,
-                                    canonical_block=canonical_block,
-                                    span=self._span(start))
+        self._expect(
+            TokenType.RBRACE, "E901", detail="Expected '}' after validated_canonical"
+        )
+        self._expect(
+            TokenType.RBRACE, "E901", detail="Expected '}' after mutation body"
+        )
+        return ShadowThirstMutation(
+            name=name_token.lexeme,
+            shadow_block=shadow_block,
+            invariant_block=invariant_block,
+            canonical_block=canonical_block,
+            span=self._span(start),
+        )
 
     def _parse_tscg_symbol(self) -> object:
         start = self._advance()
-        name_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                  detail="Expected TSCG symbol name")
+        name_token = self._expect(
+            TokenType.IDENTIFIER, "E901", detail="Expected TSCG symbol name"
+        )
         self._match(TokenType.SEMICOLON)
         return SymbolStmt(symbol_name=name_token.lexeme, span=self._span(start))
 
@@ -795,7 +929,9 @@ class Parser:
                 suggestions = _nearest_match(t.lexeme, list(KEYWORDS.keys()))
                 if suggestions:
                     msg += f" Did you mean: {', '.join(suggestions)}?"
-            self.errors.append(make_error("E901", span=self._current_span(), detail=msg))
+            self.errors.append(
+                make_error("E901", span=self._current_span(), detail=msg)
+            )
             self._advance()
             return Identifier(name="__error__", span=self._current_span())
 
@@ -818,73 +954,109 @@ class Parser:
                 # Assignment is parsed at expression precedence but yields a
                 # statement node (AssignStmt); the caller handles it as such.
                 return AssignStmt(  # type: ignore[return-value]
-                    target=prefix, value=right,
-                    span=(prefix.span[0], prefix.span[1],
-                          right.span[2], right.span[3]))
+                    target=prefix,
+                    value=right,
+                    span=(prefix.span[0], prefix.span[1], right.span[2], right.span[3]),
+                )
             elif op == TokenType.LPAREN:
                 prefix = self._parse_call_suffix(prefix)
             elif op == TokenType.LBRACKET:
                 self._advance()  # consume [
                 index = self._parse_expr()
                 close = self._expect(
-                    TokenType.RBRACKET, "E901",
-                    detail="Expected ']' after subscript index")
+                    TokenType.RBRACKET,
+                    "E901",
+                    detail="Expected ']' after subscript index",
+                )
                 prefix = Subscript(
-                    obj=prefix, index=index,
-                    span=(prefix.span[0], prefix.span[1],
-                          close.line, close.col + 1))
+                    obj=prefix,
+                    index=index,
+                    span=(prefix.span[0], prefix.span[1], close.line, close.col + 1),
+                )
             elif op == TokenType.PIPE:
                 self._advance()
                 right = self._parse_expr(op_prec)
-                prefix = PipeExpr(left=prefix, right=right,
-                                  span=(prefix.span[0], prefix.span[1],
-                                        right.span[2], right.span[3]))
-            elif op in (TokenType.PLUS, TokenType.MINUS, TokenType.STAR,
-                        TokenType.SLASH, TokenType.PERCENT, TokenType.EQEQ,
-                        TokenType.NE, TokenType.LT, TokenType.GT,
-                        TokenType.LE, TokenType.GE, TokenType.AND,
-                        TokenType.OR):
+                prefix = PipeExpr(
+                    left=prefix,
+                    right=right,
+                    span=(prefix.span[0], prefix.span[1], right.span[2], right.span[3]),
+                )
+            elif op in (
+                TokenType.PLUS,
+                TokenType.MINUS,
+                TokenType.STAR,
+                TokenType.SLASH,
+                TokenType.PERCENT,
+                TokenType.EQEQ,
+                TokenType.NE,
+                TokenType.LT,
+                TokenType.GT,
+                TokenType.LE,
+                TokenType.GE,
+                TokenType.AND,
+                TokenType.OR,
+            ):
                 self._advance()
                 right = self._parse_expr(op_prec)  # left-associative
-                prefix = BinaryOp(left=prefix, op=op, right=right,
-                                  span=(prefix.span[0], prefix.span[1],
-                                        right.span[2], right.span[3]))
+                prefix = BinaryOp(
+                    left=prefix,
+                    op=op,
+                    right=right,
+                    span=(prefix.span[0], prefix.span[1], right.span[2], right.span[3]),
+                )
             elif op == TokenType.PIPEPIPE:
                 self._advance()
                 right = self._parse_expr(op_prec)
-                prefix = CombineExpr(left=prefix, op="||", right=right,
-                                     span=(prefix.span[0], prefix.span[1],
-                                           right.span[2], right.span[3]))
+                prefix = CombineExpr(
+                    left=prefix,
+                    op="||",
+                    right=right,
+                    span=(prefix.span[0], prefix.span[1], right.span[2], right.span[3]),
+                )
             elif op == TokenType.HATHAT:
                 self._advance()
                 right = self._parse_expr(op_prec)
-                prefix = CombineExpr(left=prefix, op="^", right=right,
-                                     span=(prefix.span[0], prefix.span[1],
-                                           right.span[2], right.span[3]))
+                prefix = CombineExpr(
+                    left=prefix,
+                    op="^",
+                    right=right,
+                    span=(prefix.span[0], prefix.span[1], right.span[2], right.span[3]),
+                )
             elif op == TokenType.ARROW:
                 self._advance()
                 right = self._parse_expr(op_prec)
-                prefix = PipelineExpr(left=prefix, right=right,
-                                      span=(prefix.span[0], prefix.span[1],
-                                            right.span[2], right.span[3]))
+                prefix = PipelineExpr(
+                    left=prefix,
+                    right=right,
+                    span=(prefix.span[0], prefix.span[1], right.span[2], right.span[3]),
+                )
             elif op == TokenType.DOT:
                 self._advance()
                 # After '.', the word is a member name in the object's
                 # namespace, not a language keyword: accept any token whose
                 # lexeme is a valid identifier (e.g. `log.error`, where `error`
                 # otherwise lexes as the ERROR keyword).
-                if (not self._check(TokenType.IDENTIFIER)
-                        and self._peek().lexeme.isidentifier()):
+                if (
+                    not self._check(TokenType.IDENTIFIER)
+                    and self._peek().lexeme.isidentifier()
+                ):
                     member_token = self._advance()
                 else:
                     member_token = self._expect(
-                        TokenType.IDENTIFIER, "E901",
-                        detail="Expected method/property name after '.'")
+                        TokenType.IDENTIFIER,
+                        "E901",
+                        detail="Expected method/property name after '.'",
+                    )
                 member = MemberAccess(
-                    obj=prefix, member=member_token.lexeme,
-                    span=(prefix.span[0], prefix.span[1],
-                          member_token.line,
-                          member_token.col + len(member_token.lexeme)))
+                    obj=prefix,
+                    member=member_token.lexeme,
+                    span=(
+                        prefix.span[0],
+                        prefix.span[1],
+                        member_token.line,
+                        member_token.col + len(member_token.lexeme),
+                    ),
+                )
                 if self._check(TokenType.LPAREN):
                     # method call: obj.method(args) — object carried by callee
                     args = []
@@ -893,10 +1065,15 @@ class Parser:
                         args.append(self._parse_expr())
                         while self._match(TokenType.COMMA):
                             args.append(self._parse_expr())
-                    self._expect(TokenType.RPAREN, "E901",
-                                 detail="Expected ')' after arguments")
-                    span = (prefix.span[0], prefix.span[1],
-                            self._previous().line, self._previous().col + 1)
+                    self._expect(
+                        TokenType.RPAREN, "E901", detail="Expected ')' after arguments"
+                    )
+                    span = (
+                        prefix.span[0],
+                        prefix.span[1],
+                        self._previous().line,
+                        self._previous().col + 1,
+                    )
                     prefix = CallExpr(callee=member, args=args, span=span)
                 else:
                     prefix = member
@@ -926,7 +1103,9 @@ class Parser:
         elif t == TokenType.LPAREN:
             self._advance()
             expr = self._parse_expr()
-            self._expect(TokenType.RPAREN, "E901", detail="Expected ')' after expression")
+            self._expect(
+                TokenType.RPAREN, "E901", detail="Expected ')' after expression"
+            )
             return expr
         elif t == TokenType.LBRACKET:
             return self._parse_reservoir_literal()
@@ -936,16 +1115,14 @@ class Parser:
             # primary (with member/call suffixes), not a trailing binary chain,
             # so -2 + 3 is (-2) + 3, not -(2 + 3).
             operand = self._parse_expr(self.UNARY_PRECEDENCE)
-            return UnaryOp(operand=operand, op=TokenType.MINUS,
-                           span=self._span())
+            return UnaryOp(operand=operand, op=TokenType.MINUS, span=self._span())
         elif t == TokenType.NOT:
             self._advance()
             # Logical `not` binds looser than comparison but tighter than
             # `and`/`or`: not a == b is not (a == b); not a and b is
             # (not a) and b. Operand grabs everything above the `and` level.
             operand = self._parse_expr(self.NOT_PRECEDENCE)
-            return UnaryOp(operand=operand, op=TokenType.NOT,
-                           span=self._span())
+            return UnaryOp(operand=operand, op=TokenType.NOT, span=self._span())
         elif t == TokenType.FLOOD:
             self._advance()
             target = self._parse_expr()
@@ -991,16 +1168,22 @@ class Parser:
         params = self._parse_params()
         return_type = None
         if self._match(TokenType.ARROW):
-            type_token = self._expect(TokenType.IDENTIFIER, "E901",
-                                      detail="Expected return type after '->'")
+            type_token = self._expect(
+                TokenType.IDENTIFIER, "E901", detail="Expected return type after '->'"
+            )
             return_type = type_token.lexeme
         body = self._parse_block()
-        return LambdaExpr(params=params, body=body,
-                          return_type=return_type, span=self._span(start))
+        return LambdaExpr(
+            params=params, body=body, return_type=return_type, span=self._span(start)
+        )
 
     def _parse_int_literal(self) -> IntLiteral:
         t = self._advance()
-        value = int(t.lexeme, 0) if t.lexeme.startswith(("0x", "0X", "0b", "0B", "0o", "0O")) else int(t.lexeme)
+        value = (
+            int(t.lexeme, 0)
+            if t.lexeme.startswith(("0x", "0X", "0b", "0B", "0o", "0O"))
+            else int(t.lexeme)
+        )
         return IntLiteral(value=value, span=self._span(t))
 
     def _parse_float_literal(self) -> FloatLiteral:
@@ -1026,7 +1209,9 @@ class Parser:
         if self._match(TokenType.LPAREN):
             if not self._check(TokenType.RPAREN):
                 value = self._parse_expr()
-            self._expect(TokenType.RPAREN, "E901", detail="Expected ')' after quenched value")
+            self._expect(
+                TokenType.RPAREN, "E901", detail="Expected ')' after quenched value"
+            )
         return QuenchedLiteral(type_param=type_param, value=value, span=self._span(t))
 
     def _parse_reservoir_literal(self) -> Expr:
@@ -1037,7 +1222,9 @@ class Parser:
             elements.append(self._parse_expr())
             while self._match(TokenType.COMMA):
                 elements.append(self._parse_expr())
-        self._expect(TokenType.RBRACKET, "E901", detail="Expected ']' after reservoir literal")
+        self._expect(
+            TokenType.RBRACKET, "E901", detail="Expected ']' after reservoir literal"
+        )
         return ArrayLiteral(elements=elements, span=self._span(start))
 
     def _parse_call_suffix(self, callee: Expr) -> Expr:
@@ -1048,14 +1235,23 @@ class Parser:
             while self._match(TokenType.COMMA):
                 args.append(self._parse_expr())
         self._expect(TokenType.RPAREN, "E901", detail="Expected ')' after arguments")
-        return CallExpr(callee=callee, args=args, span=(callee.span[0], callee.span[1],
-                                                         self._previous().line,
-                                                         self._previous().col + 1))
+        return CallExpr(
+            callee=callee,
+            args=args,
+            span=(
+                callee.span[0],
+                callee.span[1],
+                self._previous().line,
+                self._previous().col + 1,
+            ),
+        )
 
     def _parse_guard_expr(self) -> GuardExpr:
         start = self._advance()  # thirst
         expr = self._parse_expr()
-        self._expect(TokenType.QUENCH, "E901", detail="Expected 'quench' after guard expression")
+        self._expect(
+            TokenType.QUENCH, "E901", detail="Expected 'quench' after guard expression"
+        )
         condition = self._parse_expr()
         return GuardExpr(expr=expr, condition=condition, span=self._span(start))
 

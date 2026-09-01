@@ -1,5 +1,6 @@
 """Exhaustive coverage of the stdlib module factories, builtins, and the
 lockfile-aware resolution API in module_system."""
+
 import json
 
 import pytest
@@ -20,6 +21,7 @@ def _mod(path):
 
 # --- time / crypto --------------------------------------------------------
 
+
 def test_time_module():
     m = _mod("thirst::time")
     assert isinstance(m["now"](), str)
@@ -38,6 +40,7 @@ def test_crypto_module():
 
 # --- reservoir ------------------------------------------------------------
 
+
 def test_reservoir_module():
     m = _mod("thirst::reservoir")
     r = [1, 2]
@@ -55,6 +58,7 @@ def test_reservoir_module():
 
 
 # --- fs / path ------------------------------------------------------------
+
 
 def test_fs_module(tmp_path):
     m = _mod("thirst::fs")
@@ -82,6 +86,7 @@ def test_path_module():
 
 # --- json -----------------------------------------------------------------
 
+
 def test_json_module():
     m = _mod("thirst::json")
     assert m["parse"]('{"a": 1}') == {"a": 1}
@@ -92,6 +97,7 @@ def test_json_module():
 
 
 # --- http (mocked) --------------------------------------------------------
+
 
 class _FakeResponse:
     def __init__(self, body=b"ok"):
@@ -109,6 +115,7 @@ class _FakeResponse:
 
 def test_http_success(monkeypatch):
     import urllib.request
+
     monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _FakeResponse())
     m = _mod("thirst::http")
     assert m["get"]("http://x") == "ok"
@@ -126,6 +133,7 @@ def test_http_error():
 
 
 # --- env / process / log --------------------------------------------------
+
 
 def test_env_module():
     m = _mod("thirst::env")
@@ -146,6 +154,7 @@ def test_process_module():
 
 def test_process_run_error(monkeypatch):
     import subprocess
+
     m = _mod("thirst::process")
 
     def boom(*a, **k):
@@ -167,6 +176,7 @@ def test_log_module(capsys):
 
 
 # --- test utilities -------------------------------------------------------
+
 
 def test_test_module(capsys):
     m = _mod("thirst::test")
@@ -190,6 +200,7 @@ def test_test_module(capsys):
 
 # --- collections / net ----------------------------------------------------
 
+
 def test_collections_module():
     m = _mod("thirst::collections")
     assert m["map"](lambda x: x + 1, [1, 2]) == [2, 3]
@@ -212,10 +223,13 @@ def test_net_module():
 
 # --- sqlite ---------------------------------------------------------------
 
+
 def test_sqlite_module():
     m = _mod("thirst::sqlite")
     cid = m["connect"](":memory:")
-    assert m["execute"](cid, "CREATE TABLE t (id INTEGER)")["rows_affected"] == -1 or True
+    assert (
+        m["execute"](cid, "CREATE TABLE t (id INTEGER)")["rows_affected"] == -1 or True
+    )
     m["execute"](cid, "INSERT INTO t VALUES (1)")
     rows = m["query"](cid, "SELECT id FROM t")
     assert rows == [{"id": 1}]
@@ -227,20 +241,28 @@ def test_sqlite_module():
 
 # --- yaml / toml ----------------------------------------------------------
 
+
 def test_yaml_module():
     m = _mod("thirst::yaml")
-    parsed = m["parse"]('# comment\nname: "bob"\nage: 3\ncity: \'NY\'\n\n')
+    parsed = m["parse"]("# comment\nname: \"bob\"\nage: 3\ncity: 'NY'\n\n")
     assert parsed == {"name": "bob", "age": "3", "city": "NY"}
     assert m["dump"]({"a": 1}) == "a: 1"
 
 
 def test_toml_module():
     m = _mod("thirst::toml")
-    assert m["parse"]('x = 1') == {"x": 1}
-    dumped = m["dump"]({
-        "s": "str", "n": 1, "f": 1.5, "b": True, "none": None,
-        "lst": [1, 2], "tbl": {"k": "v"},
-    })
+    assert m["parse"]("x = 1") == {"x": 1}
+    dumped = m["dump"](
+        {
+            "s": "str",
+            "n": 1,
+            "f": 1.5,
+            "b": True,
+            "none": None,
+            "lst": [1, 2],
+            "tbl": {"k": "v"},
+        }
+    )
     assert "[tbl]" in dumped
     assert "b = true" in dumped
     assert "none = none" in dumped
@@ -248,6 +270,7 @@ def test_toml_module():
 
 
 # --- lockfile + resolution ------------------------------------------------
+
 
 def test_load_lockfile(tmp_path):
     assert ms.load_lockfile(str(tmp_path)) == {}
@@ -285,7 +308,8 @@ def test_resolve_import_locked_no_lockfile(tmp_path, monkeypatch):
 def test_resolve_import_locked_integrity_fail(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "thirsty.lock").write_text(
-        json.dumps({"dependencies": {"other": {"version": "1"}}}))
+        json.dumps({"dependencies": {"other": {"version": "1"}}})
+    )
     with pytest.raises(ImportError, match="integrity check failed"):
         ms.resolve_import("thirst::crypto", locked=True)
 
@@ -293,7 +317,8 @@ def test_resolve_import_locked_integrity_fail(tmp_path, monkeypatch):
 def test_resolve_import_locked_ok(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "thirsty.lock").write_text(
-        json.dumps({"dependencies": {"crypto": {"version": "1"}}}))
+        json.dumps({"dependencies": {"crypto": {"version": "1"}}})
+    )
     assert ms.resolve_import("thirst::crypto", locked=True)
 
 

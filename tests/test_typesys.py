@@ -1,5 +1,6 @@
 """Full coverage of the type system: construction, unify, assignability,
 stringification, and type_from_name parsing."""
+
 from utf.thirsty_lang.typesys import (
     AnyType,
     BoolType,
@@ -99,8 +100,7 @@ def test_is_assignable():
     assert is_assignable(IntType(), FloatType()) is True
     assert is_assignable(StringType(), IntType()) is False
     assert is_assignable(QuenchedType(IntType()), QuenchedType(IntType())) is True
-    assert is_assignable(ReservoirType(IntType()),
-                         ReservoirType(StringType())) is False
+    assert is_assignable(ReservoirType(IntType()), ReservoirType(StringType())) is False
     f1 = FunctionType([IntType()], IntType())
     f2 = FunctionType([IntType()], IntType())
     assert is_assignable(f1, f2) is True
@@ -117,15 +117,21 @@ def test_is_assignable():
 
 def test_type_to_string_all():
     cases = [
-        (IntType(), "Int"), (FloatType(), "Float"), (BoolType(), "Bool"),
-        (StringType(), "String"), (VoidType(), "Void"), (AnyType(), "Any"),
+        (IntType(), "Int"),
+        (FloatType(), "Float"),
+        (BoolType(), "Bool"),
+        (StringType(), "String"),
+        (VoidType(), "Void"),
+        (AnyType(), "Any"),
         (ErrorType(), "Error"),
         (QuenchedType(IntType()), "Quenched[Int]"),
         (ReservoirType(IntType()), "Reservoir[Int]"),
         (TaskType(IntType()), "Task[Int]"),
         (ResultType(IntType(), ErrorType()), "Result[Int, Error]"),
         (GovernedType(IntType()), "Governed[Int]"),
-        (EnumType("E"), "E"), (StructType("S"), "S"), (InterfaceType("I"), "I"),
+        (EnumType("E"), "E"),
+        (StructType("S"), "S"),
+        (InterfaceType("I"), "I"),
         (TypeVariable("T"), "T"),
         (FunctionType([IntType()], BoolType()), "(Int) -> Bool"),
         (GenericType("Box", [IntType()]), "Box[Int]"),

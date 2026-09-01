@@ -1,4 +1,5 @@
 """Shared console helpers for the UTF command-line tools."""
+
 import sys
 
 

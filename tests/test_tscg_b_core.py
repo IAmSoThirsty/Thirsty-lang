@@ -1,4 +1,5 @@
 """Edge/error coverage for the TSCG-B binary protocol core."""
+
 import struct
 
 import pytest
@@ -44,8 +45,7 @@ def test_bad_version():
 
 
 def test_payload_length_overflow():
-    data = (core.MAGIC + bytes([core.VERSION, 0]) + struct.pack("!H", 255)
-            + b"\x00" * 36)
+    data = core.MAGIC + bytes([core.VERSION, 0]) + struct.pack("!H", 255) + b"\x00" * 36
     with pytest.raises(ValueError, match="too short for payload"):
         unpack_frame(data)
 

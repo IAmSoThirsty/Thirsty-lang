@@ -1,246 +1,239 @@
-# Shipping Thirsty-Lang: Complete Docker Setup
+# Shipping Thirsty-Lang
 
-This guide walks you through shipping your first Thirsty-Lang release as a production Docker image.
+This is the operational release guide for the Thirsty-Lang Python package and
+container image. It describes the current v0.8.6 state and the checklist for a
+future release.
 
----
+## Current Release Receipt: v0.8.6
 
-## What You Have Now
+The authoritative container is:
 
-✓ **Dockerfile** — Multi-stage build with an integrated full-suite test gate
-✓ **docker-compose.yml** — 9 development and testing services  
-✓ **docker-quick.sh / docker-quick.bat** — One-command CLI helpers  
-✓ **.github/workflows/docker.yml** — Automated GitHub Actions CI/CD  
-✓ **DOCKER.md** — Complete Docker usage documentation  
-
----
-
-## Release Workflow
-
-### 1. Tag a Release
-
-```bash
-# After the release commit is on master and CI passes
-git tag -a v<version> -m "Thirsty-Lang <version>"
-git push tp refs/tags/v<version>
+```text
+ghcr.io/iamsothirsty/thirsty-lang:0.8.6
 ```
 
-### 2. GitHub Actions Automatically:
+- Architectures: `linux/amd64`, `linux/arm64`
+- Manifest digest:
+  `sha256:6f3f516b8e979437dd414373afe581716b8c890dc4758b8675cbbcad9b94b13c`
+- Successful Docker workflow run: `30756676576`
 
-- Checks out your code
-- Builds the Dockerfile (with all tests running inside)
-- If any test fails → build fails, image doesn't ship
-- If all tests pass → image is pushed to GHCR
-- Generates a GitHub Actions job summary with pull/run commands
+Docker Hub is not a current release endpoint. Its `latest` and `0.8.1` tags are
+historical and unmaintained. Release instructions and acceptance checks must use
+GHCR unless Docker Hub has been rebuilt at the same source revision and
+verified separately.
 
-### 3. Anyone Can Use It:
+## Release Surfaces
+
+The repository has two tag-triggered workflows:
+
+1. `.github/workflows/release.yml` validates and publishes the Python package
+   to PyPI for a lowercase `v*` tag.
+2. `.github/workflows/docker.yml` builds, publishes, pulls, and smoke-tests the
+   multi-architecture container for `v*` tags. It also accepts `docker-v*` tags
+   for a container-only publication.
+
+The authoritative container registry is GHCR. Docker Hub upload is conditional
+on repository secrets and was not part of the verified 0.8.6 release.
+
+## Future Release Checklist
+
+### 1. Prepare the release commit
+
+- Confirm the intended version is consistent in package metadata, runtime
+  version reporting, Docker metadata, changelog, and documentation.
+- Review `git status` and preserve all unrelated local work.
+- Run the repository's Python quality and test gates.
+- Build the distribution and inspect its contents.
+- Build the Docker image locally; run its version and demo smoke tests.
+- Confirm `docker compose config --services` lists exactly these eight services:
+  `repl`, `test`, `thirsty`, `build-js`, `dev`, `doctor`, `fmt`, and `lsp`.
+- Commit and push the cohesive release state to the release branch.
+- Wait for branch CI to pass before tagging.
+
+Representative local container checks:
 
 ```bash
-docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 run --demo
-```
-
----
-
-## First Release: Step by Step
-
-### Step 1: Make Sure Everything Works Locally
-
-```bash
-# Build the image
-docker build -t thirsty-lang:test .
-
-# Run the demo
-docker run --rm thirsty-lang:test run --demo
-
-# Run full test suite
+docker build -t thirsty-lang:release-candidate .
+docker run --rm thirsty-lang:release-candidate --version
+docker run --rm thirsty-lang:release-candidate run --demo
+docker compose config --services
 docker compose run --rm test
 ```
 
-### Step 2: Commit Docker Files
+### 2. Create and push the annotated release tag
 
-```bash
-git add Dockerfile .dockerignore docker-compose.yml docker-quick.* DOCKER.md
-git commit -m "chore: add Docker containerization and CI/CD pipeline"
-git push tp master
-```
-
-### Step 3: Create Release Tag
+Only tag the exact commit that passed the pre-release gates:
 
 ```bash
 git tag -a v<version> -m "Thirsty-Lang <version>"
+git show --no-patch --decorate v<version>
 git push tp refs/tags/v<version>
 ```
 
-**That's it.** GitHub Actions takes it from here.
-
-### Step 4: Monitor the Workflow
-
-Visit: `https://github.com/IAmSoThirsty/Thirsty-lang/actions`
-
-Watch the **"Build and Push Docker Image"** workflow run. It will:
-- Build the image (~2-3 minutes)
-- Run tests inside the build
-- Push to GHCR
-- Generate an Actions job summary
-
----
-
-## GHCR Access Setup (One-Time)
-
-Your GitHub Actions workflow uses `${{ secrets.GITHUB_TOKEN }}`, which is **automatically provided** — no setup needed.
-
-However, if you want to push images manually:
+Pushing a lowercase `v*` tag starts both the PyPI and Docker release workflows.
+Use a `docker-v*` tag only when an already selected source revision needs a
+container-only publication:
 
 ```bash
-# Log in with your GitHub credentials
-docker login ghcr.io -u <your-github-username> -p <your-github-token>
-
-# Then push manually
-docker push ghcr.io/iamsothirsty/thirsty-lang:0.8.6
+git tag -a docker-v<version> -m "Thirsty-Lang Docker <version>"
+git push tp refs/tags/docker-v<version>
 ```
 
----
+### 3. Monitor both workflows
 
-## Verify Everything Works
+Open the repository Actions page:
 
-After your first release, test that anyone can pull and run it:
+```text
+https://github.com/IAmSoThirsty/Thirsty-lang/actions
+```
+
+For a normal `v*` release, do not call the release complete until:
+
+- the release workflow validates the distribution and publishes to PyPI;
+- the Docker workflow builds both architectures and pushes to GHCR;
+- the Docker workflow's pull, `--version`, and demo checks pass; and
+- the tag resolves to the intended release commit locally and remotely.
+
+If a workflow fails, diagnose and repair the failed gate. Do not move or reuse
+the released tag to hide a different source revision.
+
+### 4. Verify the published Python package
+
+Use a fresh Python 3.11 environment so the check cannot import the local tree:
 
 ```bash
-# Pull the image (simulates what users see)
-docker pull ghcr.io/iamsothirsty/thirsty-lang:latest
-
-# Run it
-docker run --rm ghcr.io/iamsothirsty/thirsty-lang:latest --version
-docker run --rm ghcr.io/iamsothirsty/thirsty-lang:latest run --demo
+python -m venv .release-verify
+. .release-verify/bin/activate
+python -m pip install --upgrade pip
+python -m pip install --no-cache-dir thirsty-lang==<version>
+python -m pip show thirsty-lang
+python -c "import importlib.metadata as m; print(m.version('thirsty-lang'))"
+thirsty --version
+tarl --help
 ```
 
----
+On PowerShell, activate with:
 
-## Image Availability
-
-Once pushed, your image is available at:
-
-```
-ghcr.io/iamsothirsty/thirsty-lang:0.8.6    (specific version)
-ghcr.io/iamsothirsty/thirsty-lang:latest   (always latest)
+```powershell
+.\.release-verify\Scripts\Activate.ps1
 ```
 
----
+Run the release-specific security and behavior matrix in that isolated
+environment. Repository tests alone do not prove the artifact downloaded from
+PyPI contains the same behavior.
 
-## Local Development Workflow
+### 5. Verify the published container
 
-### Change Code → Test → Release
+Pull and exercise the versioned GHCR image:
 
 ```bash
-# 1. Edit src/
-vim src/utf/thirsty_lang/lexer.py
+docker pull ghcr.io/iamsothirsty/thirsty-lang:<version>
+docker run --rm ghcr.io/iamsothirsty/thirsty-lang:<version> --version
+docker run --rm ghcr.io/iamsothirsty/thirsty-lang:<version> run --demo
+docker buildx imagetools inspect ghcr.io/iamsothirsty/thirsty-lang:<version>
+```
 
-# 2. Test locally
-docker compose run --rm test
+Record the manifest-list digest and confirm the inspection includes both
+`linux/amd64` and `linux/arm64`. A local single-platform build is not evidence
+for the published multi-architecture manifest.
 
-# 3. Format
+### 6. Record the release evidence
+
+Preserve at least:
+
+- release commit SHA and annotated tag object SHA;
+- branch CI, PyPI release, and Docker workflow run IDs and conclusions;
+- PyPI version and fresh-install smoke output;
+- GHCR version tag, manifest digest, and architecture list;
+- release-specific regression output;
+- unresolved competence-register or security findings.
+
+Update the README, changelog, status, threat model, deployment guide, and
+continuity record when the release changes a documented contract.
+
+## Local Development Cycle
+
+For normal code changes before release:
+
+```bash
 docker compose run --rm fmt
+docker compose run --rm test
+docker compose run --rm doctor
+```
 
-# 4. Commit
-git add -A
-git commit -m "feat: add new feature"
-git push tp master
+The Compose configuration provides eight services:
 
-# 5. Release
-git tag -a v<version> -m "Thirsty-Lang <version>"
-git push tp refs/tags/v<version>
+- `repl`
+- `test`
+- `thirsty`
+- `build-js`
+- `dev`
+- `doctor`
+- `fmt`
+- `lsp`
 
-# 6. Everyone has it
+See `DOCKER.md` for individual service examples and volume-mount guidance.
+
+## Registry Authentication
+
+The Docker GitHub Actions workflow uses the repository-provided
+`${{ secrets.GITHUB_TOKEN }}` for GHCR. A manual GHCR push requires a GitHub
+token with appropriate package permissions:
+
+```bash
+docker login ghcr.io -u <github-username>
+```
+
+Do not place tokens on the command line or in documentation. Enter the token at
+the prompt or pass it through a protected standard-input workflow.
+
+The current PyPI workflow uses the scoped `IAMSOTHIRSTY` repository environment
+secret. Treat a missing, expired, or unauthorized secret as a release blocker;
+do not bypass the publish gate.
+
+## Failure Handling
+
+### Docker build fails in the test stage
+
+The Dockerfile intentionally runs the full test suite in its builder stage. Run
+the failing test locally, repair or explicitly classify the failure, and create
+a new release commit before tagging.
+
+### GHCR login or push is denied
+
+Check repository package permissions and the workflow's `packages: write`
+permission. Confirm the job is running in the intended repository and that the
+package namespace matches the repository owner.
+
+### Only one architecture is present
+
+The release is incomplete. The workflow must publish a manifest for both
+`linux/amd64` and `linux/arm64`; inspect the QEMU, Buildx, and build-push steps
+before retrying from a new eligible tag or an explicitly governed Docker-only
+tag.
+
+### Docker Hub appears newer or older than GHCR
+
+Ignore Docker Hub for the current release. Its tags are historical until a
+future release explicitly publishes and verifies them alongside GHCR. Never
+infer artifact equivalence from a shared version label alone.
+
+## v0.8.6 Consumer Verification
+
+The following commands verify the currently documented image:
+
+```bash
 docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.6
+docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 --version
+docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 run --demo
+docker buildx imagetools inspect ghcr.io/iamsothirsty/thirsty-lang:0.8.6
 ```
 
----
+Expected release identity:
 
-## PyPI + Docker Together
-
-Pushing a lowercase `v*` release tag starts two GitHub Actions workflows:
-
-1. **PyPI** (existing workflow: `release.yml`)
-   - `pip install thirsty-lang`
-   - Uses the scoped PyPI API token stored as `IAMSOTHIRSTY` in the GitHub
-     Actions `release` environment
-
-2. **Docker** (new workflow: `docker.yml`)
-   - `docker run ghcr.io/.../thirsty-lang:latest`
-
-Users can choose their preferred distribution.
-
----
-
-## Troubleshooting
-
-### Workflow shows "Build failed"
-
-Check the logs: `Actions > Build and Push Docker Image > [failed job]`
-
-Common causes:
-- A test failed (intentional — no broken images ship)
-- Missing Dockerfile
-- GHCR registry permissions
-- The `release` environment or its `IAMSOTHIRSTY` PyPI API-token secret is
-  missing, expired, or unauthorized
-
-### "Permission denied" on GHCR
-
-The workflow uses `${{ secrets.GITHUB_TOKEN }}`, which is automatically scoped to your repo. This "just works" — no setup needed.
-
-### Image size is large
-
-Current: 255MB (Python 3.11-slim + thirsty-lang deps)
-
-To reduce:
-- Use `python:3.11-alpine` (~150MB, requires C toolchain in builder)
-- Multi-stage strip dev deps (already done)
-- Remove docs from final image
-
-### Want to also push to Docker Hub?
-
-Add another login step in the workflow:
-
-```yaml
-- name: Log in to Docker Hub
-  uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
-  with:
-    registry: docker.io
-    username: ${{ secrets.DOCKER_HUB_USERNAME }}
-    password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-
-# Then add docker.io tags to build-push-action tags
+```text
+version: 0.8.6
+manifest digest: sha256:6f3f516b8e979437dd414373afe581716b8c890dc4758b8675cbbcad9b94b13c
+platforms: linux/amd64, linux/arm64
+workflow run: 30756676576 (success)
 ```
-
----
-
-## Next: Multi-Architecture Builds
-
-The current workflow builds only for `linux/amd64`. To support ARM64 (M1/M2 Macs, Raspberry Pi):
-
-```yaml
-- name: Set up QEMU
-  uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
-
-- name: Build and push
-  uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
-  with:
-    platforms: linux/amd64,linux/arm64
-    # ... rest of config
-```
-
-This builds for both architectures and pushes both to GHCR. Users get the right one automatically.
-
----
-
-## Summary
-
-You now have:
-
-1. ✓ **Local development** — `docker compose run --rm dev` with hot-reload
-2. ✓ **Test automation** — Tests run inside the build; broken builds don't ship
-3. ✓ **Public distribution** — Tag a release, GitHub Actions builds and pushes
-4. ✓ **Global access** — Anyone does `docker run ghcr.io/.../thirsty-lang:latest`
-5. ✓ **PyPI + Docker** — Users pick their distribution
-
-From source release to container release, the same commit now carries the package, Docker image, and CI evidence.

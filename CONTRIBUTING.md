@@ -1,6 +1,9 @@
 # Contributing to Thirsty-Lang
 
-Thank you for your interest in contributing to Thirsty-Lang! We welcome contributions from the community.
+Thank you for your interest in contributing to Thirsty-Lang. This guide tracks
+the checks enforced by the repository at version 0.8.6. Start with the
+[canonical Thirsty-Lang UTF 101 manual](docs/THIRSTY_LANG_UTF_101.md) for the complete
+language, governance, security, and operations map.
 
 ## Code of Conduct
 
@@ -42,56 +45,66 @@ git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
 cd Thirsty-lang
 
 # Create virtual environment
-python3.11 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python3.11 -m venv .venv
+source .venv/bin/activate  # PowerShell: .\.venv\Scripts\Activate.ps1
 
-# Install in development mode with dev dependencies
-pip install -e ".[dev]"
-
-# Install pre-commit hooks (optional but recommended)
-pre-commit install
+# Install code, analysis, and documentation dependencies
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev,analysis,docs]"
 
 # Verify installation
 thirsty --version
 thirst-of-gods --help
 tarl --help
+tarl-lsp --help
+shadow-thirst --help
+tscg --help
+tscg-b --help
 ```
 
 ### Development Workflow
 
-**Before committing:**
+Run the same code gates used by CI before committing:
 
 ```bash
-# Run tests
-python -m pytest tests/ -v
-
-# Format code (black)
+# Format code, if your change touched Python
 black src/ tests/
 
-# Lint code (ruff)
-ruff check src/ tests/ --fix
+# Lint without silently rewriting the tree
+ruff check src tests
 
-# Type check
-mypy src/utf/
+# Type-check the installed package surface
+mypy -p utf
 
-# Or use pre-commit to run all checks
+# Run the release-equivalent suite and coverage floor
+python -m pytest tests/ -q --cov=utf --cov-report=term-missing --cov-fail-under=90
+```
+
+The repository ships `.pre-commit-config.yaml`. Install the development extra
+and run every hook before delivery:
+
+```bash
+python -m pip install -e ".[dev]"
 pre-commit run --all-files
 ```
 
-**Pre-commit hooks** automatically run on every commit:
-- Whitespace trimming and EOF fixes
-- Black formatting
-- Ruff linting
-- pyproject.toml validation
-- Console script entry point validation
-- Version consistency check
+Local hooks supplement the authoritative gates in
+`.github/workflows/smoke.yml` and `.github/workflows/release.yml`; they do not
+replace CI evidence.
 
-**If hooks fail**, fix the issues and `git add` again before committing.
+For documentation or PDF changes, also run:
+
+```bash
+python scripts/build_thirsty_lang_utf_101.py
+python scripts/verify_thirsty_lang_utf_101.py output/pdf/Thirsty-Lang-UTF-101.pdf
+python -m pytest tests/test_thirsty_lang_utf_101_pdf.py -q
+```
 
 ### Code Standards
 
 - Python 3.11+ required
-- Standard library only for core — no third-party runtime dependencies
+- Keep runtime dependencies explicit and minimal; `cryptography>=41.0` is a
+  required dependency for the shipped proof and authority surfaces
 - All water-metaphor keywords implemented exactly per spec
 - Every AST node must carry span tracking
 - Tests are required for all new features
@@ -103,6 +116,8 @@ pre-commit run --all-files
 - Add or update tests as needed
 - Update documentation if the API or behavior changes
 - Ensure all tests pass before requesting review
+- If documentation changes a normative security or governance claim, update
+  the canonical manual and its generated PDF in the same change
 
 ## Governance
 

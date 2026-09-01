@@ -1,0 +1,79 @@
+[manual]
+title = "Thirsty-Lang UTF 101 (Universal Thirsty Family)"
+subtitle = "The Canonical End-to-End Reference"
+software_version = "0.8.6"
+document_revision = "2026-08-02"
+publisher = "Thirsty's Projects LLC"
+license = "Apache-2.0"
+output = "output/pdf/Thirsty-Lang-UTF-101.pdf"
+source_date_epoch = 1785686400
+
+[[document]]
+path = "docs/THIRSTY_LANG_UTF_101.md"
+title = "Canonical Orientation and End-to-End Guide"
+authority = "integrated-guide"
+
+[[document]]
+path = "docs/LANGUAGE_SPEC.md"
+title = "Language Family Specification"
+authority = "normative-specification"
+
+[[document]]
+path = "docs/GRAMMAR.md"
+title = "Tier 1 Source Grammar"
+authority = "normative-grammar"
+
+[[document]]
+path = "docs/FEATURES.md"
+title = "Feature and Tooling Reference"
+authority = "implemented-feature-reference"
+
+[[document]]
+path = "docs/governance_model.md"
+title = "Governance and T.A.R.L. Runtime Model"
+authority = "security-contract"
+
+[[document]]
+path = "docs/PRODUCTION_DEPLOYMENT.md"
+title = "Production Deployment Checklist"
+authority = "operator-requirement"
+
+[[document]]
+path = "docs/THREAT_MODEL.md"
+title = "Offensive Threat Model C001-C073"
+authority = "security-acceptance"
+
+[[document]]
+path = "docs/STATUS.md"
+title = "Feature Status and Bootstrap Competence Register"
+authority = "status-register"
+
+[[document]]
+path = "SECURITY.md"
+title = "Security Policy"
+authority = "security-policy"
+
+[[document]]
+path = "DOCKER.md"
+title = "Container Operations"
+authority = "operator-guide"
+
+[[document]]
+path = "CONTRIBUTING.md"
+title = "Contributor and Validation Workflow"
+authority = "contributor-guide"
+
+[[document]]
+path = "docs/SIGNING.md"
+title = "Release Authentication and Provenance"
+authority = "release-guide"
+
+[[document]]
+path = "docs/WHITEPAPER.md"
+title = "Architecture Whitepaper"
+authority = "architecture-rationale"
+
+[[document]]
+path = "docs/operations/CONTINUITY_MAP.md"
+title = "Operational Continuity and Release Evidence"
+authority = "historical-evidence"

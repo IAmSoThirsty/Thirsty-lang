@@ -1,4 +1,5 @@
 """Tests for `thirsty lsp` stdio and socket modes (JSON-RPC over the TARL LSP)."""
+
 import io
 import json
 
@@ -12,8 +13,9 @@ def _frame(msg: dict) -> bytes:
 
 def _session_bytes() -> bytes:
     # initialize then shutdown — shutdown stops the run loop without sys.exit.
-    return _frame({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}) + \
-        _frame({"jsonrpc": "2.0", "id": 2, "method": "shutdown", "params": {}})
+    return _frame(
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
+    ) + _frame({"jsonrpc": "2.0", "id": 2, "method": "shutdown", "params": {}})
 
 
 class _FakeStd:
@@ -73,6 +75,7 @@ def test_lsp_socket(monkeypatch, capsys):
     conn = _FakeConn(_session_bytes())
     sock = _FakeServerSocket(conn)
     import socket
+
     monkeypatch.setattr(socket, "socket", lambda *a, **k: sock)
 
     cli._serve_lsp_socket(9999)
@@ -88,6 +91,7 @@ def test_lsp_socket_via_cmd(monkeypatch):
     conn = _FakeConn(_session_bytes())
     sock = _FakeServerSocket(conn)
     import socket
+
     monkeypatch.setattr(socket, "socket", lambda *a, **k: sock)
 
     args = type("A", (), {"stdio": False, "port": 8080})()

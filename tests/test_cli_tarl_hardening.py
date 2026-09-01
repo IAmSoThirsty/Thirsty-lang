@@ -1,5 +1,6 @@
 """CLI coverage for the hardening surfaces: tarl lint, audit verify-chain,
 and strict verify flags (freshness / revocation)."""
+
 import sys
 
 import pytest
@@ -46,6 +47,7 @@ def test_audit_verify_chain_intact(tmp_path, monkeypatch, capsys):
 
 def test_audit_verify_chain_detects_tamper(tmp_path, monkeypatch, capsys):
     import sqlite3
+
     db = str(tmp_path / "a.db")
     rt = TarlRuntime(PolicyParser.parse("policy p\nwhen true => ALLOW\n"))
     with TarlAuditArchive(db) as arc:

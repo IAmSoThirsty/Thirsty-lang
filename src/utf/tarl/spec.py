@@ -5,6 +5,7 @@ Verdict lattice:  DENY ≺ ESCALATE ≺ ALLOW
 Restrictive meet: a ∧ b = min(a, b)   — DENY beats all
 Permissive join:  a ∨ b = max(a, b)   — ALLOW beats all
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -58,15 +59,18 @@ class TarlVerdict(StrEnum):
 
 
 # Populate rank table after enum is defined
-_VERDICT_RANK.update({
-    TarlVerdict.DENY:     0,
-    TarlVerdict.ESCALATE: 1,
-    TarlVerdict.ALLOW:    2,
-})
+_VERDICT_RANK.update(
+    {
+        TarlVerdict.DENY: 0,
+        TarlVerdict.ESCALATE: 1,
+        TarlVerdict.ALLOW: 2,
+    }
+)
 
 
 class CompositionOp(StrEnum):
     """How a child policy composes with its parent."""
+
     EXTENDS = "EXTENDS"
     RESTRICTS = "RESTRICTS"
 
@@ -76,6 +80,7 @@ class CompositionOp(StrEnum):
 
 class SetOp(StrEnum):
     """How policies in a policy_set group are combined."""
+
     UNION = "UNION"
     INTERSECT = "INTERSECT"
     MAJORITY = "MAJORITY"
@@ -87,6 +92,7 @@ class SetOp(StrEnum):
 @dataclass
 class TarlPolicyRef:
     """A reference to another policy in a composition directive."""
+
     name: str
     alias: str | None = None
     is_file: bool = False
@@ -95,6 +101,7 @@ class TarlPolicyRef:
 @dataclass
 class TarlRule:
     """A single `when <condition> => VERDICT [for: <duration>]` rule."""
+
     condition: str
     verdict: TarlVerdict
     source_line: int = 0
@@ -116,6 +123,7 @@ class TarlRule:
 @dataclass
 class TarlPolicy:
     """Ordered decision function: P = [r₁, r₂, ..., rₙ] over context space."""
+
     rules: list[TarlRule] = field(default_factory=list)
     source: str = ""
     name: str = "unnamed"
@@ -127,11 +135,13 @@ class TarlPolicy:
     # Phase 5: temporal governance
     version: str | None = None
     supersedes: str | None = None
-    valid_from: str | None = None      # ISO-8601; policy not effective before this
-    valid_until: str | None = None     # ISO-8601; policy expires after this
-    on_expiry: TarlVerdict | None = None  # verdict when outside window (default ESCALATE)
+    valid_from: str | None = None  # ISO-8601; policy not effective before this
+    valid_until: str | None = None  # ISO-8601; policy expires after this
+    on_expiry: TarlVerdict | None = (
+        None  # verdict when outside window (default ESCALATE)
+    )
     if_unresolved_after: int | None = None  # seconds; auto-expire from valid_from
-    revert_to: str | None = None            # policy name to evaluate on succession
+    revert_to: str | None = None  # policy name to evaluate on succession
 
     def __str__(self) -> str:
         header = f"policy {self.name}"
@@ -173,11 +183,12 @@ class TarlPolicy:
 @dataclass
 class TarlDecision:
     """Result of evaluating a T.A.R.L. policy against a context."""
+
     verdict: TarlVerdict
     reason: str = ""
     rule_index: int = -1
     matched_rule: str | None = None
-    expires_at: str | None = None    # ISO-8601 UTC; set for time-bound verdicts
+    expires_at: str | None = None  # ISO-8601 UTC; set for time-bound verdicts
 
     def __str__(self) -> str:
         s = f"[{self.verdict.value}] {self.reason}"
@@ -198,6 +209,7 @@ class TarlDecision:
         if self.expires_at is None:
             return False
         import datetime
+
         try:
             exp = datetime.datetime.fromisoformat(
                 self.expires_at.replace("Z", "+00:00")
@@ -218,6 +230,7 @@ class TarlPolicySet:
     Each group produces a verdict via its operator.
     The final verdict is the meet (∧) of all group verdicts.
     """
+
     name: str
     groups: list[tuple[SetOp, list[str]]] = field(default_factory=list)
     default_verdict: TarlVerdict = TarlVerdict.DENY
@@ -259,15 +272,16 @@ class TarlProof:
     that holds the key, including a verifier. Use Ed25519 for non-repudiable
     asymmetric proof signatures where the verifier has only the public key.
     """
-    policy_hash: str          # "sha256:<hex>"
-    context_hash: str         # "sha256:<hex>"
-    rule_index: int           # -1 = DEFAULT_DENY
-    matched_condition: str    # "" for DEFAULT_DENY
+
+    policy_hash: str  # "sha256:<hex>"
+    context_hash: str  # "sha256:<hex>"
+    rule_index: int  # -1 = DEFAULT_DENY
+    matched_condition: str  # "" for DEFAULT_DENY
     verdict: TarlVerdict
-    evaluated_at: str         # ISO-8601 UTC
-    trace: list[dict]         # [{rule_index, condition, matched}, ...]
-    signature: str            # "hmac-sha256:<hex>", "ed25519:<hex>", or ""
-    key_id: str               # signing key identifier or ""
+    evaluated_at: str  # ISO-8601 UTC
+    trace: list[dict]  # [{rule_index, condition, matched}, ...]
+    signature: str  # "hmac-sha256:<hex>", "ed25519:<hex>", or ""
+    key_id: str  # signing key identifier or ""
     original_context_hash: str | None = None
     canonical_context_hash: str | None = None
     context_representation_id: str | None = None
@@ -292,17 +306,14 @@ class TarlProof:
     def _schema_binding(self) -> dict[str, str | None]:
         return {
             "context_schema_hash": self.context_schema_hash,
-            "context_schema_representation_id": (
-                self.context_schema_representation_id
-            ),
-            "context_schema_validation_status": (
-                self.context_schema_validation_status
-            ),
+            "context_schema_representation_id": (self.context_schema_representation_id),
+            "context_schema_validation_status": (self.context_schema_validation_status),
         }
 
     def canonical_bytes(self) -> bytes:
         """Deterministic serialisation used for signing and verification."""
         import json
+
         data = {
             "policy_hash": self.policy_hash,
             "context_hash": self.context_hash,
@@ -321,8 +332,8 @@ class TarlProof:
         if any(value is not None for value in schema_binding.values()):
             data["context_schema_binding"] = schema_binding
         return json.dumps(
-            data, sort_keys=True, separators=(',', ':'), allow_nan=False
-        ).encode('utf-8')
+            data, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
 
     def to_dict(self) -> dict:
         data = {
@@ -343,6 +354,7 @@ class TarlProof:
 
     def to_json(self) -> str:
         import json
+
         return json.dumps(self.to_dict(), indent=2, allow_nan=False)
 
     @classmethod
@@ -364,12 +376,8 @@ class TarlProof:
             normalization_version=d.get("normalization_version"),
             context_conflict_status=d.get("context_conflict_status"),
             context_schema_hash=d.get("context_schema_hash"),
-            context_schema_representation_id=d.get(
-                "context_schema_representation_id"
-            ),
-            context_schema_validation_status=d.get(
-                "context_schema_validation_status"
-            ),
+            context_schema_representation_id=d.get("context_schema_representation_id"),
+            context_schema_validation_status=d.get("context_schema_validation_status"),
             expires_at=d.get("expires_at"),
         )
 

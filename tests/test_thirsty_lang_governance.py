@@ -6,10 +6,11 @@ Covers the layered, default-deny policy wired into the interpreter:
   2. Cross-mode guard (governed function denied when not in governed mode)
   3. Optional TARL policy routing (ALLOW permits, non-ALLOW denies + proof)
 """
+
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 
@@ -24,7 +25,7 @@ def _load(src, mode=None):
     prog = Parser(Lexer(src).lex()).parse()
     interp = Interpreter()
     if mode is None:
-        interp.interpret(prog)          # header decides mode
+        interp.interpret(prog)  # header decides mode
     else:
         interp.interpret(prog, mode=mode)
     return interp
@@ -36,8 +37,13 @@ def _load_with_policy(src):
 
     prog = Parser(Lexer(src).lex()).parse()
     interp = Interpreter()
-    interp.attach_tarl(TarlRuntime(PolicyParser.parse(
-        'policy p\nwhen action == "withdraw" => ALLOW\nwhen true => DENY\n')))
+    interp.attach_tarl(
+        TarlRuntime(
+            PolicyParser.parse(
+                'policy p\nwhen action == "withdraw" => ALLOW\nwhen true => DENY\n'
+            )
+        )
+    )
     interp.set_authority("admin")
     interp.interpret(prog)
     return interp
@@ -86,7 +92,7 @@ class TestPrecondition:
 
 class TestCrossModeGuard:
     def test_governed_call_from_core_mode_denied(self):
-        interp = _load(CORE_SRC)            # header is core
+        interp = _load(CORE_SRC)  # header is core
         with pytest.raises(GovernanceViolation) as exc:
             interp.env.get("withdraw")(5)
         assert "governed mode" in exc.value.reason
@@ -115,13 +121,15 @@ class TestTarlRouting:
     def _runtime(self, policy_text):
         from utf.tarl.core import PolicyParser
         from utf.tarl.runtime import TarlRuntime
+
         return TarlRuntime(PolicyParser.parse(policy_text))
 
     def test_allow_policy_permits_and_records_proof(self):
         prog = Parser(Lexer(GOVERNED_SRC).lex()).parse()
         interp = Interpreter()
-        interp.attach_tarl(self._runtime(
-            'policy p\nwhen authority == "admin" => ALLOW\n'))
+        interp.attach_tarl(
+            self._runtime('policy p\nwhen authority == "admin" => ALLOW\n')
+        )
         interp.set_authority("admin")
         interp.interpret(prog)
         assert interp.env.get("withdraw")(5) == 10
@@ -137,8 +145,9 @@ class TestTarlRouting:
     def test_deny_policy_blocks_with_proof(self):
         prog = Parser(Lexer(GOVERNED_SRC).lex()).parse()
         interp = Interpreter()
-        interp.attach_tarl(self._runtime(
-            'policy p\nwhen authority == "admin" => DENY\n'))
+        interp.attach_tarl(
+            self._runtime('policy p\nwhen authority == "admin" => DENY\n')
+        )
         interp.set_authority("admin")
         interp.interpret(prog)
         with pytest.raises(GovernanceViolation) as exc:

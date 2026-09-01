@@ -15,14 +15,13 @@ Covers:
   - TarlRuntime.register_source: static list, callable, error safety
   - Backward compatibility: existing evaluate_policy / TarlRuntime
 """
+
 import os
 import sys
 
 import pytest
 
-sys.path.insert(
-    0, os.path.join(os.path.dirname(__file__), "..", "src")
-)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from utf.tarl.composer import (  # noqa: E402
     CompositionError,
@@ -43,11 +42,10 @@ from utf.tarl.spec import (  # noqa: E402
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _policy(name, rules):
     """Build a TarlPolicy from a list of (condition, verdict) tuples."""
-    text = f"policy {name}:\n" + "\n".join(
-        f"  when {c} => {v}" for c, v in rules
-    )
+    text = f"policy {name}:\n" + "\n".join(f"  when {c} => {v}" for c, v in rules)
     return PolicyParser.parse(text)
 
 
@@ -64,6 +62,7 @@ def _escalate(name="escalate_all"):
 
 
 # ── Enum correctness ──────────────────────────────────────────────────────────
+
 
 class TestEnums:
     def test_composition_op_values(self):
@@ -88,6 +87,7 @@ class TestEnums:
 
 # ── TarlPolicyRef ─────────────────────────────────────────────────────────────
 
+
 class TestTarlPolicyRef:
     def test_by_name(self):
         ref = TarlPolicyRef(name="base_auth")
@@ -96,9 +96,7 @@ class TestTarlPolicyRef:
         assert ref.is_file is False
 
     def test_by_file(self):
-        ref = TarlPolicyRef(
-            name="policies/auth.tarl", alias="auth", is_file=True
-        )
+        ref = TarlPolicyRef(name="policies/auth.tarl", alias="auth", is_file=True)
         assert ref.is_file is True
         assert ref.alias == "auth"
 
@@ -109,6 +107,7 @@ class TestTarlPolicyRef:
 
 
 # ── TarlPolicySet ─────────────────────────────────────────────────────────────
+
 
 class TestTarlPolicySet:
     def test_construction(self):
@@ -140,6 +139,7 @@ class TestTarlPolicySet:
 
 
 # ── TarlPolicy composition fields ─────────────────────────────────────────────
+
 
 class TestTarlPolicyCompositionFields:
     def test_default_no_composition(self):
@@ -189,22 +189,19 @@ class TestTarlPolicyCompositionFields:
 
     def test_str_includes_include(self):
         p = TarlPolicy(name="x")
-        p.includes.append(
-            TarlPolicyRef(name="base", alias="b", is_file=False)
-        )
+        p.includes.append(TarlPolicyRef(name="base", alias="b", is_file=False))
         assert "INCLUDE base AS b" in str(p)
 
     def test_str_includes_file_include(self):
         p = TarlPolicy(name="x")
         p.includes.append(
-            TarlPolicyRef(
-                name="policies/a.tarl", alias="a", is_file=True
-            )
+            TarlPolicyRef(name="policies/a.tarl", alias="a", is_file=True)
         )
         assert 'INCLUDE "policies/a.tarl" AS a' in str(p)
 
 
 # ── PolicyParser.parse_all() ──────────────────────────────────────────────────
+
 
 class TestPolicyParserParseAll:
     def test_single_policy(self):
@@ -241,10 +238,7 @@ class TestPolicyParserParseAll:
         assert p.parent == "parent"
 
     def test_restricts_parsed(self):
-        text = (
-            "policy strict RESTRICTS dev:\n"
-            '    when env == "prod" => ALLOW'
-        )
+        text = "policy strict RESTRICTS dev:\n" '    when env == "prod" => ALLOW'
         items = PolicyParser.parse_all(text)
         p = items[0]
         assert p.composition == CompositionOp.RESTRICTS
@@ -366,6 +360,7 @@ class TestPolicyParserParseAll:
 
 # ── PolicyParser.parse() backward compat ─────────────────────────────────────
 
+
 class TestPolicyParserParseBackwardCompat:
     def test_returns_first_policy(self):
         text = "policy foo:\n    when 1 == 1 => ALLOW"
@@ -390,6 +385,7 @@ class TestPolicyParserParseBackwardCompat:
 
 # ── PolicyComposer registration ───────────────────────────────────────────────
 
+
 class TestPolicyComposerRegistration:
     def test_register_and_names(self):
         c = PolicyComposer()
@@ -407,15 +403,12 @@ class TestPolicyComposerRegistration:
 
     def test_register_from_text_single(self):
         c = PolicyComposer()
-        c.register_from_text(
-            "policy foo:\n    when 1 == 1 => ALLOW"
-        )
+        c.register_from_text("policy foo:\n    when 1 == 1 => ALLOW")
         assert "foo" in c.names()
 
     def test_register_from_text_multiple(self):
         text = (
-            "policy a:\n    when 1 == 1 => ALLOW\n"
-            "policy b:\n    when 1 == 1 => DENY"
+            "policy a:\n    when 1 == 1 => ALLOW\n" "policy b:\n    when 1 == 1 => DENY"
         )
         c = PolicyComposer()
         c.register_from_text(text)
@@ -442,13 +435,13 @@ class TestPolicyComposerRegistration:
 
 # ── EXTENDS ───────────────────────────────────────────────────────────────────
 
+
 class TestComposerExtends:
     def test_child_rule_matches(self):
         """Child rule fires before parent is consulted."""
         base = _policy("base", [('role == "user"', "ALLOW")])
         child = PolicyParser.parse(
-            "policy child EXTENDS base:\n"
-            '    when role == "admin" => ALLOW'
+            "policy child EXTENDS base:\n" '    when role == "admin" => ALLOW'
         )
         c = PolicyComposer()
         c.register(base).register(child)
@@ -459,8 +452,7 @@ class TestComposerExtends:
         """No child rule matches → fall through to parent."""
         base = _policy("base", [('role == "user"', "ALLOW")])
         child = PolicyParser.parse(
-            "policy child EXTENDS base:\n"
-            '    when role == "admin" => ALLOW'
+            "policy child EXTENDS base:\n" '    when role == "admin" => ALLOW'
         )
         c = PolicyComposer()
         c.register(base).register(child)
@@ -470,8 +462,7 @@ class TestComposerExtends:
     def test_default_deny_when_nothing_matches(self):
         base = _policy("base", [('role == "user"', "ALLOW")])
         child = PolicyParser.parse(
-            "policy child EXTENDS base:\n"
-            '    when role == "admin" => ALLOW'
+            "policy child EXTENDS base:\n" '    when role == "admin" => ALLOW'
         )
         c = PolicyComposer()
         c.register(base).register(child)
@@ -495,9 +486,7 @@ class TestComposerExtends:
         """If child matches before STOP, result is returned normally."""
         base = _policy("base", [("1 == 1", "DENY")])
         child = PolicyParser.parse(
-            "policy child EXTENDS base:\n"
-            "    when 1 == 1 => ALLOW\n"
-            "    STOP"
+            "policy child EXTENDS base:\n" "    when 1 == 1 => ALLOW\n" "    STOP"
         )
         c = PolicyComposer()
         c.register(base).register(child)
@@ -510,23 +499,14 @@ class TestComposerExtends:
             "policy child EXTENDS base:\n    when x == 2 => ALLOW"
         )
         grandchild = PolicyParser.parse(
-            "policy grandchild EXTENDS child:\n"
-            "    when x == 3 => ALLOW"
+            "policy grandchild EXTENDS child:\n" "    when x == 3 => ALLOW"
         )
         c = PolicyComposer()
         c.register(base).register(child).register(grandchild)
-        assert c.evaluate("grandchild", {"x": 3}).verdict == (
-            TarlVerdict.ALLOW
-        )
-        assert c.evaluate("grandchild", {"x": 2}).verdict == (
-            TarlVerdict.ALLOW
-        )
-        assert c.evaluate("grandchild", {"x": 1}).verdict == (
-            TarlVerdict.ALLOW
-        )
-        assert c.evaluate("grandchild", {"x": 9}).verdict == (
-            TarlVerdict.DENY
-        )
+        assert c.evaluate("grandchild", {"x": 3}).verdict == (TarlVerdict.ALLOW)
+        assert c.evaluate("grandchild", {"x": 2}).verdict == (TarlVerdict.ALLOW)
+        assert c.evaluate("grandchild", {"x": 1}).verdict == (TarlVerdict.ALLOW)
+        assert c.evaluate("grandchild", {"x": 9}).verdict == (TarlVerdict.DENY)
 
     def test_unknown_parent_raises(self):
         # Child rule never matches → evaluation falls to parent lookup
@@ -540,21 +520,15 @@ class TestComposerExtends:
 
     def test_circular_reference_raises(self):
         # Neither child matches → both fall through → cycle
-        a = PolicyParser.parse(
-            "policy a EXTENDS b:\n    when 1 == 2 => ALLOW"
-        )
-        b = PolicyParser.parse(
-            "policy b EXTENDS a:\n    when 1 == 2 => ALLOW"
-        )
+        a = PolicyParser.parse("policy a EXTENDS b:\n    when 1 == 2 => ALLOW")
+        b = PolicyParser.parse("policy b EXTENDS a:\n    when 1 == 2 => ALLOW")
         c = PolicyComposer()
         c.register(a).register(b)
         with pytest.raises(CompositionError, match="Circular"):
             c.evaluate("a", {})
 
     def test_self_reference_raises(self):
-        a = PolicyParser.parse(
-            "policy a EXTENDS a:\n    when 1 == 2 => ALLOW"
-        )
+        a = PolicyParser.parse("policy a EXTENDS a:\n    when 1 == 2 => ALLOW")
         c = PolicyComposer()
         c.register(a)
         with pytest.raises(CompositionError, match="Circular"):
@@ -562,6 +536,7 @@ class TestComposerExtends:
 
 
 # ── RESTRICTS ─────────────────────────────────────────────────────────────────
+
 
 class TestComposerRestricts:
     def test_both_allow(self):
@@ -605,8 +580,7 @@ class TestComposerRestricts:
         """meet: DENY ∧ ESCALATE = DENY."""
         parent = _deny("parent")
         child = PolicyParser.parse(
-            "policy child RESTRICTS parent:\n"
-            "    when 1 == 1 => ESCALATE"
+            "policy child RESTRICTS parent:\n" "    when 1 == 1 => ESCALATE"
         )
         c = PolicyComposer()
         c.register(parent).register(child)
@@ -633,6 +607,7 @@ class TestComposerRestricts:
 
 
 # ── INCLUDES ──────────────────────────────────────────────────────────────────
+
 
 class TestComposerIncludes:
     def test_include_verdict_in_context(self):
@@ -696,9 +671,7 @@ class TestComposerIncludes:
     def test_include_from_file(self, tmp_path):
         """Include a policy loaded from a real .tarl file."""
         pol_file = tmp_path / "auth.tarl"
-        pol_file.write_text(
-            "policy auth:\n    when 1 == 1 => ALLOW\n"
-        )
+        pol_file.write_text("policy auth:\n    when 1 == 1 => ALLOW\n")
         gateway = PolicyParser.parse(
             "policy gateway:\n"
             '    INCLUDE "auth.tarl" AS auth\n'
@@ -710,6 +683,7 @@ class TestComposerIncludes:
 
 
 # ── PolicyComposer.load_file ──────────────────────────────────────────────────
+
 
 class TestPolicyComposerLoadFile:
     def test_load_single_policy(self, tmp_path):
@@ -744,6 +718,7 @@ class TestPolicyComposerLoadFile:
 
 # ── UNION ─────────────────────────────────────────────────────────────────────
 
+
 class TestPolicySetUnion:
     def _c(self, *policies):
         c = PolicyComposer()
@@ -762,27 +737,21 @@ class TestPolicySetUnion:
 
     def test_all_deny_gives_deny(self):
         c = self._c(_deny("a"), _deny("b"))
-        ps = TarlPolicySet(
-            name="gate", groups=[(SetOp.UNION, ["a", "b"])]
-        )
+        ps = TarlPolicySet(name="gate", groups=[(SetOp.UNION, ["a", "b"])])
         c.register_set(ps)
         assert c.evaluate("gate", {}).verdict == TarlVerdict.DENY
 
     def test_allow_beats_escalate(self):
         """join: ALLOW ∨ ESCALATE = ALLOW."""
         c = self._c(_allow("a"), _escalate("b"))
-        ps = TarlPolicySet(
-            name="gate", groups=[(SetOp.UNION, ["a", "b"])]
-        )
+        ps = TarlPolicySet(name="gate", groups=[(SetOp.UNION, ["a", "b"])])
         c.register_set(ps)
         assert c.evaluate("gate", {}).verdict == TarlVerdict.ALLOW
 
     def test_escalate_beats_deny(self):
         """join: ESCALATE ∨ DENY = ESCALATE."""
         c = self._c(_escalate("a"), _deny("b"))
-        ps = TarlPolicySet(
-            name="gate", groups=[(SetOp.UNION, ["a", "b"])]
-        )
+        ps = TarlPolicySet(name="gate", groups=[(SetOp.UNION, ["a", "b"])])
         c.register_set(ps)
         assert c.evaluate("gate", {}).verdict == TarlVerdict.ESCALATE
 
@@ -797,6 +766,7 @@ class TestPolicySetUnion:
 
 
 # ── INTERSECT ─────────────────────────────────────────────────────────────────
+
 
 class TestPolicySetIntersect:
     def _c(self, *policies):
@@ -835,6 +805,7 @@ class TestPolicySetIntersect:
 
 
 # ── MAJORITY ──────────────────────────────────────────────────────────────────
+
 
 class TestPolicySetMajority:
     def _c(self, *policies):
@@ -884,6 +855,7 @@ class TestPolicySetMajority:
 
 
 # ── Multi-group policy_set ────────────────────────────────────────────────────
+
 
 class TestPolicySetMultiGroup:
     def test_two_groups_first_passes_second_fails(self):
@@ -949,21 +921,17 @@ class TestPolicySetMultiGroup:
 
 # ── TarlRuntime.register_source ───────────────────────────────────────────────
 
+
 class TestRuntimeRegisterSource:
     def test_static_list_source(self):
         rt = TarlRuntime()
         rt.register_source("trusted_ips", ["10.0.0.1", "10.0.0.2"])
         policy = PolicyParser.parse(
-            "policy test:\n"
-            "    when ip IN source:trusted_ips => ALLOW"
+            "policy test:\n" "    when ip IN source:trusted_ips => ALLOW"
         )
         rt.set_policy(policy)
-        assert rt.evaluate({"ip": "10.0.0.1"}).verdict == (
-            TarlVerdict.ALLOW
-        )
-        assert rt.evaluate({"ip": "1.2.3.4"}).verdict == (
-            TarlVerdict.DENY
-        )
+        assert rt.evaluate({"ip": "10.0.0.1"}).verdict == (TarlVerdict.ALLOW)
+        assert rt.evaluate({"ip": "1.2.3.4"}).verdict == (TarlVerdict.DENY)
 
     def test_callable_source(self):
         data = ["admin", "operator"]
@@ -971,13 +939,10 @@ class TestRuntimeRegisterSource:
         rt = TarlRuntime()
         rt.register_source("valid_roles", lambda: data)
         policy = PolicyParser.parse(
-            "policy test:\n"
-            "    when role IN source:valid_roles => ALLOW"
+            "policy test:\n" "    when role IN source:valid_roles => ALLOW"
         )
         rt.set_policy(policy)
-        assert rt.evaluate({"role": "admin"}).verdict == (
-            TarlVerdict.ALLOW
-        )
+        assert rt.evaluate({"role": "admin"}).verdict == (TarlVerdict.ALLOW)
 
     def test_callable_source_updated_dynamically(self):
         """Callable is re-invoked per evaluation: updates are reflected."""
@@ -986,28 +951,20 @@ class TestRuntimeRegisterSource:
         rt = TarlRuntime()
         rt.register_source("roles", lambda: store["roles"])
         policy = PolicyParser.parse(
-            "policy test:\n"
-            "    when role IN source:roles => ALLOW"
+            "policy test:\n" "    when role IN source:roles => ALLOW"
         )
         rt.set_policy(policy)
-        assert rt.evaluate({"role": "admin"}).verdict == (
-            TarlVerdict.DENY
-        )
+        assert rt.evaluate({"role": "admin"}).verdict == (TarlVerdict.DENY)
         store["roles"].append("admin")
-        assert rt.evaluate({"role": "admin"}).verdict == (
-            TarlVerdict.ALLOW
-        )
+        assert rt.evaluate({"role": "admin"}).verdict == (TarlVerdict.ALLOW)
 
     def test_source_absent_without_register(self):
         rt = TarlRuntime()
         policy = PolicyParser.parse(
-            "policy test:\n"
-            "    when role IN source:unknown_source => ALLOW"
+            "policy test:\n" "    when role IN source:unknown_source => ALLOW"
         )
         rt.set_policy(policy)
-        assert rt.evaluate({"role": "admin"}).verdict == (
-            TarlVerdict.DENY
-        )
+        assert rt.evaluate({"role": "admin"}).verdict == (TarlVerdict.DENY)
 
     def test_failing_callable_defaults_to_empty(self):
         def bad():
@@ -1016,66 +973,52 @@ class TestRuntimeRegisterSource:
         rt = TarlRuntime()
         rt.register_source("broken", bad)
         policy = PolicyParser.parse(
-            "policy test:\n"
-            "    when role IN source:broken => ALLOW"
+            "policy test:\n" "    when role IN source:broken => ALLOW"
         )
         rt.set_policy(policy)
-        assert rt.evaluate({"role": "admin"}).verdict == (
-            TarlVerdict.DENY
-        )
+        assert rt.evaluate({"role": "admin"}).verdict == (TarlVerdict.DENY)
 
     def test_chaining(self):
         rt = TarlRuntime()
-        result = (
-            rt
-            .register_source("a", ["x"])
-            .register_source("b", ["y"])
-        )
+        result = rt.register_source("a", ["x"]).register_source("b", ["y"])
         assert result is rt
 
     def test_source_does_not_leak_between_contexts(self):
         rt = TarlRuntime()
         rt.register_source("roles", ["admin"])
         policy = PolicyParser.parse(
-            "policy test:\n"
-            "    when role IN source:roles => ALLOW"
+            "policy test:\n" "    when role IN source:roles => ALLOW"
         )
         rt.set_policy(policy)
-        assert rt.evaluate({"role": "admin"}).verdict == (
-            TarlVerdict.ALLOW
-        )
-        assert rt.evaluate({"role": "guest"}).verdict == (
-            TarlVerdict.DENY
-        )
+        assert rt.evaluate({"role": "admin"}).verdict == (TarlVerdict.ALLOW)
+        assert rt.evaluate({"role": "guest"}).verdict == (TarlVerdict.DENY)
 
 
 # ── Verdict lattice in composition ────────────────────────────────────────────
 
+
 class TestVerdictLatticeInComposition:
     def test_meet_deny_deny(self):
-        assert TarlVerdict.meet(
-            TarlVerdict.DENY, TarlVerdict.DENY
-        ) == TarlVerdict.DENY
+        assert TarlVerdict.meet(TarlVerdict.DENY, TarlVerdict.DENY) == TarlVerdict.DENY
 
     def test_meet_allow_allow(self):
-        assert TarlVerdict.meet(
-            TarlVerdict.ALLOW, TarlVerdict.ALLOW
-        ) == TarlVerdict.ALLOW
+        assert (
+            TarlVerdict.meet(TarlVerdict.ALLOW, TarlVerdict.ALLOW) == TarlVerdict.ALLOW
+        )
 
     def test_meet_allow_deny(self):
-        assert TarlVerdict.meet(
-            TarlVerdict.ALLOW, TarlVerdict.DENY
-        ) == TarlVerdict.DENY
+        assert TarlVerdict.meet(TarlVerdict.ALLOW, TarlVerdict.DENY) == TarlVerdict.DENY
 
     def test_join_deny_allow(self):
-        assert TarlVerdict.join(
-            TarlVerdict.DENY, TarlVerdict.ALLOW
-        ) == TarlVerdict.ALLOW
+        assert (
+            TarlVerdict.join(TarlVerdict.DENY, TarlVerdict.ALLOW) == TarlVerdict.ALLOW
+        )
 
     def test_join_escalate_deny(self):
-        assert TarlVerdict.join(
-            TarlVerdict.ESCALATE, TarlVerdict.DENY
-        ) == TarlVerdict.ESCALATE
+        assert (
+            TarlVerdict.join(TarlVerdict.ESCALATE, TarlVerdict.DENY)
+            == TarlVerdict.ESCALATE
+        )
 
     def test_ordering_transitivity(self):
         assert TarlVerdict.DENY < TarlVerdict.ESCALATE
@@ -1084,6 +1027,7 @@ class TestVerdictLatticeInComposition:
 
 
 # ── Backward compatibility ────────────────────────────────────────────────────
+
 
 class TestBackwardCompatibility:
     def test_evaluate_policy_function_unchanged(self):
@@ -1107,9 +1051,12 @@ class TestBackwardCompatibility:
         assert DEFAULT_DENY.rule_index == -1
 
     def test_plain_tarlpolicy_still_evaluates(self):
-        p = TarlPolicy(rules=[
-            TarlRule('role == "admin"', TarlVerdict.ALLOW),
-        ], name="simple")
+        p = TarlPolicy(
+            rules=[
+                TarlRule('role == "admin"', TarlVerdict.ALLOW),
+            ],
+            name="simple",
+        )
         result = evaluate_policy({"role": "admin"}, policy=p)
         assert result.verdict == TarlVerdict.ALLOW
 

@@ -3,6 +3,7 @@ Thirsty-Lang AST Node Definitions
 All Abstract Syntax Tree node types for the Thirsty-Lang language family.
 Every node carries a span tuple (line_start, col_start, line_end, col_end).
 """
+
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -10,9 +11,11 @@ from utf.thirsty_lang.token import TokenType
 
 # === Expressions ===
 
+
 @dataclass
 class Expr:
     """Base class for all expressions."""
+
     span: tuple
 
 
@@ -49,6 +52,7 @@ class ErrorLiteral(Expr):
 @dataclass
 class QuenchedLiteral(Expr):
     """A quenched (optional) value with a type parameter."""
+
     type_param: str  # type name like "Int", "String"
     value: Any | None = None
 
@@ -80,6 +84,7 @@ class PipeExpr(Expr):
 @dataclass
 class GuardExpr(Expr):
     """thirst (expr) quench (condition) — guarded expression."""
+
     expr: Expr
     condition: Expr
 
@@ -97,6 +102,7 @@ class LambdaExpr(Expr):
     ``body`` is a statement node (typically a block); it is annotated ``Any``
     because the ``Stmt`` base is defined later in this module.
     """
+
     params: list  # list of (name, type_str)
     body: Any
     return_type: str | None = None
@@ -105,6 +111,7 @@ class LambdaExpr(Expr):
 @dataclass
 class Subscript(Expr):
     """obj[index] — index into a reservoir (list), dict, or string."""
+
     obj: Expr
     index: Expr
 
@@ -128,36 +135,42 @@ class ArmorExpr(Expr):
 @dataclass
 class FloodExpr(Expr):
     """Fills a reservoir, or pushes to a list."""
+
     target: Expr
 
 
 @dataclass
 class DripExpr(Expr):
     """Iterates over a reservoir."""
+
     target: Expr
 
 
 @dataclass
 class EvaporateExpr(Expr):
     """Releases/frees a resource."""
+
     target: Expr
 
 
 @dataclass
 class CondenseExpr(Expr):
     """Collects values into a reservoir."""
+
     target: Expr
 
 
 @dataclass
 class ArrayLiteral(Expr):
     """[e1, e2, ...] reservoir/array literal — evaluates to a list."""
+
     elements: list
 
 
 @dataclass
 class MemberAccess(Expr):
     """obj.member — field read or (as a CallExpr callee) method dispatch."""
+
     obj: Expr
     member: str
 
@@ -165,10 +178,12 @@ class MemberAccess(Expr):
 @dataclass
 class CascadeCall(Expr):
     """Async call with await."""
+
     expr: Expr
 
 
 # === TSCG Nodes ===
+
 
 @dataclass
 class SymbolExpr(Expr):
@@ -178,6 +193,7 @@ class SymbolExpr(Expr):
 @dataclass
 class PipelineExpr(Expr):
     """TSCG pipeline operator: left -> right"""
+
     left: Expr
     right: Expr
 
@@ -185,6 +201,7 @@ class PipelineExpr(Expr):
 @dataclass
 class CombineExpr(Expr):
     """TSCG combine operator: left ^ right or left || right"""
+
     left: Expr
     op: str  # "^" or "||"
     right: Expr
@@ -192,9 +209,11 @@ class CombineExpr(Expr):
 
 # === Statements ===
 
+
 @dataclass
 class Stmt:
     """Base class for all statements."""
+
     span: tuple
 
 
@@ -211,6 +230,7 @@ class BlockStmt(Stmt):
 @dataclass
 class VariableDecl(Stmt):
     """drink name: type = expr  OR  drink mut name = expr"""
+
     name: str
     var_type: str | None  # type annotation string, or None
     init_expr: Expr | None
@@ -251,6 +271,7 @@ class ForStmt(Stmt):
 @dataclass
 class TimesStmt(Stmt):
     """times count { body } — repeat the body `count` times."""
+
     count: Expr
     body: Stmt
 
@@ -263,12 +284,14 @@ class ReturnStmt(Stmt):
 @dataclass
 class PourStmt(Stmt):
     """Output/print statement."""
+
     value: Expr
 
 
 @dataclass
 class SipStmt(Stmt):
     """Input/read statement."""
+
     target: Expr
 
 
@@ -281,13 +304,17 @@ class ImportStmt(Stmt):
 @dataclass
 class SpillageStmt(Stmt):
     """try/spillage block with error handlers."""
+
     body: Stmt
-    handlers: list = field(default_factory=list)  # list of (error_type_expr, handler_block)
+    handlers: list = field(
+        default_factory=list
+    )  # list of (error_type_expr, handler_block)
 
 
 @dataclass
 class CleanupStmt(Stmt):
     """finally/cleanup block."""
+
     body: Stmt
     finalizer: Stmt
 
@@ -299,9 +326,11 @@ class ThrowStmt(Stmt):
 
 # === Security Statements ===
 
+
 @dataclass
 class SecurityBlock(Stmt):
     """shield / sanitize / armor / morph / detect / defend block."""
+
     block_type: str
     body: Stmt
 
@@ -309,6 +338,7 @@ class SecurityBlock(Stmt):
 @dataclass
 class MorphDef(Stmt):
     """morph name(params) { body }"""
+
     name: str
     params: list
     body: Stmt
@@ -317,6 +347,7 @@ class MorphDef(Stmt):
 @dataclass
 class DefendStrat(Stmt):
     """defend name(policy) { actions }"""
+
     name: str
     policy: str
     actions: list
@@ -324,9 +355,11 @@ class DefendStrat(Stmt):
 
 # === Declarations ===
 
+
 @dataclass
 class FunctionDecl(Stmt):
     """glass name(params) -> return_type { body }"""
+
     name: str
     params: list  # list of (name, type_str)
     return_type: str | None  # optional return type annotation
@@ -336,6 +369,7 @@ class FunctionDecl(Stmt):
 @dataclass
 class ClassDecl(Stmt):
     """fountain name { fields, methods }"""
+
     name: str
     methods: list
     fields: list = field(default_factory=list)
@@ -368,6 +402,7 @@ class GovernedFunctionDecl(Stmt):
     ``requires_expr`` holds the parsed precondition AST that the interpreter
     evaluates at call time to enforce governance.
     """
+
     name: str
     params: list
     return_type: str | None
@@ -383,6 +418,7 @@ class GovernedFunctionDecl(Stmt):
 
 
 # === Module & Program ===
+
 
 @dataclass
 class ModuleHeader:
@@ -403,13 +439,15 @@ class Program:
 
 # === Shadow Thirst Nodes ===
 
+
 @dataclass
 class ShadowThirstMutation(Stmt):
     """mutation name { validated_canonical { shadow { ... } invariant { ... } canonical { ... } } }"""
+
     name: str
-    shadow_block: 'BlockStmt | None' = None
-    invariant_block: 'BlockStmt | None' = None
-    canonical_block: 'BlockStmt | None' = None
+    shadow_block: "BlockStmt | None" = None
+    invariant_block: "BlockStmt | None" = None
+    canonical_block: "BlockStmt | None" = None
 
 
 # Type alias for any AST node

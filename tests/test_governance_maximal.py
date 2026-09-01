@@ -6,10 +6,11 @@ Phase 1 — maximal governance:
   - temporal policy windows governing a call
   - static parity: E053 (governed call from core), forward-reference hoisting
 """
+
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 
@@ -41,35 +42,37 @@ def _diags(src):
 
 # ── Contracts: ensures / invariant / methods ────────────────────────────────
 
+
 class TestContracts:
     def test_ensures_pass(self):
         it = _interp(
-            'module m: governed\n'
-            'glass dbl(x) requires x > 0 ensures result == x * 2 '
-            '{ return x * 2 }\n',
+            "module m: governed\n"
+            "glass dbl(x) requires x > 0 ensures result == x * 2 "
+            "{ return x * 2 }\n",
             policy_text='policy p\nwhen action == "dbl" => ALLOW\n'
-                        'when true => DENY\n',
-            authority='admin')
+            "when true => DENY\n",
+            authority="admin",
+        )
         assert it.env.get("dbl")(5) == 10
 
     def test_ensures_fail_denies(self):
         it = _interp(
-            'module m: governed\n'
-            'glass bad(x) ensures result > 100 { return x * 2 }\n',
+            "module m: governed\n"
+            "glass bad(x) ensures result > 100 { return x * 2 }\n",
             policy_text='policy p\nwhen action == "bad" => ALLOW\n'
-                        'when true => DENY\n',
-            authority='admin')
+            "when true => DENY\n",
+            authority="admin",
+        )
         with pytest.raises(GovernanceViolation) as e:
             it.env.get("bad")(5)
         assert "postcondition" in e.value.reason
 
     def test_invariant_entry_and_exit(self):
         it = _interp(
-            'module m: governed\n'
-            'glass f(x) invariant x >= 0 { return x }\n',
-            policy_text='policy p\nwhen action == "f" => ALLOW\n'
-                        'when true => DENY\n',
-            authority='admin')
+            "module m: governed\n" "glass f(x) invariant x >= 0 { return x }\n",
+            policy_text='policy p\nwhen action == "f" => ALLOW\n' "when true => DENY\n",
+            authority="admin",
+        )
         assert it.env.get("f")(3) == 3
         with pytest.raises(GovernanceViolation):
             it.env.get("f")(-1)
@@ -78,25 +81,27 @@ class TestContracts:
         # Contracts on methods are design-by-contract: enforced even in core
         # mode (no cross-mode guard), via interpreted method dispatch.
         src = (
-            'module m: core\n'
-            'fountain Acc {\n'
-            '    total: Int\n'
-            '    glass init(self) { self.total = 0 }\n'
-            '    glass add(self, n) requires n > 0 '
-            '{ self.total = self.total + n\n        return self.total }\n'
-            '}\n'
-            'drink a = new Acc()\n')
+            "module m: core\n"
+            "fountain Acc {\n"
+            "    total: Int\n"
+            "    glass init(self) { self.total = 0 }\n"
+            "    glass add(self, n) requires n > 0 "
+            "{ self.total = self.total + n\n        return self.total }\n"
+            "}\n"
+            "drink a = new Acc()\n"
+        )
         ok = Interpreter()
-        ok.interpret(_prog(src + 'drink r = a.add(4)\nreturn r'))
+        ok.interpret(_prog(src + "drink r = a.add(4)\nreturn r"))
         assert ok.env.get("r") == 4
 
         bad = Interpreter()
         with pytest.raises(GovernanceViolation) as e:
-            bad.interpret(_prog(src + 'drink r = a.add(-1)\nreturn r'))
+            bad.interpret(_prog(src + "drink r = a.add(-1)\nreturn r"))
         assert "precondition" in e.value.reason
 
 
 # ── Capability gates ────────────────────────────────────────────────────────
+
 
 class TestCapabilityGates:
     def test_write_allowed(self):
@@ -104,14 +109,16 @@ class TestCapabilityGates:
         _interp(
             'module m: governed\nglass g(){ pour "hi" }\ndrink _ = g()\n',
             policy_text='policy p\nwhen action == "write" => ALLOW\n',
-            authority='admin')
+            authority="admin",
+        )
 
     def test_write_denied_with_proof(self):
         with pytest.raises(GovernanceViolation) as e:
             _interp(
                 'module m: governed\nglass g(){ pour "hi" }\ndrink _ = g()\n',
                 policy_text='policy p\nwhen action == "read" => ALLOW\n',
-                authority='admin')
+                authority="admin",
+            )
         assert e.value.proof is not None
 
     def test_import_denied_before_resolve(self):
@@ -121,57 +128,66 @@ class TestCapabilityGates:
             _interp(
                 "module m: governed\nimport 'thirst::crypto' as crypto\n",
                 policy_text='policy p\nwhen action == "read" => ALLOW\n',
-                authority='admin')
+                authority="admin",
+            )
 
     def test_gate_fail_closed_without_policy(self):
         # Fail-closed: governed mode with no policy engine cannot authorize a
         # gated capability, so the pour (write) is DENIED — governed mode never
         # implies authority. (Previously this ran open; that was the bug.)
         with pytest.raises(GovernanceViolation):
-            _interp('module m: governed\nglass g(){ pour "hi" }\n'
-                    'drink _ = g()\n')
+            _interp('module m: governed\nglass g(){ pour "hi" }\n' "drink _ = g()\n")
 
 
 # ── Temporal windows ────────────────────────────────────────────────────────
+
 
 class TestTemporal:
     def test_expired_window_denies(self):
         with pytest.raises(GovernanceViolation):
             _interp(
                 'module m: governed\nglass g(){ pour "hi" }\ndrink _ = g()\n',
-                policy_text=('policy p:\n  valid_until: 2026-01-01\n'
-                             '  when action == "write" => ALLOW\n'),
-                authority='admin')
+                policy_text=(
+                    "policy p:\n  valid_until: 2026-01-01\n"
+                    '  when action == "write" => ALLOW\n'
+                ),
+                authority="admin",
+            )
 
     def test_active_window_allows(self):
         _interp(
             'module m: governed\nglass g(){ pour "hi" }\ndrink _ = g()\n',
-            policy_text=('policy p:\n  valid_until: 2030-12-31\n'
-                         '  when action == "write" => ALLOW\n'),
-            authority='admin')
+            policy_text=(
+                "policy p:\n  valid_until: 2030-12-31\n"
+                '  when action == "write" => ALLOW\n'
+            ),
+            authority="admin",
+        )
 
 
 # ── Static parity ───────────────────────────────────────────────────────────
 
+
 class TestStatic:
     def test_e053_governed_call_from_core(self):
         codes = _diags(
-            'module m: core\n'
-            'glass priv(x) requires x > 0 { return x }\n'
-            'glass use() { return priv(5) }\n')
+            "module m: core\n"
+            "glass priv(x) requires x > 0 { return x }\n"
+            "glass use() { return priv(5) }\n"
+        )
         assert "E053" in codes
 
     def test_no_e053_in_governed_mode(self):
         codes = _diags(
-            'module m: governed\n'
-            'glass priv(x) requires x > 0 { return x }\n'
-            'glass use() { return priv(5) }\n')
+            "module m: governed\n"
+            "glass priv(x) requires x > 0 { return x }\n"
+            "glass use() { return priv(5) }\n"
+        )
         assert "E053" not in codes
 
     def test_forward_reference_resolves(self):
         # Caller declared before callee — hoisting makes this clean.
         codes = _diags(
-            'module m: core\n'
-            'glass a() { return b() }\n'
-            'glass b() { return 1 }\n')
+            "module m: core\n" "glass a() { return b() }\n" "glass b() { return 1 }\n"
+        )
         assert "E011" not in codes

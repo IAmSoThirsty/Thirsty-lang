@@ -1,16 +1,17 @@
 """Coverage for the TARL language server (tarl.lsp)."""
+
 import io
 import json
 
 from utf.tarl import lsp
 from utf.tarl.lsp import TarlLanguageServer
 
-DOC = '''\
+DOC = """\
 policy base:
   when x == 1 => ALLOW
 policy child EXTENDS base:
   when y == 2 => DENY
-'''
+"""
 
 INCLUDE_DOC = 'INCLUDE "other.tarl"\npolicy p:\n  when x == 1 => ALLOW\n'
 
@@ -29,21 +30,47 @@ def test_full_session():
     session = (
         _frame({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
         + _frame({"jsonrpc": "2.0", "method": "initialized", "params": {}})
-        + _frame({"jsonrpc": "2.0", "method": "textDocument/didOpen",
-                  "params": {"textDocument": {"uri": uri, "text": DOC}}})
-        + _frame({"jsonrpc": "2.0", "method": "textDocument/didChange",
-                  "params": {"textDocument": {"uri": uri},
-                             "contentChanges": [{"text": DOC}]}})
-        + _frame({"jsonrpc": "2.0", "id": 2, "method": "textDocument/hover",
-                  "params": {"textDocument": {"uri": uri},
-                             "position": {"line": 1}}})
-        + _frame({"jsonrpc": "2.0", "id": 3, "method": "textDocument/definition",
-                  "params": {"textDocument": {"uri": uri},
-                             "position": {"line": 2}}})
-        + _frame({"jsonrpc": "2.0", "id": 4, "method": "unknown/method",
-                  "params": {}})
-        + _frame({"jsonrpc": "2.0", "method": "textDocument/didClose",
-                  "params": {"textDocument": {"uri": uri}}})
+        + _frame(
+            {
+                "jsonrpc": "2.0",
+                "method": "textDocument/didOpen",
+                "params": {"textDocument": {"uri": uri, "text": DOC}},
+            }
+        )
+        + _frame(
+            {
+                "jsonrpc": "2.0",
+                "method": "textDocument/didChange",
+                "params": {
+                    "textDocument": {"uri": uri},
+                    "contentChanges": [{"text": DOC}],
+                },
+            }
+        )
+        + _frame(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "textDocument/hover",
+                "params": {"textDocument": {"uri": uri}, "position": {"line": 1}},
+            }
+        )
+        + _frame(
+            {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "textDocument/definition",
+                "params": {"textDocument": {"uri": uri}, "position": {"line": 2}},
+            }
+        )
+        + _frame({"jsonrpc": "2.0", "id": 4, "method": "unknown/method", "params": {}})
+        + _frame(
+            {
+                "jsonrpc": "2.0",
+                "method": "textDocument/didClose",
+                "params": {"textDocument": {"uri": uri}},
+            }
+        )
         + _frame({"jsonrpc": "2.0", "id": 5, "method": "shutdown", "params": {}})
     )
     srv = TarlLanguageServer(stdin=io.BytesIO(session), stdout=io.BytesIO())
@@ -81,11 +108,16 @@ def test_definition_extends_and_include():
 
 def test_hover_missing_doc_returns_none():
     srv = _server()
-    result = srv._on_hover({"textDocument": {"uri": "file:///none"},
-                            "position": {"line": 0}})
+    result = srv._on_hover(
+        {"textDocument": {"uri": "file:///none"}, "position": {"line": 0}}
+    )
     assert result is None
-    assert srv._on_definition({"textDocument": {"uri": "file:///none"},
-                               "position": {"line": 0}}) is None
+    assert (
+        srv._on_definition(
+            {"textDocument": {"uri": "file:///none"}, "position": {"line": 0}}
+        )
+        is None
+    )
 
 
 def test_main_entrypoint(monkeypatch):

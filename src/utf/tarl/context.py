@@ -1,8 +1,10 @@
 """Authoritative TARL context preparation and typed path resolution.
 
 The policy language uses dotted *paths* (``user.role``), while the runtime
-context uses nested mappings (``{"user": {"role": ...}}``).  A dotted mapping
-key is a second representation of the same path and is therefore rejected.
+evaluates one nested mapping (``{"user": {"role": ...}}``).  Input may use a
+dotted key, a nested object, or an equivalent mixture of both; all accepted
+forms are normalized to the same nested representation.  Contradictory or
+malformed mixtures are rejected instead of choosing one value silently.
 
 Most importantly, resolution does not use a boolean sentinel.  Missing paths,
 wrong intermediate types, and representation conflicts are distinct states
@@ -21,18 +23,23 @@ from enum import StrEnum
 from typing import Any
 
 CONTEXT_REPRESENTATION_ID = "tarl.context.nested-json.v1"
-NORMALIZATION_ALGORITHM_ID = "identity"
+NORMALIZATION_ALGORITHM_ID = "tarl.context.dotted-path-expansion"
 NORMALIZATION_VERSION = "1"
-RESERVED_CONTEXT_IDENTIFIERS = frozenset({
-    "true",
-    "false",
-    "CURRENT_HOUR",
-    "CURRENT_DAY",
-    "CURRENT_WEEKDAY",
-    "CURRENT_MONTH",
-    "CURRENT_YEAR",
-    "CURRENT_TIMESTAMP",
-})
+SOURCE_INJECTION_ALGORITHM_ID = (
+    "tarl.context.dotted-path-expansion+registered-source-injection"
+)
+RESERVED_CONTEXT_IDENTIFIERS = frozenset(
+    {
+        "true",
+        "false",
+        "CURRENT_HOUR",
+        "CURRENT_DAY",
+        "CURRENT_WEEKDAY",
+        "CURRENT_MONTH",
+        "CURRENT_YEAR",
+        "CURRENT_TIMESTAMP",
+    }
+)
 
 
 class ContextResolutionState(StrEnum):
@@ -158,9 +165,7 @@ def _rejected_value(value: Any, active: set[int]) -> Any:
         if isinstance(value, (set, frozenset)):
             items = [_rejected_value(item, active) for item in value]
             items.sort(key=canonical_context_bytes)
-            return {
-                "$frozenset" if isinstance(value, frozenset) else "$set": items
-            }
+            return {"$frozenset" if isinstance(value, frozenset) else "$set": items}
         try:
             display = repr(value)
         except Exception:
@@ -175,9 +180,21 @@ def _rejected_value(value: Any, active: set[int]) -> Any:
 
 def hash_rejected_context(context: Any) -> str:
     diagnostic = _rejected_value(context, set())
-    return "sha256:" + hashlib.sha256(
-        canonical_context_bytes(diagnostic)
-    ).hexdigest()
+    return "sha256:" + hashlib.sha256(canonical_context_bytes(diagnostic)).hexdigest()
+
+
+def hash_rejected_canonical_binding(
+    original_context_hash: str, conflict_status: str
+) -> str:
+    """Hash the canonical rejection record used when no context was evaluated."""
+    return hash_context(
+        {
+            "context_conflict_status": conflict_status,
+            "normalization_algorithm_id": "rejected",
+            "normalization_version": NORMALIZATION_VERSION,
+            "original_context_hash": original_context_hash,
+        }
+    )
 
 
 def load_context_json(raw: str) -> Any:
@@ -186,6 +203,7 @@ def load_context_json(raw: str) -> Any:
     Python's ordinary ``json.loads`` silently keeps the last duplicate key,
     which would let validation and authorization observe different values.
     """
+
     def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         result: dict[str, Any] = {}
         for key, value in pairs:
@@ -308,68 +326,41 @@ def _validate_mapping_shape(
                 )
         for key in sorted(mapping):
             full_key = ".".join((*prefix, key))
-            if key.startswith("__tarl_"):
+            parts = key.split(".")
+            if any(not part for part in parts):
                 raise ContextRepresentationError(
-                    f"context representation violation: reserved field '{full_key}'",
+                    f"context representation violation: dotted key '{full_key}' is invalid",
                     state=ContextResolutionState.REPRESENTATION_CONFLICT,
                     path=full_key,
                     conflict_status="invalid",
                 )
-            if not prefix and key in RESERVED_CONTEXT_IDENTIFIERS:
-                raise ContextRepresentationError(
-                    f"context representation violation: reserved identifier '{key}'",
-                    state=ContextResolutionState.REPRESENTATION_CONFLICT,
-                    path=key,
-                    conflict_status="invalid",
-                )
-            if not prefix and key.startswith("source:") and not allow_source_keys:
-                raise ContextRepresentationError(
-                    f"context representation violation: reserved source field '{key}'",
-                    state=ContextResolutionState.REPRESENTATION_CONFLICT,
-                    path=key,
-                    conflict_status="invalid",
-                )
-            if "." in key:
-                parts = key.split(".")
-                if any(not part for part in parts):
+            for index, part in enumerate(parts):
+                component_path = ".".join((*prefix, *parts[: index + 1]))
+                if part.startswith("__tarl_"):
                     raise ContextRepresentationError(
-                        f"context representation violation: dotted key '{full_key}' is invalid",
+                        "context representation violation: reserved field "
+                        f"'{component_path}'",
                         state=ContextResolutionState.REPRESENTATION_CONFLICT,
-                        path=full_key,
+                        path=component_path,
                         conflict_status="invalid",
                     )
-                nested = _raw_nested_resolution(mapping, parts)
-                if nested.resolved:
-                    if _strict_equal(mapping[key], nested.value):
-                        reason = (
-                            f"context representation conflict: {full_key} is supplied "
-                            "in both flat and nested form"
+                if not prefix and index == 0:
+                    if part in RESERVED_CONTEXT_IDENTIFIERS:
+                        raise ContextRepresentationError(
+                            "context representation violation: reserved identifier "
+                            f"'{part}'",
+                            state=ContextResolutionState.REPRESENTATION_CONFLICT,
+                            path=part,
+                            conflict_status="invalid",
                         )
-                    else:
-                        reason = (
-                            f"context representation conflict: {full_key} has "
-                            "contradictory flat and nested values"
+                    if part.startswith("source:") and not allow_source_keys:
+                        raise ContextRepresentationError(
+                            "context representation violation: reserved source field "
+                            f"'{part}'",
+                            state=ContextResolutionState.REPRESENTATION_CONFLICT,
+                            path=part,
+                            conflict_status="invalid",
                         )
-                    raise ContextRepresentationError(
-                        reason,
-                        state=ContextResolutionState.REPRESENTATION_CONFLICT,
-                        path=full_key,
-                        conflict_status="conflict",
-                    )
-                if nested.state is ContextResolutionState.TYPE_ERROR:
-                    raise ContextRepresentationError(
-                        f"context representation conflict: {full_key} collides with "
-                        "a malformed nested path",
-                        state=ContextResolutionState.REPRESENTATION_CONFLICT,
-                        path=full_key,
-                        conflict_status="conflict",
-                    )
-                raise ContextRepresentationError(
-                    f"dotted key '{full_key}' is not permitted",
-                    state=ContextResolutionState.REPRESENTATION_CONFLICT,
-                    path=full_key,
-                    conflict_status="invalid",
-                )
 
             _validate_context_value(
                 mapping[key],
@@ -434,6 +425,112 @@ def _validate_context_value(
     )
 
 
+def _merge_canonical_objects(
+    target: dict[str, Any],
+    incoming: dict[str, Any],
+    *,
+    prefix: tuple[str, ...],
+) -> None:
+    """Merge two normalized object contributions, rejecting value conflicts."""
+    for key in sorted(incoming):
+        path = (*prefix, key)
+        if key not in target:
+            target[key] = incoming[key]
+            continue
+        existing = target[key]
+        proposed = incoming[key]
+        if type(existing) is dict and type(proposed) is dict:
+            _merge_canonical_objects(existing, proposed, prefix=path)
+            continue
+        if _strict_equal(existing, proposed):
+            continue
+        display = ".".join(path)
+        raise ContextRepresentationError(
+            f"context representation conflict: {display} has contradictory "
+            "flat and nested values",
+            state=ContextResolutionState.REPRESENTATION_CONFLICT,
+            path=display,
+            conflict_status="conflict",
+        )
+
+
+def _insert_canonical_path(
+    target: dict[str, Any],
+    parts: list[str],
+    value: Any,
+    *,
+    prefix: tuple[str, ...],
+) -> None:
+    current = target
+    for index, part in enumerate(parts[:-1]):
+        traversed = (*prefix, *parts[: index + 1])
+        if part not in current:
+            current[part] = {}
+        elif type(current[part]) is not dict:
+            display = ".".join((*prefix, *parts))
+            intermediate = ".".join(traversed)
+            raise ContextRepresentationError(
+                f"context representation conflict: {display} collides with "
+                f"non-object intermediate '{intermediate}'",
+                state=ContextResolutionState.REPRESENTATION_CONFLICT,
+                path=display,
+                conflict_status="conflict",
+            )
+        current = current[part]
+
+    leaf = parts[-1]
+    leaf_path = (*prefix, *parts)
+    if leaf not in current:
+        current[leaf] = value
+        return
+    existing = current[leaf]
+    if type(existing) is dict and type(value) is dict:
+        _merge_canonical_objects(existing, value, prefix=leaf_path)
+        return
+    if _strict_equal(existing, value):
+        return
+    display = ".".join(leaf_path)
+    raise ContextRepresentationError(
+        f"context representation conflict: {display} has contradictory flat "
+        "and nested values",
+        state=ContextResolutionState.REPRESENTATION_CONFLICT,
+        path=display,
+        conflict_status="conflict",
+    )
+
+
+def _canonicalize_context_value(value: Any, *, path: str) -> Any:
+    if type(value) is dict:
+        return _canonicalize_mapping(
+            value,
+            prefix=tuple(path.split(".")) if path else (),
+        )
+    if type(value) is list:
+        return [
+            _canonicalize_context_value(item, path=f"{path}[{index}]")
+            for index, item in enumerate(value)
+        ]
+    return value
+
+
+def _canonicalize_mapping(
+    mapping: dict[str, Any], *, prefix: tuple[str, ...] = ()
+) -> dict[str, Any]:
+    """Expand dotted keys and merge equivalent contributions deterministically."""
+    canonical: dict[str, Any] = {}
+    for key in sorted(mapping):
+        parts = key.split(".")
+        display = ".".join((*prefix, *parts))
+        value = _canonicalize_context_value(mapping[key], path=display)
+        _insert_canonical_path(
+            canonical,
+            parts,
+            value,
+            prefix=prefix,
+        )
+    return canonical
+
+
 def prepare_context(
     context: Any, *, allow_source_keys: bool = False
 ) -> PreparedContext:
@@ -454,7 +551,7 @@ def prepare_context(
         )
     _validate_mapping_shape(snapshot, allow_source_keys=allow_source_keys)
     original_hash = hash_context(snapshot)
-    canonical = _snapshot(snapshot)
+    canonical = _canonicalize_mapping(snapshot)
     canonical_hash = hash_context(canonical)
     return PreparedContext(
         canonical=canonical,
@@ -468,10 +565,11 @@ def rejected_context_binding(
 ) -> PreparedContext:
     """Bind an invalid input to a DENY proof without claiming it was evaluated."""
     original_hash = hash_rejected_context(context)
+    canonical_hash = hash_rejected_canonical_binding(original_hash, conflict_status)
     return PreparedContext(
         canonical={},
         original_context_hash=original_hash,
-        canonical_context_hash="",
+        canonical_context_hash=canonical_hash,
         normalization_algorithm_id="rejected",
         context_conflict_status=conflict_status,
     )
@@ -508,6 +606,7 @@ __all__ = [
     "CONTEXT_REPRESENTATION_ID",
     "NORMALIZATION_ALGORITHM_ID",
     "NORMALIZATION_VERSION",
+    "SOURCE_INJECTION_ALGORITHM_ID",
     "RESERVED_CONTEXT_IDENTIFIERS",
     "ContextRepresentationError",
     "ContextResolution",
@@ -517,6 +616,7 @@ __all__ = [
     "canonical_context_bytes",
     "compose_context_layers",
     "hash_context",
+    "hash_rejected_canonical_binding",
     "hash_rejected_context",
     "load_context_json",
     "prepare_context",

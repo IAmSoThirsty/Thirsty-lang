@@ -1,4 +1,5 @@
 """Broad interpreter coverage by running feature-rich programs."""
+
 from utf.thirsty_lang.interpreter import Interpreter
 from utf.thirsty_lang.lexer import Lexer
 from utf.thirsty_lang.parser import Parser
@@ -39,10 +40,12 @@ def test_string_concat(capsys):
 
 
 def test_if_elif_else(capsys):
-    src = ('drink x = 5\n'
-           'thirsty (x > 10) { pour "big" } '
-           'hydrated thirsty (x > 3) { pour "mid" } '
-           'hydrated { pour "small" }')
+    src = (
+        "drink x = 5\n"
+        'thirsty (x > 10) { pour "big" } '
+        'hydrated thirsty (x > 3) { pour "mid" } '
+        'hydrated { pour "small" }'
+    )
     assert "mid" in out(capsys, src)
 
 
@@ -57,44 +60,55 @@ def test_function_call(capsys):
 
 
 def test_fountain_class(capsys):
-    src = ('fountain Counter {\n'
-           '  count: int\n'
-           '  glass bump() { return 1 }\n'
-           '}\n'
-           'drink c = new Counter()\n'
-           'c.count = 5\n'
-           'pour c.count')
+    src = (
+        "fountain Counter {\n"
+        "  count: int\n"
+        "  glass bump() { return 1 }\n"
+        "}\n"
+        "drink c = new Counter()\n"
+        "c.count = 5\n"
+        "pour c.count"
+    )
     assert "5" in out(capsys, src)
 
 
 def test_recursion(capsys):
-    src = ('glass fib(n) {\n'
-           '  thirsty (n < 2) { return n }\n'
-           '  return fib(n - 1) + fib(n - 2)\n'
-           '}\n'
-           'pour fib(7)')
+    src = (
+        "glass fib(n) {\n"
+        "  thirsty (n < 2) { return n }\n"
+        "  return fib(n - 1) + fib(n - 2)\n"
+        "}\n"
+        "pour fib(7)"
+    )
     assert "13" in out(capsys, src)
 
 
 def test_governed_requires_pass():
     # No I/O in governed mode (pour fails closed without a policy); check the
     # returned value of the last expression statement instead.
-    src = ('glass withdraw(amt) requires amt > 0 { return amt }\n'
-           'drink r = withdraw(10)\n'
-           'r')
+    src = (
+        "glass withdraw(amt) requires amt > 0 { return amt }\n"
+        "drink r = withdraw(10)\n"
+        "r"
+    )
     from utf.tarl.core import PolicyParser
     from utf.tarl.runtime import TarlRuntime
+
     prog = Parser(Lexer(src).lex()).parse()
     interp = Interpreter()
-    interp.attach_tarl(TarlRuntime(PolicyParser.parse(
-        'policy p\nwhen action == "withdraw" => ALLOW\nwhen true => DENY\n')))
+    interp.attach_tarl(
+        TarlRuntime(
+            PolicyParser.parse(
+                'policy p\nwhen action == "withdraw" => ALLOW\nwhen true => DENY\n'
+            )
+        )
+    )
     interp.set_authority("admin")
     assert interp.interpret(prog, mode="governed") == 10
 
 
 def test_governed_requires_denied():
-    src = ('glass withdraw(amt) requires amt > 0 { return amt }\n'
-           'pour withdraw(-5)')
+    src = "glass withdraw(amt) requires amt > 0 { return amt }\n" "pour withdraw(-5)"
     try:
         run(src, mode="governed")
     except Exception:

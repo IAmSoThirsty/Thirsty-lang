@@ -1,4 +1,5 @@
 """Broad checker/semantic-analysis coverage."""
+
 from utf.thirsty_lang.checker import check_ast
 from utf.thirsty_lang.lexer import Lexer
 from utf.thirsty_lang.parser import Parser
@@ -66,14 +67,12 @@ def test_type_mismatch_decl():
 
 
 def test_governed_call_from_core():
-    src = ("glass g(a) requires a > 0 { return a }\n"
-           "drink r = g(1)")
+    src = "glass g(a) requires a > 0 { return a }\n" "drink r = g(1)"
     assert "E053" in check(src, mode="core")
 
 
 def test_governed_call_allowed_in_governed():
-    src = ("glass g(a) requires a > 0 { return a }\n"
-           "drink r = g(1)")
+    src = "glass g(a) requires a > 0 { return a }\n" "drink r = g(1)"
     assert "E053" not in check(src, mode="governed")
 
 
@@ -85,10 +84,12 @@ def test_unknown_identifier_suggestion():
 
 def test_expressions_check():
     # Member access, calls, binary/unary, guards, pipelines, literals.
-    src = ("glass f(a) { return a }\n"
-           "drink v = f(1) + -2 * 3\n"
-           "drink b = not true and false\n"
-           "drink g = thirst v quench b\n"
-           "drink arr = [1, 2]\n"
-           "drink first = get(arr, 0)")
+    src = (
+        "glass f(a) { return a }\n"
+        "drink v = f(1) + -2 * 3\n"
+        "drink b = not true and false\n"
+        "drink g = thirst v quench b\n"
+        "drink arr = [1, 2]\n"
+        "drink first = get(arr, 0)"
+    )
     assert isinstance(check(src), list)

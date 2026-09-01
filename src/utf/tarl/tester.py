@@ -30,6 +30,7 @@ Directives:
     expect: ALLOW|DENY|ESCALATE
     expect_rule: <int>         — optional; asserts which rule index matched
 """
+
 from __future__ import annotations
 
 import glob as _glob
@@ -44,6 +45,7 @@ from utf.tarl.spec import TarlVerdict
 @dataclass
 class TarlTestCase:
     """A single test case parsed from a .tarl_test file."""
+
     name: str
     context: dict
     expect: TarlVerdict
@@ -54,6 +56,7 @@ class TarlTestCase:
 @dataclass
 class TarlTestFile:
     """Parsed representation of a complete .tarl_test file."""
+
     policy_file: str | None = None
     policy_text: str | None = None
     tests: list[TarlTestCase] = field(default_factory=list)
@@ -62,6 +65,7 @@ class TarlTestFile:
 @dataclass
 class TarlTestResult:
     """Result of running a single test case."""
+
     name: str
     passed: bool
     expected: TarlVerdict
@@ -79,8 +83,7 @@ class TarlTestResult:
         detail = f"expected {self.expected.value}, got {self.actual.value}"
         if self.expected_rule is not None:
             detail += (
-                f"; rule expected {self.expected_rule},"
-                f" got {self.actual_rule}"
+                f"; rule expected {self.expected_rule}," f" got {self.actual_rule}"
             )
         return f"  {status}  {self.name}  [{detail}]"
 
@@ -88,6 +91,7 @@ class TarlTestResult:
 @dataclass
 class TarlTestSuiteResult:
     """Aggregated results for a single .tarl_test file."""
+
     file_path: str
     total: int
     passed: int
@@ -134,8 +138,12 @@ class TarlTestRunner:
                 text = fh.read()
         except OSError as exc:
             return TarlTestSuiteResult(
-                file_path=path, total=0, passed=0, failed=0,
-                results=[], load_error=str(exc),
+                file_path=path,
+                total=0,
+                passed=0,
+                failed=0,
+                results=[],
+                load_error=str(exc),
             )
         return self._run_text(text, base_dir=base_dir, file_path=path)
 
@@ -169,14 +177,19 @@ class TarlTestRunner:
             suite = self._parse(text)
         except ValueError as exc:
             return TarlTestSuiteResult(
-                file_path=file_path, total=0, passed=0, failed=0,
-                results=[], load_error=str(exc),
+                file_path=file_path,
+                total=0,
+                passed=0,
+                failed=0,
+                results=[],
+                load_error=str(exc),
             )
 
         policy_text: str | None = suite.policy_text
         if policy_text is None and suite.policy_file:
             ppath = (
-                suite.policy_file if os.path.isabs(suite.policy_file)
+                suite.policy_file
+                if os.path.isabs(suite.policy_file)
                 else os.path.join(base_dir, suite.policy_file)
             )
             try:
@@ -184,14 +197,20 @@ class TarlTestRunner:
                     policy_text = fh.read()
             except OSError as exc:
                 return TarlTestSuiteResult(
-                    file_path=file_path, total=0, passed=0, failed=0,
+                    file_path=file_path,
+                    total=0,
+                    passed=0,
+                    failed=0,
                     results=[],
                     load_error=f"Cannot open policy_file {ppath!r}: {exc}",
                 )
 
         if policy_text is None:
             return TarlTestSuiteResult(
-                file_path=file_path, total=0, passed=0, failed=0,
+                file_path=file_path,
+                total=0,
+                passed=0,
+                failed=0,
                 results=[],
                 load_error="No policy_file or inline policy defined",
             )
@@ -225,10 +244,7 @@ class TarlTestRunner:
             )
 
         verdict_ok = decision.verdict == tc.expect
-        rule_ok = (
-            tc.expect_rule is None
-            or decision.rule_index == tc.expect_rule
-        )
+        rule_ok = tc.expect_rule is None or decision.rule_index == tc.expect_rule
         return TarlTestResult(
             name=tc.name,
             passed=verdict_ok and rule_ok,
@@ -249,7 +265,7 @@ class TarlTestRunner:
         n = len(lines)
         i = 0
         current_test: dict | None = None
-        inline_mode = False   # True when collecting indented policy lines
+        inline_mode = False  # True when collecting indented policy lines
 
         def _flush() -> None:
             if current_test is None:
@@ -272,13 +288,15 @@ class TarlTestRunner:
                 ) from exc
             raw_rule = current_test.get("expect_rule")
             expect_rule = int(raw_rule) if raw_rule is not None else None
-            suite.tests.append(TarlTestCase(
-                name=name,
-                context=ctx,
-                expect=expect,
-                expect_rule=expect_rule,
-                source_line=current_test.get("line", 0),
-            ))
+            suite.tests.append(
+                TarlTestCase(
+                    name=name,
+                    context=ctx,
+                    expect=expect,
+                    expect_rule=expect_rule,
+                    source_line=current_test.get("line", 0),
+                )
+            )
 
         inline_policy_lines: list[str] = []
 
@@ -305,7 +323,7 @@ class TarlTestRunner:
                     suite.policy_text = "\n".join(inline_policy_lines)
 
             if stripped.startswith("policy_file:"):
-                suite.policy_file = stripped[len("policy_file:"):].strip()
+                suite.policy_file = stripped[len("policy_file:") :].strip()
                 continue
 
             if stripped == "policy:" or stripped.startswith("policy: |"):
@@ -317,19 +335,22 @@ class TarlTestRunner:
                 _flush()
                 current_test = {"line": i}
                 rest = stripped[5:-1].strip()
-                if (rest.startswith('"') and rest.endswith('"')) or \
-                   (rest.startswith("'") and rest.endswith("'")):
+                if (rest.startswith('"') and rest.endswith('"')) or (
+                    rest.startswith("'") and rest.endswith("'")
+                ):
                     rest = rest[1:-1]
                 current_test["name"] = rest
                 continue
 
             if current_test is not None:
                 if stripped.startswith("context:"):
-                    current_test["context"] = stripped[len("context:"):].strip()
+                    current_test["context"] = stripped[len("context:") :].strip()
                 elif stripped.startswith("expect_rule:"):
-                    current_test["expect_rule"] = stripped[len("expect_rule:"):].strip()
+                    current_test["expect_rule"] = stripped[
+                        len("expect_rule:") :
+                    ].strip()
                 elif stripped.startswith("expect:"):
-                    current_test["expect"] = stripped[len("expect:"):].strip()
+                    current_test["expect"] = stripped[len("expect:") :].strip()
 
         # End of file: close any open inline policy block
         if inline_mode:

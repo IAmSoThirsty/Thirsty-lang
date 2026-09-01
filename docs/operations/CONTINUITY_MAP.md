@@ -7,6 +7,30 @@ Workspace: `thirsty_lang_exploration_0754`
 
 ---
 
+## 2026-08-02 v0.8.6 Release Closure and Documentation Reconciliation
+
+- Release commit: `60f226a69059b5803b0035f037d09e6f7f9c45a2`.
+- Annotated tag: `v0.8.6`; tag object
+  `d89bbbc80a165ab6340cbe7855dfd6af2b086d1a`, peeling to the release commit.
+- Branch CI run `30756636768`, tagged validation/PyPI run `30756676570`, and
+  multi-architecture container run `30756676576` completed successfully.
+- Local release gate: 1,463 passed, 1 skipped, 22 subtests, 90.60 percent
+  coverage. A clean environment installed the published PyPI 0.8.6 package and
+  reproduced the permanent context matrix.
+- GHCR 0.8.6 publishes `linux/amd64` and `linux/arm64` under digest
+  `sha256:6f3f516b8e979437dd414373afe581716b8c890dc4758b8675cbbcad9b94b13c`.
+  Docker Hub remains stale at 0.8.1 and is not an authoritative 0.8.6 source.
+- The preserved 0.8.5 reproduction remains anchored by evidence-manifest hash
+  `4DD3E6A4CF017E3E34A25C62A398D29A6F93D279890C4CCDF2A4528C6333F8D5`.
+- `CR-TARL-ALLOW` and `CR-TARL-DENY` remain PASS. The released repair does not
+  itself change `CR-CONTEXT-COHERENCE` or
+  `CR-CONTEXT-RESOLUTION-INTEGRITY`; both remain critical FAIL pending
+  independent constitutional acceptance.
+- Documentation is being reconciled to the released behavior and assembled
+  into `docs/THIRSTY_LANG_UTF_101.md` plus the generated single-file canonical PDF.
+
+---
+
 ## 2026-08-02 Context Resolution Integrity Repair
 
 - An isolated install of published `thirsty-lang==0.8.5` preserved the canonical
@@ -57,8 +81,8 @@ Workspace: `thirsty_lang_exploration_0754`
   Active-source coverage does not itself satisfy package-level independent
   acceptance.
 - Competence Register state is in `docs/STATUS.md`. Context coherence and
-  resolution integrity remain critical FAIL for the published artifact pending
-  repaired-release and independent acceptance.
+  resolution integrity remain critical FAIL pending independent constitutional
+  acceptance; the repaired 0.8.6 package and release gates have passed.
 
 ---
 

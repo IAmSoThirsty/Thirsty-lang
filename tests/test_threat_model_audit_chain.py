@@ -3,6 +3,7 @@
 The audit archive hash-links every record, so deleting a DENY, editing a stored
 proof, or reordering records breaks the chain and is detectable.
 """
+
 import sqlite3
 
 from utf.tarl.archive import TarlAuditArchive
@@ -15,7 +16,7 @@ def _proofs(verdicts=("ALLOW", "DENY", "ALLOW")):
     out = []
     for i, v in enumerate(verdicts):
         cond = "true" if v == "ALLOW" else "false"
-        policy = f'policy p{i}\nwhen {cond} => ALLOW\nwhen true => DENY\n'
+        policy = f"policy p{i}\nwhen {cond} => ALLOW\nwhen true => DENY\n"
         rt = TarlRuntime(PolicyParser.parse(policy))
         _d, proof = rt.evaluate_with_proof({"i": i})
         out.append(proof)

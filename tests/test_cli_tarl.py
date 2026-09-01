@@ -1,4 +1,5 @@
 """CLI coverage for the `tarl` policy tool."""
+
 import datetime
 
 import pytest
@@ -13,23 +14,23 @@ from utf.tarl.schema import ContextSchema
 POLICY = 'when role == "admin" => ALLOW\nwhen true => DENY\n'
 POLICY2 = 'when role == "admin" => ALLOW\nwhen true => DENY\n'
 
-TEST_SUITE = '''\
+TEST_SUITE = """\
 policy:
     when role == "admin" => ALLOW
 
 test "admin allowed":
     context: {"role": "admin"}
     expect: ALLOW
-'''
+"""
 
-FAILING_SUITE = '''\
+FAILING_SUITE = """\
 policy:
     when x == 1 => ALLOW
 
 test "wrong":
     context: {"x": 1}
     expect: DENY
-'''
+"""
 
 
 def _argv(monkeypatch, *args):
@@ -43,9 +44,7 @@ def _policy(tmp_path, text=POLICY, name="p.tarl"):
 
 
 def _proof_file(tmp_path):
-    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
-        ContextSchema()
-    )
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(ContextSchema())
     _decision, proof = rt.evaluate_with_proof({"role": "admin"})
     p = tmp_path / "proof.json"
     p.write_text(proof.to_json())
@@ -53,23 +52,24 @@ def _proof_file(tmp_path):
 
 
 def _ed25519_proof_file(tmp_path):
-    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
-        ContextSchema()
-    )
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(ContextSchema())
     rt.set_ed25519_signing_key("ed1", bytes(range(32)))
     _decision, proof = rt.evaluate_with_proof({"role": "admin"})
     p = tmp_path / "proof-ed25519.json"
     p.write_text(proof.to_json())
-    public_key = Ed25519PrivateKey.from_private_bytes(
-        bytes(range(32))
-    ).public_key().public_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PublicFormat.Raw,
+    public_key = (
+        Ed25519PrivateKey.from_private_bytes(bytes(range(32)))
+        .public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
     )
     return str(p), public_key.hex()
 
 
 # --- dispatch -------------------------------------------------------------
+
 
 def test_no_command(monkeypatch):
     _argv(monkeypatch, "tarl")
@@ -79,16 +79,23 @@ def test_no_command(monkeypatch):
 
 # --- eval -----------------------------------------------------------------
 
+
 def test_eval_text(monkeypatch, tmp_path, capsys):
-    _argv(monkeypatch, "tarl", "eval", _policy(tmp_path),
-          "-c", '{"role": "admin"}')
+    _argv(monkeypatch, "tarl", "eval", _policy(tmp_path), "-c", '{"role": "admin"}')
     tarl_cli.main()
     assert "ALLOW" in capsys.readouterr().out
 
 
 def test_eval_json(monkeypatch, tmp_path, capsys):
-    _argv(monkeypatch, "tarl", "eval", _policy(tmp_path),
-          "-c", '{"role": "guest"}', "--json")
+    _argv(
+        monkeypatch,
+        "tarl",
+        "eval",
+        _policy(tmp_path),
+        "-c",
+        '{"role": "guest"}',
+        "--json",
+    )
     tarl_cli.main()
     assert '"verdict"' in capsys.readouterr().out
 
@@ -101,6 +108,7 @@ def test_eval_bad_context(monkeypatch, tmp_path):
 
 # --- parse ----------------------------------------------------------------
 
+
 def test_parse(monkeypatch, tmp_path, capsys):
     _argv(monkeypatch, "tarl", "parse", _policy(tmp_path))
     tarl_cli.main()
@@ -109,16 +117,31 @@ def test_parse(monkeypatch, tmp_path, capsys):
 
 # --- explain --------------------------------------------------------------
 
+
 def test_explain_text(monkeypatch, tmp_path, capsys):
-    _argv(monkeypatch, "tarl", "explain", _policy(tmp_path),
-          "-c", '{"role": "admin"}', "--verbose")
+    _argv(
+        monkeypatch,
+        "tarl",
+        "explain",
+        _policy(tmp_path),
+        "-c",
+        '{"role": "admin"}',
+        "--verbose",
+    )
     tarl_cli.main()
     assert capsys.readouterr().out.strip()
 
 
 def test_explain_json(monkeypatch, tmp_path, capsys):
-    _argv(monkeypatch, "tarl", "explain", _policy(tmp_path),
-          "-c", '{"role": "admin"}', "--json")
+    _argv(
+        monkeypatch,
+        "tarl",
+        "explain",
+        _policy(tmp_path),
+        "-c",
+        '{"role": "admin"}',
+        "--json",
+    )
     tarl_cli.main()
     assert capsys.readouterr().out.strip().startswith("{")
 
@@ -130,6 +153,7 @@ def test_explain_bad_context(monkeypatch, tmp_path):
 
 
 # --- test -----------------------------------------------------------------
+
 
 def test_test_file_pass(monkeypatch, tmp_path):
     f = tmp_path / "s.tarl_test"
@@ -166,6 +190,7 @@ def test_test_none_found(monkeypatch, tmp_path):
 
 # --- audit ----------------------------------------------------------------
 
+
 def test_audit_query_empty(monkeypatch, tmp_path, capsys):
     db = str(tmp_path / "a.db")
     _argv(monkeypatch, "tarl", "audit", "query", "--db", db)
@@ -188,6 +213,7 @@ def test_audit_no_subcommand(monkeypatch):
 
 # --- verify ---------------------------------------------------------------
 
+
 def test_verify_proof(monkeypatch, tmp_path):
     _argv(monkeypatch, "tarl", "verify", _proof_file(tmp_path))
     with pytest.raises(SystemExit):
@@ -195,8 +221,15 @@ def test_verify_proof(monkeypatch, tmp_path):
 
 
 def test_verify_proof_json_with_policy(monkeypatch, tmp_path, capsys):
-    _argv(monkeypatch, "tarl", "verify", _proof_file(tmp_path),
-          "--policy", _policy(tmp_path), "--json")
+    _argv(
+        monkeypatch,
+        "tarl",
+        "verify",
+        _proof_file(tmp_path),
+        "--policy",
+        _policy(tmp_path),
+        "--json",
+    )
     with pytest.raises(SystemExit):
         tarl_cli.main()
     assert '"valid"' in capsys.readouterr().out
@@ -211,38 +244,48 @@ def test_verify_bad_proof(monkeypatch, tmp_path):
 
 
 def test_verify_missing_policy(monkeypatch, tmp_path):
-    _argv(monkeypatch, "tarl", "verify", _proof_file(tmp_path),
-          "--policy", str(tmp_path / "nope.tarl"))
+    _argv(
+        monkeypatch,
+        "tarl",
+        "verify",
+        _proof_file(tmp_path),
+        "--policy",
+        str(tmp_path / "nope.tarl"),
+    )
     with pytest.raises(SystemExit):
         tarl_cli.main()
 
 
 def test_verify_bad_hmac_key(monkeypatch, tmp_path):
-    _argv(monkeypatch, "tarl", "verify", _proof_file(tmp_path),
-          "--hmac-key", "k1:zz")
+    _argv(monkeypatch, "tarl", "verify", _proof_file(tmp_path), "--hmac-key", "k1:zz")
     with pytest.raises(SystemExit):
         tarl_cli.main()
 
 
 def test_verify_with_hmac_key(monkeypatch, tmp_path):
-    _argv(monkeypatch, "tarl", "verify", _proof_file(tmp_path),
-          "--hmac-key", "k1:deadbeef")
+    _argv(
+        monkeypatch,
+        "tarl",
+        "verify",
+        _proof_file(tmp_path),
+        "--hmac-key",
+        "k1:deadbeef",
+    )
     with pytest.raises(SystemExit):
         tarl_cli.main()
 
 
 def test_verify_with_ed25519_key(monkeypatch, tmp_path):
     proof_file, public_hex = _ed25519_proof_file(tmp_path)
-    _argv(monkeypatch, "tarl", "verify", proof_file,
-          "--ed25519-key", f"ed1:{public_hex}")
+    _argv(
+        monkeypatch, "tarl", "verify", proof_file, "--ed25519-key", f"ed1:{public_hex}"
+    )
     with pytest.raises(SystemExit) as exc:
         tarl_cli.main()
     assert exc.value.code == 0
 
 
-def test_verify_time_bound_proof_requires_trusted_now(
-    monkeypatch, tmp_path
-):
+def test_verify_time_bound_proof_requires_trusted_now(monkeypatch, tmp_path):
     policy_text = (
         "policy timed:\n"
         '  when role == "admin" => ALLOW for: 1m\n'
@@ -258,12 +301,15 @@ def test_verify_time_bound_proof_requires_trusted_now(
     _decision, proof = runtime.evaluate_with_proof({"role": "admin"})
     proof_file = tmp_path / "timed-proof.json"
     proof_file.write_text(proof.to_json())
-    public_hex = Ed25519PrivateKey.from_private_bytes(
-        bytes(range(32))
-    ).public_key().public_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PublicFormat.Raw,
-    ).hex()
+    public_hex = (
+        Ed25519PrivateKey.from_private_bytes(bytes(range(32)))
+        .public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
+        .hex()
+    )
 
     _argv(
         monkeypatch,
@@ -314,15 +360,18 @@ def test_verify_time_bound_proof_requires_trusted_now(
 
 # --- keygen ----------------------------------------------------------------
 
+
 def test_keygen_writes_keypair(monkeypatch, tmp_path, capsys):
     priv = str(tmp_path / "signer.key")
-    _argv(monkeypatch, "tarl", "keygen", "proof-signer", "--key-id", "s1",
-          "--out", priv)
+    _argv(
+        monkeypatch, "tarl", "keygen", "proof-signer", "--key-id", "s1", "--out", priv
+    )
     with pytest.raises(SystemExit) as exc:
         tarl_cli.main()
     assert exc.value.code == 0
     assert "Generated" in capsys.readouterr().out
     from utf.tarl import keystore
+
     loaded = keystore.load(priv)
     assert loaded.key_id == "s1" and loaded.has_private
     assert keystore.load(priv + ".pub").has_private is False
@@ -330,8 +379,18 @@ def test_keygen_writes_keypair(monkeypatch, tmp_path, capsys):
 
 def test_keygen_json_and_rotate(monkeypatch, tmp_path, capsys):
     priv = str(tmp_path / "ta.key")
-    _argv(monkeypatch, "tarl", "keygen", "time-authority", "--key-id", "t1",
-          "--out", priv, "--rotate", "--json")
+    _argv(
+        monkeypatch,
+        "tarl",
+        "keygen",
+        "time-authority",
+        "--key-id",
+        "t1",
+        "--out",
+        priv,
+        "--rotate",
+        "--json",
+    )
     with pytest.raises(SystemExit):
         tarl_cli.main()
     assert '"public_key"' in capsys.readouterr().out
@@ -339,18 +398,24 @@ def test_keygen_json_and_rotate(monkeypatch, tmp_path, capsys):
 
 def test_verify_with_ed25519_key_file(monkeypatch, tmp_path):
     from utf.tarl import keystore
+
     key = keystore.generate("ed1", keystore.ROLE_PROOF_SIGNER)
     pub = str(tmp_path / "k.pub")
     key.public_only().write(pub, include_private=False)
-    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
-        ContextSchema()
-    )
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(ContextSchema())
     rt.set_ed25519_signing_key("ed1", key.private_bytes())
     _d, proof = rt.evaluate_with_proof({"role": "admin"})
     proof_file = tmp_path / "p.json"
     proof_file.write_text(proof.to_json())
-    _argv(monkeypatch, "tarl", "verify", str(proof_file),
-          "--ed25519-key-file", pub, "--ed25519-only")
+    _argv(
+        monkeypatch,
+        "tarl",
+        "verify",
+        str(proof_file),
+        "--ed25519-key-file",
+        pub,
+        "--ed25519-only",
+    )
     with pytest.raises(SystemExit) as exc:
         tarl_cli.main()
     assert exc.value.code == 0
@@ -358,10 +423,19 @@ def test_verify_with_ed25519_key_file(monkeypatch, tmp_path):
 
 # --- revoke (durable store) -----------------------------------------------
 
+
 def test_revoke_add_list_remove(monkeypatch, tmp_path, capsys):
     store = str(tmp_path / "rev.db")
-    _argv(monkeypatch, "tarl", "revoke", "sha256:abc", "--store", store,
-          "--reason", "leaked")
+    _argv(
+        monkeypatch,
+        "tarl",
+        "revoke",
+        "sha256:abc",
+        "--store",
+        store,
+        "--reason",
+        "leaked",
+    )
     with pytest.raises(SystemExit) as exc:
         tarl_cli.main()
     assert exc.value.code == 0
@@ -372,16 +446,14 @@ def test_revoke_add_list_remove(monkeypatch, tmp_path, capsys):
         tarl_cli.main()
     assert "sha256:abc" in capsys.readouterr().out
 
-    _argv(monkeypatch, "tarl", "revoke", "sha256:abc", "--store", store,
-          "--remove")
+    _argv(monkeypatch, "tarl", "revoke", "sha256:abc", "--store", store, "--remove")
     with pytest.raises(SystemExit):
         tarl_cli.main()
     assert "Removed" in capsys.readouterr().out
 
 
 def test_revoke_list_empty(monkeypatch, tmp_path, capsys):
-    _argv(monkeypatch, "tarl", "revoke", "--store", str(tmp_path / "r.db"),
-          "--list")
+    _argv(monkeypatch, "tarl", "revoke", "--store", str(tmp_path / "r.db"), "--list")
     with pytest.raises(SystemExit):
         tarl_cli.main()
     assert "No revoked policies" in capsys.readouterr().out
@@ -396,14 +468,15 @@ def test_revoke_no_args(monkeypatch, tmp_path):
 
 def test_verify_with_revocation_store(monkeypatch, tmp_path, capsys):
     from utf.tarl.durable import RevocationStore
+
     proof_file = _proof_file(tmp_path)
     from utf.tarl.spec import TarlProof
+
     proof = TarlProof.from_json((tmp_path / "proof.json").read_text())
     store = str(tmp_path / "rev.db")
     with RevocationStore(store) as rs:
         rs.add(proof.policy_hash)
-    _argv(monkeypatch, "tarl", "verify", proof_file,
-          "--revocation-store", store)
+    _argv(monkeypatch, "tarl", "verify", proof_file, "--revocation-store", store)
     with pytest.raises(SystemExit) as exc:
         tarl_cli.main()
     assert exc.value.code == 1
@@ -412,8 +485,15 @@ def test_verify_with_revocation_store(monkeypatch, tmp_path, capsys):
 def test_verify_with_replay_db_rejects_second(monkeypatch, tmp_path):
     proof_file, public_hex = _ed25519_proof_file(tmp_path)
     replay_db = str(tmp_path / "replay.db")
-    args = ("tarl", "verify", proof_file, "--ed25519-key", f"ed1:{public_hex}",
-            "--replay-db", replay_db)
+    args = (
+        "tarl",
+        "verify",
+        proof_file,
+        "--ed25519-key",
+        f"ed1:{public_hex}",
+        "--replay-db",
+        replay_db,
+    )
     _argv(monkeypatch, *args)
     with pytest.raises(SystemExit) as first:
         tarl_cli.main()
@@ -426,6 +506,7 @@ def test_verify_with_replay_db_rejects_second(monkeypatch, tmp_path):
 
 # --- audit checkpoint -----------------------------------------------------
 
+
 def test_audit_checkpoint_and_verify(monkeypatch, tmp_path, capsys):
     db = str(tmp_path / "a.db")
     out = str(tmp_path / "head.txt")
@@ -435,8 +516,7 @@ def test_audit_checkpoint_and_verify(monkeypatch, tmp_path, capsys):
     assert exc.value.code == 0
     assert "Wrote checkpoint" in capsys.readouterr().out
 
-    _argv(monkeypatch, "tarl", "audit", "verify-chain", "--db", db,
-          "--checkpoint", out)
+    _argv(monkeypatch, "tarl", "audit", "verify-chain", "--db", db, "--checkpoint", out)
     with pytest.raises(SystemExit) as exc:
         tarl_cli.main()
     assert exc.value.code == 0

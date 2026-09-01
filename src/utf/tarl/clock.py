@@ -10,6 +10,7 @@ wrongly-signed, tampered, or staler than an allowed skew. The verified time is
 fed to the runtime via ``TarlRuntime.set_clock`` so policy windows are evaluated
 against trusted time, not the host clock.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -35,7 +36,8 @@ class SignedTime:
     def signing_bytes(self) -> bytes:
         return json.dumps(
             {"timestamp": self.timestamp, "key_id": self.key_id},
-            sort_keys=True, separators=(",", ":"),
+            sort_keys=True,
+            separators=(",", ":"),
         ).encode("utf-8")
 
 
@@ -66,8 +68,7 @@ class TimeAuthority:
         signed = SignedTime(
             timestamp=now.isoformat(timespec="seconds"), key_id=self.key_id
         )
-        signed.signature = "ed25519:" + self._key.sign(
-            signed.signing_bytes()).hex()
+        signed.signature = "ed25519:" + self._key.sign(signed.signing_bytes()).hex()
         return signed
 
 

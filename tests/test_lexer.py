@@ -1,5 +1,6 @@
 """Full coverage of the lexer: number bases, escapes, comments, operators,
 and error recovery."""
+
 from utf.thirsty_lang.lexer import Lexer
 from utf.thirsty_lang.token import TokenType
 
@@ -75,11 +76,25 @@ def test_operators():
     src = "a = b == c != d <= e >= f < g > h + i - j * k / l % m -> n | o || p ^ q \\ r"
     toks = Lexer(src).lex()
     present = {t.type for t in toks}
-    for tt in (TokenType.ASSIGN, TokenType.EQEQ, TokenType.NE, TokenType.LE,
-               TokenType.GE, TokenType.LT, TokenType.GT, TokenType.PLUS,
-               TokenType.MINUS, TokenType.STAR, TokenType.SLASH, TokenType.PERCENT,
-               TokenType.ARROW, TokenType.PIPE, TokenType.PIPEPIPE,
-               TokenType.HATHAT, TokenType.BACKSLASH):
+    for tt in (
+        TokenType.ASSIGN,
+        TokenType.EQEQ,
+        TokenType.NE,
+        TokenType.LE,
+        TokenType.GE,
+        TokenType.LT,
+        TokenType.GT,
+        TokenType.PLUS,
+        TokenType.MINUS,
+        TokenType.STAR,
+        TokenType.SLASH,
+        TokenType.PERCENT,
+        TokenType.ARROW,
+        TokenType.PIPE,
+        TokenType.PIPEPIPE,
+        TokenType.HATHAT,
+        TokenType.BACKSLASH,
+    ):
         assert tt in present, tt
 
 

@@ -19,6 +19,7 @@ Phase 2 — PolicyParser supports:
   - Temporal versioning stubs: valid_from, valid_until, supersedes, on_expiry
   - parse_all() for multi-policy files
 """
+
 import datetime
 import math
 import re
@@ -51,7 +52,7 @@ STRING = "STRING"
 BOOL_TRUE = "BOOL_TRUE"
 BOOL_FALSE = "BOOL_FALSE"
 IDENT = "IDENT"
-SOURCE = "SOURCE"       # source:name — resolved by runtime
+SOURCE = "SOURCE"  # source:name — resolved by runtime
 # Arithmetic
 PLUS = "PLUS"
 MINUS = "MINUS"
@@ -73,7 +74,7 @@ IN = "IN"
 # Structure
 DOT = "DOT"
 COMMA = "COMMA"
-ARROW = "ARROW"         # ->
+ARROW = "ARROW"  # ->
 LBRACKET = "LBRACKET"
 RBRACKET = "RBRACKET"
 LPAREN = "LPAREN"
@@ -81,19 +82,37 @@ RPAREN = "RPAREN"
 EOF = "EOF"
 
 _KEYWORDS = {
-    "and": AND, "or": OR, "not": NOT, "in": IN,
-    "true": BOOL_TRUE, "false": BOOL_FALSE,
+    "and": AND,
+    "or": OR,
+    "not": NOT,
+    "in": IN,
+    "true": BOOL_TRUE,
+    "false": BOOL_FALSE,
 }
 
-_TEMPORAL_BUILTINS = frozenset({
-    "CURRENT_HOUR", "CURRENT_DAY", "CURRENT_WEEKDAY",
-    "CURRENT_MONTH", "CURRENT_YEAR", "CURRENT_TIMESTAMP",
-})
+_TEMPORAL_BUILTINS = frozenset(
+    {
+        "CURRENT_HOUR",
+        "CURRENT_DAY",
+        "CURRENT_WEEKDAY",
+        "CURRENT_MONTH",
+        "CURRENT_YEAR",
+        "CURRENT_TIMESTAMP",
+    }
+)
 
-_SAFE_FUNCTIONS = frozenset({
-    "MATCHES", "STARTS_WITH", "ENDS_WITH", "CONTAINS",
-    "ELAPSED_SINCE", "LEN", "LOWER", "UPPER",
-})
+_SAFE_FUNCTIONS = frozenset(
+    {
+        "MATCHES",
+        "STARTS_WITH",
+        "ENDS_WITH",
+        "CONTAINS",
+        "ELAPSED_SINCE",
+        "LEN",
+        "LOWER",
+        "UPPER",
+    }
+)
 
 _QUANTIFIERS = frozenset({"ALL", "ANY"})
 _TRUSTED_NOW_KEY = "__tarl_trusted_now"
@@ -135,9 +154,7 @@ def _strip_policy_comment(line: str) -> str:
         if char in {'"', "'"}:
             quote = None if quote == char else char if quote is None else quote
             continue
-        if quote is None and (
-            char == "#" or line[index:index + 2] == "//"
-        ):
+        if quote is None and (char == "#" or line[index : index + 2] == "//"):
             return line[:index]
     return line
 
@@ -146,8 +163,7 @@ class PolicyParser:
     """Parses TARL policy text into TarlPolicy / TarlPolicySet objects."""
 
     RULE_RE = re.compile(
-        r"when\s+(.+?)\s*=>\s*(ALLOW|DENY|ESCALATE)"
-        r"(?:\s+for:\s*(\S+))?\s*$"
+        r"when\s+(.+?)\s*=>\s*(ALLOW|DENY|ESCALATE)" r"(?:\s+for:\s*(\S+))?\s*$"
     )
     # policy <name> [EXTENDS|RESTRICTS <parent>] [v<ver>] [:]
     POLICY_HEADER_RE = re.compile(
@@ -159,18 +175,11 @@ class PolicyParser:
     POLICY_SET_HEADER_RE = re.compile(r"policy_set\s+(\w+)\s*:")
     # INCLUDE "path/to/file.tarl" AS alias
     # INCLUDE policy_name AS alias
-    INCLUDE_RE = re.compile(
-        r'INCLUDE\s+(?:"([^"]+)"|(\w+))'
-        r'(?:\s+AS\s+(\w+))?'
-    )
+    INCLUDE_RE = re.compile(r'INCLUDE\s+(?:"([^"]+)"|(\w+))' r"(?:\s+AS\s+(\w+))?")
     # combine UNION|INTERSECT|MAJORITY [p1, p2, ...]
-    COMBINE_RE = re.compile(
-        r"combine\s+(UNION|INTERSECT|MAJORITY)\s+\[([^\]]+)\]"
-    )
+    COMBINE_RE = re.compile(r"combine\s+(UNION|INTERSECT|MAJORITY)\s+\[([^\]]+)\]")
     # default: ALLOW|DENY|ESCALATE
-    DEFAULT_RE = re.compile(
-        r"default\s*:\s*(ALLOW|DENY|ESCALATE)"
-    )
+    DEFAULT_RE = re.compile(r"default\s*:\s*(ALLOW|DENY|ESCALATE)")
     # valid_from|valid_until|supersedes|on_expiry: <value>
     METADATA_RE = re.compile(
         r"(valid_from|valid_until|supersedes|on_expiry)\s*:\s*(.+)"
@@ -236,16 +245,13 @@ class PolicyParser:
                 if m_combine:
                     op = SetOp(m_combine.group(1))
                     names = [
-                        n.strip() for n in m_combine.group(2).split(",")
-                        if n.strip()
+                        n.strip() for n in m_combine.group(2).split(",") if n.strip()
                     ]
                     current_set.groups.append((op, names))
                     continue
                 m_def = cls.DEFAULT_RE.match(line)
                 if m_def:
-                    current_set.default_verdict = TarlVerdict(
-                        m_def.group(1)
-                    )
+                    current_set.default_verdict = TarlVerdict(m_def.group(1))
                 continue
 
             # ── policy body ───────────────────────────────────────────────
@@ -291,17 +297,13 @@ class PolicyParser:
                     try:
                         _parse_policy_timestamp(val, key)
                     except ConditionTypeError as exc:
-                        raise SafeExpr.ParseError(
-                            f"line {lineno}: {exc}"
-                        ) from exc
+                        raise SafeExpr.ParseError(f"line {lineno}: {exc}") from exc
                     current_policy.valid_from = val
                 elif key == "valid_until":
                     try:
                         _parse_policy_timestamp(val, key)
                     except ConditionTypeError as exc:
-                        raise SafeExpr.ParseError(
-                            f"line {lineno}: {exc}"
-                        ) from exc
+                        raise SafeExpr.ParseError(f"line {lineno}: {exc}") from exc
                     current_policy.valid_until = val
                 elif key == "supersedes":
                     current_policy.supersedes = val
@@ -328,26 +330,22 @@ class PolicyParser:
                 condition = m_rule.group(1).strip()
                 cls.validate_condition(condition)
                 verdict = TarlVerdict(m_rule.group(2).upper())
-                duration = (
-                    _parse_duration(m_rule.group(3))
-                    if m_rule.group(3) else None
-                )
+                duration = _parse_duration(m_rule.group(3)) if m_rule.group(3) else None
                 if m_rule.group(3) and duration is None:
                     raise SafeExpr.ParseError(
-                        f"line {lineno}: invalid rule duration "
-                        f"{m_rule.group(3)!r}"
+                        f"line {lineno}: invalid rule duration " f"{m_rule.group(3)!r}"
                     )
-                current_policy.rules.append(TarlRule(
-                    condition=condition,
-                    verdict=verdict,
-                    source_line=lineno,
-                    duration_seconds=duration,
-                ))
+                current_policy.rules.append(
+                    TarlRule(
+                        condition=condition,
+                        verdict=verdict,
+                        source_line=lineno,
+                        duration_seconds=duration,
+                    )
+                )
                 continue
             if line.startswith("when "):
-                raise SafeExpr.ParseError(
-                    f"line {lineno}: malformed policy rule"
-                )
+                raise SafeExpr.ParseError(f"line {lineno}: malformed policy rule")
 
         _flush()
         return results
@@ -359,9 +357,7 @@ class PolicyParser:
         parser = SafeExpr(tokens)
         parser.parse_expr()
         if parser.current().type != EOF:
-            raise SafeExpr.ParseError(
-                f"Unexpected token: {parser.current()}"
-            )
+            raise SafeExpr.ParseError(f"Unexpected token: {parser.current()}")
 
     @classmethod
     def parse(cls, text: str, name: str = "unnamed") -> TarlPolicy:
@@ -461,8 +457,11 @@ class PolicyParser:
                         i += 1
                     s = expr[start:i]
                     tokens.append(
-                        ExprToken(FLOAT if is_float else INT,
-                                  float(s) if is_float else int(s), start)
+                        ExprToken(
+                            FLOAT if is_float else INT,
+                            float(s) if is_float else int(s),
+                            start,
+                        )
                     )
                 else:
                     tokens.append(ExprToken(MINUS, "-", i))
@@ -475,8 +474,11 @@ class PolicyParser:
                 while i < n and expr[i] != '"':
                     if expr[i] == "\\" and i + 1 < n:
                         i += 1
-                        chars.append({"n": "\n", "t": "\t", "\\": "\\",
-                                      '"': '"'}.get(expr[i], expr[i]))
+                        chars.append(
+                            {"n": "\n", "t": "\t", "\\": "\\", '"': '"'}.get(
+                                expr[i], expr[i]
+                            )
+                        )
                     else:
                         chars.append(expr[i])
                     i += 1
@@ -501,8 +503,11 @@ class PolicyParser:
                     i += 1
                 s = expr[start:i]
                 tokens.append(
-                    ExprToken(FLOAT if is_float else INT,
-                              float(s) if is_float else int(s), start)
+                    ExprToken(
+                        FLOAT if is_float else INT,
+                        float(s) if is_float else int(s),
+                        start,
+                    )
                 )
 
             # Identifiers and keywords
@@ -524,8 +529,10 @@ class PolicyParser:
                 word_lower = word.lower()
                 if word_lower in _KEYWORDS:
                     ktype = _KEYWORDS[word_lower]
-                    val = True if ktype == BOOL_TRUE else (
-                        False if ktype == BOOL_FALSE else word_lower
+                    val = (
+                        True
+                        if ktype == BOOL_TRUE
+                        else (False if ktype == BOOL_FALSE else word_lower)
                     )
                     tokens.append(ExprToken(ktype, val, start))
                 else:
@@ -540,6 +547,7 @@ class PolicyParser:
 
 # ── Duration parsing / temporal utilities ────────────────────────────────────
 
+
 def _parse_duration(s: str) -> int | None:
     """
     Parse a human-readable duration string into seconds.
@@ -550,7 +558,7 @@ def _parse_duration(s: str) -> int | None:
     """
     if not s:
         return None
-    units = {'w': 604800, 'd': 86400, 'h': 3600, 'm': 60, 's': 1}
+    units = {"w": 604800, "d": 86400, "h": 3600, "m": 60, "s": 1}
     total = 0
     num = ""
     for ch in s.strip():
@@ -573,13 +581,9 @@ def _parse_policy_timestamp(value: object, field: str) -> datetime.datetime:
     if not isinstance(value, str) or not value.strip():
         raise ConditionTypeError(f"{field} must be an ISO-8601 timestamp")
     try:
-        parsed = datetime.datetime.fromisoformat(
-            value.strip().replace("Z", "+00:00")
-        )
+        parsed = datetime.datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
     except ValueError as exc:
-        raise ConditionTypeError(
-            f"{field} must be an ISO-8601 timestamp"
-        ) from exc
+        raise ConditionTypeError(f"{field} must be an ISO-8601 timestamp") from exc
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=datetime.UTC)
     if parsed.utcoffset() is None:
@@ -593,16 +597,12 @@ def _policy_temporal_bounds(
     """Return the validated inclusive start and exclusive authority cutoff."""
     if policy.on_expiry is TarlVerdict.ALLOW:
         raise ConditionTypeError("on_expiry cannot grant ALLOW")
-    if policy.on_expiry is not None and not isinstance(
-        policy.on_expiry, TarlVerdict
-    ):
+    if policy.on_expiry is not None and not isinstance(policy.on_expiry, TarlVerdict):
         raise ConditionTypeError("on_expiry must be DENY or ESCALATE")
     for rule in policy.rules:
         duration = rule.duration_seconds
         if duration is not None and (
-            isinstance(duration, bool)
-            or not isinstance(duration, int)
-            or duration <= 0
+            isinstance(duration, bool) or not isinstance(duration, int) or duration <= 0
         ):
             raise ConditionTypeError("rule duration must be positive")
 
@@ -619,18 +619,10 @@ def _policy_temporal_bounds(
 
     if policy.if_unresolved_after is not None:
         duration = policy.if_unresolved_after
-        if (
-            isinstance(duration, bool)
-            or not isinstance(duration, int)
-            or duration <= 0
-        ):
-            raise ConditionTypeError(
-                "if_unresolved_after must be a positive duration"
-            )
+        if isinstance(duration, bool) or not isinstance(duration, int) or duration <= 0:
+            raise ConditionTypeError("if_unresolved_after must be a positive duration")
         if valid_from is None:
-            raise ConditionTypeError(
-                "if_unresolved_after requires valid_from"
-            )
+            raise ConditionTypeError("if_unresolved_after requires valid_from")
         try:
             succession_at = valid_from + datetime.timedelta(seconds=duration)
         except OverflowError as exc:
@@ -656,16 +648,10 @@ def _policy_authority_expiry(
         candidates.append(effective_until)
     if rule.duration_seconds is not None:
         duration = rule.duration_seconds
-        if (
-            isinstance(duration, bool)
-            or not isinstance(duration, int)
-            or duration <= 0
-        ):
+        if isinstance(duration, bool) or not isinstance(duration, int) or duration <= 0:
             raise ConditionTypeError("rule duration must be positive")
         try:
-            candidates.append(
-                evaluated_at + datetime.timedelta(seconds=duration)
-            )
+            candidates.append(evaluated_at + datetime.timedelta(seconds=duration))
         except OverflowError as exc:
             raise ConditionTypeError(
                 "rule duration exceeds the datetime range"
@@ -731,18 +717,15 @@ def _check_policy_temporal(
 
 # ── Temporal builtins ────────────────────────────────────────────────────────
 
+
 def _coerce_datetime(now: Any) -> datetime.datetime:
     if isinstance(now, datetime.datetime):
         parsed = now
     elif isinstance(now, str):
         try:
-            parsed = datetime.datetime.fromisoformat(
-                now.replace("Z", "+00:00")
-            )
+            parsed = datetime.datetime.fromisoformat(now.replace("Z", "+00:00"))
         except ValueError as exc:
-            raise ConditionTypeError(
-                f"invalid trusted clock value {now!r}"
-            ) from exc
+            raise ConditionTypeError(f"invalid trusted clock value {now!r}") from exc
     else:
         raise ConditionTypeError(f"invalid trusted clock value {now!r}")
     if parsed.tzinfo is None or parsed.utcoffset() is None:
@@ -768,6 +751,7 @@ def _resolve_temporal(name: str, now: Any | None = None):
 
 # ── Safe built-in functions ──────────────────────────────────────────────────
 
+
 def _call_safe_function(
     name: str,
     args: list,
@@ -788,9 +772,7 @@ def _call_safe_function(
             return args[1] in args[0]
         if name == "LEN":
             if len(args) != 1:
-                raise ConditionTypeError(
-                    f"LEN expected 1 argument, got {len(args)}"
-                )
+                raise ConditionTypeError(f"LEN expected 1 argument, got {len(args)}")
             v = args[0]
             if not isinstance(v, (str, list, dict, set)):
                 raise ConditionTypeError(
@@ -846,17 +828,13 @@ def _require_numeric(value: Any, operation: str) -> int | float:
             f"{operation} expected number, got {type(value).__name__}"
         )
     if isinstance(value, float) and not math.isfinite(value):
-        raise ConditionTypeError(
-            f"{operation} received a non-finite number"
-        )
+        raise ConditionTypeError(f"{operation} received a non-finite number")
     return value
 
 
 def _require_finite_result(value: int | float, operation: str) -> int | float:
     if isinstance(value, float) and not math.isfinite(value):
-        raise ConditionTypeError(
-            f"{operation} produced a non-finite arithmetic result"
-        )
+        raise ConditionTypeError(f"{operation} produced a non-finite arithmetic result")
     return value
 
 
@@ -884,6 +862,7 @@ def _strict_expression_equal(left: Any, right: Any) -> bool:
 
 # ── Expression evaluator ─────────────────────────────────────────────────────
 
+
 class SafeExpr:
     """
     Sandboxed condition algebra evaluator.
@@ -910,14 +889,15 @@ class SafeExpr:
         context: dict | PreparedContext,
         now: datetime.datetime | None = None,
     ) -> bool:
-        tokens = (PolicyParser._tokenize(expr)
-                  if isinstance(expr, str) else expr)
+        tokens = PolicyParser._tokenize(expr) if isinstance(expr, str) else expr
         parser = cls(tokens)
         result = parser.parse_expr()
         if parser.current().type != EOF:
             raise cls.ParseError(f"Unexpected token: {parser.current()}")
         prepared = (
-            context if isinstance(context, PreparedContext) else prepare_context(context)
+            context
+            if isinstance(context, PreparedContext)
+            else prepare_context(context)
         )
         eval_context = dict(prepared.canonical)
         if now is not None:
@@ -931,13 +911,15 @@ class SafeExpr:
         self.pos = 0
 
     def current(self) -> ExprToken:
-        return (self.tokens[self.pos] if self.pos < len(self.tokens)
-                else ExprToken(EOF, None))
+        return (
+            self.tokens[self.pos]
+            if self.pos < len(self.tokens)
+            else ExprToken(EOF, None)
+        )
 
     def _peek(self) -> ExprToken:
         p = self.pos + 1
-        return (self.tokens[p] if p < len(self.tokens)
-                else ExprToken(EOF, None))
+        return self.tokens[p] if p < len(self.tokens) else ExprToken(EOF, None)
 
     def advance(self) -> ExprToken:
         tok = self.current()
@@ -947,9 +929,7 @@ class SafeExpr:
     def expect(self, *types) -> ExprToken:
         tok = self.current()
         if tok.type not in types:
-            raise self.ParseError(
-                f"Expected {types}, got {tok.type}({tok.value!r})"
-            )
+            raise self.ParseError(f"Expected {types}, got {tok.type}({tok.value!r})")
         return self.advance()
 
     # or
@@ -1114,9 +1094,7 @@ class SafeExpr:
         collection = self.parse_expr()
         self.expect(COMMA)
         if self.current().type != IDENT:
-            raise self.ParseError(
-                f"Expected lambda variable in {quantifier}(...)"
-            )
+            raise self.ParseError(f"Expected lambda variable in {quantifier}(...)")
         var = self.advance().value
         if var.startswith("__tarl_"):
             raise self.ParseError(
@@ -1187,32 +1165,20 @@ class SafeExpr:
             return _require_finite_result(left % right, "modulo")
         if tag == "neg":
             return _require_finite_result(
-                -_require_numeric(
-                    SafeExpr._eval_node(node[1], context), "unary minus"
-                ),
+                -_require_numeric(SafeExpr._eval_node(node[1], context), "unary minus"),
                 "unary minus",
             )
 
         # Logic
         if tag == "not":
-            return not _require_boolean(
-                SafeExpr._eval_node(node[1], context), "NOT"
-            )
+            return not _require_boolean(SafeExpr._eval_node(node[1], context), "NOT")
         if tag == "and":
-            left = _require_boolean(
-                SafeExpr._eval_node(node[1], context), "AND"
-            )
-            right = _require_boolean(
-                SafeExpr._eval_node(node[2], context), "AND"
-            )
+            left = _require_boolean(SafeExpr._eval_node(node[1], context), "AND")
+            right = _require_boolean(SafeExpr._eval_node(node[2], context), "AND")
             return left and right
         if tag == "or":
-            left = _require_boolean(
-                SafeExpr._eval_node(node[1], context), "OR"
-            )
-            right = _require_boolean(
-                SafeExpr._eval_node(node[2], context), "OR"
-            )
+            left = _require_boolean(SafeExpr._eval_node(node[1], context), "OR")
+            right = _require_boolean(SafeExpr._eval_node(node[2], context), "OR")
             return left or right
 
         # Set membership
@@ -1256,7 +1222,9 @@ class SafeExpr:
                 if op == GE:
                     return lv >= rv
             except TypeError as exc:
-                raise ConditionTypeError(f"comparison operands are incompatible: {exc}") from exc
+                raise ConditionTypeError(
+                    f"comparison operands are incompatible: {exc}"
+                ) from exc
             raise ConditionTypeError(f"unknown comparison operator {op}")
 
         # Safe function calls
@@ -1373,6 +1341,7 @@ def _coerce_equatable(lv: Any, rv: Any) -> tuple[Any, Any]:
 
 # ── Module-level evaluate_policy ─────────────────────────────────────────────
 
+
 def evaluate_policy(
     context: dict,
     policy_text: str = "",
@@ -1417,9 +1386,7 @@ def evaluate_policy(
 
     for i, rule in enumerate(policy.rules):
         try:
-            result = SafeExpr.evaluate(
-                rule.condition, prepared, now=evaluation_now
-            )
+            result = SafeExpr.evaluate(rule.condition, prepared, now=evaluation_now)
             if result:
                 authority_expiry = _policy_authority_expiry(
                     policy, rule, evaluation_now
@@ -1439,9 +1406,7 @@ def evaluate_policy(
         except Exception as exc:
             return TarlDecision(
                 verdict=TarlVerdict.DENY,
-                reason=(
-                    f"fail-closed: rule {i} could not be evaluated: {exc}"
-                ),
+                reason=(f"fail-closed: rule {i} could not be evaluated: {exc}"),
                 rule_index=i,
                 matched_rule=str(rule),
             )

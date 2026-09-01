@@ -1,5 +1,6 @@
 """Tests for `thirsty build` targets: JS, LLVM-IR, the LLVM toolchain dispatch,
 and the wasm/Pyodide bundle. These cover the previously-stubbed backends."""
+
 import json
 import os
 
@@ -51,6 +52,7 @@ def _build(tmp_path, target, source=SOURCE, monkeypatch=None):
 
 # --- LLVM IR emitter -------------------------------------------------------
 
+
 def test_llvm_ir_emits_arithmetic():
     ir = cli._transpile_to_llvm_ir(_parse())
     assert "define i32 @add(i32 %a, i32 %b)" in ir
@@ -64,8 +66,8 @@ def test_llvm_ir_emits_arithmetic():
 
 def test_llvm_ir_unary_and_compare():
     ir = cli._transpile_to_llvm_ir(_parse())
-    assert "sub i32 0, %x" in ir          # unary minus in neg()
-    assert "icmp slt i32 %a, %b" in ir    # comparison in cmp()
+    assert "sub i32 0, %x" in ir  # unary minus in neg()
+    assert "icmp slt i32 %a, %b" in ir  # comparison in cmp()
     assert "zext i1" in ir
 
 
@@ -83,8 +85,19 @@ glass ge(a, b) { return a >= b }
 drink main = f(1, 2)
 """
     ir = cli._transpile_to_llvm_ir(_parse(src))
-    for frag in ("add i32", "sub i32", "mul i32", "sdiv i32", "srem i32",
-                 "icmp eq", "icmp ne", "icmp sge", "and i32", "or i32", "xor i32"):
+    for frag in (
+        "add i32",
+        "sub i32",
+        "mul i32",
+        "sdiv i32",
+        "srem i32",
+        "icmp eq",
+        "icmp ne",
+        "icmp sge",
+        "and i32",
+        "or i32",
+        "xor i32",
+    ):
         assert frag in ir, frag
 
 
@@ -99,6 +112,7 @@ def test_llvm_expr_fallbacks():
     # Bool literal, identifier, and an unknown-call callee exercise edge branches.
     em = cli._LLVMExpr()
     from utf.thirsty_lang.ast import BoolLiteral, Identifier
+
     assert em.emit(BoolLiteral(span=None, value=True), {}) == "1"
     assert em.emit(BoolLiteral(span=None, value=False), {}) == "0"
     assert em.emit(Identifier(span=None, name="missing"), {}) == "0"
@@ -112,9 +126,11 @@ def test_build_llvm_ir_writes_file(tmp_path, monkeypatch, capsys):
 
 # --- LLVM toolchain dispatch ----------------------------------------------
 
+
 @pytest.mark.parametrize("target", ["llvm-asm", "llvm-obj", "llvm-exe", "llvm-jit"])
 def test_build_llvm_missing_toolchain_errors(tmp_path, monkeypatch, target):
     import shutil
+
     monkeypatch.setattr(shutil, "which", lambda _tool: None)
     with pytest.raises(RuntimeError, match="not found on PATH"):
         cli._build_llvm(_parse(), str(tmp_path / "p"), target)
@@ -124,10 +140,16 @@ def test_build_llvm_missing_toolchain_errors(tmp_path, monkeypatch, target):
 
 @pytest.mark.parametrize(
     "target,expected_tool,out_ext",
-    [("llvm-asm", "llc", ".s"), ("llvm-obj", "llc", ".o"),
-     ("llvm-exe", "clang", None), ("llvm-jit", "lli", ".ll")],
+    [
+        ("llvm-asm", "llc", ".s"),
+        ("llvm-obj", "llc", ".o"),
+        ("llvm-exe", "clang", None),
+        ("llvm-jit", "lli", ".ll"),
+    ],
 )
-def test_build_llvm_with_toolchain(tmp_path, monkeypatch, target, expected_tool, out_ext):
+def test_build_llvm_with_toolchain(
+    tmp_path, monkeypatch, target, expected_tool, out_ext
+):
     import shutil
     import subprocess
 
@@ -148,6 +170,7 @@ def test_build_llvm_with_toolchain(tmp_path, monkeypatch, target, expected_tool,
 
 # --- JS + Pyodide ----------------------------------------------------------
 
+
 def test_build_js(tmp_path, monkeypatch, capsys):
     base = _build(tmp_path, "js", monkeypatch=monkeypatch)
     js = open(base + ".js").read()
@@ -160,7 +183,7 @@ def test_build_pyodide_bundle(tmp_path, monkeypatch, capsys):
     base = _build(tmp_path, "wasm-pyodide", monkeypatch=monkeypatch)
     html = open(base + ".pyodide.html").read()
     assert "loadPyodide" in html
-    assert "micropip.install(\"thirsty-lang\")" in html
+    assert 'micropip.install("thirsty-lang")' in html
     assert "Interpreter().interpret(ast)" in html
     # Source is embedded as valid JSON.
     embedded = html.split("const SOURCE = ", 1)[1].split(";\n", 1)[0]
@@ -170,9 +193,11 @@ def test_build_pyodide_bundle(tmp_path, monkeypatch, capsys):
 
 def test_build_emit_manifest(tmp_path, monkeypatch, capsys):
     import sys
+
     f = _write(tmp_path)
     monkeypatch.setattr(
-        sys, "argv",
+        sys,
+        "argv",
         ["thirsty", "build", "--target", "js", "--emit-manifest", f],
     )
     cli.main()
@@ -185,6 +210,7 @@ def test_build_emit_manifest(tmp_path, monkeypatch, capsys):
 
 def test_build_file_not_found(monkeypatch):
     import sys
+
     monkeypatch.setattr(sys, "argv", ["thirsty", "build", "nonexistent.thirsty"])
     with pytest.raises(SystemExit):
         cli.main()
@@ -192,6 +218,7 @@ def test_build_file_not_found(monkeypatch):
 
 def test_build_no_file_no_main(tmp_path, monkeypatch):
     import sys
+
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys, "argv", ["thirsty", "build"])
     with pytest.raises(SystemExit):

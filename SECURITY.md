@@ -17,9 +17,10 @@ identity binds the complete proof semantics plus decoded signature bytes.
 Configured trusted clocks and CLI trusted-time values must be timezone-aware;
 an invalid clock fails closed without host-clock fallback. Malformed temporal
 directives are rejected, expiry can never grant `ALLOW`, and proof authority is
-capped at the earliest exclusive policy or rule cutoff. Independent
-repaired-artifact acceptance remains required before the
-Competence Register can unblock load-bearing positive authority.
+  capped at the earliest exclusive policy or rule cutoff. The 0.8.6 package,
+  branch CI, release workflow, GHCR build, and fresh-install regression matrix
+  passed. Independent constitutional acceptance remains required before the
+  Competence Register can unblock load-bearing positive authority.
 
 | Version           | Supported          |
 | ----------------- | ------------------ |
@@ -65,34 +66,49 @@ We follow a coordinated disclosure process:
 
 ## Security-Relevant Components
 
-The following components have security implications and receive priority attention:
+The following shipped components have security implications and receive
+priority attention:
 
 - **T.A.R.L. (Tier 3)**: Policy enforcement engine with default-DENY
 - **Shadow Thirst (Tier 4)**: Mutation analysis and invariant verification
 - **TSCG/TSCG-B (Tiers 5-6)**: Symbolic constraint grammar and binary protocol
-- **Triumvirate Server**: 3-pillar governance (ethics, security, constitutional)
-- **Iron Path**: Sovereign execution with cryptographic audit trails
-- **PSIA Pipeline**: 7-stage security preprocessing pipeline
+- **Capability broker and governed interpreter**: load-bearing positive verdict
+  admission and sensitive effect mediation
+- **Authority, verifier, durable stores, and audit archive**: signature,
+  replay, revocation, time, and persistence controls
+
+The top-level `governance/` tree and `src/psia` are repository-local surfaces;
+they are not included in the published 0.8.6 Python package and are not part of
+its installed security boundary.
 
 ## Offensive Threat Model
 
 The adversary model and challenge catalog are maintained in
 [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md). Security claims should map to a
-challenge ID, a passing test, or a roadmap gap. In hardened use, a missing
-policy, missing authority, missing proof, failed signature verification, stale
-proof, or unavailable audit sink must fail closed.
+  challenge ID, a passing test, or a roadmap gap. In hardened use, a missing
+  policy, missing authority, missing proof, failed signature verification, or
+  stale proof must fail closed. Durable audit persistence is an explicit
+  embedding control: attach `TarlAuditArchive` and call
+  `set_require_audit(True)`. If an attached required archive cannot persist the
+  proof, the runtime denies; `--hardened` alone does not create an audit sink.
 
 ## Default DENY
 
-Thirsty-Lang's core security principle: **Default DENY at every governance gate.** Every tier enforces a default-deny posture — code cannot execute, data cannot flow, and mutations cannot commit unless explicitly authorized.
+Thirsty-Lang's core security principle is **default DENY at every governance
+gate**. A governed action cannot advance through the capability broker without
+the policy, context, authority, and proof required by that gate. The symbolic
+and binary tiers provide analysis or integrity services; they should not be
+mistaken for independent authorization gates.
 
 ## Security Best Practices
 
 - Always run untrusted code in governed mode
 - Review T.A.R.L. policies before deployment
 - Verify Shadow Thirst promotion results
-- Enable Iron Path for production deployments
-- Keep audit trails enabled and backed up
+- Attach a durable audit archive, enable required persistence, checkpoint it,
+  and verify its hash chain
+- Follow [`docs/PRODUCTION_DEPLOYMENT.md`](docs/PRODUCTION_DEPLOYMENT.md) and the
+  [canonical Thirsty-Lang UTF 101 manual](docs/THIRSTY_LANG_UTF_101.md)
 
 ---
 

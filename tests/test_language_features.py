@@ -1,6 +1,7 @@
 """Tests for the newly-implemented language features:
 `let`, `:=` (walrus define), the `for … in` keyword loop, and the
 `strict` / `pure` module modes."""
+
 import pytest
 
 from utf.thirsty_lang.ast import ForStmt, VariableDecl
@@ -23,6 +24,7 @@ def _run(src):
 
 # --- lexer ----------------------------------------------------------------
 
+
 def test_walrus_token():
     tokens = Lexer("x := 1").lex()
     assert tokens[1].type == TokenType.COLONEQ
@@ -31,12 +33,17 @@ def test_walrus_token():
 
 
 def test_keywords_lex():
-    for kw, tt in [("let", TokenType.LET), ("for", TokenType.FOR),
-                   ("strict", TokenType.STRICT), ("pure", TokenType.PURE)]:
+    for kw, tt in [
+        ("let", TokenType.LET),
+        ("for", TokenType.FOR),
+        ("strict", TokenType.STRICT),
+        ("pure", TokenType.PURE),
+    ]:
         assert Lexer(kw).lex()[0].type == tt
 
 
 # --- let ------------------------------------------------------------------
+
 
 def test_let_binding(capsys):
     _run("module m: core\nlet x = 5\npour x")
@@ -57,6 +64,7 @@ def test_let_with_type_annotation():
 
 # --- walrus := ------------------------------------------------------------
 
+
 def test_walrus_defines_mutable(capsys):
     _run("module m: core\nx := 10\nx = 20\npour x")
     assert capsys.readouterr().out.strip() == "20"
@@ -70,6 +78,7 @@ def test_walrus_ast_is_mutable_decl():
 
 
 # --- for … in -------------------------------------------------------------
+
 
 def test_for_in_keyword(capsys):
     _run("module m: core\nfor i in [1, 2, 3] {\n  pour i\n}")
@@ -88,6 +97,7 @@ def test_for_parses_to_forstmt():
 
 # --- strict mode ----------------------------------------------------------
 
+
 def test_strict_requires_initialization():
     with pytest.raises(RuntimeError, match="strict"):
         _run("module m: strict\ndrink x")
@@ -104,6 +114,7 @@ def test_strict_mode_on_header():
 
 
 # --- pure mode ------------------------------------------------------------
+
 
 def test_pure_forbids_pour():
     with pytest.raises(RuntimeError, match="pure"):

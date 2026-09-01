@@ -1,4 +1,5 @@
 """Exercise the tarl.core condition tokenizer/evaluator across all operators."""
+
 from utf.tarl.core import PolicyParser, evaluate_policy
 
 
@@ -33,10 +34,10 @@ def test_arithmetic():
 
 
 def test_boolean_logic():
-    assert allows('a == 1 and b == 2', {"a": 1, "b": 2})
-    assert not allows('a == 1 and b == 2', {"a": 1, "b": 9})
-    assert allows('a == 1 or b == 2', {"a": 9, "b": 2})
-    assert allows('not (a == 1)', {"a": 2})
+    assert allows("a == 1 and b == 2", {"a": 1, "b": 2})
+    assert not allows("a == 1 and b == 2", {"a": 1, "b": 9})
+    assert allows("a == 1 or b == 2", {"a": 9, "b": 2})
+    assert allows("not (a == 1)", {"a": 2})
 
 
 def test_membership():
@@ -50,8 +51,7 @@ def test_dotted_access():
 
 
 def test_parentheses_grouping():
-    assert allows('(a == 1 or b == 1) and c == 1',
-                  {"a": 0, "b": 1, "c": 1})
+    assert allows("(a == 1 or b == 1) and c == 1", {"a": 0, "b": 1, "c": 1})
 
 
 def test_true_literal_default():
@@ -59,6 +59,6 @@ def test_true_literal_default():
 
 
 def test_parse_named_policy():
-    p = PolicyParser.parse('policy access\nwhen x == 1 => ALLOW')
+    p = PolicyParser.parse("policy access\nwhen x == 1 => ALLOW")
     assert p.name == "access"
     assert len(p.rules) == 1

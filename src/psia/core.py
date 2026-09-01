@@ -3,6 +3,7 @@ PSIA — PreScreen Ingestion Architecture
 7-stage pipeline: PreScreenGate -> Ingestion -> Schema Validation -> Classification -> Shadow Simulation -> Governance -> Canonical Log -> Seal
 6 plane data models + FastAPI gateway on port 8002.
 """
+
 import hashlib
 import json
 import time
@@ -16,6 +17,7 @@ from pydantic import BaseModel
 
 # ─── Plane Data Models ────────────────────────────────────────────────────────
 
+
 class Plane(StrEnum):
     RAW = "raw"
     VERIFIED = "verified"
@@ -28,6 +30,7 @@ class Plane(StrEnum):
 @dataclass
 class RawFrame:
     """Raw input data before any processing."""
+
     source: str
     payload: dict[str, Any]
     timestamp: float
@@ -37,7 +40,7 @@ class RawFrame:
     def __post_init__(self):
         if not self.source_hash:
             self.source_hash = hashlib.sha256(
-                json.dumps(self.payload, sort_keys=True).encode('utf-8')
+                json.dumps(self.payload, sort_keys=True).encode("utf-8")
             ).hexdigest()
         if not self.frame_id:
             self.frame_id = hashlib.md5(
@@ -48,6 +51,7 @@ class RawFrame:
 @dataclass
 class VerifiedFrame:
     """Frame after schema validation and source verification."""
+
     frame_id: str
     source: str
     payload: dict[str, Any]
@@ -62,6 +66,7 @@ class VerifiedFrame:
 @dataclass
 class ClassifiedFrame:
     """Frame after classification."""
+
     frame_id: str
     payload: dict[str, Any]
     classification: str = "unknown"
@@ -73,6 +78,7 @@ class ClassifiedFrame:
 @dataclass
 class SimulatedFrame:
     """Frame after shadow simulation with invariant checks."""
+
     frame_id: str
     payload: dict[str, Any]
     classification: str
@@ -85,6 +91,7 @@ class SimulatedFrame:
 @dataclass
 class GovernedFrame:
     """Frame after governance evaluation."""
+
     frame_id: str
     payload: dict[str, Any]
     governance_verdict: str = "pending"
@@ -96,6 +103,7 @@ class GovernedFrame:
 @dataclass
 class SealedFrame:
     """Final sealed frame with Merkle tree hash and signature."""
+
     frame_id: str
     payload: dict[str, Any]
     merkle_root: str = ""
@@ -107,7 +115,7 @@ class SealedFrame:
         if not self.merkle_root:
             self.merkle_root = self._compute_merkle_root()
         if not self.seal_hash:
-            content = json.dumps(asdict(self), sort_keys=True).encode('utf-8')
+            content = json.dumps(asdict(self), sort_keys=True).encode("utf-8")
             self.seal_hash = hashlib.sha256(content).hexdigest()
 
     def _compute_merkle_root(self) -> str:
@@ -118,7 +126,7 @@ class SealedFrame:
             items.append(leaf)
 
         if not items:
-            return hashlib.sha256(b'EMPTY').hexdigest()
+            return hashlib.sha256(b"EMPTY").hexdigest()
 
         while len(items) > 1:
             new_level = []
@@ -136,12 +144,13 @@ class SealedFrame:
         """Create an Ed25519-style signature (simulated with SHA-256 HMAC)."""
         content = self.merkle_root + self.frame_id
         self.signature = hashlib.sha256(
-            (content + private_key).encode('utf-8')
+            (content + private_key).encode("utf-8")
         ).hexdigest()
         return self.signature
 
 
 # ─── Pipeline Stages ─────────────────────────────────────────────────────────
+
 
 class PreScreenGate:
     """Stage 1: Initial screening of raw input."""
@@ -150,9 +159,12 @@ class PreScreenGate:
         """Screen the raw frame. Returns (passed, error_reason)."""
         if not frame.payload:
             return False, "Empty payload"
-        if frame.source_hash != hashlib.sha256(
-            json.dumps(frame.payload, sort_keys=True).encode('utf-8')
-        ).hexdigest():
+        if (
+            frame.source_hash
+            != hashlib.sha256(
+                json.dumps(frame.payload, sort_keys=True).encode("utf-8")
+            ).hexdigest()
+        ):
             return False, "Hash mismatch"
         return True, None
 
@@ -174,7 +186,7 @@ class Ingestion:
 class SchemaValidator:
     """Stage 3: Validate payload against schema."""
 
-    REQUIRED_FIELDS = ['type', 'data']
+    REQUIRED_FIELDS = ["type", "data"]
 
     def process(self, frame: VerifiedFrame) -> VerifiedFrame:
         """Validate that payload contains required fields."""
@@ -188,7 +200,7 @@ class SchemaValidator:
             frame.errors = errors
         else:
             # Validate data structure
-            data = frame.payload.get('data', {})
+            data = frame.payload.get("data", {})
             if not isinstance(data, dict):
                 frame.verified = False
                 frame.errors.append("data must be a dict")
@@ -199,17 +211,23 @@ class SchemaValidator:
 class Classifier:
     """Stage 4: Classify the frame content."""
 
-    CATEGORIES = ['user_action', 'system_event', 'policy_check', 'audit_entry', 'governance_call']
+    CATEGORIES = [
+        "user_action",
+        "system_event",
+        "policy_check",
+        "audit_entry",
+        "governance_call",
+    ]
 
     def process(self, frame: VerifiedFrame) -> ClassifiedFrame:
         """Classify based on payload type."""
-        payload_type = frame.payload.get('type', 'unknown')
+        payload_type = frame.payload.get("type", "unknown")
 
         if payload_type in self.CATEGORIES:
             classification = payload_type
             confidence = 0.95
         else:
-            classification = 'unknown'
+            classification = "unknown"
             confidence = 0.5
 
         return ClassifiedFrame(
@@ -240,11 +258,13 @@ class ShadowSimulator:
         for invariant in self.INVARIANTS:
             # Simulate invariant check — in production this runs actual shadow
             check_pass = True  # Shadow checks pass by default for processed frames
-            checks.append({
-                "invariant": invariant,
-                "passed": check_pass,
-                "checked_at": time.time(),
-            })
+            checks.append(
+                {
+                    "invariant": invariant,
+                    "passed": check_pass,
+                    "checked_at": time.time(),
+                }
+            )
             if not check_pass:
                 all_pass = False
 
@@ -306,6 +326,7 @@ class Sealer:
 
 
 # ─── PSIA Pipeline ────────────────────────────────────────────────────────────
+
 
 class PSIAPipeline:
     """
@@ -420,6 +441,7 @@ async def health():
 def main():
     """Run the PSIA gateway server with uvicorn."""
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8002)
 
 

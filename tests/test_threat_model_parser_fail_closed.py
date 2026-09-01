@@ -1,4 +1,5 @@
 """Parser recovery fail-closed tests mapped to THREAT_MODEL C036."""
+
 import pytest
 
 from utf.thirsty_lang.interpreter import GovernanceViolation, Interpreter

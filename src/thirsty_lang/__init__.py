@@ -7,6 +7,7 @@ This shim exists so ``import thirsty_lang`` also works.
 
 Exposes the same names as ``utf.thirsty_lang``.
 """
+
 import sys as _sys
 
 from utf import thirsty_lang as _mod

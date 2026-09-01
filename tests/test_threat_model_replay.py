@@ -4,6 +4,7 @@ A valid signature is not enough: an old ALLOW proof must not be replayable for a
 different context, after it has gone stale, after its policy is revoked, or by
 exact reuse.
 """
+
 import datetime
 
 from utf.tarl.core import PolicyParser
@@ -11,25 +12,20 @@ from utf.tarl.runtime import TarlRuntime
 from utf.tarl.schema import ContextSchema
 from utf.tarl.verifier import ProofVerifier, ReplayGuard, canonical_context_hash
 
-POLICY = (
-    'policy p\n'
-    'when role == "admin" => ALLOW\n'
-    'when true => DENY\n'
-)
+POLICY = "policy p\n" 'when role == "admin" => ALLOW\n' "when true => DENY\n"
 CTX = {"role": "admin", "action": "charge"}
 
 
 def _proof(context=CTX):
     # Unsigned proofs isolate the replay/freshness/revocation checks under test
     # from signature verification (covered in test_threat_model_proof_strictness).
-    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
-        ContextSchema()
-    )
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(ContextSchema())
     _decision, proof = rt.evaluate_with_proof(context)
     return proof
 
 
 # ── C023: replay an old proof against a different context ──────────────────────
+
 
 def test_context_binding_accepts_the_matching_context():
     proof = _proof()
@@ -53,6 +49,7 @@ def test_canonical_context_hash_matches_runtime_stamp():
 
 
 # ── C024: stale proof ──────────────────────────────────────────────────────────
+
 
 def test_fresh_proof_within_window_is_accepted():
     proof = _proof()
@@ -110,11 +107,11 @@ def test_freshness_rejects_invalid_age_configuration():
 
 # ── C024: policy revocation ────────────────────────────────────────────────────
 
+
 def test_revoked_policy_hash_is_rejected():
     proof = _proof()
     result = ProofVerifier(
-        require_signature=False,
-        revoked_policy_hashes={proof.policy_hash}
+        require_signature=False, revoked_policy_hashes={proof.policy_hash}
     ).verify(proof)
     assert result.checks["not_revoked"] is False
     assert not result.valid
@@ -123,14 +120,14 @@ def test_revoked_policy_hash_is_rejected():
 def test_non_revoked_policy_passes():
     proof = _proof()
     result = ProofVerifier(
-        require_signature=False,
-        revoked_policy_hashes={"sha256:deadbeef"}
+        require_signature=False, revoked_policy_hashes={"sha256:deadbeef"}
     ).verify(proof)
     assert result.checks["not_revoked"] is True
     assert result.valid
 
 
 # ── Exact replay (single-use) ──────────────────────────────────────────────────
+
 
 def test_replay_guard_rejects_second_use():
     proof = _proof()
@@ -143,6 +140,7 @@ def test_replay_guard_rejects_second_use():
 
 
 # ── Backward compatibility: none of these checks fire by default ───────────────
+
 
 def test_default_verifier_does_not_apply_replay_checks():
     proof = _proof()

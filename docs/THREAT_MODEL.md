@@ -1,5 +1,8 @@
 # Thirsty-Lang Offensive Threat Model
 
+Edition: Thirsty-Lang 0.8.6. This catalog is included in the
+[canonical Thirsty-Lang UTF 101 manual](THIRSTY_LANG_UTF_101.md).
+
 ## Purpose
 
 This document defines the adversary model for Thirsty-Lang as a governance AI
@@ -165,9 +168,9 @@ is what Thirsty-Lang must do to claim resistance.
 | C055 | Accept a forged unsigned proof as valid by default | Verification default must require a signature and trace consistency must reject verdict mismatch when trace declares a verdict | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` |
 | C056 | Evaluate a policy window, time-bound verdict, `CURRENT_*`, or `ELAPSED_SINCE` from spoofed host time through `tarl eval` | Every time-dependent CLI evaluation must require an explicitly zoned trusted time | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` — `tarl eval` refuses all time-dependent rules without zoned `--now` |
 | C057 | Generate auto-TARL policies keyed on a context field the runtime never supplies | Generated policies must use `action`, matching governed runtime context | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` |
-| C058 | Supply a flat dotted key, nested object, or both so schema and evaluator observe different values | One authoritative nested representation; flat dotted keys and every mixed representation DENY explicitly | Covered in active source by `tests/test_tarl_context_resolution_integrity.py`; published 0.8.5 competence remains blocked pending release acceptance |
-| C059 | Use `!=`, `not`, membership, or a safe function to turn an unresolved path into ALLOW | MISSING and TYPE_ERROR short-circuit the rule and produce fail-closed DENY; a resolved boolean `false` remains distinct | Covered in active source by `tests/test_tarl_context_resolution_integrity.py`; confirmed bypass in published 0.8.5 |
-| C060 | Present a positive proof whose schema context differs from the evaluated context | Positive proof is inadmissible unless representation metadata and original/canonical hashes are coherent and signature-bound | Covered in active source by `tests/test_tarl_context_resolution_integrity.py`; release acceptance pending |
+| C058 | Supply a flat dotted key, nested object, or both so schema and evaluator observe different values | One authoritative nested representation; flat dotted keys and every mixed representation DENY explicitly | Covered in released 0.8.6 by `tests/test_tarl_context_resolution_integrity.py`; independent Competence Register acceptance remains pending |
+| C059 | Use `!=`, `not`, membership, or a safe function to turn an unresolved path into ALLOW | MISSING and TYPE_ERROR short-circuit the rule and produce fail-closed DENY; a resolved boolean `false` remains distinct | Covered in released 0.8.6 by `tests/test_tarl_context_resolution_integrity.py`; the confirmed 0.8.5 bypass is preserved as regression evidence |
+| C060 | Present a positive proof whose schema context differs from the evaluated context | Positive proof is inadmissible unless representation metadata and original/canonical hashes are coherent and signature-bound | Covered in released 0.8.6 by `tests/test_tarl_context_resolution_integrity.py`; independent Competence Register acceptance remains pending |
 | C061 | Supply Python-only, cyclic, or non-finite context values, or exploit Python equality between booleans and numbers | Context and registered sources are restricted to finite JSON; incompatible values cannot enter boolean, comparison, membership, arithmetic, or safe-function algebra | Covered by `tests/test_tarl_context_security_boundaries.py` |
 | C062 | Feed an unbound evaluator ALLOW directly into a broker or governed effect | Load-bearing consumers require an admissible positive proof with a passed explicit or complete derived schema; otherwise they replace ALLOW with DENY | Covered by `tests/test_tarl_context_security_boundaries.py` and `tests/test_tarl_proof.py` |
 | C063 | Inject a reserved source field or forge a source-enriched context that also changes caller data | Registered-source injection is the sole transformation; proofs preserve original/evaluated bindings and verification requires both contexts while permitting only valid top-level source additions | Covered by `tests/test_tarl_context_security_boundaries.py` and `tests/test_tarl_proof.py` |
@@ -351,10 +354,13 @@ The following surfaces are implemented and tested today:
 
 ## Remaining Gaps
 
-The active-source repair covers C058–C073, but published 0.8.5 contains a
-confirmed context-resolution authorization bypass. The Competence Register
-therefore keeps context coherence and resolution integrity at critical FAIL
-until a repaired release is independently accepted. Other remaining work is:
+Release 0.8.6 covers C058-C073 and replaces the vulnerable 0.8.5 evaluator.
+The tagged commit passed the branch, tagged-release, PyPI, and multi-architecture
+container workflows; a fresh PyPI installation reproduced the permanent
+context matrix. The Competence Register still keeps context coherence and
+resolution integrity at critical FAIL until an independent constitutional
+acceptance records that the released artifact satisfies the gate. Other
+remaining work is:
 
 1. **Adapter rollout.** Shipped governed stdlib effects and the reference
    external adapters use `CapabilityBroker`; deployments must preserve that
@@ -366,9 +372,9 @@ until a repaired release is independently accepted. Other remaining work is:
 3. **Trust-root custody.** Key formats, generation, loading, and rotation flows
    are implemented; deployments still own private-key custody, distribution of
    trusted public keys, and rotation/revocation operations.
-4. **Release acceptance.** Build and inspect a repaired distribution, rerun the
-   preserved package-level matrix, and only then unblock load-bearing positive
-   verdict reliance for the released artifact.
+4. **Independent acceptance.** Review the released 0.8.6 artifacts and recorded
+   matrix evidence under an authority independent of the implementing agent;
+   only that acceptance may unblock load-bearing positive verdict reliance.
 
 ## Proof-Obligation Behavior Contracts
 
@@ -388,8 +394,8 @@ until a repaired release is independently accepted. Other remaining work is:
 Thirsty-Lang can claim hardened governance-substrate status when:
 
 1. Every challenge in the catalog is passing with a test or documented out of
-   scope. **Met for active source** — C001–C073 have coverage; released-artifact
-   acceptance for C058–C073 remains open.
+   scope. **Met in released 0.8.6** - C001-C073 have coverage; independent
+   Competence Register acceptance for C058-C073 remains open.
 2. All side-effect adapters are mediated by the same broker. **Met (mechanism)**
    — `utf.tarl.broker.CapabilityBroker`; deployment adapter rollout tracked in
    Remaining Gaps #1.
@@ -397,13 +403,15 @@ Thirsty-Lang can claim hardened governance-substrate status when:
    `Interpreter.set_hardened()` fails closed without authenticated authority and
    Ed25519-signed proofs (`tests/test_threat_model_authority.py`).
 4. Policy and context schemas use the representation evaluated by the engine.
-   **Met for active source** — `utf.tarl.context`, `utf.tarl.schema`, and
+   **Met in released 0.8.6** - `utf.tarl.context`, `utf.tarl.schema`, and
    `tests/test_tarl_context_resolution_integrity.py`; the load-bearing consumer
    gate is covered by `tests/test_tarl_context_security_boundaries.py`;
-   released-artifact acceptance remains open.
+   independent Competence Register acceptance remains open.
 5. Audit persistence is hash-linked and tamper-evident. **Met** —
    `TarlAuditArchive.verify_chain` (`tests/test_threat_model_audit_chain.py`).
 6. Replay and downgrade attacks are rejected. **Met** —
    `tests/test_threat_model_replay.py`, `tests/test_threat_model_proof_strictness.py`.
-7. The full offensive challenge suite passes locally and in CI. **Pending for
-   this repair** until the full local gate and CI complete.
+7. The full offensive challenge suite passes locally and in CI. **Met for
+   0.8.6** - the local gate reported 1,463 passed, 1 skipped, 22 subtests, and
+   90.60% coverage; branch CI run `30756636768` and tagged release validation
+   run `30756676570` completed successfully.

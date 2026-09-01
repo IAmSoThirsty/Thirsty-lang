@@ -4,6 +4,7 @@ Covers the generate -> write -> load -> sign -> verify round trip for the three
 trust roots, the public-only export, file permissions (POSIX), and a rotation
 where a new signing key is used while the old public key still verifies.
 """
+
 import os
 import stat
 
@@ -67,15 +68,14 @@ def test_proof_signer_key_signs_and_verifies(tmp_path):
     key.write(priv, include_private=True)
 
     loaded = keystore.load(priv)
-    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
-        ContextSchema()
-    )
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(ContextSchema())
     rt.set_ed25519_signing_key(loaded.key_id, loaded.private_bytes())
     decision, proof = rt.evaluate_with_proof({"role": "admin"})
     assert decision.verdict == TarlVerdict.ALLOW
 
-    verifier = ProofVerifier(require_signature=True,
-                             allowed_signature_algorithms={"ed25519"})
+    verifier = ProofVerifier(
+        require_signature=True, allowed_signature_algorithms={"ed25519"}
+    )
     verifier.add_ed25519_key(loaded.key_id, key.public_bytes())
     result = verifier.verify(proof)
     assert result.valid, result.summary
@@ -89,8 +89,7 @@ def test_authority_issuer_key_issues_and_verifies(tmp_path):
     loaded = keystore.load(priv)
     issuer = AuthorityIssuer(loaded.key_id, loaded.private_bytes())
     claim = issuer.issue("admin", grants=("charge",))
-    verifier = AuthorityVerifier().add_ed25519_key(
-        loaded.key_id, loaded.public_bytes())
+    verifier = AuthorityVerifier().add_ed25519_key(loaded.key_id, loaded.public_bytes())
     result = verifier.verify(claim)
     assert result.valid
 
@@ -101,9 +100,7 @@ def test_rotation_old_public_key_still_verifies(tmp_path):
     old = keystore.generate("signer-1", keystore.ROLE_PROOF_SIGNER)
     new = keystore.generate("signer-2", keystore.ROLE_PROOF_SIGNER)
 
-    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
-        ContextSchema()
-    )
+    rt = TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(ContextSchema())
     rt.set_ed25519_signing_key(new.key_id, new.private_bytes())
     _d, proof = rt.evaluate_with_proof({"role": "admin"})
 

@@ -1,5 +1,6 @@
 """Coverage for small leaf modules: console, package __init__, token,
 diagnostics."""
+
 import importlib
 import sys
 
@@ -15,6 +16,7 @@ from utf.thirsty_lang.token import Token, TokenType
 
 # --- console --------------------------------------------------------------
 
+
 def test_enable_utf8_handles_reconfigure_failure(monkeypatch):
     class Bad:
         def reconfigure(self, encoding):
@@ -23,14 +25,17 @@ def test_enable_utf8_handles_reconfigure_failure(monkeypatch):
     monkeypatch.setattr(sys, "stdout", Bad())
     monkeypatch.setattr(sys, "stderr", Bad())
     from utf.console import enable_utf8
+
     enable_utf8()  # must swallow the error
 
 
 # --- package __init__ -----------------------------------------------------
 
+
 def test_package_main(monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["thirsty"])
     import utf.thirsty_lang as tl
+
     tl.main()
     assert "usage" in capsys.readouterr().out.lower()
 
@@ -52,11 +57,13 @@ def test_version_fallback(monkeypatch):
 
 # --- token ----------------------------------------------------------------
 
+
 def test_token_repr():
     assert "Token(" in repr(Token(TokenType.INT, "5", 1, 2))
 
 
 # --- diagnostics ----------------------------------------------------------
+
 
 def test_severity_str():
     assert str(DiagnosticSeverity.ERROR) == "error"

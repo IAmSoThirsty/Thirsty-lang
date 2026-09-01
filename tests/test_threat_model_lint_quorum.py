@@ -1,4 +1,5 @@
 """Policy-lint (C039) and ESCALATE-quorum (C050) tests."""
+
 import datetime
 
 from utf.tarl.core import PolicyParser
@@ -11,8 +12,9 @@ from utf.tarl.verifier import ProofVerifier, ReplayGuard
 
 # ── C039: broad-ALLOW policy linting ───────────────────────────────────────────
 
+
 def test_unconditional_allow_is_flagged_high():
-    policy = PolicyParser.parse('policy p\nwhen true => ALLOW\n')
+    policy = PolicyParser.parse("policy p\nwhen true => ALLOW\n")
     findings = lint_policy(policy)
     codes = {f.code: f for f in findings}
     assert "TARL-LINT-BROAD-ALLOW" in codes
@@ -30,10 +32,10 @@ def test_ungated_allow_is_flagged_medium():
 
 def test_authority_gated_allow_is_clean():
     policy = PolicyParser.parse(
-        'policy p\n'
+        "policy p\n"
         'when role == "admin" => ALLOW\n'
-        'when authority_authenticated == true => ALLOW\n'
-        'when true => DENY\n'
+        "when authority_authenticated == true => ALLOW\n"
+        "when true => DENY\n"
     )
     findings = lint_policy(policy)
     assert all(f.code != "TARL-LINT-UNGATED-ALLOW" for f in findings)
@@ -57,9 +59,7 @@ def test_lint_passes_threshold():
 # ── C050: ESCALATE resolves only via signed quorum ─────────────────────────────
 
 ESCALATE_POLICY = (
-    'policy p\n'
-    'when action == "wire_transfer" => ESCALATE\n'
-    'when true => DENY\n'
+    "policy p\n" 'when action == "wire_transfer" => ESCALATE\n' "when true => DENY\n"
 )
 PROOF_KEY_ID = "runtime-proof"
 PROOF_SECRET = b"runtime-proof-secret"
@@ -180,9 +180,7 @@ def test_approval_for_a_different_decision_is_not_counted():
     resolver = _resolver(2, [alice, bob])
     # The context is identical, but Bob approved a different policy proof.
     bad = bob.approve(other_proof)
-    result = _resolve(
-        resolver, decision, proof, [alice.approve(proof), bad]
-    )
+    result = _resolve(resolver, decision, proof, [alice.approve(proof), bad])
     assert result.decision.verdict == TarlVerdict.ESCALATE
     assert result.approvals_counted == 1
 
@@ -308,10 +306,7 @@ def test_quorum_requires_freshness_replay_and_trusted_time_gates():
 
 
 def test_fabricated_escalate_decision_cannot_promote_a_deny_proof():
-    deny_policy = (
-        "policy deny\n"
-        'when action == "wire_transfer" => DENY\n'
-    )
+    deny_policy = "policy deny\n" 'when action == "wire_transfer" => DENY\n'
     _deny_decision, proof = _escalated(deny_policy)
     fabricated = TarlDecision(
         verdict=TarlVerdict.ESCALATE,

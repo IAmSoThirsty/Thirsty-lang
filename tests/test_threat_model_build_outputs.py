@@ -1,4 +1,5 @@
 """Generated-output governance-loss tests mapped to THREAT_MODEL C034."""
+
 import json
 import os
 
@@ -20,7 +21,9 @@ def _write(tmp_path, source=GOVERNED_SOURCE):
 
 @pytest.mark.parametrize("target", ["js", "llvm-ir", "wasm-pyodide"])
 def test_governed_build_refuses_governance_loss_by_default(
-    tmp_path, monkeypatch, target,
+    tmp_path,
+    monkeypatch,
+    target,
 ):
     import sys
 
@@ -38,7 +41,9 @@ def test_governed_build_refuses_governance_loss_by_default(
 
 
 def test_governance_loss_escape_hatch_emits_manifest_disclosure(
-    tmp_path, monkeypatch, capsys,
+    tmp_path,
+    monkeypatch,
+    capsys,
 ):
     import sys
 
@@ -47,8 +52,13 @@ def test_governance_loss_escape_hatch_emits_manifest_disclosure(
         sys,
         "argv",
         [
-            "thirsty", "build", "--target", "js", "--allow-governance-loss",
-            "--emit-manifest", source_path,
+            "thirsty",
+            "build",
+            "--target",
+            "js",
+            "--allow-governance-loss",
+            "--emit-manifest",
+            source_path,
         ],
     )
     cli.main()

@@ -1,4 +1,5 @@
 """Strict proof-verifier tests mapped to THREAT_MODEL C025."""
+
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
@@ -8,19 +9,13 @@ from utf.tarl.schema import ContextSchema
 from utf.tarl.spec import TarlVerdict
 from utf.tarl.verifier import ProofVerifier
 
-POLICY = (
-    'policy p\n'
-    'when role == "admin" => ALLOW\n'
-    'when true => DENY\n'
-)
+POLICY = "policy p\n" 'when role == "admin" => ALLOW\n' "when true => DENY\n"
 SECRET = b"strict-proof-secret"
 PRIVATE_BYTES = bytes(range(32))
 
 
 def _runtime():
-    return TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(
-        ContextSchema()
-    )
+    return TarlRuntime(PolicyParser.parse(POLICY)).set_context_schema(ContextSchema())
 
 
 def _unsigned_proof():

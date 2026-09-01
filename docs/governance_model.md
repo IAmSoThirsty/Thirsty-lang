@@ -1,8 +1,14 @@
 # Governance Model
 
+Edition: Thirsty-Lang 0.8.6. See the
+[canonical Thirsty-Lang UTF 101 manual](THIRSTY_LANG_UTF_101.md) for the complete
+end-to-end reference and deployment recipes.
+
 ## Overview
 
-Thirsty-Lang implements a **deny-by-default governance model** via T.A.R.L. (Thirsty's Active Resistance Language), ensuring that all potentially sensitive operations must be explicitly authorized before execution.
+Thirsty-Lang implements a **deny-by-default governance model** via T.A.R.L.
+(Thirsty's Active Resistance Language). Governed calls and operations in the
+explicit sensitive-capability map require authorization before execution.
 
 ## Core Principles
 
@@ -121,10 +127,11 @@ default-deny decision (`Interpreter._enforce_governance`):
    The same positive-authority gate applies to `CapabilityBroker`. A `TarlProof`
    certificate is recorded on `interpreter._last_proof`.
 
-   The proof binds the policy hash; original and evaluated context hashes;
-   context representation; transformation algorithm and version; conflict
-   status; schema fingerprint, representation, and validation status; matched
-   rule; verdict; and evaluation trace. An identity evaluation has equal
+   The proof binds the policy hash; original and canonical/evaluated context
+   hashes; context representation ID; normalization algorithm ID and version;
+   conflict status; schema fingerprint, representation, and validation result;
+   matched rule and condition; verdict; evaluation trace/time; and applicable
+   expiry. An identity evaluation has equal
    original and canonical hashes. A rejected context can produce a DENY proof
    but never an admissible positive proof. It is **unsigned by default**.
    Two signing modes exist: legacy **HMAC-SHA256**, a *symmetric* MAC that is
@@ -279,6 +286,10 @@ The `TarlRuntime` class provides:
 2. **Parallel Evaluation** — Rules evaluated concurrently via ThreadPoolExecutor
 3. **Adaptive Ordering** — Frequently-matched rules are prioritized
 4. **Policy Hotswapping** — Policies can be updated at runtime without restart
+5. **Optional durable audit** — `set_archive(TarlAuditArchive(...))` persists
+   generated proofs. Call `set_require_audit(True)` when an attached archive
+   must fail closed on write failure. With no archive attached, decisions are
+   returned but not persisted; hardened interpreter mode does not create one.
 
 ### CLI Usage
 
@@ -326,7 +337,8 @@ tarl parse policy.tarl
 
 1. **Context Injection** — Contexts are supplied at runtime; validate all sources
 2. **Policy Updates** — Policies should be cryptographically signed before deployment
-3. **Audit Logging** — All policy decisions (especially ESCALATE) should be logged
+3. **Audit Logging** — Attach an archive and require persistence for deployments
+   that depend on durable decision records; checkpoint the chain externally
 4. **Performance** — Cache identity binds policy, context, schema, and source
    values; temporally constrained policies bypass the decision cache
 

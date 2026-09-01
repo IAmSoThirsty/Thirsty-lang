@@ -1,4 +1,5 @@
 """Tests for `.thirsty` file imports via module_system.resolve_import."""
+
 import pytest
 
 from utf.thirsty_lang import module_system
