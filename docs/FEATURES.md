@@ -140,7 +140,7 @@ zoned `--now` for temporal evaluation.
 
 ## 3. Semantic Verifiers
 
-### 3.1 Shadow Thirst (`shadow-thirst`) — safe mutation & promotion
+### 3.1 Shadow Thirst (`shadow-thirst`) — safe mutation and governed admission
 
 Parses a `mutation { validated_canonical { shadow{…} invariant{…} canonical{…} } }`
 and runs **six AST-based analyzers** to a **PROMOTE / FLAGGED / REJECT** verdict:
@@ -163,12 +163,27 @@ validated canonical?”:
 | Z3 symbolic *(opt)* | translate return values to Z3 over shared inputs | proof for **all** inputs, or a **counterexample** |
 | Execute-and-compare | run both over seeded inputs in a sandbox | observed equivalence, or the **diverging input** |
 
-Equal-but-differently-shaped blocks (`x + x` ≡ `x * 2`) now **promote**; subtly
+Equal-but-differently-shaped blocks (`x + x` is equivalent to `x * 2`) now
+**promote**; subtly
 different ones (`x + 1` vs `x + 2`) **reject with a witness**. The sampling layer
 abstains on blocks with observable effects (return-value equality is unsound
 there). Z3 requires `pip install thirsty-lang[analysis]`.
 
-CLI: `shadow-thirst check <file>`, `shadow-thirst visualize <file>` (Mermaid).
+The separate governed-admission layer evaluates technical eligibility without
+mutating canonical state or granting execution authority. It adds
+security-effect, governance-surface, complexity, and explainability-proxy
+regression checks; classifies evidence as **PROVEN**, **OBSERVED**,
+**VIOLATED**, **UNKNOWN**, or **INAPPLICABLE**; and emits an **ELIGIBLE**,
+**FLAGGED**, or **REJECTED** Change Admission Record. Records bind exact input,
+policy, analysis, and artifact hashes and may be signed with an Ed25519
+`proof-signer` key. Strict record verification rejects malformed or unknown
+fields. Every record keeps `execution_authorized=false` and
+`authorization_state=NOT_EVALUATED`; TARL policy, authority, quorum, replay
+protection, and governed execution remain separate later boundaries.
+
+CLI: `shadow-thirst check <file>`, `shadow-thirst visualize <file>` (Mermaid),
+`shadow-thirst admit <file> --record <record.json>`, and
+`shadow-thirst verify-admission <record.json>`.
 
 ### 3.2 Thirst of Gods (`thirst-of-gods`) — deity contracts
 

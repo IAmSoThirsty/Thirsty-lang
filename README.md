@@ -373,6 +373,9 @@ tarl verify proof.json --ed25519-only --context '{"user":{"role":"admin"}}'
 tarl audit verify-chain audit.db
 
 shadow-thirst --help
+shadow-thirst check change.thirsty
+shadow-thirst admit change.thirsty --record change-admission.json
+shadow-thirst verify-admission change-admission.json --require-signature
 tscg --help
 tscg-b --help
 thirst-of-gods --help
@@ -383,7 +386,7 @@ thirst-of-gods --help
 | `thirsty` | 🌊 | run, format, build, static proof-obligation reports, denial explanations, govern, TARL LSP launcher, docs |
 | `tarl` | 🛡️ | evaluate policies, verify proofs, inspect audits |
 | `tarl-lsp` | 🧭 | run the T.A.R.L. language server directly |
-| `shadow-thirst` | 🌑 | analyze mutation and promotion risk |
+| `shadow-thirst` | 🌑 | analyze mutation risk and emit or verify authority-free change-admission records |
 | `tscg` | 🧬 | parse and canonicalize symbolic constraints |
 | `tscg-b` | 📡 | encode and decode binary constraint frames |
 | `thirst-of-gods` | ⚡ | validate higher-tier language contracts |
