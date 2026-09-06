@@ -457,7 +457,7 @@ def _make_process_module() -> dict:
     import sys
 
     def available_bytes(pipe) -> int:
-        if os.name == "nt":
+        if sys.platform == "win32":
             import ctypes
             import msvcrt
             from ctypes import wintypes
@@ -521,12 +521,15 @@ def _make_process_module() -> dict:
         ):
             raise ValueError("max_output_bytes must be an integer from 0 to 67108864")
         executable = shutil.which(argv[0]) or argv[0]
-        if os.name == "nt" and executable.lower().endswith((".bat", ".cmd")):
+        if sys.platform == "win32" and executable.lower().endswith((".bat", ".cmd")):
             raise ValueError(
                 "Batch files require an explicit shell executable; implicit shell execution is disabled"
             )
         command = [executable, *argv[1:]]
         deadline = time.monotonic() + timeout
+        creation_flags = 0
+        if sys.platform == "win32":
+            creation_flags = subprocess.CREATE_NO_WINDOW
         process = subprocess.Popen(
             command,
             shell=False,
@@ -534,7 +537,7 @@ def _make_process_module() -> dict:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             bufsize=0,
-            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+            creationflags=creation_flags,
         )
         output = bytearray()
         pipe = process.stdout
