@@ -1,11 +1,32 @@
 # Operational Continuity Map
 
 Workstream: **Proof-Carrying Effects Language + TARL Security Corrections**
-Updated: 2026-08-02
-Branch: `master`
+Updated: 2026-09-06
+Branch: `codex/function-expansion-pack`
 Workspace: `thirsty_lang_exploration_0754`
 
 ---
+
+## 2026-09-06 priority corrections and general-purpose foundation
+
+- Base commit: `4e493dde5ba822a4e27ad87b4139f72ff7a443c3`, package 0.8.6.
+- Release target: 0.9.0. GitHub and PyPI publication are user-authorized;
+  publication and remote artifact identity require separate release verification.
+- User authorized implementation after the read-only review/full-suite baseline,
+  then explicitly deferred robotics and swarm features until priority fixes and
+  general-purpose language work are implemented.
+- Current correction register and milestone order:
+  [DEVELOPMENT_PLAN.md](../DEVELOPMENT_PLAN.md).
+- Current APIs and compatibility changes:
+  [GENERAL_PURPOSE_LANGUAGE.md](../GENERAL_PURPOSE_LANGUAGE.md).
+- Exact final local checks and limitations are recorded separately in
+  [IMPLEMENTATION_VERIFICATION.md](IMPLEMENTATION_VERIFICATION.md).
+- No other personal project supplied material. No remote commit, push,
+  publication, deployment, or independent acceptance is claimed here.
+- Historical entries below retain their original scope and outcomes. Statements
+  about rejecting flat/equal mixed contexts in those entries describe the earlier
+  contract; current `prepare_context()` normalizes equivalent forms with proof
+  binding and rejects conflicts.
 
 ## 2026-08-02 v0.8.6 Release Closure and Documentation Reconciliation
 

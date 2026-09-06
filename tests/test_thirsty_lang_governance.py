@@ -22,7 +22,11 @@ from utf.thirsty_lang.parser import Parser
 
 def _load(src, mode=None):
     """Parse + interpret a program, returning the interpreter."""
-    prog = Parser(Lexer(src).lex()).parse()
+    lexer = Lexer(src)
+    parser = Parser(lexer.lex())
+    prog = parser.parse()
+    assert not lexer.errors, lexer.errors
+    assert not parser.errors, parser.errors
     interp = Interpreter()
     if mode is None:
         interp.interpret(prog)  # header decides mode
@@ -107,7 +111,7 @@ glass guarded(x) requires x > 0 {
 glass attempt() {
     spillage {
         return guarded(1)
-    } cleanup {
+    } error {
         return -999
     }
 }

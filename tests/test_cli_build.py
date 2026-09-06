@@ -53,25 +53,20 @@ def _build(tmp_path, target, source=SOURCE, monkeypatch=None):
 # --- LLVM IR emitter -------------------------------------------------------
 
 
-def test_llvm_ir_emits_arithmetic():
+def test_llvm_ir_emits_verified_closed_computation():
     ir = cli._transpile_to_llvm_ir(_parse())
-    assert "define i32 @add(i32 %a, i32 %b)" in ir
-    assert "add i32 %a, %b" in ir
     assert "define i32 @main()" in ir
-    # main = add(2,3) * 4 - 1  →  call, mul, sub
-    assert "call i32 @add(i32 2, i32 3)" in ir
-    assert "mul i32" in ir
-    assert "sub i32" in ir
+    assert "closed-scalar-i32/v1" in ir
+    assert "ret i32 19" in ir
+    assert "define i32 @add" not in ir  # No unverified callable export ABI.
 
 
 def test_llvm_ir_unary_and_compare():
-    ir = cli._transpile_to_llvm_ir(_parse())
-    assert "sub i32 0, %x" in ir  # unary minus in neg()
-    assert "icmp slt i32 %a, %b" in ir  # comparison in cmp()
-    assert "zext i1" in ir
+    ir = cli._transpile_to_llvm_ir(_parse("drink main = -2 + (1 < 2)"))
+    assert "ret i32 -1" in ir
 
 
-def test_llvm_ir_all_operators():
+def test_llvm_ir_rejects_division_in_unused_functions():
     src = """module m: core
 glass f(a, b) { return a + b - a * b }
 glass g(a, b) { return a / b }
@@ -84,21 +79,8 @@ glass lnot(a) { return not a }
 glass ge(a, b) { return a >= b }
 drink main = f(1, 2)
 """
-    ir = cli._transpile_to_llvm_ir(_parse(src))
-    for frag in (
-        "add i32",
-        "sub i32",
-        "mul i32",
-        "sdiv i32",
-        "srem i32",
-        "icmp eq",
-        "icmp ne",
-        "icmp sge",
-        "and i32",
-        "or i32",
-        "xor i32",
-    ):
-        assert frag in ir, frag
+    with pytest.raises(ValueError, match="does not support division"):
+        cli._transpile_to_llvm_ir(_parse(src))
 
 
 def test_llvm_ir_no_main_defaults_zero():
@@ -115,7 +97,8 @@ def test_llvm_expr_fallbacks():
 
     assert em.emit(BoolLiteral(span=None, value=True), {}) == "1"
     assert em.emit(BoolLiteral(span=None, value=False), {}) == "0"
-    assert em.emit(Identifier(span=None, name="missing"), {}) == "0"
+    with pytest.raises(ValueError, match="unresolved identifier"):
+        em.emit(Identifier(span=None, name="missing"), {})
 
 
 def test_build_llvm_ir_writes_file(tmp_path, monkeypatch, capsys):
@@ -174,7 +157,7 @@ def test_build_llvm_with_toolchain(
 def test_build_js(tmp_path, monkeypatch, capsys):
     base = _build(tmp_path, "js", monkeypatch=monkeypatch)
     js = open(base + ".js").read()
-    assert "function add" in js
+    assert f"const {cli._js_name('add')} = function" in js
     assert "console.log" in js
     assert "Built:" in capsys.readouterr().out
 
@@ -183,7 +166,8 @@ def test_build_pyodide_bundle(tmp_path, monkeypatch, capsys):
     base = _build(tmp_path, "wasm-pyodide", monkeypatch=monkeypatch)
     html = open(base + ".pyodide.html").read()
     assert "loadPyodide" in html
-    assert 'micropip.install("thirsty-lang")' in html
+    assert 'micropip.install("thirsty-lang==" + EXPECTED_VERSION)' in html
+    assert "EXPECTED_SOURCE_INTEGRITY" in html
     assert "Interpreter().interpret(ast)" in html
     # Source is embedded as valid JSON.
     embedded = html.split("const SOURCE = ", 1)[1].split(";\n", 1)[0]

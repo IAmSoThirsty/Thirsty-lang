@@ -21,29 +21,26 @@ from utf.thirsty_lang.ast import (
     ArrayLiteral,
     AssignStmt,
     BlockStmt,
-    BoolLiteral,
     CallExpr,
     Expr,
-    FloatLiteral,
     FloodExpr,
     ForStmt,
     Identifier,
     ImportStmt,
-    IntLiteral,
     NewExpr,
-    NoneLiteral,
     PourStmt,
     Program,
     ReturnStmt,
     ShadowThirstMutation,
     SipStmt,
     Stmt,
-    StringLiteral,
     VariableDecl,
     WhileStmt,
 )
 from utf.thirsty_lang.lexer import Lexer
 from utf.thirsty_lang.parser import Parser
+
+_MAX_SOURCE_CHARS = 262144
 
 
 class AnalysisLevel:
@@ -85,59 +82,88 @@ def parse_block(code: str):
     lexer/parser. Returns the first ``BlockStmt`` produced, or ``None`` if the
     source is empty or does not parse into a block.
     """
-    if not code or not code.strip():
+    if not code or len(code) > _MAX_SOURCE_CHARS or not code.strip():
         return None
     try:
-        tokens = Lexer("{\n" + code + "\n}").lex()
-        program = Parser(tokens).parse()
+        lexer = Lexer("{\n" + code + "\n}")
+        parser = Parser(lexer.lex())
+        program = parser.parse()
     except Exception:
         return None
-    if not isinstance(program, Program):
+    if lexer.errors or parser.errors or not isinstance(program, Program):
         return None
-    for stmt in program.stmts:
-        if isinstance(stmt, BlockStmt):
-            return stmt
+    if len(program.stmts) == 1 and isinstance(program.stmts[0], BlockStmt):
+        return program.stmts[0]
     return None
 
 
 def _structural_signature(node, namemap):
-    """Alpha-renamed structural signature of an AST subtree.
+    """Scope-aware signature, preserving every free and external name.
 
-    Identifier *names* are replaced by positional placeholders (so two blocks
-    that differ only in variable naming compare equal), while literal values
-    and node shapes are preserved (so a different computation diverges).
+    Only ordinary local declarations and loop bindings are alpha-renamed.
+    Closures, imports and declaration forms with additional binding rules use
+    exact names throughout the subtree: their equivalence needs a richer
+    binding model. ``namemap`` remains an accepted compatibility argument; it
+    cannot turn a caller-supplied free name into a local binding.
     """
-    if isinstance(node, Identifier):
-        idx = namemap.setdefault(node.name, len(namemap))
-        return ("Id", idx)
-    if isinstance(node, (IntLiteral, FloatLiteral, StringLiteral, BoolLiteral)):
-        return (type(node).__name__, node.value)
-    if isinstance(node, NoneLiteral):
-        return ("NoneLiteral",)
-    if isinstance(node, (Expr, Stmt)):
-        parts: list[Any] = [type(node).__name__]
-        for f in dataclasses.fields(node):
-            if f.name == "span":
-                continue
-            value = getattr(node, f.name)
-            # A string ``name`` field is a binding identifier (e.g. the bound
-            # name of a VariableDecl); alpha-rename it so two blocks that differ
-            # only in variable naming still compare equal.
-            if f.name == "name" and isinstance(value, str):
-                idx = namemap.setdefault(value, len(namemap))
-                parts.append(("BindId", idx))
-            else:
-                parts.append(_sig_value(value, namemap))
-        return tuple(parts)
-    return ("lit", node)
+    opaque_bindings = {
+        "FunctionDecl",
+        "GovernedFunctionDecl",
+        "LambdaExpr",
+        "ClassDecl",
+        "ImportStmt",
+        "MorphDef",
+        "DefendStrat",
+        "EnumDecl",
+        "StructDecl",
+        "InterfaceDecl",
+        "SpillageStmt",
+        "NewExpr",
+    }
+    rename = not any(type(n).__name__ in opaque_bindings for n in astwalk(node))
+    next_id = 0
 
+    def signature(value, scopes):
+        nonlocal next_id
+        if isinstance(value, Identifier):
+            # The reference interpreter reserves this spelling even when a
+            # same-named local exists; it is not an ordinary bound identifier.
+            if rename and value.name != "__error__":
+                for scope in reversed(scopes):
+                    if value.name in scope:
+                        return ("BoundId", scope[value.name])
+            return ("FreeId", value.name)
+        if rename and isinstance(value, BlockStmt):
+            local = [*scopes, {}]
+            return ("BlockStmt", tuple(signature(s, local) for s in value.statements))
+        if rename and isinstance(value, VariableDecl):
+            # The initializer sees the previous binding, not the new one.
+            initial = signature(value.init_expr, scopes)
+            binding = next_id
+            next_id += 1
+            scopes[-1][value.name] = binding
+            return ("VariableDecl", binding, value.var_type, initial, value.is_mut)
+        if rename and isinstance(value, ForStmt):
+            iterable = signature(value.iterable, scopes)
+            binding = next_id
+            next_id += 1
+            local = [*scopes, {value.variable.name: binding}]
+            return ("ForStmt", binding, iterable, signature(value.body, local))
+        if isinstance(value, (Expr, Stmt)):
+            return (
+                type(value).__name__,
+                tuple(
+                    (f.name, signature(getattr(value, f.name), scopes))
+                    for f in dataclasses.fields(value)
+                    if f.name != "span"
+                ),
+            )
+        if isinstance(value, (list, tuple)):
+            return tuple(signature(item, scopes) for item in value)
+        # Keep bool/int and other literal types distinct despite Python equality.
+        return (type(value).__name__, value)
 
-def _sig_value(value, namemap):
-    if isinstance(value, (Expr, Stmt)):
-        return _structural_signature(value, namemap)
-    if isinstance(value, (list, tuple)):
-        return tuple(_sig_value(v, namemap) for v in value)
-    return value
+    return signature(node, [{}])
 
 
 @dataclass
@@ -174,8 +200,12 @@ class ShadowModule:
     shadow_ast: Stmt | None = None
     invariant_ast: Stmt | None = None
     canonical_ast: Stmt | None = None
+    parse_failed: bool = False
 
     def __post_init__(self):
+        if self.parse_failed:
+            self.shadow_ast = self.invariant_ast = self.canonical_ast = None
+            return
         # Parse any block whose AST was not supplied directly. Failures leave
         # the AST as None, and the analyzers fall back to the lexical path.
         if self.shadow_ast is None:
@@ -202,6 +232,8 @@ class MutationParser:
     @classmethod
     def parse(cls, text: str) -> ShadowModule:
         """Parse mutation source text into a ShadowModule."""
+        if len(text) > _MAX_SOURCE_CHARS:
+            raise ValueError("mutation exceeds the analysis source-size limit")
         text = text.strip()
         mut_match = cls.MUTATION_RE.search(text)
         if not mut_match:
@@ -247,18 +279,42 @@ class MutationParser:
         # off the ShadowThirstMutation node. Falls back to the per-block parse
         # already done in ShadowModule.__post_init__ when this doesn't apply.
         try:
-            program = Parser(Lexer(text).lex()).parse()
+            lexer = Lexer(text)
+            parser = Parser(lexer.lex())
+            program = parser.parse()
+            if (
+                lexer.errors
+                or parser.errors
+                or len(program.stmts) != 1
+                or not isinstance(program.stmts[0], ShadowThirstMutation)
+            ):
+                module.parse_failed = True
+                return module
+
+            def block_source(block):
+                lines = text.splitlines(keepends=True)
+                first_line, first_col, last_line, last_col = block.span
+                start = (
+                    sum(len(line) for line in lines[: first_line - 1]) + first_col - 1
+                )
+                end = sum(len(line) for line in lines[: last_line - 1]) + last_col - 1
+                return text[start + 1 : end - 1].strip()
+
             for stmt in program.stmts:
                 if isinstance(stmt, ShadowThirstMutation):
                     if stmt.shadow_block is not None:
                         module.shadow_ast = stmt.shadow_block
+                        module.shadow_code = block_source(stmt.shadow_block)
                     if stmt.invariant_block is not None:
                         module.invariant_ast = stmt.invariant_block
+                        module.invariant_code = block_source(stmt.invariant_block)
                     if stmt.canonical_block is not None:
                         module.canonical_ast = stmt.canonical_block
+                        module.canonical_code = block_source(stmt.canonical_block)
                     break
         except Exception:
-            pass
+            module.parse_failed = True
+            module.shadow_ast = module.invariant_ast = module.canonical_ast = None
 
         return module
 
@@ -665,8 +721,9 @@ class CanonicalConvergenceAnalyzer:
     2. **Z3 symbolic** (``thirsty-lang[analysis]``) — for the straight-line
        integer-arithmetic subset, prove the two return values are equal for all
        inputs (``UNSAT``) or surface a diverging input (``SAT``).
-    3. **Execute-and-compare** — run both blocks in a sandboxed interpreter over
-       seeded inputs and compare outputs, reporting the first diverging input.
+    3. **Execute-and-compare** — sample supported scalar blocks under enforced
+       operation/value budgets, reporting the first diverging input. This is
+       observation, not a general proof or a host sandbox.
 
     Structural difference is no longer treated as proof of divergence: the
     symbolic and execution layers can still *promote* a differently-shaped block
@@ -686,7 +743,12 @@ class CanonicalConvergenceAnalyzer:
 
         s_ast, c_ast = module.shadow_ast, module.canonical_ast
         if s_ast is None or c_ast is None:
-            return self._lexical(module)
+            return AnalysisResult(
+                analyzer="CanonicalConvergence",
+                passed=False,
+                level=AnalysisLevel.CRITICAL,
+                message="Equivalence is unknown because one or both blocks did not parse",
+            )
 
         # Layer 1 — structural equivalence (sufficient proof; cheapest).
         s_sig = _structural_signature(s_ast, {})
@@ -749,46 +811,6 @@ class CanonicalConvergenceAnalyzer:
                 )
             # "unsupported"/"unavailable" → try the next layer.
         return None
-
-    def _lexical(self, module: ShadowModule) -> AnalysisResult:
-        shadow_lines = [
-            ln.strip() for ln in module.shadow_code.split("\n") if ln.strip()
-        ]
-        canonical_lines = [
-            ln.strip() for ln in module.canonical_code.split("\n") if ln.strip()
-        ]
-        if len(shadow_lines) == 0 or len(canonical_lines) == 0:
-            return AnalysisResult(
-                analyzer="CanonicalConvergence",
-                passed=False,
-                level=AnalysisLevel.CRITICAL,
-                message="Shadow or canonical block is empty",
-            )
-        shadow_return_count = module.shadow_code.count("return")
-        canonical_return_count = module.canonical_code.count("return")
-        if shadow_return_count != canonical_return_count:
-            return AnalysisResult(
-                analyzer="CanonicalConvergence",
-                passed=False,
-                level=AnalysisLevel.NON_CRITICAL,
-                message=f"Shadow ({shadow_return_count} returns) and canonical ({canonical_return_count} returns) may not converge",
-            )
-        shadow_ops = set(re.findall(r"\b[a-z_]+\b", module.shadow_code.lower()))
-        canonical_ops = set(re.findall(r"\b[a-z_]+\b", module.canonical_code.lower()))
-        overlap = shadow_ops & canonical_ops
-        if len(overlap) < max(1, min(len(shadow_ops), len(canonical_ops)) * 0.3):
-            return AnalysisResult(
-                analyzer="CanonicalConvergence",
-                passed=False,
-                level=AnalysisLevel.NON_CRITICAL,
-                message="Shadow and canonical blocks use very different operations — possible divergence",
-            )
-        return AnalysisResult(
-            analyzer="CanonicalConvergence",
-            passed=True,
-            level=AnalysisLevel.CRITICAL,
-            message="Shadow and canonical blocks converge (lexical)",
-        )
 
 
 class PromotionEngine:

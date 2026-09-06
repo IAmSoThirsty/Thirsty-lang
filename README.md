@@ -4,6 +4,11 @@
 
 ### *A governance-first programming language family*
 
+Current development: [priority corrections and General Purpose Language plan](docs/DEVELOPMENT_PLAN.md).
+Robotics and swarm implementation are deferred while the language foundation
+and its verification take priority. The plan identifies implemented work,
+compatibility changes, and remaining milestones.
+
 ```text
   source  →  verdict  →  proof  →  audit  →  governed effect
 
@@ -71,10 +76,10 @@ The core posture is non-negotiable:
 pip install thirsty-lang
 ```
 
-Pinned release:
+Prepared release target (install after publication):
 
 ```bash
-pip install thirsty-lang==0.8.6
+pip install thirsty-lang==0.9.0
 ```
 
 From source:
@@ -92,7 +97,7 @@ The end-to-end reference is the
 edition is [`Thirsty-Lang-UTF-101.pdf`](output/pdf/Thirsty-Lang-UTF-101.pdf). It unifies
 the language tutorial, exact grammar, all seven CLIs, T.A.R.L. policy and proof
 contracts, the six-tier family, deployment, security, release evidence, and
-source/test traceability for version 0.8.6.
+source/test traceability for the prepared 0.9.0 release.
 
 ---
 
@@ -216,11 +221,12 @@ when user.ip in blacklist => DENY
 when true => DENY
 ```
 
-Dotted names are paths into nested JSON. The policy above expects
-`{"user":{"role":"admin"}}`; a flat key such as
-`{"user.role":"admin"}` is rejected. Missing, malformed, duplicate, and mixed
-flat/nested representations fail closed and never become the ordinary boolean
-value `false`.
+Dotted names are paths into canonical nested JSON. `prepare_context()` converts
+`{"user.role":"admin"}` and equivalent nested or mixed input to
+`{"user":{"role":"admin"}}`, binding original and canonical hashes and the
+normalization algorithm into proofs. Conflicting values, malformed paths,
+duplicate JSON keys, and missing required data fail closed; they never become
+the ordinary boolean value `false`.
 
 Implemented policy surfaces include:
 

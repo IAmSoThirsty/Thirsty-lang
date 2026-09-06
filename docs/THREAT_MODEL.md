@@ -1,6 +1,6 @@
 # Thirsty-Lang Offensive Threat Model
 
-Edition: Thirsty-Lang 0.8.6. This catalog is included in the
+Edition: Thirsty-Lang 0.9.0 (release preparation). This catalog is included in the
 [canonical Thirsty-Lang UTF 101 manual](THIRSTY_LANG_UTF_101.md).
 
 ## Purpose
@@ -168,7 +168,7 @@ is what Thirsty-Lang must do to claim resistance.
 | C055 | Accept a forged unsigned proof as valid by default | Verification default must require a signature and trace consistency must reject verdict mismatch when trace declares a verdict | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` |
 | C056 | Evaluate a policy window, time-bound verdict, `CURRENT_*`, or `ELAPSED_SINCE` from spoofed host time through `tarl eval` | Every time-dependent CLI evaluation must require an explicitly zoned trusted time | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` — `tarl eval` refuses all time-dependent rules without zoned `--now` |
 | C057 | Generate auto-TARL policies keyed on a context field the runtime never supplies | Generated policies must use `action`, matching governed runtime context | Covered by `tests/test_peer_review_0_8_1_tarl_regressions.py` |
-| C058 | Supply a flat dotted key, nested object, or both so schema and evaluator observe different values | One authoritative nested representation; flat dotted keys and every mixed representation DENY explicitly | Covered in released 0.8.6 by `tests/test_tarl_context_resolution_integrity.py`; independent Competence Register acceptance remains pending |
+| C058 | Supply a flat dotted key, nested object, or both so schema and evaluator observe different values | Shared normalization to nested JSON; equal forms converge, conflicting values and malformed paths DENY explicitly | Covered by `tests/test_tarl_context_resolution_integrity.py` and context boundary suites; independent Competence Register acceptance remains pending |
 | C059 | Use `!=`, `not`, membership, or a safe function to turn an unresolved path into ALLOW | MISSING and TYPE_ERROR short-circuit the rule and produce fail-closed DENY; a resolved boolean `false` remains distinct | Covered in released 0.8.6 by `tests/test_tarl_context_resolution_integrity.py`; the confirmed 0.8.5 bypass is preserved as regression evidence |
 | C060 | Present a positive proof whose schema context differs from the evaluated context | Positive proof is inadmissible unless representation metadata and original/canonical hashes are coherent and signature-bound | Covered in released 0.8.6 by `tests/test_tarl_context_resolution_integrity.py`; independent Competence Register acceptance remains pending |
 | C061 | Supply Python-only, cyclic, or non-finite context values, or exploit Python equality between booleans and numbers | Context and registered sources are restricted to finite JSON; incompatible values cannot enter boolean, comparison, membership, arithmetic, or safe-function algebra | Covered by `tests/test_tarl_context_security_boundaries.py` |
@@ -210,10 +210,10 @@ Thirsty-Lang from "active resistance runtime" to "policy library."
     `MISSING`, `TYPE_ERROR`, and `REPRESENTATION_CONFLICT` never participate in
     comparison, negation, membership, functions, or boolean algebra; they
     short-circuit to DENY or ESCALATE with an explicit reason.
-12. **One context representation.** Dotted policy names are paths into nested
-    objects. A JSON key containing a dot is not an alternative spelling. Flat
-    dotted keys, equal mixed forms, contradictory mixed forms, duplicate keys,
-    and reserved-layer collisions fail closed; no conversion occurs silently.
+12. **One evaluated context representation.** Dotted policy names traverse nested
+    objects after shared normalization. Dotted and equal mixed inputs converge;
+    contradictory values, malformed paths, duplicate keys, and conflicting
+    reserved layers fail closed. Both hashes and normalization identity are bound.
 13. **Positive proof context coherence.** A positive policy verdict is
     inadmissible as advancement authority unless the exact context
     representation used for schema validation is the representation evaluated
@@ -312,9 +312,9 @@ The following surfaces are implemented and tested today:
   accepts unsigned proofs when `require_signature=False` or `--allow-unsigned`
   is explicit. Signature permissiveness does not admit a positive legacy proof
   that lacks coherent context-representation binding.
-- The active source uses nested objects as the sole context representation.
-  Dotted policy references resolve as paths; flat dotted keys and mixed forms
-  fail closed before any rule can match.
+- The active source evaluates canonical nested objects. Dotted and equal mixed
+  caller inputs normalize before evaluation; conflicting values and malformed
+  paths fail closed before any rule can match.
 - Runtime proofs bind both original and evaluated context hashes plus the
   representation and transformation identity. The verifier rejects positive
   proofs whose binding metadata is missing, contradictory, or unsupported.

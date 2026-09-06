@@ -117,6 +117,13 @@ class Subscript(Expr):
 
 
 @dataclass
+class DictLiteral(Expr):
+    """Insertion-ordered dictionary entries, with duplicate keys rejected."""
+
+    items: list[tuple[Expr, Expr]]
+
+
+@dataclass
 class NewExpr(Expr):
     class_name: str
     args: list

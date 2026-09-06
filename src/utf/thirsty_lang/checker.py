@@ -19,6 +19,7 @@ from utf.thirsty_lang.ast import (
     CombineExpr,
     CondenseExpr,
     DefendStrat,
+    DictLiteral,
     DripExpr,
     EnumDecl,
     ErrorLiteral,
@@ -69,6 +70,7 @@ from utf.thirsty_lang.diagnostics import Diagnostic, make_error
 from utf.thirsty_lang.typesys import (
     AnyType,
     BoolType,
+    DictType,
     EnumType,
     ErrorType,
     FloatType,
@@ -85,6 +87,7 @@ from utf.thirsty_lang.typesys import (
     is_assignable,
     type_from_name,
     type_to_string,
+    unify,
 )
 
 
@@ -194,14 +197,16 @@ class Checker:
                 # forward references, self-recursion, and mutual recursion all
                 # see the correct arity while bodies are being checked.
                 param_types = [
-                    type_from_name(ptype) if ptype else AnyType()
+                    self._resolve_type(ptype) if ptype else AnyType()
                     for _pname, ptype in stmt.params
                 ]
                 # No explicit return type → gradual default of Any (not Void),
                 # so a value-returning un-annotated function flows into typed
                 # operators and self-recursion type-checks. (review F2)
                 ret_type = (
-                    type_from_name(stmt.return_type) if stmt.return_type else AnyType()
+                    self._resolve_type(stmt.return_type)
+                    if stmt.return_type
+                    else AnyType()
                 )
                 self.scope.declare(
                     stmt.name,
@@ -282,6 +287,10 @@ class Checker:
         elif isinstance(stmt, ExprStmt):
             self._check_expr(stmt.expr)
         elif isinstance(stmt, SecurityBlock):
+            self._unsupported(
+                stmt,
+                f"security block '{stmt.block_type}' has no enforcement implementation",
+            )
             self._check_block(stmt.body)
         elif isinstance(stmt, SpillageStmt):
             self._check_block(stmt.body)
@@ -299,20 +308,50 @@ class Checker:
         elif isinstance(stmt, ThrowStmt):
             self._check_expr(stmt.value)
         elif isinstance(stmt, MorphDef):
-            self._check_block(stmt.body)
+            self._check_function_decl(
+                FunctionDecl(
+                    span=stmt.span,
+                    name=stmt.name,
+                    params=stmt.params,
+                    return_type=None,
+                    body=stmt.body,
+                )
+            )
         elif isinstance(stmt, DefendStrat):
-            pass  # policy names are validated at runtime
+            self._unsupported(
+                stmt, "defend strategies have no enforcement implementation"
+            )
         elif isinstance(stmt, EnumDecl):
             self._check_enum_decl(stmt)
         elif isinstance(stmt, StructDecl):
             self._check_struct_decl(stmt)
         elif isinstance(stmt, InterfaceDecl):
             self._check_interface_decl(stmt)
+            self._unsupported(stmt, "interface contracts are not yet enforced")
         elif isinstance(stmt, GovernedFunctionDecl):
             self._check_governed_function_decl(stmt)
         elif isinstance(stmt, ShadowThirstMutation):
-            # Validate mutation blocks exist
-            pass
+            if stmt.canonical_block:
+                self._check_block(stmt.canonical_block)
+        else:
+            self._unsupported(stmt, f"unsupported statement: {type(stmt).__name__}")
+
+    def _resolve_type(self, name: str) -> Type:
+        info = self.scope.lookup(name)
+        if info and isinstance(info.get("type"), (EnumType, StructType, InterfaceType)):
+            return cast(Type, info["type"])
+        primitive = {
+            "int": "Int",
+            "float": "Float",
+            "bool": "Bool",
+            "string": "String",
+            "void": "Void",
+            "any": "Any",
+        }
+        return type_from_name(primitive.get(name, name))
+
+    def _unsupported(self, node, reason: str):
+        self.errors.append(Diagnostic("E901", reason, node.span, "error"))
 
     def _check_variable_decl(self, stmt: VariableDecl):
         # Check duplicate
@@ -325,7 +364,8 @@ class Checker:
         if stmt.init_expr:
             expr_type = self._check_expr(stmt.init_expr)
             if stmt.var_type:
-                expected = type_from_name(stmt.var_type)
+                expected = self._resolve_type(stmt.var_type)
+                self._check_collection_literal(stmt.init_expr, expected)
                 if not is_assignable(expr_type, expected):
                     self.errors.append(
                         make_error(
@@ -338,7 +378,9 @@ class Checker:
             # Update binding type
             self.scope.bindings[stmt.name] = {
                 "type": (
-                    expr_type if not stmt.var_type else type_from_name(stmt.var_type)
+                    expr_type
+                    if not stmt.var_type
+                    else self._resolve_type(stmt.var_type)
                 ),
                 "is_mut": stmt.is_mut,
                 "kind": "variable",
@@ -366,26 +408,49 @@ class Checker:
         # Register params
         param_types = []
         for pname, ptype in stmt.params:
-            t = type_from_name(ptype) if ptype else AnyType()
+            t = self._resolve_type(ptype) if ptype else AnyType()
             param_types.append(t)
             self.scope.declare(pname, {"type": t, "is_mut": False, "kind": "param"})
         # Set return type context. No annotation → Any (gradual default), so
         # returns are unconstrained rather than forced to Void. (review F2)
         old_return_type = self.current_function_return_type
         self.current_function_return_type = (
-            type_from_name(stmt.return_type) if stmt.return_type else AnyType()
+            self._resolve_type(stmt.return_type) if stmt.return_type else AnyType()
         )
         # Check body
         self._check_block(stmt.body)
         self.current_function_return_type = old_return_type
         self.exit_scope()
         # Update binding with proper function type
-        ret_type = type_from_name(stmt.return_type) if stmt.return_type else AnyType()
+        ret_type = (
+            self._resolve_type(stmt.return_type) if stmt.return_type else AnyType()
+        )
         self.scope.bindings[stmt.name] = {
             "type": FunctionType(param_types, ret_type),
             "is_mut": False,
             "kind": "function",
         }
+
+    def _check_collection_literal(self, expr: Expr, expected: Type):
+        """A heterogeneous literal must not hide a known invalid element behind Any."""
+        pairs: list[tuple[Expr, Type]] = []
+        if isinstance(expr, ArrayLiteral) and isinstance(expected, ReservoirType):
+            pairs = [(element, expected.inner_type) for element in expr.elements]
+        elif isinstance(expr, DictLiteral) and isinstance(expected, DictType):
+            pairs = [(key, expected.key_type) for key, _ in expr.items]
+            pairs += [(value, expected.value_type) for _, value in expr.items]
+        for element, element_expected in pairs:
+            element_actual = self._check_expr(element)
+            if not is_assignable(element_actual, element_expected):
+                self.errors.append(
+                    make_error(
+                        "E021",
+                        span=element.span,
+                        found=type_to_string(element_actual),
+                        expected=type_to_string(element_expected),
+                    )
+                )
+            self._check_collection_literal(element, element_expected)
 
     def _check_class_decl(self, stmt: ClassDecl):
         already_hoisted = (
@@ -400,7 +465,7 @@ class Checker:
         self.enter_scope()
         for field_spec in stmt.fields:
             fname, ftype = field_spec[0], field_spec[1]
-            t = type_from_name(ftype) if ftype else AnyType()
+            t = self._resolve_type(ftype) if ftype else AnyType()
             self.scope.declare(fname, {"type": t, "is_mut": True, "kind": "field"})
             default_expr = field_spec[2] if len(field_spec) > 2 else None
             if default_expr is not None:
@@ -461,6 +526,10 @@ class Checker:
     def _check_return_stmt(self, stmt: ReturnStmt):
         if stmt.value:
             val_type = self._check_expr(stmt.value)
+            if self.current_function_return_type:
+                self._check_collection_literal(
+                    stmt.value, self.current_function_return_type
+                )
             if self.current_function_return_type and not isinstance(
                 self.current_function_return_type, VoidType
             ):
@@ -487,6 +556,8 @@ class Checker:
             )
 
     def _check_assign_stmt(self, stmt: AssignStmt):
+        actual = self._check_expr(stmt.value)
+        expected: Type = AnyType()
         if isinstance(stmt.target, Identifier):
             name = stmt.target.name
             info = self.scope.lookup(name)
@@ -505,7 +576,19 @@ class Checker:
                 return
             if not info.get("is_mut", False):
                 self.errors.append(make_error("E020", span=stmt.span, name=name))
-        self._check_expr(stmt.value)
+            expected = info.get("type", AnyType())
+        else:
+            expected = self._check_expr(stmt.target)
+        self._check_collection_literal(stmt.value, expected)
+        if not is_assignable(actual, expected):
+            self.errors.append(
+                make_error(
+                    "E021",
+                    span=stmt.span,
+                    found=type_to_string(actual),
+                    expected=type_to_string(expected),
+                )
+            )
 
     def _check_symbol_stmt(self, stmt: SymbolStmt):
         if not self.scope.declare(
@@ -522,6 +605,8 @@ class Checker:
         )
 
     def _check_enum_decl(self, stmt: EnumDecl):
+        if len(stmt.variants) != len(set(stmt.variants)):
+            self._unsupported(stmt, f"duplicate variant in enum '{stmt.name}'")
         if not self.scope.declare(
             stmt.name,
             {
@@ -535,7 +620,11 @@ class Checker:
     def _check_struct_decl(self, stmt: StructDecl):
         field_types = {}
         for fname, ftype in stmt.fields:
-            field_types[fname] = type_from_name(ftype) if ftype else AnyType()
+            if fname in field_types:
+                self._unsupported(
+                    stmt, f"duplicate field '{fname}' in struct '{stmt.name}'"
+                )
+            field_types[fname] = self._resolve_type(ftype) if ftype else AnyType()
         if not self.scope.declare(
             stmt.name,
             {
@@ -550,7 +639,7 @@ class Checker:
         method_sigs = {}
         for mname, params, _ret_type in stmt.methods:
             method_sigs[mname] = [
-                type_from_name(p[1]) if p[1] else AnyType() for p in params
+                self._resolve_type(p[1]) if p[1] else AnyType() for p in params
             ]
         if not self.scope.declare(
             stmt.name,
@@ -592,7 +681,11 @@ class Checker:
         elif isinstance(expr, ErrorLiteral):
             return ErrorType()
         elif isinstance(expr, QuenchedLiteral):
-            inner = type_from_name(expr.type_param) if expr.type_param else AnyType()
+            if expr.value is not None:
+                self._check_expr(expr.value)
+            inner = (
+                self._resolve_type(expr.type_param) if expr.type_param else AnyType()
+            )
             return QuenchedType(inner)
         elif isinstance(expr, AssignStmt):
             self.errors.append(
@@ -677,7 +770,7 @@ class Checker:
         elif isinstance(expr, LambdaExpr):
             self.enter_scope()
             for pname, ptype in expr.params:
-                t = type_from_name(ptype) if ptype else AnyType()
+                t = self._resolve_type(ptype) if ptype else AnyType()
                 self.scope.declare(pname, {"type": t, "is_mut": False, "kind": "param"})
             self._check_block(expr.body)
             self.exit_scope()
@@ -698,6 +791,10 @@ class Checker:
                     make_error("E053", span=expr.span, name=expr.callee.name)
                 )
             callee_type = self._check_expr(expr.callee)
+            if isinstance(callee_type, StructType):
+                callee_type = FunctionType(
+                    list(callee_type.field_types.values()), callee_type
+                )
             if isinstance(callee_type, FunctionType):
                 expected = len(callee_type.param_types)
                 got = len(expr.args)
@@ -715,8 +812,9 @@ class Checker:
                     )
                 # Check argument types
                 for i, arg in enumerate(expr.args):
+                    arg_type = self._check_expr(arg)
                     if i < len(callee_type.param_types):
-                        arg_type = self._check_expr(arg)
+                        self._check_collection_literal(arg, callee_type.param_types[i])
                         if not is_assignable(arg_type, callee_type.param_types[i]):
                             self.errors.append(
                                 make_error(
@@ -751,28 +849,111 @@ class Checker:
                 )
             return self._check_expr(expr.expr)
         elif isinstance(expr, FloodExpr):
+            self._check_expr(expr.target)
             return ReservoirType(AnyType())
         elif isinstance(expr, DripExpr):
+            self._check_expr(expr.target)
             return AnyType()
         elif isinstance(expr, EvaporateExpr):
+            self._check_expr(expr.target)
             return VoidType()
         elif isinstance(expr, CondenseExpr):
+            self._check_expr(expr.target)
             return ReservoirType(AnyType())
         elif isinstance(expr, ArrayLiteral):
-            elem = self._check_expr(expr.elements[0]) if expr.elements else AnyType()
+            element_types = [self._check_expr(element) for element in expr.elements]
+            elem = element_types[0] if element_types else AnyType()
+            for element_type in element_types[1:]:
+                elem = unify(elem, element_type)
             return ReservoirType(elem)
+        elif isinstance(expr, DictLiteral):
+            key_types = []
+            value_types = []
+            literal_keys: set = set()
+            for key, value in expr.items:
+                key_types.append(self._check_expr(key))
+                value_types.append(self._check_expr(value))
+                if isinstance(
+                    key,
+                    (IntLiteral, FloatLiteral, StringLiteral, BoolLiteral, NoneLiteral),
+                ):
+                    literal_value = None if isinstance(key, NoneLiteral) else key.value
+                    if literal_value in literal_keys:
+                        self._unsupported(
+                            key, f"duplicate dictionary key: {literal_value!r}"
+                        )
+                    literal_keys.add(literal_value)
+            key_type = key_types[0] if key_types else AnyType()
+            value_type = value_types[0] if value_types else AnyType()
+            for next_type in key_types[1:]:
+                key_type = unify(key_type, next_type)
+            for next_type in value_types[1:]:
+                value_type = unify(value_type, next_type)
+            return DictType(key_type, value_type)
         elif isinstance(expr, MemberAccess):
-            self._check_expr(expr.obj)
+            object_type = self._check_expr(expr.obj)
+            if isinstance(object_type, StructType):
+                if expr.member in object_type.field_types:
+                    return object_type.field_types[expr.member]
+                self._unsupported(
+                    expr, f"'{object_type.name}' has no field '{expr.member}'"
+                )
+            elif isinstance(object_type, EnumType):
+                if expr.member in object_type.variants:
+                    return object_type
+                self._unsupported(
+                    expr, f"'{object_type.name}' has no variant '{expr.member}'"
+                )
             return AnyType()
         elif isinstance(expr, Subscript):
-            self._check_expr(expr.obj)
+            collection_type = self._check_expr(expr.obj)
             self._check_expr(expr.index)
+            if isinstance(collection_type, ReservoirType):
+                return collection_type.inner_type
+            if isinstance(collection_type, DictType):
+                return collection_type.value_type
             return AnyType()
         elif isinstance(expr, SanitizeExpr):
+            self._unsupported(
+                expr, "sanitize requires an explicit validator or encoding"
+            )
             return self._check_expr(expr.expr)
         elif isinstance(expr, ArmorExpr):
+            self._unsupported(expr, "armor has no protection implementation")
             return self._check_expr(expr.expr)
         elif isinstance(expr, NewExpr):
+            info = self.scope.lookup(expr.class_name)
+            argument_types = [self._check_expr(arg) for arg in expr.args]
+            if info is None:
+                self.errors.append(
+                    make_error("E011", span=expr.span, name=expr.class_name)
+                )
+            elif isinstance(info.get("type"), StructType):
+                structure = cast(StructType, info["type"])
+                expected_fields = list(structure.field_types.values())
+                if len(expected_fields) != len(argument_types):
+                    self.errors.append(
+                        make_error(
+                            "E030",
+                            span=expr.span,
+                            name=expr.class_name,
+                            expected=len(expected_fields),
+                            got=len(argument_types),
+                        )
+                    )
+                for actual, field_type in zip(
+                    argument_types, expected_fields, strict=False
+                ):
+                    if not is_assignable(actual, field_type):
+                        self.errors.append(
+                            make_error(
+                                "E021",
+                                span=expr.span,
+                                found=type_to_string(actual),
+                                expected=type_to_string(field_type),
+                            )
+                        )
+                return structure
             return AnyType()
         elif isinstance(expr, CascadeCall):
             inner = self._check_expr(expr.expr)
@@ -807,7 +988,8 @@ class Checker:
             if l_bool and r_bool:
                 return BoolType()
             return AnyType()
-        return AnyType()
+        self._unsupported(expr, f"unsupported expression: {type(expr).__name__}")
+        return ErrorType()
 
 
 def check_ast(ast: Program, effect_warnings: bool = False) -> list[Diagnostic]:

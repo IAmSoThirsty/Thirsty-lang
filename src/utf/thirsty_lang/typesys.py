@@ -80,6 +80,19 @@ class TaskType(GenericType):
         super().__init__(base_type="Task", type_args=[type_arg])
 
 
+class DictType(GenericType):
+    def __init__(self, key_type: Type, value_type: Type):
+        super().__init__(base_type="Dict", type_args=[key_type, value_type])
+
+    @property
+    def key_type(self) -> Type:
+        return self.type_args[0]
+
+    @property
+    def value_type(self) -> Type:
+        return self.type_args[1]
+
+
 class ResultType(GenericType):
     def __init__(self, ok_type: Type, err_type: Type):
         super().__init__(base_type="Result", type_args=[ok_type, err_type])
@@ -185,6 +198,11 @@ def type_from_name(name: str) -> Type:
             return ReservoirType(inner_types[0] if inner_types else AnyType())
         elif base_lower == "task":
             return TaskType(inner_types[0] if inner_types else AnyType())
+        elif base_lower == "dict":
+            return DictType(
+                inner_types[0] if inner_types else AnyType(),
+                inner_types[1] if len(inner_types) > 1 else AnyType(),
+            )
         elif base_lower == "result":
             return ResultType(
                 inner_types[0] if inner_types else AnyType(),
@@ -220,6 +238,8 @@ def unify(t1: Type, t2: Type) -> Type:
     if isinstance(t1, AnyType) or isinstance(t2, AnyType):
         return AnyType()
     if type(t1) is type(t2):
+        if isinstance(t1, (EnumType, StructType, InterfaceType)) and t1 != t2:
+            return AnyType()
         # Same base type — check generics
         if isinstance(t1, QuenchedType) and isinstance(t2, QuenchedType):
             inner = unify(t1.inner_type, t2.inner_type)
@@ -227,6 +247,10 @@ def unify(t1: Type, t2: Type) -> Type:
         if isinstance(t1, ReservoirType) and isinstance(t2, ReservoirType):
             inner = unify(t1.inner_type, t2.inner_type)
             return ReservoirType(inner)
+        if isinstance(t1, DictType) and isinstance(t2, DictType):
+            return DictType(
+                unify(t1.key_type, t2.key_type), unify(t1.value_type, t2.value_type)
+            )
         if isinstance(t1, FunctionType) and isinstance(t2, FunctionType):
             if len(t1.param_types) == len(t2.param_types):
                 params = [
@@ -252,10 +276,16 @@ def is_assignable(source: Type, target: Type) -> bool:
     if isinstance(source, AnyType):
         return True
     if type(source) is type(target):
+        if isinstance(source, (EnumType, StructType, InterfaceType)):
+            return source == target
         if isinstance(source, QuenchedType) and isinstance(target, QuenchedType):
             return is_assignable(source.inner_type, target.inner_type)
         if isinstance(source, ReservoirType) and isinstance(target, ReservoirType):
             return is_assignable(source.inner_type, target.inner_type)
+        if isinstance(source, DictType) and isinstance(target, DictType):
+            return is_assignable(source.key_type, target.key_type) and is_assignable(
+                source.value_type, target.value_type
+            )
         if isinstance(source, FunctionType) and isinstance(target, FunctionType):
             if len(source.param_types) != len(target.param_types):
                 return False

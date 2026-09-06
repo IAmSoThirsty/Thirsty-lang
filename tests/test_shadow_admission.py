@@ -113,7 +113,7 @@ def test_removed_governance_surface_is_rejected_by_regression_rule():
 
 def test_complexity_proxy_reports_configured_violation():
     module = mutation(
-        "if input > 0 { if input > 1 { if input > 2 { return input } } }; return input",
+        "thirsty (input > 0) { thirsty (input > 1) { thirsty (input > 2) { return input } } } return input",
         "return input",
     )
     finding = analyze_complexity_regression(module, max_ratio=1.0, max_delta=0)

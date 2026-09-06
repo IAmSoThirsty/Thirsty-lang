@@ -39,7 +39,7 @@ def test_pdf_table_parser_preserves_pipe_operators_in_code_spans():
 
 def test_manifest_is_complete_and_repository_confined():
     config = load_manifest(MANIFEST)
-    assert config.software_version == "0.8.6"
+    assert config.software_version == "0.9.0"
     assert len(config.documents) >= 14
     paths = {
         document.path.relative_to(ROOT).as_posix() for document in config.documents
@@ -82,7 +82,7 @@ def test_embedded_docs_report_the_package_version(tmp_path: Path):
         text=True,
     )
     generated = (output / "index.html").read_text(encoding="utf-8")
-    assert "v0.8.6" in generated
+    assert "v0.9.0" in generated
     assert "v1.0.0" not in generated
     assert "tarl-lsp" in generated
     assert "Documentation:" in completed.stdout

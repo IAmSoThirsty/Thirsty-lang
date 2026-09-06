@@ -28,7 +28,8 @@ from __future__ import annotations
 
 import datetime
 import json
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
@@ -81,7 +82,18 @@ class AuthorityClaim:
 
     @classmethod
     def from_dict(cls, d: dict) -> AuthorityClaim:
-        return cls(
+        if type(d) is not dict or set(d) - {
+            "subject",
+            "grants",
+            "issued_at",
+            "expires_at",
+            "key_id",
+            "signature",
+        }:
+            raise ValueError("invalid authority claim fields")
+        if "subject" not in d or type(d.get("grants", [])) not in (list, tuple):
+            raise ValueError("authority requires a subject and an array of grants")
+        claim = cls(
             subject=d["subject"],
             grants=tuple(d.get("grants", [])),
             issued_at=d.get("issued_at", ""),
@@ -89,10 +101,37 @@ class AuthorityClaim:
             key_id=d.get("key_id", ""),
             signature=d.get("signature", ""),
         )
+        claim.validate()
+        return claim
+
+    def validate(self) -> None:
+        if not all(
+            type(v) is str
+            for v in (self.subject, self.issued_at, self.key_id, self.signature)
+        ):
+            raise ValueError("authority identity and signature fields must be strings")
+        if not self.subject or not self.key_id:
+            raise ValueError("authority subject and issuer key must be nonempty")
+        if type(self.grants) not in (tuple, list) or any(
+            type(g) is not str or not g for g in self.grants
+        ):
+            raise ValueError("authority grants must be nonempty strings")
+        if len(set(self.grants)) != len(self.grants):
+            raise ValueError("duplicate authority grants")
+        if self.expires_at is not None and type(self.expires_at) is not str:
+            raise ValueError("authority expiry must be a timestamp string")
 
     @classmethod
     def from_json(cls, s: str) -> AuthorityClaim:
-        return cls.from_dict(json.loads(s))
+        def unique(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError(f"duplicate authority field {key!r}")
+                result[key] = value
+            return result
+
+        return cls.from_dict(json.loads(s, object_pairs_hook=unique))
 
 
 @dataclass(frozen=True)
@@ -107,6 +146,34 @@ class VerifiedAuthority:
     subject: str
     grants: tuple[str, ...] = ()
     authenticated: bool = True
+    issued_at: str = ""
+    expires_at: str | None = None
+    key_id: str = ""
+    _revalidate: Callable[[datetime.datetime], str | None] | None = field(
+        default=None, repr=False, compare=False
+    )
+
+    def authorization_error(self, now: datetime.datetime | None) -> str | None:
+        """Recheck the original credential at each effect, including key revocation."""
+        if not self.authenticated:
+            return "authority is not authenticated"
+        if now is None:
+            now = datetime.datetime.now(datetime.UTC)
+        if (
+            not isinstance(now, datetime.datetime)
+            or now.tzinfo is None
+            or now.utcoffset() is None
+        ):
+            return "authority requires valid timezone-aware time"
+        error = _window_error(self.issued_at, self.expires_at, now)
+        if error:
+            return error
+        if self._revalidate is not None:
+            try:
+                return self._revalidate(now)
+            except Exception:
+                return "authority revalidation failed"
+        return None
 
     def has_grant(self, grant: str) -> bool:
         return grant in self.grants
@@ -153,6 +220,14 @@ class AuthorityIssuer:
         now: datetime.datetime | None = None,
     ) -> AuthorityClaim:
         now = now or datetime.datetime.now(datetime.UTC)
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("authority issue time must be timezone-aware")
+        if ttl_seconds is not None and (
+            type(ttl_seconds) is not int or ttl_seconds <= 0
+        ):
+            raise ValueError("authority lifetime must be a positive integer")
+        if type(grants) not in (tuple, list):
+            raise ValueError("authority grants must be an array")
         issued_at = now.isoformat(timespec="seconds")
         expires_at = None
         if ttl_seconds is not None:
@@ -166,6 +241,7 @@ class AuthorityIssuer:
             expires_at=expires_at,
             key_id=self.key_id,
         )
+        claim.validate()
         claim.signature = "ed25519:" + self._key.sign(claim.signing_bytes()).hex()
         return claim
 
@@ -204,45 +280,90 @@ class AuthorityVerifier:
         claim: AuthorityClaim,
         now: datetime.datetime | None = None,
     ) -> AuthorityVerificationResult:
-        alg, _, sig_hex = claim.signature.partition(":")
-        if alg != "ed25519" or not sig_hex:
-            return AuthorityVerificationResult(
-                None, False, "authority claim is unsigned or not Ed25519"
-            )
-        key = self._keys.get(claim.key_id)
-        if key is None:
-            return AuthorityVerificationResult(
-                None, False, f"unknown issuer key_id {claim.key_id!r}"
-            )
+        now = now or datetime.datetime.now(datetime.UTC)
+        # Copy first, then verify and bind only that copy. Reading the caller's
+        # mutable fields again after verification can bind a different identity
+        # from the credential that was actually signed.
         try:
-            key.verify(bytes.fromhex(sig_hex), claim.signing_bytes())
-        except (ValueError, InvalidSignature):
+            snapshot = AuthorityClaim.from_dict(claim.to_dict())
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
             return AuthorityVerificationResult(
-                None, False, "authority signature is invalid"
+                None, False, f"malformed authority claim: {exc}"
             )
-        if claim.expires_at:
-            now = now or datetime.datetime.now(datetime.UTC)
-            try:
-                exp = datetime.datetime.fromisoformat(claim.expires_at)
-                if exp.tzinfo is None:
-                    exp = exp.replace(tzinfo=datetime.UTC)
-                if now > exp:
-                    return AuthorityVerificationResult(
-                        None, False, "authority claim has expired"
-                    )
-            except ValueError:
-                return AuthorityVerificationResult(
-                    None, False, "authority claim has a malformed expiry"
-                )
+        reason = self._validation_error(snapshot, now)
+        if reason:
+            return AuthorityVerificationResult(None, False, reason)
         return AuthorityVerificationResult(
             VerifiedAuthority(
-                subject=claim.subject,
-                grants=claim.grants,
+                subject=snapshot.subject,
+                grants=tuple(snapshot.grants),
                 authenticated=True,
+                issued_at=snapshot.issued_at,
+                expires_at=snapshot.expires_at,
+                key_id=snapshot.key_id,
+                _revalidate=lambda current: self._validation_error(snapshot, current),
             ),
             True,
             "ok",
         )
+
+    def revoke_key(self, key_id: str) -> None:
+        """Revoke an issuer in this verifier, including credentials already bound."""
+        self._keys.pop(key_id, None)
+
+    def _validation_error(
+        self, claim: AuthorityClaim, now: datetime.datetime
+    ) -> str | None:
+        try:
+            claim.validate()
+        except (AttributeError, TypeError, ValueError) as exc:
+            return f"malformed authority claim: {exc}"
+        if (
+            not isinstance(now, datetime.datetime)
+            or now.tzinfo is None
+            or now.utcoffset() is None
+        ):
+            return "authority verification time must be timezone-aware"
+        alg, _, sig_hex = claim.signature.partition(":")
+        if alg != "ed25519" or not sig_hex:
+            return "authority claim is unsigned or not Ed25519"
+        key = self._keys.get(claim.key_id)
+        if key is None:
+            return f"unknown issuer key_id {claim.key_id!r}"
+        try:
+            key.verify(bytes.fromhex(sig_hex), claim.signing_bytes())
+        except (ValueError, InvalidSignature):
+            return "authority signature is invalid"
+        if not claim.issued_at:
+            return "authority claim is missing issue time"
+        return _window_error(claim.issued_at, claim.expires_at, now)
+
+
+def _window_error(
+    issued_at: str, expires_at: str | None, now: datetime.datetime
+) -> str | None:
+    try:
+        issued = datetime.datetime.fromisoformat(issued_at) if issued_at else None
+        expiry = (
+            datetime.datetime.fromisoformat(expires_at)
+            if expires_at is not None
+            else None
+        )
+        for point in (issued, expiry):
+            if point is not None and (
+                point.tzinfo is None or point.utcoffset() is None
+            ):
+                return "authority timestamps must be timezone-aware"
+        if issued is not None and now < issued:
+            return "authority claim is not yet valid"
+        if expiry is not None:
+            if issued is not None and expiry <= issued:
+                return "authority expiry must follow issue time"
+            if now >= expiry:
+                return "authority claim has expired"
+    except (TypeError, ValueError):
+        return "authority claim has a malformed validity window"
+    return None
 
 
 __all__ = [

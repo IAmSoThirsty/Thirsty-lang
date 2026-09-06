@@ -20,6 +20,7 @@ from utf.thirsty_lang.ast import (
     CombineExpr,
     CondenseExpr,
     DefendStrat,
+    DictLiteral,
     DripExpr,
     EnumDecl,
     EvaporateExpr,
@@ -121,7 +122,9 @@ class Parser:
         # program flagged this way.
         if self.errors and header is not None and header.mode == "governed":
             return Program(stmts=[], header=header, span=span, parse_failed=True)
-        return Program(stmts=stmts, header=header, span=span)
+        return Program(
+            stmts=stmts, header=header, span=span, parse_failed=bool(self.errors)
+        )
 
     def _is_at_end(self) -> bool:
         return self._peek().type == TokenType.EOF
@@ -277,10 +280,6 @@ class Parser:
             return self._parse_throw_stmt()
         elif t == TokenType.SHIELD:
             return self._parse_security_block("shield")
-        elif t == TokenType.SANITIZE:
-            return self._parse_sanitize_expr()
-        elif t == TokenType.ARMOR:
-            return self._parse_armor_expr()
         elif t == TokenType.MORPH:
             return self._parse_morph_def()
         elif t == TokenType.DETECT:
@@ -289,8 +288,6 @@ class Parser:
             return self._parse_defend_strat()
         elif t == TokenType.CASCADE:
             return self._parse_cascade_call()
-        elif t == TokenType.NEW:
-            return self._parse_new_expr()
         elif t == TokenType.ENUM:
             return self._parse_enum_decl()
         elif t == TokenType.STRUCT:
@@ -341,10 +338,7 @@ class Parser:
         )
         var_type = None
         if self._match(TokenType.COLON):
-            type_token = self._expect(
-                TokenType.IDENTIFIER, "E901", detail="Expected type after ':'"
-            )
-            var_type = type_token.lexeme
+            var_type = self._parse_type_name()
         init_expr = None
         if self._match(TokenType.ASSIGN):
             init_expr = self._parse_expr()
@@ -367,10 +361,7 @@ class Parser:
         )
         var_type = None
         if self._match(TokenType.COLON):
-            type_token = self._expect(
-                TokenType.IDENTIFIER, "E901", detail="Expected type after ':'"
-            )
-            var_type = type_token.lexeme
+            var_type = self._parse_type_name()
         init_expr = None
         if self._match(TokenType.ASSIGN):
             init_expr = self._parse_expr()
@@ -554,10 +545,7 @@ class Parser:
         params = self._parse_params()
         return_type = None
         if self._match(TokenType.ARROW):
-            type_token = self._expect(
-                TokenType.IDENTIFIER, "E901", detail="Expected return type after '->'"
-            )
-            return_type = type_token.lexeme
+            return_type = self._parse_type_name()
         # Governance clauses (any order): requires / ensures / invariant.
         clauses = {}
         while self._check(TokenType.REQUIRES, TokenType.ENSURES, TokenType.INVARIANT):
@@ -621,10 +609,7 @@ class Parser:
                 )
                 var_type = None
                 if self._match(TokenType.COLON):
-                    type_t = self._expect(
-                        TokenType.IDENTIFIER, "E901", detail="Expected field type"
-                    )
-                    var_type = type_t.lexeme
+                    var_type = self._parse_type_name()
                 default_expr = None
                 if self._match(TokenType.ASSIGN):
                     default_expr = self._parse_expr()
@@ -640,6 +625,19 @@ class Parser:
             span=self._span(start),
         )
 
+    def _parse_type_name(self) -> str:
+        token = self._expect(TokenType.IDENTIFIER, "E901", detail="Expected type name")
+        name = token.lexeme
+        if self._match(TokenType.LBRACKET):
+            arguments = [self._parse_type_name()]
+            while self._match(TokenType.COMMA):
+                arguments.append(self._parse_type_name())
+            self._expect(
+                TokenType.RBRACKET, "E901", detail="Expected ']' after type arguments"
+            )
+            name += "[" + ", ".join(arguments) + "]"
+        return name
+
     def _parse_params(self) -> list:
         params = []
         self._expect(TokenType.LPAREN, "E901", detail="Expected '(' for parameters")
@@ -649,10 +647,7 @@ class Parser:
             )
             param_type = None
             if self._match(TokenType.COLON):
-                type_token = self._expect(
-                    TokenType.IDENTIFIER, "E901", detail="Expected parameter type"
-                )
-                param_type = type_token.lexeme
+                param_type = self._parse_type_name()
             params.append((name_token.lexeme, param_type))
             while self._match(TokenType.COMMA):
                 name_token = self._expect(
@@ -660,10 +655,7 @@ class Parser:
                 )
                 param_type = None
                 if self._match(TokenType.COLON):
-                    type_token = self._expect(
-                        TokenType.IDENTIFIER, "E901", detail="Expected parameter type"
-                    )
-                    param_type = type_token.lexeme
+                    param_type = self._parse_type_name()
                 params.append((name_token.lexeme, param_type))
         self._expect(TokenType.RPAREN, "E901", detail="Expected ')' after parameters")
         return params
@@ -795,10 +787,7 @@ class Parser:
             )
             field_type = None
             if self._match(TokenType.COLON):
-                type_token = self._expect(
-                    TokenType.IDENTIFIER, "E901", detail="Expected field type"
-                )
-                field_type = type_token.lexeme
+                field_type = self._parse_type_name()
             fields.append((field_token.lexeme, field_type))
             self._match(TokenType.SEMICOLON)
         self._expect(
@@ -822,10 +811,7 @@ class Parser:
             params = self._parse_params()
             ret_type = None
             if self._match(TokenType.ARROW):
-                type_token = self._expect(
-                    TokenType.IDENTIFIER, "E901", detail="Expected return type"
-                )
-                ret_type = type_token.lexeme
+                ret_type = self._parse_type_name()
             methods.append((method_token.lexeme, params, ret_type))
             self._match(TokenType.SEMICOLON)
         self._expect(
@@ -1109,6 +1095,8 @@ class Parser:
             return expr
         elif t == TokenType.LBRACKET:
             return self._parse_reservoir_literal()
+        elif t == TokenType.LBRACE:
+            return self._parse_dictionary_literal()
         elif t == TokenType.MINUS:
             self._advance()
             # Unary binds tighter than every binary operator: parse only the
@@ -1168,10 +1156,7 @@ class Parser:
         params = self._parse_params()
         return_type = None
         if self._match(TokenType.ARROW):
-            type_token = self._expect(
-                TokenType.IDENTIFIER, "E901", detail="Expected return type after '->'"
-            )
-            return_type = type_token.lexeme
+            return_type = self._parse_type_name()
         body = self._parse_block()
         return LambdaExpr(
             params=params, body=body, return_type=return_type, span=self._span(start)
@@ -1226,6 +1211,24 @@ class Parser:
             TokenType.RBRACKET, "E901", detail="Expected ']' after reservoir literal"
         )
         return ArrayLiteral(elements=elements, span=self._span(start))
+
+    def _parse_dictionary_literal(self) -> DictLiteral:
+        """Parse a dictionary in expression position; bare statement braces are blocks."""
+        start = self._advance()
+        entries = []
+        while not self._check(TokenType.RBRACE) and not self._is_at_end():
+            key = self._parse_expr()
+            self._expect(
+                TokenType.COLON, "E901", detail="Expected ':' after dictionary key"
+            )
+            value = self._parse_expr()
+            entries.append((key, value))
+            if not self._match(TokenType.COMMA):
+                break
+        self._expect(
+            TokenType.RBRACE, "E901", detail="Expected '}' after dictionary entries"
+        )
+        return DictLiteral(span=self._span(start), items=entries)
 
     def _parse_call_suffix(self, callee: Expr) -> Expr:
         self._advance()  # consume (

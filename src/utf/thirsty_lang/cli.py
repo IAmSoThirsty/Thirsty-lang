@@ -7,21 +7,26 @@ import json
 import os
 import sys
 import traceback
+from pathlib import Path
 
 from utf.thirsty_lang import __version__
 from utf.thirsty_lang.ast import (
+    ArrayLiteral,
+    AssignStmt,
     BinaryOp,
     BlockStmt,
     BoolLiteral,
     CallExpr,
     ExprStmt,
     FloatLiteral,
+    FunctionDecl,
     Identifier,
     IntLiteral,
     NoneLiteral,
     ReturnStmt,
     StringLiteral,
     UnaryOp,
+    VariableDecl,
 )
 from utf.thirsty_lang.token import TokenType
 
@@ -95,6 +100,16 @@ def main():
         "--hardened",
         action="store_true",
         help="Hardened posture: require an authenticated (signed) authority and Ed25519-signed proofs at every governed gate",
+    )
+    run_parser.add_argument(
+        "--audit-db",
+        metavar="FILE",
+        help="Persist decision proofs in a local SQLite archive",
+    )
+    run_parser.add_argument(
+        "--require-audit",
+        action="store_true",
+        help="Require --policy and --audit-db; deny effects when evidence cannot be persisted",
     )
     run_parser.add_argument(
         "--authority-token",
@@ -359,8 +374,19 @@ def cmd_run(args):
     from utf.thirsty_lang.diagnostics import DiagnosticBundle
     from utf.thirsty_lang.interpreter import GovernanceViolation, Interpreter
     from utf.thirsty_lang.lexer import Lexer
-    from utf.thirsty_lang.module_system import load_lockfile
+    from utf.thirsty_lang.module_system import LockedImports
     from utf.thirsty_lang.parser import Parser
+
+    locked_imports = None
+    if getattr(args, "locked", False):
+        if args.demo:
+            print("Error: --locked requires a project source file", file=sys.stderr)
+            sys.exit(1)
+        try:
+            locked_imports = LockedImports(os.getcwd())
+        except (OSError, ValueError, ImportError) as exc:
+            print(f"Error: lockfile validation failed: {exc}", file=sys.stderr)
+            sys.exit(1)
 
     if args.demo:
         source = """module hello: core
@@ -376,7 +402,33 @@ pour result
         file_path = "<demo>"
     else:
         file_path = args.file
+        if not file_path:
+            print("Error: run requires a source file or --demo", file=sys.stderr)
+            sys.exit(1)
         if file_path.endswith(".thirstofgods"):
+            restrictions = (
+                "policy",
+                "context_schema",
+                "authority",
+                "authority_token",
+                "authority_key",
+                "authority_key_file",
+                "sign_proofs",
+                "sign_proofs_file",
+                "hardened",
+                "audit_db",
+                "require_audit",
+            )
+            if (
+                locked_imports is not None
+                or any(getattr(args, name, None) for name in restrictions)
+                or args.thirst_level != "core"
+            ):
+                print(
+                    "Error: restricted runs of .thirstofgods must use the Thirsty-Lang entry point after explicit conversion",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
             from utf.thirst_of_gods.cli import run as gods_run
 
             gods_run(file_path)
@@ -384,8 +436,15 @@ pour result
         if not os.path.exists(file_path):
             print(f"Error: File not found: {file_path}", file=sys.stderr)
             sys.exit(1)
-        with open(file_path) as f:
-            source = f.read()
+        try:
+            if locked_imports is not None:
+                source = locked_imports.read_source(file_path)
+            else:
+                with open(file_path, encoding="utf-8") as f:
+                    source = f.read()
+        except (OSError, UnicodeError, ValueError, ImportError) as exc:
+            print(f"Error: cannot load source: {exc}", file=sys.stderr)
+            sys.exit(1)
 
     lexer = Lexer(source)
     tokens = lexer.lex()
@@ -404,19 +463,12 @@ pour result
         print(bundle.format_all(), file=sys.stderr)
         sys.exit(1)
 
-    # --locked flag: verify thirsty.lock exists before executing
-    if getattr(args, "locked", False):
-        lock = load_lockfile(".")
-        if not lock or "dependencies" not in lock or not lock["dependencies"]:
-            print(
-                "Error: Lockfile check failed — thirsty.lock not found or empty.",
-                file=sys.stderr,
-            )
-            print("Run 'thirsty lock' first to generate it.", file=sys.stderr)
-            sys.exit(1)
-        print("Lockfile verified. Running with integrity checks enabled.")
-
     interpreter = Interpreter(opt_level=args.opt, debug_mode=args.trace)
+    if not args.demo:
+        interpreter.source_directory = Path(file_path).resolve().parent
+    if locked_imports is not None:
+        interpreter.set_locked(locked_imports)
+        print("Lockfile verified. Content integrity checks enabled.")
 
     # Governance wiring: bind the authority tag into the governance context,
     # and route governed calls through a TARL policy engine when --policy
@@ -433,7 +485,7 @@ pour result
         from utf.tarl.core import PolicyParser
         from utf.tarl.runtime import TarlRuntime
 
-        with open(policy_path) as pf:
+        with open(policy_path, encoding="utf-8") as pf:
             policy = PolicyParser.parse(pf.read())
         runtime = TarlRuntime(policy)
         schema_path = getattr(args, "context_schema", None)
@@ -487,6 +539,8 @@ pour result
 
             try:
                 kf = keystore.load(key_path)
+                if kf.role != keystore.ROLE_AUTHORITY_ISSUER:
+                    raise ValueError("expected an authority-issuer key")
                 verifier.add_ed25519_key(kf.key_id, kf.public_bytes())
             except (OSError, ValueError) as e:
                 print(
@@ -494,7 +548,7 @@ pour result
                     file=sys.stderr,
                 )
                 sys.exit(1)
-        with open(token_path) as tf:
+        with open(token_path, encoding="utf-8") as tf:
             claim = AuthorityClaim.from_json(tf.read())
         auth_result = verifier.verify(claim)
         if not auth_result.valid:
@@ -514,6 +568,8 @@ pour result
 
         try:
             kf = keystore.load(sign_file)
+            if kf.role != keystore.ROLE_PROOF_SIGNER:
+                raise ValueError("expected a proof-signer key")
             runtime.set_ed25519_signing_key(kf.key_id, kf.private_bytes())
         except (OSError, ValueError) as e:
             print(
@@ -525,11 +581,38 @@ pour result
         try:
             runtime.set_ed25519_signing_key(kid, bytes.fromhex(hexseed))
         except ValueError as e:
-            print(f"Error: invalid --sign-proofs {sign_spec!r}: {e}", file=sys.stderr)
+            print(f"Error: invalid --sign-proofs key: {e}", file=sys.stderr)
             sys.exit(1)
 
     if getattr(args, "hardened", False):
         interpreter.set_hardened(True)
+
+    audit_path = getattr(args, "audit_db", None)
+    require_audit = getattr(args, "require_audit", False)
+    if (audit_path or require_audit or sign_file or sign_spec) and runtime is None:
+        print(
+            "Error: audit and proof-signing options require --policy", file=sys.stderr
+        )
+        sys.exit(1)
+    if require_audit and not audit_path:
+        print("Error: --require-audit requires --audit-db", file=sys.stderr)
+        sys.exit(1)
+    if (
+        require_audit
+        and (ast.header.mode if ast.header else args.thirst_level) != "governed"
+    ):
+        print("Error: --require-audit requires a governed module", file=sys.stderr)
+        sys.exit(1)
+    archive = None
+    if audit_path and runtime is not None:
+        from utf.tarl.archive import TarlAuditArchive
+
+        try:
+            archive = TarlAuditArchive(audit_path)
+        except Exception as exc:
+            print(f"Error: audit archive unavailable: {exc}", file=sys.stderr)
+            sys.exit(1)
+        runtime.set_archive(archive).set_require_audit(require_audit)
 
     try:
         result = interpreter.interpret(ast, mode=args.thirst_level)
@@ -551,6 +634,9 @@ pour result
         if args.trace:
             traceback.print_exc()
         sys.exit(1)
+    finally:
+        if archive is not None:
+            archive.close()
 
 
 def cmd_repl(args):
@@ -749,7 +835,7 @@ def cmd_build(args):
         print(f"Error: File not found: {args.file}", file=sys.stderr)
         sys.exit(1)
 
-    with open(args.file) as f:
+    with open(args.file, encoding="utf-8") as f:
         source = f.read()
 
     lexer = Lexer(source)
@@ -757,6 +843,16 @@ def cmd_build(args):
 
     parser = Parser(tokens)
     ast = parser.parse()
+
+    from utf.thirsty_lang.checker import check_ast
+    from utf.thirsty_lang.diagnostics import DiagnosticBundle
+
+    diagnostics = [*lexer.errors, *parser.errors, *check_ast(ast)]
+    if diagnostics or getattr(ast, "parse_failed", False):
+        print(DiagnosticBundle(diagnostics).format_all(), file=sys.stderr)
+        sys.exit(1)
+
+    _validate_build_mode(ast)
 
     target = args.target
     base = os.path.splitext(args.file)[0]
@@ -813,21 +909,83 @@ def cmd_build(args):
         )
 
 
+def _validate_build_mode(ast) -> None:
+    """Preserve strict initialization before any backend artifact is emitted."""
+    import dataclasses
+
+    if not ast.header or ast.header.mode != "strict":
+        return
+    pending = [ast]
+    visited = 0
+    while pending:
+        visited += 1
+        if visited > 5000:
+            raise ValueError("Strict build AST analysis budget exceeded")
+        node = pending.pop()
+        if isinstance(node, VariableDecl) and node.init_expr is None:
+            raise ValueError("Strict build requires every variable to be initialized")
+        if dataclasses.is_dataclass(node):
+            pending.extend(
+                getattr(node, field.name)
+                for field in dataclasses.fields(node)
+                if field.name != "span"
+            )
+        elif isinstance(node, (list, tuple)):
+            if len(node) > 5000:
+                raise ValueError("Strict build AST analysis budget exceeded")
+            pending.extend(node)
+
+
 def _transpile_to_js(ast) -> str:
     """Simple transpilation of Thirsty-Lang AST to JavaScript."""
 
-    lines = ["// Generated by Thirsty-Lang compiler", ""]
+    if getattr(ast, "parse_failed", False):
+        raise ValueError("Cannot compile a malformed program")
+    _validate_build_mode(ast)
+    lines = ["// Generated by Thirsty-Lang compiler", _JS_PRIMITIVES, ""]
 
-    # Track function definitions
-    for stmt in ast.stmts:
-        if hasattr(stmt, "name"):
-            if hasattr(stmt, "params") and hasattr(stmt, "body"):
-                # Function
-                params = ", ".join(p[0] for p in stmt.params)
-                lines.append(f"function {stmt.name}({params}) {{")
-                _js_stmt_body(stmt.body, lines, indent=1)
-                lines.append("}")
-                lines.append("")
+    # Only directly declared functions have a supported callable ABI here.
+    import dataclasses
+
+    functions = {s.name for s in ast.stmts if type(s) is FunctionDecl}
+
+    visited = 0
+
+    def validate_calls(node, depth=0):
+        nonlocal visited
+        visited += 1
+        if visited > 5000 or depth > 64:
+            raise ValueError("JS AST analysis budget exceeded")
+        if isinstance(node, CallExpr) and (
+            not isinstance(node.callee, Identifier) or node.callee.name not in functions
+        ):
+            raise ValueError("JS target only supports calls to declared functions")
+        if dataclasses.is_dataclass(node):
+            for field in dataclasses.fields(node):
+                if field.name != "span":
+                    validate_calls(getattr(node, field.name), depth + 1)
+        elif isinstance(node, (list, tuple)):
+            for item in node:
+                validate_calls(item, depth + 1)
+
+    validate_calls(ast)
+
+    def validate_scope(statements, names=()):
+        seen = set(names)
+        for stmt in statements:
+            if isinstance(stmt, (VariableDecl, FunctionDecl)):
+                if stmt.name in seen:
+                    raise ValueError("JS target rejects duplicate bindings in a scope")
+                seen.add(stmt.name)
+            if type(stmt) is FunctionDecl:
+                body = (
+                    stmt.body.statements
+                    if isinstance(stmt.body, BlockStmt)
+                    else [stmt.body]
+                )
+                validate_scope(body, (p[0] for p in stmt.params))
+
+    validate_scope(ast.stmts)
 
     # Track main expression
     main_expr = None
@@ -839,26 +997,143 @@ def _transpile_to_js(ast) -> str:
 
     # Generate main execution
     for stmt in ast.stmts:
-        if hasattr(stmt, "name") and getattr(stmt, "name", None) == "main":
-            continue
-        if not (hasattr(stmt, "params") and hasattr(stmt, "body")):
+        if type(stmt) is FunctionDecl:
+            # Source-order initialization matches interpreter closure binding;
+            # JS function declarations would incorrectly hoist availability.
+            params = ", ".join(_js_name(p[0]) for p in stmt.params)
+            if len(stmt.params) != len({p[0] for p in stmt.params}):
+                raise ValueError("JS target rejects duplicate parameter names")
+            lines.append(f"const {_js_name(stmt.name)} = function({params}) {{")
+            lines.append(
+                f"  if (arguments.length !== {len(stmt.params)}) throw new Error('Argument count mismatch');"
+            )
+            _js_stmt_body(stmt.body, lines, indent=1)
+            lines.append("  return null;")
+            lines.append("};")
+            lines.append("")
+        else:
+            if isinstance(stmt, ReturnStmt):
+                raise ValueError("JS target rejects top-level return")
             _js_stmt(stmt, lines, indent=0)
             lines.append("")
 
     if main_expr:
-        js_expr = _js_expression(main_expr)
-        lines.append(f"console.log({js_expr});")
+        lines.append(f"console.log(__display({_js_name('main')}));")
 
     return "\n".join(lines)
+
+
+_JS_PRIMITIVES = """'use strict';
+function __display(v) {
+  if (v === null) return 'None';
+  if (v === true) return 'True';
+  if (v === false) return 'False';
+  if (Object.is(v, -0)) return '-0.0';
+  if (typeof v === 'number' && Number.isInteger(v)) return String(v) + '.0';
+  if (Array.isArray(v)) return '[' + v.map(x => typeof x === 'string' ? JSON.stringify(x) : __display(x)).join(', ') + ']';
+  return String(v);
+}
+function __equal(a, b) {
+  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((v, i) => __equal(v, b[i]));
+  const numeric = x => ['number', 'bigint', 'boolean'].includes(typeof x);
+  return numeric(a) && numeric(b) ? a == b : a === b;
+}
+function __intDivide(a, b) {
+  if (b === 0n) throw new Error('Division by zero');
+  const negative = (a < 0n) !== (b < 0n);
+  a = a < 0n ? -a : a; b = b < 0n ? -b : b;
+  if (a === 0n) return negative ? -0 : 0;
+  let exponent = a.toString(2).length - b.toString(2).length;
+  if (exponent >= 0 ? a < (b << BigInt(exponent)) : (a << BigInt(-exponent)) < b) exponent--;
+  if (exponent > 1023) throw new Error('Integer division overflow');
+  if (exponent < -1075) return negative ? -0 : 0;
+  const shift = exponent < -1022 ? 1074 : 52 - exponent;
+  const numerator = shift >= 0 ? a << BigInt(shift) : a;
+  const denominator = shift >= 0 ? b : b << BigInt(-shift);
+  let quotient = numerator / denominator;
+  const remainder = numerator % denominator;
+  if (2n * remainder > denominator || (2n * remainder === denominator && quotient % 2n === 1n)) quotient++;
+  const result = Number(quotient) * (2 ** (-shift));
+  if (!Number.isFinite(result)) throw new Error('Integer division overflow');
+  return negative ? -result : result;
+}
+function __truth(v) {
+  if (typeof v === 'number') return v !== 0;
+  return Array.isArray(v) || typeof v === 'string' ? v.length !== 0 : Boolean(v);
+}
+function __neg(v) {
+  if (typeof v === 'boolean') return -BigInt(v);
+  if (!['number', 'bigint'].includes(typeof v)) throw new Error('Numeric operand required');
+  return -v;
+}
+function __binary(op, a, b) {
+  if (op === '==' || op === '!=') return op === '==' ? __equal(a, b) : !__equal(a, b);
+  if (op === '+' && typeof a === 'string' && typeof b === 'string') return a + b;
+  if (op === '+' && Array.isArray(a) && Array.isArray(b)) return a.concat(b);
+  if (op === '*' && (typeof a === 'string' || Array.isArray(a))) {
+    if (!['bigint', 'boolean'].includes(typeof b)) throw new Error('Sequence repeat count must be Int');
+    const count = Number(b);
+    if (count <= 0) return typeof a === 'string' ? '' : [];
+    if (!Number.isSafeInteger(count) || count * a.length > 1000000) throw new Error('JS sequence resource limit exceeded');
+    if (typeof a === 'string') return a.repeat(count);
+    return Array.from({length: count}, () => a).flat();
+  }
+  if (op === '*' && (typeof b === 'string' || Array.isArray(b))) return __binary(op, b, a);
+  if (['<','<=','>','>='].includes(op) && typeof a === 'string' && typeof b === 'string') {
+    const aa = Array.from(a, ch => ch.codePointAt(0)), bb = Array.from(b, ch => ch.codePointAt(0));
+    let comparison = 0, i = 0;
+    while (i < aa.length && i < bb.length && aa[i] === bb[i]) i++;
+    comparison = i < aa.length && i < bb.length ? Math.sign(aa[i] - bb[i]) : Math.sign(aa.length - bb.length);
+    return op === '<' ? comparison < 0 : op === '<=' ? comparison <= 0 : op === '>' ? comparison > 0 : comparison >= 0;
+  }
+  if (['<','<=','>','>='].includes(op) && Array.isArray(a) && Array.isArray(b)) {
+    let i = 0;
+    while (i < a.length && i < b.length && __equal(a[i], b[i])) i++;
+    if (i < a.length && i < b.length) return __binary(op, a[i], b[i]);
+    return __binary(op, BigInt(a.length), BigInt(b.length));
+  }
+  if (Array.isArray(a) || Array.isArray(b)) throw new Error('Array operators unsupported by JS target');
+  const numeric = x => ['number', 'bigint', 'boolean'].includes(typeof x);
+  if (!numeric(a) || !numeric(b)) throw new Error('Numeric operands required by JS target');
+  if (typeof a === 'boolean') a = BigInt(a);
+  if (typeof b === 'boolean') b = BigInt(b);
+  if (op === '/' && typeof a === 'bigint' && typeof b === 'bigint') return __intDivide(a, b);
+  if (op === '<') return a < b;
+  if (op === '<=') return a <= b;
+  if (op === '>') return a > b;
+  if (op === '>=') return a >= b;
+  if (typeof a !== typeof b || op === '/') {
+    if ((typeof a === 'bigint' && !Number.isFinite(Number(a))) ||
+        (typeof b === 'bigint' && !Number.isFinite(Number(b)))) throw new Error('Integer conversion overflow');
+    a = Number(a); b = Number(b);
+  }
+  if ((op === '/' || op === '%') && (b === 0 || b === 0n)) throw new Error('Division by zero');
+  if (op === '+') return a + b;
+  if (op === '-') return a - b;
+  if (op === '*') return a * b;
+  if (op === '/') return a / b;
+  if (op === '%') {
+    let r = a % b;
+    if (r === 0) return b < 0 ? -0 : 0;
+    return r !== 0n && ((r < 0) !== (b < 0)) ? r + b : r;
+  }
+  throw new Error('Unsupported operator');
+}
+"""
+
+
+def _js_name(name: str) -> str:
+    # Source identifiers cannot collide with JS keywords or target helpers.
+    return "thirst_" + name.encode("utf-8").hex()
 
 
 def _js_expression(expr) -> str:
     """Convert a Thirsty-Lang expression to JS."""
 
     if isinstance(expr, IntLiteral):
-        return str(expr.value)
+        return f"{expr.value}n"
     elif isinstance(expr, FloatLiteral):
-        return str(expr.value)
+        return json.dumps(expr.value)
     elif isinstance(expr, StringLiteral):
         return json.dumps(expr.value)
     elif isinstance(expr, BoolLiteral):
@@ -866,7 +1141,11 @@ def _js_expression(expr) -> str:
     elif isinstance(expr, NoneLiteral):
         return "null"
     elif isinstance(expr, Identifier):
-        return expr.name
+        if expr.name == "__error__":
+            raise ValueError("JS target rejects the reserved error identifier")
+        return _js_name(expr.name)
+    elif isinstance(expr, ArrayLiteral):
+        return "[" + ", ".join(_js_expression(e) for e in expr.elements) + "]"
     elif isinstance(expr, BinaryOp):
         op_map = {
             TokenType.PLUS: "+",
@@ -874,8 +1153,8 @@ def _js_expression(expr) -> str:
             TokenType.STAR: "*",
             TokenType.SLASH: "/",
             TokenType.PERCENT: "%",
-            TokenType.EQEQ: "===",
-            TokenType.NE: "!==",
+            TokenType.EQEQ: "==",
+            TokenType.NE: "!=",
             TokenType.LT: "<",
             TokenType.GT: ">",
             TokenType.LE: "<=",
@@ -883,17 +1162,28 @@ def _js_expression(expr) -> str:
             TokenType.AND: "&&",
             TokenType.OR: "||",
         }
-        js_op = op_map.get(expr.op, expr.op.name.lower())
-        return f"({_js_expression(expr.left)} {js_op} {_js_expression(expr.right)})"
+        if expr.op not in op_map:
+            raise ValueError(f"JS target does not support operator {expr.op.name}")
+        left, right = _js_expression(expr.left), _js_expression(expr.right)
+        if expr.op in {TokenType.AND, TokenType.OR}:
+            choice = (
+                f"__truth(v) ? {right} : v"
+                if expr.op is TokenType.AND
+                else f"__truth(v) ? v : {right}"
+            )
+            return f"((v) => {choice})({left})"
+        return f"__binary({json.dumps(op_map[expr.op])}, {left}, {right})"
     elif isinstance(expr, UnaryOp):
         if expr.op == TokenType.MINUS:
-            return f"(-{_js_expression(expr.operand)})"
-        return f"(!{_js_expression(expr.operand)})"
+            return f"__neg({_js_expression(expr.operand)})"
+        if expr.op == TokenType.NOT:
+            return f"(!__truth({_js_expression(expr.operand)}))"
+        raise ValueError(f"JS target does not support unary operator {expr.op.name}")
     elif isinstance(expr, CallExpr):
         callee = _js_expression(expr.callee)
         args = ", ".join(_js_expression(a) for a in expr.args)
         return f"{callee}({args})"
-    return "(null)"
+    raise ValueError(f"JS target does not support expression {type(expr).__name__}")
 
 
 def _js_stmt(stmt, lines, indent=0):
@@ -903,8 +1193,18 @@ def _js_stmt(stmt, lines, indent=0):
     if isinstance(stmt, ExprStmt):
         lines.append(f"{prefix}{_js_expression(stmt.expr)};")
     elif isinstance(stmt, ReturnStmt):
-        val = _js_expression(stmt.value) if stmt.value else ""
+        val = _js_expression(stmt.value) if stmt.value else "null"
         lines.append(f"{prefix}return {val};")
+    elif isinstance(stmt, VariableDecl):
+        value = _js_expression(stmt.init_expr) if stmt.init_expr is not None else "null"
+        kind = "let" if stmt.is_mut else "const"
+        lines.append(f"{prefix}{kind} {_js_name(stmt.name)} = {value};")
+    elif isinstance(stmt, AssignStmt) and isinstance(stmt.target, Identifier):
+        lines.append(
+            f"{prefix}{_js_name(stmt.target.name)} = {_js_expression(stmt.value)};"
+        )
+    else:
+        raise ValueError(f"JS target does not support statement {type(stmt).__name__}")
 
 
 def _js_stmt_body(stmt, lines, indent=0):
@@ -917,130 +1217,207 @@ def _js_stmt_body(stmt, lines, indent=0):
 
 
 class _LLVMExpr:
-    """Accumulates LLVM IR instructions for an integer expression tree.
+    """Evaluate the closed signed-i32 scalar subset before emitting any IR.
 
-    Mirrors the scope of the JS transpiler: integers, booleans, identifiers,
-    arithmetic/comparison/logic, unary, and direct calls. Each value is an i32.
+    The target exposes only an entrypoint result, not callable language exports.
+    Calls are confined to validated local function ASTs, with operation/depth
+    budgets. Every evaluated intermediate must fit i32; no host code executes.
     """
 
     def __init__(self):
-        self.n = 0
         self.body = []
+        self.steps = 10000
+        self.depth = 0
+        self.functions = {}
+        self.globals = {}
 
-    def _tmp(self) -> str:
-        self.n += 1
-        return f"%t{self.n}"
+    def _tick(self):
+        self.steps -= 1
+        if self.steps < 0:
+            raise ValueError("LLVM compile-time operation budget exceeded")
+
+    @staticmethod
+    def _checked(value):
+        if type(value) not in (int, bool) or not -(1 << 31) <= value < (1 << 31):
+            raise ValueError("LLVM closed-scalar target requires signed-i32 values")
+        return value
 
     def emit(self, expr, env) -> str:
-        """Emit IR for ``expr``; return the operand string (register or literal)."""
-        if isinstance(expr, IntLiteral):
-            return str(expr.value)
-        if isinstance(expr, BoolLiteral):
-            return "1" if expr.value else "0"
+        return str(int(self.evaluate(expr, env)))
+
+    def evaluate(self, expr, env):
+        self._tick()
+        if isinstance(expr, (IntLiteral, BoolLiteral)):
+            return self._checked(expr.value)
         if isinstance(expr, Identifier):
-            return str(env.get(expr.name, "0"))
+            if expr.name == "__error__" or expr.name not in env:
+                raise ValueError(f"LLVM target has unresolved identifier {expr.name!r}")
+            return self._checked(env[expr.name])
         if isinstance(expr, UnaryOp):
-            val = self.emit(expr.operand, env)
-            reg = self._tmp()
+            if expr.op == TokenType.MINUS and isinstance(expr.operand, IntLiteral):
+                return self._checked(-expr.operand.value)
+            value = self.evaluate(expr.operand, env)
             if expr.op == TokenType.MINUS:
-                self.body.append(f"  {reg} = sub i32 0, {val}")
-            else:  # logical not
-                self.body.append(f"  {reg} = xor i32 {val}, 1")
-            return reg
+                return self._checked(-value)
+            if expr.op == TokenType.NOT:
+                return not value
+            raise ValueError("LLVM target does not support this unary operator")
         if isinstance(expr, BinaryOp):
-            left = self.emit(expr.left, env)
-            right = self.emit(expr.right, env)
-            arith = {
-                TokenType.PLUS: "add",
-                TokenType.MINUS: "sub",
-                TokenType.STAR: "mul",
-                TokenType.SLASH: "sdiv",
-                TokenType.PERCENT: "srem",
+            left = self.evaluate(expr.left, env)
+            if expr.op == TokenType.AND:
+                return self.evaluate(expr.right, env) if left else left
+            if expr.op == TokenType.OR:
+                return left if left else self.evaluate(expr.right, env)
+            right = self.evaluate(expr.right, env)
+            operations = {
+                TokenType.PLUS: lambda: left + right,
+                TokenType.MINUS: lambda: left - right,
+                TokenType.STAR: lambda: left * right,
+                TokenType.PERCENT: lambda: left % right,
+                TokenType.EQEQ: lambda: left == right,
+                TokenType.NE: lambda: left != right,
+                TokenType.LT: lambda: left < right,
+                TokenType.LE: lambda: left <= right,
+                TokenType.GT: lambda: left > right,
+                TokenType.GE: lambda: left >= right,
             }
-            cmps = {
-                TokenType.EQEQ: "eq",
-                TokenType.NE: "ne",
-                TokenType.LT: "slt",
-                TokenType.GT: "sgt",
-                TokenType.LE: "sle",
-                TokenType.GE: "sge",
-            }
-            if expr.op in arith:
-                reg = self._tmp()
-                self.body.append(f"  {reg} = {arith[expr.op]} i32 {left}, {right}")
-                return reg
-            if expr.op in cmps:
-                bit = self._tmp()
-                reg = self._tmp()
-                self.body.append(f"  {bit} = icmp {cmps[expr.op]} i32 {left}, {right}")
-                self.body.append(f"  {reg} = zext i1 {bit} to i32")
-                return reg
-            # and/or fold to bitwise on the i32 truth values
-            reg = self._tmp()
-            logic = "and" if expr.op == TokenType.AND else "or"
-            self.body.append(f"  {reg} = {logic} i32 {left}, {right}")
-            return reg
-        if isinstance(expr, CallExpr):
-            args = [self.emit(a, env) for a in expr.args]
-            callee = (
-                expr.callee.name if isinstance(expr.callee, Identifier) else "unknown"
+            if expr.op not in operations:
+                raise ValueError(
+                    "LLVM closed-scalar target does not support division or this operator"
+                )
+            try:
+                return self._checked(operations[expr.op]())
+            except ArithmeticError as exc:
+                raise ValueError(f"LLVM constant arithmetic failed: {exc}") from exc
+        if isinstance(expr, CallExpr) and isinstance(expr.callee, Identifier):
+            name = expr.callee.name
+            if name in env or name not in self.functions:
+                raise ValueError(f"LLVM target cannot call {name!r}")
+            declaration = self.functions[name]
+            if len(expr.args) != len(declaration.params):
+                raise ValueError("LLVM function argument count mismatch")
+            values = [self.evaluate(arg, env) for arg in expr.args]
+            local = dict(self.globals)
+            local.update(
+                zip((param[0] for param in declaration.params), values, strict=True)
             )
-            arglist = ", ".join(f"i32 {a}" for a in args)
-            reg = self._tmp()
-            self.body.append(f"  {reg} = call i32 @{callee}({arglist})")
-            return reg
-        return "0"
+            self.depth += 1
+            try:
+                if self.depth > 32:
+                    raise ValueError("LLVM compile-time call depth exceeded")
+                value, returned = self.statements(
+                    declaration.body.statements, local, in_function=True
+                )
+                if not returned:
+                    raise ValueError("LLVM functions require an explicit scalar return")
+                return value
+            finally:
+                self.depth -= 1
+        raise ValueError(
+            f"LLVM target does not support expression {type(expr).__name__}"
+        )
 
-
-def _llvm_function(stmt, lines):
-    """Emit an ``i32`` LLVM function definition for a Thirsty-Lang function."""
-    params = ", ".join(f"i32 %{p[0]}" for p in stmt.params)
-    env = {p[0]: f"%{p[0]}" for p in stmt.params}
-    lines.append(f"define i32 @{stmt.name}({params}) {{")
-    lines.append("entry:")
-    em = _LLVMExpr()
-    ret = "0"
-    body = stmt.body.statements if isinstance(stmt.body, BlockStmt) else [stmt.body]
-    for s in body:
-        if isinstance(s, ReturnStmt) and s.value is not None:
-            ret = em.emit(s.value, env)
-        elif isinstance(s, ExprStmt):
-            em.emit(s.expr, env)
-    lines.extend(em.body)
-    lines.append(f"  ret i32 {ret}")
-    lines.append("}")
-    lines.append("")
+    def statements(self, statements, env, *, in_function=False):
+        mutable = set()
+        for stmt in statements:
+            self._tick()
+            if isinstance(stmt, VariableDecl):
+                if stmt.init_expr is None:
+                    raise ValueError("LLVM target requires initialized variables")
+                env[stmt.name] = self.evaluate(stmt.init_expr, env)
+                if stmt.is_mut:
+                    mutable.add(stmt.name)
+                else:
+                    mutable.discard(stmt.name)
+            elif isinstance(stmt, AssignStmt) and isinstance(stmt.target, Identifier):
+                if stmt.target.name not in mutable:
+                    raise ValueError("LLVM assignment must target a mutable local")
+                env[stmt.target.name] = self.evaluate(stmt.value, env)
+            elif isinstance(stmt, ExprStmt):
+                self.evaluate(stmt.expr, env)
+            elif (
+                isinstance(stmt, ReturnStmt) and in_function and stmt.value is not None
+            ):
+                return self.evaluate(stmt.value, env), True
+            elif type(stmt) is FunctionDecl and not in_function:
+                if stmt.name in env:
+                    del env[stmt.name]
+                self.functions[stmt.name] = stmt
+            else:
+                raise ValueError(
+                    f"LLVM target does not support statement {type(stmt).__name__}"
+                )
+        return 0, False
 
 
 def _transpile_to_llvm_ir(ast) -> str:
-    """Emit textual LLVM IR for the integer subset (mirrors the JS transpiler)."""
-    lines = [
-        "; Generated by Thirsty-Lang compiler",
-        'target triple = "x86_64-unknown-unknown"',
-        "",
-    ]
-    for stmt in ast.stmts:
-        if hasattr(stmt, "params") and hasattr(stmt, "body") and hasattr(stmt, "name"):
-            _llvm_function(stmt, lines)
+    """Emit a verified constant entrypoint for a closed signed-i32 program.
 
-    main_expr = None
-    for stmt in ast.stmts:
-        if getattr(stmt, "name", None) == "main" and getattr(stmt, "init_expr", None):
-            main_expr = stmt.init_expr
-            break
+    This deliberately limited backend does not compile unrestricted integers,
+    dynamic inputs, effects, exported functions, division, or control flow.
+    The main binding becomes the process return value (subject to OS exit-code
+    conventions); a program without that binding returns zero.
+    """
+    import dataclasses
 
-    lines.append("define i32 @main() {")
-    lines.append("entry:")
-    if main_expr is not None:
-        em = _LLVMExpr()
-        result = em.emit(main_expr, {})
-        lines.extend(em.body)
-        lines.append(f"  ret i32 {result}")
-    else:
-        lines.append("  ret i32 0")
-    lines.append("}")
-    lines.append("")
-    return "\n".join(lines)
+    if getattr(ast, "parse_failed", False):
+        raise ValueError("Cannot compile a malformed program")
+    _validate_build_mode(ast)
+    allowed = {
+        IntLiteral,
+        BoolLiteral,
+        Identifier,
+        UnaryOp,
+        BinaryOp,
+        CallExpr,
+        VariableDecl,
+        AssignStmt,
+        ExprStmt,
+        ReturnStmt,
+        FunctionDecl,
+        BlockStmt,
+    }
+    pending = [(stmt, 0) for stmt in ast.stmts]
+    count = 0
+    while pending:
+        node, depth = pending.pop()
+        count += 1
+        if count > 1000 or depth > 64:
+            raise ValueError("LLVM AST analysis budget exceeded")
+        if dataclasses.is_dataclass(node):
+            if type(node) not in allowed:
+                raise ValueError(f"LLVM target does not support {type(node).__name__}")
+            if isinstance(node, BinaryOp) and node.op == TokenType.SLASH:
+                raise ValueError("LLVM target does not support division")
+            if isinstance(node, IntLiteral) and node.value.bit_length() > 32:
+                raise ValueError("LLVM target requires signed-i32 values")
+            if isinstance(node, FunctionDecl):
+                names = [p[0] for p in node.params]
+                if len(names) != len(set(names)):
+                    raise ValueError("LLVM target rejects duplicate parameter names")
+            for field in dataclasses.fields(node):
+                if field.name != "span":
+                    pending.append((getattr(node, field.name), depth + 1))
+        elif isinstance(node, (list, tuple)):
+            if len(node) > 1000:
+                raise ValueError("LLVM AST analysis budget exceeded")
+            pending.extend((item, depth + 1) for item in node)
+    evaluator = _LLVMExpr()
+    evaluator.statements(ast.stmts, evaluator.globals)
+    result = evaluator.globals.get("main", 0)
+    if type(result) is not int:
+        raise ValueError("LLVM entry result must be an Int")
+    return "\n".join(
+        [
+            "; Generated by Thirsty-Lang: closed-scalar-i32/v1",
+            "; All supported computation was evaluated within compile-time budgets.",
+            "define i32 @main() {",
+            "entry:",
+            f"  ret i32 {result}",
+            "}",
+            "",
+        ]
+    )
 
 
 def _build_llvm(ast, base: str, target: str) -> str:
@@ -1078,6 +1455,39 @@ def _build_llvm(ast, base: str, target: str) -> str:
     return out_path
 
 
+_PYODIDE_BOOTSTRAP = """
+import hashlib
+from importlib.metadata import distribution
+from pathlib import Path
+
+installed = distribution("thirsty-lang")
+if installed.version != EXPECTED_VERSION:
+    raise RuntimeError("Thirsty-Lang version mismatch; execution refused")
+root = Path(installed.locate_file("utf")).resolve()
+digest = hashlib.sha256()
+for path in sorted(root.rglob("*.py")):
+    relative = path.relative_to(root).as_posix().encode("utf-8")
+    content = path.read_bytes()
+    digest.update(len(relative).to_bytes(8, "big"))
+    digest.update(relative)
+    digest.update(len(content).to_bytes(8, "big"))
+    digest.update(content)
+if "sha256-" + digest.hexdigest() != EXPECTED_SOURCE_INTEGRITY:
+    raise RuntimeError("Thirsty-Lang source fingerprint mismatch; execution refused")
+
+from utf.thirsty_lang.lexer import Lexer
+from utf.thirsty_lang.parser import Parser
+from utf.thirsty_lang.checker import check_ast
+from utf.thirsty_lang.interpreter import Interpreter
+lexer = Lexer(SRC)
+parser = Parser(lexer.lex())
+ast = parser.parse()
+diagnostics = [*lexer.errors, *parser.errors, *check_ast(ast)]
+if any(item.severity == "error" for item in diagnostics) or ast.parse_failed:
+    raise RuntimeError("Thirsty-Lang source validation failed; execution refused")
+Interpreter().interpret(ast)
+"""
+
 _PYODIDE_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1085,25 +1495,31 @@ _PYODIDE_TEMPLATE = """<!DOCTYPE html>
 <title>Thirsty-Lang (Pyodide)</title>
 </head>
 <body>
-<pre id="out">Loading Pyodide…</pre>
+<pre id="out">Loading verified runtime…</pre>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
 <script type="module">
 const SOURCE = {source_json};
+const EXPECTED_VERSION = {version_json};
+const EXPECTED_SOURCE_INTEGRITY = {integrity_json};
+const BOOTSTRAP = {bootstrap_json};
 async function main() {{
   const out = document.getElementById("out");
-  const pyodide = await loadPyodide();
-  await pyodide.loadPackage("micropip");
-  const micropip = pyodide.pyimport("micropip");
-  await micropip.install("thirsty-lang");
-  pyodide.globals.set("SRC", SOURCE);
-  await pyodide.runPythonAsync(`
-from utf.thirsty_lang.lexer import Lexer
-from utf.thirsty_lang.parser import Parser
-from utf.thirsty_lang.interpreter import Interpreter
-ast = Parser(Lexer(SRC).lex()).parse()
-Interpreter().interpret(ast)
-`);
-  out.textContent = "Done.";
+  try {{
+    const pyodide = await loadPyodide();
+    await pyodide.loadPackage("micropip");
+    const micropip = pyodide.pyimport("micropip");
+    await micropip.install("thirsty-lang==" + EXPECTED_VERSION);
+    pyodide.globals.set("SRC", SOURCE);
+    pyodide.globals.set("EXPECTED_VERSION", EXPECTED_VERSION);
+    pyodide.globals.set("EXPECTED_SOURCE_INTEGRITY", EXPECTED_SOURCE_INTEGRITY);
+    out.textContent = "";
+    pyodide.setStdout({{batched: text => {{ out.textContent += text + "\\n"; }} }});
+    await pyodide.runPythonAsync(BOOTSTRAP);
+    out.textContent += "Done.";
+  }} catch (error) {{
+    out.textContent += "Execution failed: " + String(error);
+    throw error;
+  }}
 }}
 main();
 </script>
@@ -1112,10 +1528,40 @@ main();
 """
 
 
+def _html_json(value) -> str:
+    """JSON embedded in a script element must not contain an HTML end tag."""
+    return (
+        json.dumps(value, ensure_ascii=True)
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
+    )
+
+
 def _build_pyodide(source: str, base: str) -> str:
-    """Emit a Pyodide (Python-in-WebAssembly) HTML bundle that runs the program
-    in-browser via the thirsty-lang interpreter loaded through micropip."""
-    html = _PYODIDE_TEMPLATE.format(source_json=json.dumps(source))
+    """Emit a browser launcher pinned to this package version and source tree.
+
+    The downloaded wheel must reproduce the source-only fingerprint before
+    language code is imported/executed. Host Python ABI data is deliberately
+    excluded: browser execution uses the separately pinned Pyodide runtime.
+    """
+    from utf.thirsty_lang.lexer import Lexer
+    from utf.thirsty_lang.package_manager import runtime_source_integrity
+    from utf.thirsty_lang.parser import Parser
+
+    lexer = Lexer(source)
+    parser = Parser(lexer.lex())
+    ast = parser.parse()
+    if lexer.errors or parser.errors or ast.parse_failed:
+        raise ValueError("Cannot build malformed source for Pyodide")
+    _validate_build_mode(ast)
+
+    html = _PYODIDE_TEMPLATE.format(
+        source_json=_html_json(source),
+        version_json=_html_json(__version__),
+        integrity_json=_html_json(runtime_source_integrity()),
+        bootstrap_json=_html_json(_PYODIDE_BOOTSTRAP),
+    )
     out_path = base + ".pyodide.html"
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)
@@ -1343,8 +1789,11 @@ def cmd_audit(args):
 
     if args.fix:
         pm.generate_lock()
-        pm.write_lock()
+        if not pm.write_lock():
+            raise OSError("Could not write the regenerated lockfile")
         print("Lockfile regenerated.")
+    else:
+        sys.exit(1)
 
 
 def cmd_lock(args):
@@ -1354,7 +1803,8 @@ def cmd_lock(args):
     pm = PackageManager()
     pm.parse_manifest()
     pm.generate_lock()
-    pm.write_lock()
+    if not pm.write_lock():
+        raise OSError("Could not write thirsty.lock")
     print("Lockfile generated: thirsty.lock")
 
 

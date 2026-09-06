@@ -130,9 +130,14 @@ def test_run_locked_no_lockfile(monkeypatch, tmp_path):
 
 
 def test_run_locked_ok(monkeypatch, tmp_path, capsys):
+    from utf.thirsty_lang.package_manager import PackageManager
+
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "thirsty.lock").write_text('{"dependencies": {"a": {"version": "1"}}}')
-    run_cli(monkeypatch, "run", "--locked", write(tmp_path, "p.thirsty", PROG))
+    source = write(tmp_path, "p.thirsty", PROG)
+    manager = PackageManager(str(tmp_path))
+    manager.generate_lock()
+    assert manager.write_lock()
+    run_cli(monkeypatch, "run", "--locked", source)
     assert "Lockfile verified" in capsys.readouterr().out
 
 
@@ -259,13 +264,14 @@ def test_add_no_version(monkeypatch, tmp_path, capsys):
 
 def test_audit_clean(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
+    run_cli(monkeypatch, "lock")
     run_cli(monkeypatch, "audit")
     assert "No dependency issues" in capsys.readouterr().out
 
 
 def test_audit_with_issues_fix(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "thirsty.toml").write_text('[dependencies]\nfoo = "1"\n')
+    (tmp_path / "thirsty.toml").write_text('[dependencies]\ncrypto = "1"\n')
     run_cli(monkeypatch, "audit", "--fix")
     assert "regenerated" in capsys.readouterr().out
 

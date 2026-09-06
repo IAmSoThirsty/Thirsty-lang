@@ -153,6 +153,31 @@ def analyze_security_regression(module: ShadowModule) -> RegressionFinding:
             details={"added_effects": added, "removed_effects": removed},
             required_for_eligibility=True,
         )
+    unresolved = sorted(
+        {
+            _callee_name(node.callee) or "<dynamic-call>"
+            for block in (module.shadow_ast, module.canonical_ast)
+            for node in astwalk(block)
+            if isinstance(node, CallExpr)
+            and (_callee_name(node.callee) or "").rsplit(".", 1)[-1].lower()
+            not in _DIRECT_EFFECTS
+        }
+    )
+    if unresolved:
+        return RegressionFinding(
+            code="ST-S004",
+            analyzer="SecurityRegression",
+            status="UNKNOWN",
+            severity="CRITICAL",
+            method="ast-effect-delta/v2",
+            summary="Unresolved calls may carry effects; effect equivalence is unknown",
+            details={
+                "unresolved_calls": unresolved,
+                "candidate_effects": sorted(candidate),
+                "canonical_effects": sorted(canonical),
+            },
+            required_for_eligibility=True,
+        )
     return RegressionFinding(
         code="ST-S003",
         analyzer="SecurityRegression",

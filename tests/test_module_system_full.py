@@ -2,6 +2,7 @@
 lockfile-aware resolution API in module_system."""
 
 import json
+import sys
 
 import pytest
 
@@ -32,7 +33,8 @@ def test_time_module():
 def test_crypto_module():
     m = _mod("thirst::crypto")
     assert len(m["sha256"]("x")) == 64
-    assert m["sign"]("data", "key") == m["sign"]("data", "key")
+    key = "11" * 32
+    assert m["verify"]("data", m["sign"]("data", key), m["public_key"](key))
     assert len(m["hmac"]("k", "d")) == 64
     assert len(m["random_bytes"](4)) == 8
     assert "-" in m["uuid4"]()
@@ -45,16 +47,20 @@ def test_reservoir_module():
     m = _mod("thirst::reservoir")
     r = [1, 2]
     assert m["size"](r) == 2
-    assert m["size"]("notalist") == 0
+    with pytest.raises(TypeError):
+        m["size"]("notalist")
     assert m["push"](r, 3) == 3
-    assert m["push"]("x", 1) == 0
+    with pytest.raises(TypeError):
+        m["push"]("x", 1)
     assert m["pop"](r) == 3
     assert m["pop"]([]) is None
-    assert m["pop"]("x") is None
+    with pytest.raises(TypeError):
+        m["pop"]("x")
     assert m["get"](r, 0) == 1
     assert m["get"](r, 99) is None
     assert m["flood"](r, 9)[-1] == 9
-    assert m["flood"]("x", 1) == "x"
+    with pytest.raises(TypeError):
+        m["flood"]("x", 1)
 
 
 # --- fs / path ------------------------------------------------------------
@@ -109,14 +115,16 @@ class _FakeResponse:
     def __exit__(self, *a):
         return False
 
-    def read(self):
-        return self._body
+    def read(self, size=-1):
+        return self._body if size < 0 else self._body[:size]
 
 
 def test_http_success(monkeypatch):
     import urllib.request
 
-    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _FakeResponse())
+    monkeypatch.setattr(
+        urllib.request.OpenerDirector, "open", lambda *a, **k: _FakeResponse()
+    )
     m = _mod("thirst::http")
     assert m["get"]("http://x") == "ok"
     assert m["post"]("http://x", {"a": 1}) == "ok"
@@ -124,12 +132,18 @@ def test_http_success(monkeypatch):
     assert m["delete"]("http://x") == "ok"
 
 
-def test_http_error():
+def test_http_error(monkeypatch):
+    import urllib.error
+    import urllib.request
+
+    def fail(*args, **kwargs):
+        raise urllib.error.URLError("transport unavailable")
+
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", fail)
     m = _mod("thirst::http")
-    assert m["get"]("http://invalid.invalid.invalid").startswith("HTTP GET error")
-    assert m["post"]("http://invalid.invalid.invalid").startswith("HTTP POST error")
-    assert m["put"]("http://invalid.invalid.invalid").startswith("HTTP PUT error")
-    assert m["delete"]("http://invalid.invalid.invalid").startswith("HTTP DELETE error")
+    for method in ("get", "post", "put", "delete"):
+        with pytest.raises(urllib.error.URLError, match="transport unavailable"):
+            m[method]("http://127.0.0.1")
 
 
 # --- env / process / log --------------------------------------------------
@@ -145,7 +159,7 @@ def test_env_module():
 
 def test_process_module():
     m = _mod("thirst::process")
-    assert "hello" in m["run"]("echo hello")
+    assert "hello" in m["run"]([sys.executable, "-c", "print('hello')"])
     assert isinstance(m["args"](), list)
     assert isinstance(m["pid"](), int)
     with pytest.raises(SystemExit):
@@ -160,8 +174,9 @@ def test_process_run_error(monkeypatch):
     def boom(*a, **k):
         raise OSError("nope")
 
-    monkeypatch.setattr(subprocess, "run", boom)
-    assert "nope" in m["run"]("whatever")
+    monkeypatch.setattr(subprocess, "Popen", boom)
+    with pytest.raises(OSError, match="nope"):
+        m["run"]([sys.executable])
 
 
 def test_log_module(capsys):
@@ -190,9 +205,8 @@ def test_test_module(capsys):
     with pytest.raises(AssertionError):
         m["assert_true"](False)
     m["assert_raises"](lambda: 1 / 0)
-    # assert_raises has a catch-all `except Exception`, so its own
-    # "expected exception" AssertionError is swallowed — it never propagates.
-    m["assert_raises"](lambda: 1)
+    with pytest.raises(AssertionError, match="Expected exception"):
+        m["assert_raises"](lambda: 1)
     m["describe"]("suite")
     m["it"]("works")
     assert "suite" in capsys.readouterr().out
@@ -207,7 +221,8 @@ def test_collections_module():
     assert m["filter"](lambda x: x > 1, [1, 2, 3]) == [2, 3]
     assert m["reduce"](lambda a, b: a + b, [1, 2, 3], 0) == 6
     assert m["reduce"](lambda a, b: a + b, [1, 2, 3]) == 6
-    assert m["reduce"](lambda a, b: a + b, []) is None
+    with pytest.raises(TypeError):
+        m["reduce"](lambda a, b: a + b, [])
     assert m["sort"]([3, 1, 2], reverse=True) == [3, 2, 1]
     assert m["unique"]([1, 1, 2]) == [1, 2]
     assert m["flatten"]([1, [2, [3]]]) == [1, 2, 3]
@@ -216,9 +231,9 @@ def test_collections_module():
 
 def test_net_module():
     m = _mod("thirst::net")
-    assert m["tcp_connect"]("h", 1)["connected"] is True
-    assert m["tcp_listen"](80)["listening"] is True
-    assert m["udp_send"]("h", 1, "abc")["sent"] == 3
+    assert all(callable(function) for function in m.values())
+    with pytest.raises(ValueError, match="Numeric"):
+        m["tcp_connect"]("unsupported-hostname", 1)
 
 
 # --- sqlite ---------------------------------------------------------------
@@ -227,14 +242,14 @@ def test_net_module():
 def test_sqlite_module():
     m = _mod("thirst::sqlite")
     cid = m["connect"](":memory:")
-    assert (
-        m["execute"](cid, "CREATE TABLE t (id INTEGER)")["rows_affected"] == -1 or True
-    )
+    assert m["execute"](cid, "CREATE TABLE t (id INTEGER)")["rows_affected"] == -1
     m["execute"](cid, "INSERT INTO t VALUES (1)")
     rows = m["query"](cid, "SELECT id FROM t")
     assert rows == [{"id": 1}]
-    assert "error" in m["query"]("bad", "SELECT 1")[0]
-    assert "error" in m["execute"]("bad", "SELECT 1")
+    with pytest.raises(ValueError, match="Connection not found"):
+        m["query"]("bad", "SELECT 1")
+    with pytest.raises(ValueError, match="Connection not found"):
+        m["execute"]("bad", "SELECT 1")
     assert m["close"](cid) is True
     assert m["close"]("bad") is False
 
@@ -245,8 +260,8 @@ def test_sqlite_module():
 def test_yaml_module():
     m = _mod("thirst::yaml")
     parsed = m["parse"]("# comment\nname: \"bob\"\nage: 3\ncity: 'NY'\n\n")
-    assert parsed == {"name": "bob", "age": "3", "city": "NY"}
-    assert m["dump"]({"a": 1}) == "a: 1"
+    assert parsed == {"name": "bob", "age": 3, "city": "NY"}
+    assert m["parse"](m["dump"]({"a": 1})) == {"a": 1}
 
 
 def test_toml_module():
@@ -258,14 +273,14 @@ def test_toml_module():
             "n": 1,
             "f": 1.5,
             "b": True,
-            "none": None,
             "lst": [1, 2],
             "tbl": {"k": "v"},
         }
     )
     assert "[tbl]" in dumped
     assert "b = true" in dumped
-    assert "none = none" in dumped
+    with pytest.raises(TypeError):
+        m["dump"]({"none": None})
     assert "lst = [1, 2]" in dumped
 
 
@@ -280,12 +295,17 @@ def test_load_lockfile(tmp_path):
     assert ms.load_lockfile(str(tmp_path)) == {}
 
 
-def test_check_lock_integrity():
-    lock = {"dependencies": {"crypto": {"version": "1.0"}}}
+def test_check_lock_integrity(tmp_path, monkeypatch):
+    from utf.thirsty_lang.package_manager import PackageManager
+
+    monkeypatch.chdir(tmp_path)
+    lock = PackageManager().generate_lock({"crypto": "1.0"})
     assert ms.check_lock_integrity("crypto", "*", lock) is True
     assert ms.check_lock_integrity("crypto", "1.0", lock) is True
     assert ms.check_lock_integrity("crypto", "2.0", lock) is False
     assert ms.check_lock_integrity("missing", "*", lock) is False
+    lock["dependencies"]["crypto"]["integrity"] = "sha256-fake"
+    assert ms.check_lock_integrity("crypto", "*", lock) is False
 
 
 def test_resolve_import_stdlib_and_cache():
@@ -315,10 +335,10 @@ def test_resolve_import_locked_integrity_fail(tmp_path, monkeypatch):
 
 
 def test_resolve_import_locked_ok(tmp_path, monkeypatch):
+    from utf.thirsty_lang.package_manager import create_thirsty_lock
+
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "thirsty.lock").write_text(
-        json.dumps({"dependencies": {"crypto": {"version": "1"}}})
-    )
+    create_thirsty_lock(str(tmp_path))
     assert ms.resolve_import("thirst::crypto", locked=True)
 
 
@@ -336,30 +356,42 @@ def test_list_helpers():
 def test_builtins_table():
     b = ms.BUILTINS
     assert b["length"]([1, 2]) == 2
-    assert b["length"](5) == 0
+    with pytest.raises(TypeError):
+        b["length"](5)
     assert b["contains"]([1], 1) is True
-    assert b["contains"](5, 1) is False
+    with pytest.raises(TypeError):
+        b["contains"](5, 1)
     assert b["split"]("a,b", ",") == ["a", "b"]
-    assert b["split"](5) == []
+    with pytest.raises(TypeError):
+        b["split"](5)
     assert b["abs"](-3) == 3
-    assert b["abs"]("x") == 0
+    with pytest.raises(TypeError):
+        b["abs"]("x")
     assert b["min"](3, 1) == 1
-    assert b["min"]() == 0
+    with pytest.raises(ValueError):
+        b["min"]()
     assert b["max"](3, 1) == 3
-    assert b["max"]() == 0
+    with pytest.raises(ValueError):
+        b["max"]()
     assert b["push"]([1], 2) == 2
-    assert b["push"](5, 1) == 0
+    with pytest.raises(TypeError):
+        b["push"](5, 1)
     assert b["pop"]([1]) == 1
     assert b["pop"]([]) is None
     assert b["size"]([1]) == 1
     assert b["get"]([1, 2], 1) == 2
-    assert b["get"](5, 0) is None
+    with pytest.raises(TypeError):
+        b["get"](5, 0)
     assert b["flood"]([1], 2) == [1, 2]
-    assert b["flood"](5, 1) == 5
+    with pytest.raises(TypeError):
+        b["flood"](5, 1)
     assert b["condense"]({"value": 9}) == 9
     assert b["condense"]({}) is None
     assert b["evaporate"]({"value": 9}) == 9
     assert b["evaporate"]({}) is None
-    assert b["strain"](7) == 7
-    assert b["transmute"](7, "int") == 7
-    assert b["distill"](7) == 7
+    with pytest.raises(NotImplementedError):
+        b["strain"](7)
+    with pytest.raises(NotImplementedError):
+        b["transmute"](7, "int")
+    with pytest.raises(NotImplementedError):
+        b["distill"](7)

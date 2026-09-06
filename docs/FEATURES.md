@@ -1,6 +1,6 @@
 # Thirsty-Lang — Feature Reference
 
-> Feature-oriented reference for Thirsty-Lang `0.8.6`. See
+> Feature-oriented reference for the prepared Thirsty-Lang `0.9.0` release. See
 > [STATUS.md](STATUS.md) for the authoritative capability-to-test map and
 > [THREAT_MODEL.md](THREAT_MODEL.md) for security acceptance status. The
 > [canonical Thirsty-Lang UTF 101 manual](THIRSTY_LANG_UTF_101.md) is the integrated
@@ -28,7 +28,9 @@ checker, a type system, and a formatter.
 | `glass f(a, b) -> Ret { … }` | function (first-class, TCO-eligible) |
 | `glass f(x) requires P ensures Q invariant I { … }` | governed function (§2) |
 | `fountain C { field: T  glass init(self){…}  glass m(self,…){…} }` | class with fields, constructor, methods |
-| `enum`, `struct`, `interface`, `symbol`, `morph`, `defend` | additional type / transform / strategy declarations |
+| `enum`, `struct` | nominal enum values and typed mutable struct fields |
+| `interface`, `shield`, `sanitize`, `armor`, `detect`, `defend` | reserved; execution reports unsupported semantics |
+| `symbol`, `morph` | symbolic binding / transformation forms; no implied security guarantee |
 
 ### 1.2 Statements
 
@@ -42,8 +44,8 @@ checker, a type system, and a formatter.
   `cleanup { … } finally { … }`, `throw expr`.
 - **Async:** `cascade expr` — schedules on a thread pool and **awaits**, yielding
   the value (not a future).
-- **Security blocks:** `shield` / `sanitize` / `armor` / `morph` / `detect` /
-  `defend`.
+- **Reserved security syntax:** `shield` / `sanitize` / `armor` / `detect` /
+  `defend` is rejected until concrete enforcement semantics exist.
 
 ### 1.3 Expressions & operators
 
@@ -61,6 +63,11 @@ checker, a type system, and a formatter.
 `length`, `size`, `contains`, `get`, `split`, `abs`, `min`, `max`, `push`,
 `pop`, `flood`, `condense`, `evaporate`, `strain`, `transmute`, `distill`,
 `print`, `pour`.
+
+`strain`, `transmute`, and `distill` are reserved and raise an explicit unsupported
+error. Invalid arguments no longer return fabricated empty or zero results.
+Pure mode restricts mediated external effects through aliases, imports, callbacks,
+and cascades; it is not a whole-program referential-transparency proof.
 
 ### 1.5 Modes
 
@@ -145,12 +152,14 @@ zoned `--now` for temporal evaluation.
 Parses a `mutation { validated_canonical { shadow{…} invariant{…} canonical{…} } }`
 and runs **six AST-based analyzers** to a **PROMOTE / FLAGGED / REJECT** verdict:
 
-1. **PlaneIsolation** — the shadow plane never writes canonical state.
+1. **PlaneIsolation** — detects named writes/calls associated with canonical
+   state; this syntactic check is not a general state-isolation proof.
 2. **Determinism** — a taint dataflow (`EffectAnalysis`) that follows
    non-determinism (`now`, `rand`, `uuid`, …) **through aliases to a fixpoint**,
    so aliasing `now` into a variable and calling it is still caught.
 3. **ResourceEstimator** — CPU cost estimated from AST structure.
-4. **PuritySpring** — the invariant block is side-effect free.
+4. **PuritySpring** — checks visible invariant effects. Unresolved calls become
+   UNKNOWN purity evidence in governed admission.
 5. **MemoryEvaporation** — peak memory from allocation-producing nodes.
 6. **CanonicalConvergence** — three layers (see below).
 
@@ -159,25 +168,30 @@ validated canonical?”:
 
 | Layer | Mechanism | Guarantee |
 |---|---|---|
-| Structural | alpha-renamed AST equality | sufficient proof of equivalence |
-| Z3 symbolic *(opt)* | translate return values to Z3 over shared inputs | proof for **all** inputs, or a **counterexample** |
-| Execute-and-compare | run both over seeded inputs in a sandbox | observed equivalence, or the **diverging input** |
+| Structural | scope-aware AST equality with free names preserved | sufficient proof for the supported structure |
+| Z3 symbolic *(opt)* | translate supported scalar semantics to Z3 | conditional result under explicit input assumptions, or a **counterexample** |
+| Execute-and-compare | bounded AST evaluator over seeded scalar inputs | observed equivalence, or the **diverging input** |
 
-Equal-but-differently-shaped blocks (`x + x` is equivalent to `x * 2`) now
-**promote**; subtly
-different ones (`x + 1` vs `x + 2`) **reject with a witness**. The sampling layer
-abstains on blocks with observable effects (return-value equality is unsound
-there). Z3 requires `pip install thirsty-lang[analysis]`.
+The legacy `check` path can return **PROMOTE** for conditional symbolic results
+or sampled agreement. Governed admission uses a stricter default: for example,
+`x + x` versus `x * 2` receives **OBSERVED / FLAGGED** when the symbolic result
+assumes untyped `x` is an Int. A concrete divergence (`x + 1` versus `x + 2`)
+produces **VIOLATED / REJECTED** admission evidence with a witness. Sampling
+abstains on unresolved calls, external effects, unsupported ASTs, and failed or
+over-budget input vectors. Z3 requires `pip install thirsty-lang[analysis]`.
 
 The separate governed-admission layer evaluates technical eligibility without
 mutating canonical state or granting execution authority. It adds
 security-effect, governance-surface, complexity, and explainability-proxy
 regression checks; classifies evidence as **PROVEN**, **OBSERVED**,
 **VIOLATED**, **UNKNOWN**, or **INAPPLICABLE**; and emits an **ELIGIBLE**,
-**FLAGGED**, or **REJECTED** Change Admission Record. Records bind exact input,
-policy, analysis, and artifact hashes and may be signed with an Ed25519
+**FLAGGED**, or **REJECTED** Change Admission Record. Records bind source/block
+hashes, admission policy, analysis identifiers, and evidence, and may be signed with an Ed25519
 `proof-signer` key. Strict record verification rejects malformed or unknown
-fields. Every record keeps `execution_authorized=false` and
+fields. The current engine is 0.2.0 with v2 convergence methods. Default
+verification rejects superseded engine/proof methods; explicit Python
+`record.verify(key, historical=True)` checks historical integrity only and does
+not recertify the analysis. Every record keeps `execution_authorized=false` and
 `authorization_state=NOT_EVALUATED`; TARL policy, authority, quorum, replay
 protection, and governed execution remain separate later boundaries.
 
@@ -206,9 +220,9 @@ A standalone, first-match-wins policy language.
 - **Verdicts:** `ALLOW` / `DENY` / `ESCALATE`, default-deny.
 - **Conditions:** comparisons, set membership (`in`), arithmetic, attribute
   access, and temporal builtins (`CURRENT_HOUR`, `CURRENT_WEEKDAY`, …).
-- **Authoritative context:** dotted identifiers traverse nested JSON only.
-  Flat dotted keys, duplicate keys, mixed representations, missing paths, and
-  wrong intermediate types fail closed as distinct resolution states.
+- **Authoritative context:** dotted, nested, and equal mixed inputs normalize to
+  nested JSON before schema validation and evaluation. Conflicts, duplicate keys,
+  malformed or missing paths, and wrong intermediate types fail closed.
 - **Schema-bound positive authority:** an evaluator ALLOW is diagnostic until
   a complete schema validated the exact evaluated representation and that
   binding appears in the proof.
@@ -258,9 +272,10 @@ CLI: `tarl eval | parse | verify | audit | explain | test | analyze`, plus a
 1. **Governed agent/tool runner** — an agent emits `.thirsty`; in `governed`
    mode with a T.A.R.L. policy it may only import/IO what policy allows, every
    action yields a proof, and contracts bound its behavior.
-2. **Provably-safe code migration** — propose a refactor as a Shadow Thirst
-   `mutation`; promote only if Z3 proves (or sampling shows) equivalence to the
-   validated original, else receive the diverging input.
+2. **Evidence-based change assessment** — propose a refactor as a Shadow Thirst
+   `mutation`. Default admission requires proven convergence; sampled agreement
+   or unresolved semantics remain flagged. A counterexample rejects admission.
+   Technical eligibility grants no execution or mutation authority.
 3. **Time-boxed / conditional permissions** — temporal T.A.R.L. policies enforce
    windowed access, provable via the analyzer and auditable via the archive.
 4. **Tamper-evident symbolic artifacts** — TSCG canonical form + checksum;

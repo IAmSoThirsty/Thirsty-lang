@@ -1,8 +1,14 @@
 # Feature Status
 
-Edition: Thirsty-Lang 0.8.6. The integrated navigation and reference layer is
+Edition: Thirsty-Lang 0.9.0 (release preparation). The integrated navigation and reference layer is
 [THIRSTY_LANG_UTF_101.md](THIRSTY_LANG_UTF_101.md); security acceptance details remain
 authoritative in [THREAT_MODEL.md](THREAT_MODEL.md).
+
+The corrections and general-purpose additions prepared for 0.9.0 are mapped
+in [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md); final local evidence is in
+[IMPLEMENTATION_VERIFICATION.md](operations/IMPLEMENTATION_VERIFICATION.md).
+Publication and remote artifact identity require separate release verification.
+This work is not an independent Competence Register acceptance result.
 
 Every capability below is marked **Real** (implemented and enforced, with a
 test that proves it) or **Roadmap** (reserved surface, not yet enforced). The
@@ -160,9 +166,9 @@ Preserved reproduction evidence manifest SHA-256:
 
 | Capability | Status | Test reference |
 |---|---|---|
-| Convergence: structural (alpha-renamed AST) pre-check | Real | `tests/test_verifiers.py::TestConvergence::test_structural_alpha_equivalent_promotes` |
-| Convergence: Z3 symbolic proof + counterexample (arith subset) | Real (opt) | `tests/test_verifiers.py::TestConvergenceZ3` |
-| Convergence: execute-and-compare over seeded inputs | Real | `tests/test_verifiers.py::TestConvergence::test_execute_and_compare_finds_diverging_input` |
+| Convergence: scope-aware AST pre-check preserving free identities | Real | `tests/test_shadow_soundness.py`; `tests/test_verifiers.py` |
+| Convergence: Z3 conditional equivalence/counterexamples with numeric assumptions | Real (opt); not unconditional proof over all language values | `tests/test_shadow_soundness.py`; `tests/test_verifiers.py::TestConvergenceZ3` |
+| Convergence: bounded scalar AST comparison over seeded inputs | Real; observed evidence only | `tests/test_shadow_soundness.py` |
 | Convergence abstains on blocks with observable effects | Real | `tests/test_verifiers.py::TestConvergence::test_execute_and_compare_abstains_on_effects` |
 | Determinism: taint dataflow follows non-determinism through aliases | Real | `tests/test_verifiers.py::TestEffectPass` |
 | Thirst of Gods: each cascade linked to an enclosing spillage handler | Real | `tests/test_verifiers.py::TestCascadeLinking`; `tests/test_thirst_of_gods.py` |

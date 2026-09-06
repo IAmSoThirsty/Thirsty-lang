@@ -5,7 +5,35 @@ All notable changes to Thirsty-Lang are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.9.0] - 2026-09-06
+
+Prepared release. Publication and remote artifact identity require separate
+release verification.
+
+### Priority corrections and general-purpose foundation
+
+- Preserve free-variable identity and grouping in Shadow/TSCG evidence; fix
+  symbolic numeric assumptions and replace unbounded sampling with a bounded
+  AST evaluator. Shadow admission engine is 0.2.0; old semantic methods require
+  reanalysis, while explicitly historical verification checks integrity only.
+- Propagate import restrictions and live authority state, recheck credential
+  expiry/revocation at effects, enforce pure calls across aliases/callbacks,
+  and preserve denial identity and lexical scope during failures.
+- Fix duplicate optimized execution, short-circuit ordinary language logic,
+  checker traversal, and reserved declarations that previously did nothing.
+- Implement nominal enums, typed structs, dictionaries, immutable tuple/bytes
+  helpers, collection operations, and a tested JSON report application.
+- Implement real bounded TCP/UDP, read-only SQLite authorization, correct
+  HMAC/Ed25519, explicit serialization limits, and meaningful builtin errors.
+- Replace label hashes with content-bound lockfile v2; legacy locks require
+  explicit regeneration. Remote registry resolution remains unavailable.
+- Reject unsupported build semantics before emitting an artifact. JS and LLVM
+  remain explicit subsets; browser execution checks pinned source identity.
+- Require actual audit persistence when configured, serialize concurrent chain
+  appends, and expose `--audit-db` / `--require-audit` on governed CLI runs.
+- Align active context docs with dotted/nested normalization and preserve
+  historical release evidence below. Add the correction/milestone register;
+  robotics and swarms remain deferred by user direction.
 
 ### Documentation
 
@@ -34,6 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the embedded `thirsty docs` page to report the installed package
   version, identify the TARL LSP, enumerate all companion CLIs, and link the
   canonical manual.
+- Added `pypi-v*` tags and explicit manual dispatch with version guards to the
+  token-authenticated release workflow. Python 3.11/3.12 full-suite validation
+  includes the documentation artifact contract; wheel source-identity and
+  installed-wheel smoke checks run before publication.
 
 ## [0.8.6] - 2026-08-02
 

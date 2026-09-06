@@ -175,15 +175,37 @@ class TSCGParser:
             raise ValueError(f"Expected symbol or '(', got {tok_type}")
 
 
+CANONICALIZATION_ID = "tscg.grouping-preserving.v2"
+
+
 def canonical_form(node: TSCGNode) -> str:
-    """Reduce a TSCG expression to canonical (normalized) form."""
-    if isinstance(node, SymbolExpr):
-        return f"${node.symbol_name}"
-    elif isinstance(node, PipelineExpr):
-        return f"{canonical_form(node.left)} -> {canonical_form(node.right)}"
-    elif isinstance(node, CombineExpr):
-        return f"{canonical_form(node.left)} {node.op} {canonical_form(node.right)}"
-    return str(node)
+    """Normalize spacing while preserving the exact parsed operator tree.
+
+    Both operator levels are left-associative. A right child at the same
+    precedence therefore needs parentheses even when the operator is identical.
+    ``checksum`` still hashes its input bytes, independently of this format.
+    """
+
+    def render(value: TSCGNode, parent: int = 0, right: bool = False) -> str:
+        if isinstance(value, SymbolExpr):
+            if value.symbol_name not in ALL_SYMBOLS:
+                raise ValueError(f"Unknown symbol: ${value.symbol_name}")
+            return f"${value.symbol_name}"
+        if isinstance(value, PipelineExpr):
+            precedence, op = 1, "->"
+        elif isinstance(value, CombineExpr) and value.op in {"^", "||"}:
+            precedence, op = 2, value.op
+        else:
+            raise ValueError(f"Unsupported TSCG node: {type(value).__name__}")
+        text = (
+            f"{render(value.left, precedence)} {op} "
+            f"{render(value.right, precedence, True)}"
+        )
+        if precedence < parent or (right and precedence == parent):
+            return f"({text})"
+        return text
+
+    return render(node)
 
 
 def checksum(expr_text: str) -> str:

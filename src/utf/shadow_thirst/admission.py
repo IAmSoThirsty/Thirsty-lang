@@ -26,6 +26,8 @@ from utf.shadow_thirst.core import (
     PromotionEngine,
     ShadowModule,
     _structural_signature,
+    astwalk,
+    parse_block,
 )
 from utf.shadow_thirst.regression import (
     RegressionFinding,
@@ -35,9 +37,15 @@ from utf.shadow_thirst.regression import (
     analyze_security_regression,
 )
 from utf.tarl.keystore import ROLE_PROOF_SIGNER, KeyFile
+from utf.thirsty_lang.ast import CallExpr
 
 RECORD_FORMAT = "shadow-thirst-change-admission/v1"
-ENGINE_VERSION = "0.1.0"
+ENGINE_VERSION = "0.2.0"
+_HISTORICAL_ENGINE_VERSIONS = {"0.1.0"}
+_CURRENT_PROOF_METHODS = {
+    "alpha-renamed-ast-equivalence/v2",
+    "z3-symbolic-equivalence/v2",
+}
 
 
 class EvidenceStatus(StrEnum):
@@ -306,14 +314,42 @@ class ChangeAdmissionRecord:
         self.signature = key.private_key().sign(bytes.fromhex(self.record_hash)).hex()
         return self
 
-    def verify(self, key: KeyFile | None = None) -> tuple[bool, str]:
+    def verify(
+        self, key: KeyFile | None = None, *, historical: bool = False
+    ) -> tuple[bool, str]:
+        """Verify integrity and, by default, reject superseded proof methods.
+
+        ``historical=True`` verifies only hash/signature authenticity. It does
+        not accept historical analysis as current semantic assurance, nor does
+        either mode independently replay or prove the recorded statements.
+        """
         expected_hash = self.compute_hash()
         if self.record_hash != expected_hash:
             return False, "record hash mismatch"
+        if not historical:
+            if self.engine_version != ENGINE_VERSION:
+                return False, "superseded admission engine; reanalysis required"
+            if any(
+                item.status == EvidenceStatus.PROVEN
+                and (
+                    item.analyzer != "CanonicalConvergence"
+                    or item.method not in _CURRENT_PROOF_METHODS
+                    or item.details.get("assumptions")
+                )
+                for item in self.evidence
+            ):
+                return (
+                    False,
+                    "unsupported proof method or assumptions; reanalysis required",
+                )
         if not self.signature:
             if self.signature_alg or self.signer_key_id:
                 return False, "incomplete signature metadata"
-            return True, "unsigned record hash is valid"
+            return True, (
+                "historical hash is valid; semantic assurance was not verified"
+                if historical
+                else "unsigned record hash is valid"
+            )
         if self.signature_alg != "ed25519":
             return False, "unsupported signature algorithm"
         if key is None:
@@ -330,7 +366,11 @@ class ChangeAdmissionRecord:
             key.public_key().verify(signature, bytes.fromhex(self.record_hash))
         except (InvalidSignature, ValueError):
             return False, "invalid Ed25519 signature"
-        return True, "signed record is valid"
+        return True, (
+            "historical signature is valid; semantic assurance was not verified"
+            if historical
+            else "signed record is valid"
+        )
 
     def to_dict(self) -> dict[str, Any]:
         result = self._body_dict()
@@ -354,7 +394,10 @@ class ChangeAdmissionRecord:
             raise ValueError(
                 f"unsupported admission record format: {data.get('format')!r}"
             )
-        if data.get("engine_version") != ENGINE_VERSION:
+        if data.get("engine_version") not in {
+            ENGINE_VERSION,
+            *_HISTORICAL_ENGINE_VERSIONS,
+        }:
             raise ValueError(
                 f"unsupported admission engine version: {data.get('engine_version')!r}"
             )
@@ -439,6 +482,15 @@ def _base_evidence(
     module: ShadowModule,
     result: AnalysisResult,
 ) -> EvidenceItem:
+    if result.analyzer == "PuritySpring" and not module.invariant_code.strip():
+        return EvidenceItem(
+            code="ST-B-PURITYSPRING",
+            analyzer="PuritySpring",
+            status=EvidenceStatus.INAPPLICABLE,
+            severity="INFO",
+            method="presence-check",
+            summary="No invariant block was supplied",
+        )
     ast_by_analyzer = {
         "PlaneIsolation": module.shadow_ast,
         "Determinism": module.shadow_ast,
@@ -448,7 +500,13 @@ def _base_evidence(
         "MemoryEvaporation": module.shadow_ast,
     }
     ast_available = ast_by_analyzer.get(result.analyzer) is not None
-    if result.passed and ast_available:
+    unresolved_calls = result.analyzer in {"PuritySpring", "Determinism"} and any(
+        isinstance(node, CallExpr)
+        for node in astwalk(ast_by_analyzer.get(result.analyzer))
+    )
+    if result.passed and unresolved_calls:
+        status = EvidenceStatus.UNKNOWN
+    elif result.passed and ast_available:
         status = EvidenceStatus.OBSERVED
     elif result.passed:
         status = EvidenceStatus.UNKNOWN
@@ -460,9 +518,15 @@ def _base_evidence(
         status=status,
         severity=("CRITICAL" if result.level == AnalysisLevel.CRITICAL else "WARNING"),
         method="existing-analyzer/ast-v0.8.6" if ast_available else "lexical-fallback",
-        summary=result.message,
+        summary=(
+            "Unresolved calls prevent proof of purity or determinism"
+            if result.passed and unresolved_calls
+            else result.message
+        ),
         details={"legacy_passed": result.passed, "legacy_level": result.level},
-        required_for_eligibility=result.level == AnalysisLevel.CRITICAL,
+        required_for_eligibility=(
+            result.level == AnalysisLevel.CRITICAL or unresolved_calls
+        ),
     )
 
 
@@ -495,19 +559,19 @@ def _convergence_evidence(module: ShadowModule) -> EvidenceItem:
             analyzer="CanonicalConvergence",
             status=EvidenceStatus.PROVEN,
             severity="INFO",
-            method="alpha-renamed-ast-equivalence/v1",
+            method="alpha-renamed-ast-equivalence/v2",
             summary="Structural equivalence is a sufficient proof for this pair",
             required_for_eligibility=True,
         )
 
     symbolic = convergence.z3_equivalence(module.shadow_ast, module.canonical_ast)
-    if symbolic.status == "equivalent":
+    if symbolic.status == "equivalent" and not symbolic.assumptions:
         return EvidenceItem(
             code="ST-E004",
             analyzer="CanonicalConvergence",
             status=EvidenceStatus.PROVEN,
             severity="INFO",
-            method="z3-symbolic-equivalence/v1",
+            method="z3-symbolic-equivalence/v2",
             summary=symbolic.detail,
             required_for_eligibility=True,
         )
@@ -517,7 +581,7 @@ def _convergence_evidence(module: ShadowModule) -> EvidenceItem:
             analyzer="CanonicalConvergence",
             status=EvidenceStatus.VIOLATED,
             severity="CRITICAL",
-            method="z3-symbolic-counterexample/v1",
+            method="z3-symbolic-counterexample/v2",
             summary=symbolic.detail,
             details={"counterexample": symbolic.counterexample or {}},
             required_for_eligibility=True,
@@ -530,9 +594,12 @@ def _convergence_evidence(module: ShadowModule) -> EvidenceItem:
             analyzer="CanonicalConvergence",
             status=EvidenceStatus.OBSERVED,
             severity="WARNING",
-            method="seeded-execute-and-compare/v1",
+            method="bounded-seeded-execute-and-compare/v2",
             summary=sampled.detail,
-            details={"symbolic_layer": symbolic.status},
+            details={
+                "symbolic_layer": symbolic.status,
+                "symbolic_assumptions": symbolic.assumptions,
+            },
             required_for_eligibility=True,
         )
     if sampled.status == "diverge":
@@ -541,7 +608,7 @@ def _convergence_evidence(module: ShadowModule) -> EvidenceItem:
             analyzer="CanonicalConvergence",
             status=EvidenceStatus.VIOLATED,
             severity="CRITICAL",
-            method="seeded-divergence-witness/v1",
+            method="bounded-seeded-divergence-witness/v2",
             summary=sampled.detail,
             details={"counterexample": sampled.counterexample or {}},
             required_for_eligibility=True,
@@ -577,6 +644,14 @@ class AdmissionEngine:
         generated_at: datetime | None = None,
     ) -> ChangeAdmissionRecord:
         provenance = provenance or Provenance()
+        # Evidence must analyze the exact block text whose hash is recorded.
+        # A caller-provided or subsequently mutated AST is never authoritative.
+        module = dataclasses.replace(
+            module,
+            shadow_ast=parse_block(module.shadow_code),
+            invariant_ast=parse_block(module.invariant_code),
+            canonical_ast=parse_block(module.canonical_code),
+        )
         legacy_verdict, base_results = PromotionEngine().evaluate(module)
         evidence = [
             _base_evidence(module, result)

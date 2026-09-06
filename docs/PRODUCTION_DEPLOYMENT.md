@@ -1,6 +1,6 @@
 # Production Deployment Requirement
 
-**Applies to:** Thirsty-Lang 0.8.6+ · **Audience:** operators embedding the
+**Applies to:** Thirsty-Lang 0.9.0 (release preparation) · **Audience:** operators embedding the
 governed runtime to authorize real-world, high-risk actions.
 
 Canonical end-to-end reference: [THIRSTY_LANG_UTF_101.md](THIRSTY_LANG_UTF_101.md).
@@ -39,15 +39,17 @@ for governed execution.
 - [ ] Set a filesystem confinement root for governed file access:
   `Interpreter.set_path_guard([allowed_root, ...])`. File targets are then
   brokered on the **canonical** path, so traversal/symlink escapes fail closed
-  before the effect (C042).
+  before the effect (C042). A concurrent hostile filesystem writer can still
+  race the check/open sequence; use OS confinement until descriptor-relative
+  no-follow I/O is implemented and verified for the target platform.
 
 ## 3. Context authority and registered-source transformations
 
-- [ ] Supply caller context as nested JSON under
-  `tarl.context.nested-json.v1`. Dotted schema/policy paths traverse nested
-  objects. Flat dotted keys, any mixed flat/nested form (equal or conflicting),
-  duplicate keys, missing paths, and wrong intermediate types fail closed; no
-  conversion is silent.
+- [ ] Normalize caller context with `prepare_context()` to
+  `tarl.context.nested-json.v1`. Dotted/nested/equal mixed inputs converge;
+  contradictory values, malformed paths, duplicate keys, missing required paths,
+  and wrong intermediate types fail closed. Proofs bind both hashes and
+  `tarl.context.dotted-path-expansion` version `1`.
 - [ ] Attach an explicit `ContextSchema`, or require
   `TarlRuntime.ensure_context_schema()` to derive a complete schema, before a
   positive verdict can authorize an effect. A raw evaluator `ALLOW` without a
@@ -97,9 +99,11 @@ local attacker who can rewrite the DB could re-link a truncated suffix.
 
 - [ ] Explicitly attach a `TarlAuditArchive` to the same `TarlRuntime` used by
   the interpreter or broker and call `set_require_audit(True)`. Hardened mode
-  alone does not create or require an archive. If no archive is attached, no
-  audit row is written; if an attached required archive fails, the decision is
-  downgraded to DENY.
+  alone does not create or require an archive. Required auditing denies if the
+  archive is absent or persistence fails, including decision-only evaluation.
+  CLI: `thirsty run app.thirsty --policy policy.tarl --audit-db audit.db
+  --require-audit` requires a governed module. All writers reserve a SQLite
+  transaction before reading/extending the chain head.
 - [ ] On a schedule, write the chain head to a **trusted external location**:
   `tarl audit checkpoint --db <audit.db> --out <head.txt>` and store `head.txt`
   somewhere the runtime host cannot silently rewrite.

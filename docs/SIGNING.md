@@ -1,13 +1,13 @@
 # Release Authentication, Attestations, and Optional Signatures
 
-Edition: Thirsty-Lang 0.8.6 (2026-08-02)
+Edition: Thirsty-Lang 0.9.0 release preparation (2026-09-06)
 
 This guide separates three mechanisms that protect different things:
 
-| Mechanism | Purpose | 0.8.6 status |
+| Mechanism | Purpose | Configured 0.9.0 release path |
 |---|---|---|
 | PyPI API token | Authenticates the upload account | Active |
-| PyPI Trusted Publishing and publish attestations | Binds an uploaded file to a supported CI identity through OIDC | Not active for 0.8.6 |
+| PyPI Trusted Publishing and publish attestations | Binds an uploaded file to a supported CI identity through OIDC | Not configured |
 | TARL HMAC or Ed25519 signatures | Bind policy-verdict proofs inside the language runtime | Active; unrelated to package publication |
 | Detached OpenPGP signature | Optional out-of-band signature distributed somewhere other than PyPI | Not produced by the release workflow |
 
@@ -17,19 +17,21 @@ pinned PyPA action. Authentication uses the project-scoped PyPI API token in
 the GitHub `release` environment secret named `IAMSOTHIRSTY`. The repository
 does not contain that secret.
 
-## Current 0.8.6 publication contract
+## Prepared 0.9.0 publication contract
 
-The release workflow enforces:
+The release workflow is configured to enforce these gates; this description
+does not assert that publication has completed:
 
-1. The Git tag version matches `pyproject.toml`.
+1. The Git tag or explicit dispatch version matches `pyproject.toml`.
 2. Ruff and mypy pass.
 3. The full test suite passes with at least 90 percent coverage.
-4. The package builds and `twine check` accepts every distribution.
+4. The package builds, its wheel matches the source tree, installed-wheel smoke
+   checks pass, and `twine check` accepts every distribution.
 5. The pinned publisher action uploads with `__token__` credentials.
 
-This is authenticated package publication, but it is not PyPI Trusted
-Publishing. Consequently the 0.8.6 files do not carry the Trusted Publisher
-publish-attestation claim described by PyPI.
+This path authenticates package uploads using a token; it does not use PyPI
+Trusted Publishing. Historically, the 0.8.6 files did not carry the Trusted
+Publisher publish-attestation claim described by PyPI.
 
 ## Recommended future migration: Trusted Publishing
 
@@ -67,10 +69,10 @@ If an out-of-band channel is intentionally established:
 
 ```bash
 python -m build
-gpg --detach-sign --armor dist/thirsty_lang-0.8.6-py3-none-any.whl
+gpg --detach-sign --armor dist/thirsty_lang-0.9.0-py3-none-any.whl
 gpg --verify \
-  dist/thirsty_lang-0.8.6-py3-none-any.whl.asc \
-  dist/thirsty_lang-0.8.6-py3-none-any.whl
+  dist/thirsty_lang-0.9.0-py3-none-any.whl.asc \
+  dist/thirsty_lang-0.9.0-py3-none-any.whl
 ```
 
 Use a dedicated protected release key, keep its passphrase and private material

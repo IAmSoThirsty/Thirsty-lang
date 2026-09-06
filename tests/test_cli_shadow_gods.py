@@ -122,8 +122,11 @@ def test_gods_transpile_js(monkeypatch, tmp_path, capsys):
     src = tmp_path / "g.thirstofgods"
     src.write_text(open(GODS_EXAMPLE).read())
     _argv(monkeypatch, "thirst-of-gods", "transpile", str(src), "--target", "js")
-    gods_cli.main()
-    assert (tmp_path / "g.js").exists()
+    with pytest.raises(SystemExit) as exc:
+        gods_cli.main()
+    assert exc.value.code == 1
+    assert "JS target" in capsys.readouterr().err
+    assert not (tmp_path / "g.js").exists()
 
 
 def test_gods_no_command(monkeypatch, capsys):

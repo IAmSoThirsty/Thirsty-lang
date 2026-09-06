@@ -1,6 +1,6 @@
 # Thirsty-Lang: A Governance-First Language for Accountable Execution
 
-**Version:** 0.8.6 · **Stack:** Universal Thirsty Family (UTF)
+**Version:** 0.9.0 (release preparation) · **Stack:** Universal Thirsty Family (UTF)
 **Copyright:** 2026 Thirsty's Projects LLC · **License:** Apache-2.0
 **Status of claims:** every capability below is marked *Real* (implemented and
 covered by a test) or *Roadmap / Deferred* (reserved surface, not yet enforced).
@@ -29,7 +29,8 @@ missing authority, a failed signature check, or an unavailable gate all resolve 
 
 This paper describes the language, its governance model, the T.A.R.L. policy
 engine and proof system, the offensive threat model that scopes its guarantees,
-and the engineering state of the 0.8.6 release.
+and the foundation prepared for 0.9.0. The engineering-state and acceptance
+records explicitly labeled 0.8.6 below retain their historical release scope.
 
 ---
 
@@ -313,12 +314,13 @@ diagnostics plus z3-backed coverage/shadow hints.
 block compute the same thing as the *validated canonical* block? Three layers
 answer it, cheapest-and-strongest first:
 
-1. **Structural** — alpha-renamed AST equality (a sound sufficient condition).
+1. **Structural** — scope-aware AST equality preserving free-variable identity.
 2. **Z3 symbolic** (optional) — translate each block's returned value to a Z3 term
-   over shared symbolic inputs; `UNSAT` proves equivalence for all inputs, `SAT`
-   yields a concrete diverging counterexample.
-3. **Execute-and-compare** — run both in a sandboxed interpreter over seeded
-   inputs and compare; abstains when blocks have observable effects.
+   over shared symbolic inputs; `UNSAT` establishes equivalence only under the
+   recorded numeric assumptions, while `SAT` supplies a counterexample in that
+   domain. Untyped Int assumptions are not unconditional language-wide proof.
+3. **Execute-and-compare** — a bounded scalar AST evaluator compares seeded
+   inputs; unsupported calls, collections, effects, or exhausted budgets abstain.
 
 A six-analyzer pipeline (plane isolation, determinism, resource estimation, purity,
 memory evaporation, canonical convergence) drives a promote/reject verdict.
@@ -362,8 +364,8 @@ Competence Register acceptance gate. Highlights:
 - **Universal broker** — one `CapabilityBroker` mediates FFI/native (C033) and
   agent/MCP tool adapters (C040–C041), denied by default.
 - **Context & path safety** — schema and evaluator share one authoritative nested
-  JSON representation; missing, malformed, conflicting, or mixed dotted-path
-  context is preserved as a typed failure; finite JSON and strict type algebra
+  JSON representation after shared dotted-path normalization. Missing, malformed,
+  or conflicting context is preserved as a typed failure; finite JSON and strict type algebra
   prohibit Python-specific coercion (C045–C046, C058–C061, C064). Eager
   boolean/quantifier validation, finite arithmetic, reserved evaluator binders,
   and per-policy override derivation close hidden-expression and stale-schema
@@ -406,7 +408,7 @@ deployment checklist and THREAT_MODEL.md §"Remaining Gaps".
 
 ---
 
-## 9. Engineering state (0.8.6)
+## 9. Historical engineering state (0.8.6)
 
 | Property | State |
 |---|---|

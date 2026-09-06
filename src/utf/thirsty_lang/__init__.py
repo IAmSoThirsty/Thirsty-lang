@@ -114,7 +114,7 @@ try:
 
     __version__ = _version("thirsty-lang")
 except Exception:
-    __version__ = "0.8.6"  # fallback
+    __version__ = "0.9.0"  # fallback
 __all__ = [
     "Token",
     "TokenType",

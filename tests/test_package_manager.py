@@ -3,6 +3,8 @@
 import json
 import os
 
+import pytest
+
 from utf.thirsty_lang.package_manager import (
     PackageManager,
     create_thirsty_lock,
@@ -50,21 +52,22 @@ def test_parse_toml_value_variants():
     assert f("'s'") == "s"
     assert f("true") is True
     assert f("false") is False
-    assert f("none") is None
-    assert f("null") is None
+    for invalid in ("none", "null", "bareword"):
+        with pytest.raises(ValueError):
+            f(invalid)
     assert f("[]") == []
     assert f("[1, 2]") == [1, 2]
     assert f('{a = 1, b = "x"}') == {"a": 1, "b": "x"}
     assert f("3.14") == 3.14
     assert f("42") == 42
-    assert f("bareword") == "bareword"
 
 
 def test_parse_lock(tmp_path):
     pm = PackageManager(str(tmp_path))
     assert pm.parse_lock() == {}
     (tmp_path / "thirsty.lock").write_text("")
-    assert pm.parse_lock() == {}
+    with pytest.raises(ValueError):
+        pm.parse_lock()
     (tmp_path / "thirsty.lock").write_text(json.dumps({"x": 1}))
     assert pm.parse_lock() == {"x": 1}
 
@@ -76,17 +79,17 @@ def test_parse_lock_explicit_path(tmp_path):
     assert pm.parse_lock(str(p)) == {"a": 2}
 
 
-def test_generate_lock_explicit_deps():
-    pm = PackageManager()
-    lock = pm.generate_lock({"a": "1.0", "b": 2})
-    assert lock["lockfile_version"] == 1
-    assert lock["dependencies"]["a"]["version"] == "1.0"
-    assert lock["dependencies"]["b"]["version"] == "2"
-    assert lock["dependencies"]["a"]["integrity"].startswith("sha256-")
+def test_generate_lock_explicit_deps(tmp_path):
+    pm = PackageManager(str(tmp_path))
+    lock = pm.generate_lock({"crypto": "1.0", "json": "2"})
+    assert lock["lockfile_version"] == 2
+    assert lock["dependencies"]["crypto"]["version"] == "1.0"
+    assert lock["dependencies"]["json"]["version"] == "2"
+    assert lock["dependencies"]["crypto"]["integrity"].startswith("sha256-")
 
 
-def test_generate_lock_from_manifest():
-    pm = PackageManager()
+def test_generate_lock_from_manifest(tmp_path):
+    pm = PackageManager(str(tmp_path))
     pm.manifest = {"dependencies": {"crypto": "1.0"}}
     lock = pm.generate_lock()
     assert "crypto" in lock["dependencies"]
@@ -94,24 +97,24 @@ def test_generate_lock_from_manifest():
 
 def test_write_lock(tmp_path):
     pm = PackageManager(str(tmp_path))
-    pm.generate_lock({"a": "1"})
+    pm.generate_lock({"crypto": "1"})
     assert pm.write_lock() is True
     assert os.path.exists(tmp_path / "thirsty.lock")
 
 
 def test_write_lock_failure(tmp_path):
     pm = PackageManager(str(tmp_path))
-    pm.generate_lock({"a": "1"})
+    pm.generate_lock({"crypto": "1"})
     assert pm.write_lock(str(tmp_path / "missing_dir" / "x.lock")) is False
 
 
-def test_verify_integrity():
-    pm = PackageManager()
-    pm.generate_lock({"a": "1"})
+def test_verify_integrity(tmp_path):
+    pm = PackageManager(str(tmp_path))
+    pm.generate_lock({"crypto": "1"})
     assert pm.verify_integrity() == []
-    pm.lock["dependencies"]["a"]["integrity"] = "sha256-tampered"
+    pm.lock["dependencies"]["crypto"]["integrity"] = "sha256-tampered"
     violations = pm.verify_integrity()
-    assert violations[0]["name"] == "a"
+    assert violations[0]["name"] == "crypto"
 
 
 def test_add_remove_dependency(tmp_path):
@@ -168,4 +171,4 @@ def test_create_helpers(tmp_path):
     assert os.path.exists(toml_path)
     assert "myproj" in open(toml_path).read()
     lock_path = create_thirsty_lock(str(tmp_path))
-    assert json.loads(open(lock_path).read())["lockfile_version"] == 1
+    assert json.loads(open(lock_path).read())["lockfile_version"] == 2

@@ -1,0 +1,61 @@
+module data_report: core
+
+// An ordinary JSON ingestion, validation, aggregation, and reporting program.
+// Run from the repository root; THIRSTY_REPORT_INPUT selects another JSON file.
+import "thirst::collections" as c
+import "thirst::json" as json
+import "thirst::fs" as fs
+import "thirst::env" as env
+
+glass ensure(condition, message) {
+    thirsty (not condition) {
+        throw message
+    }
+}
+
+glass validate_order(order) {
+    ensure(c.kind(order) == "dict", "each order must be an object")
+    ensure(length(c.keys(order)) == 4, "expected id, category, quantity, unit_cents")
+    ensure(c.has(order, "id") and c.has(order, "category") and c.has(order, "quantity") and c.has(order, "unit_cents"), "missing order field")
+    ensure(c.kind(order.id) == "string" and length(order.id) > 0 and length(order.id) <= 64, "id must be a short nonempty string")
+    ensure(c.kind(order.category) == "string" and length(order.category) > 0 and length(order.category) <= 64, "category must be a short nonempty string")
+    ensure(c.kind(order.quantity) == "int" and order.quantity > 0 and order.quantity <= 1000000, "quantity must be an integer from 1 to 1000000")
+    ensure(c.kind(order.unit_cents) == "int" and order.unit_cents >= 0 and order.unit_cents <= 1000000000, "unit_cents must be a nonnegative bounded integer")
+    return order
+}
+
+glass category_of(order) { return order.category }
+glass id_of(order) { return order.id }
+glass quantity_of(order) { return order.quantity }
+glass revenue_of(order) { return order.quantity * order.unit_cents }
+
+glass build_report(raw_json) {
+    ensure(c.kind(raw_json) == "string" and length(raw_json) <= 1048576, "input exceeds the text limit")
+    drink parsed = json.parse(raw_json)
+    ensure(c.kind(parsed) == "list", "input must be an array of orders")
+    ensure(length(parsed) <= 10000, "input exceeds the 10000-order limit")
+    drink orders = c.map(validate_order, parsed)
+    drink ids = c.map(id_of, orders)
+    ensure(length(c.set(ids)) == length(ids), "duplicate order id")
+    drink groups = c.group_by(category_of, orders)
+    drink categories = []
+    for category in c.sort(c.keys(groups)) {
+        drink rows = groups[category]
+        push(categories, c.dict([
+            ["category", category],
+            ["orders", length(rows)],
+            ["units", c.sum(c.map(quantity_of, rows))],
+            ["revenue_cents", c.sum(c.map(revenue_of, rows))]
+        ]))
+    }
+    return c.dict([
+        ["orders", length(orders)],
+        ["units", c.sum(c.map(quantity_of, orders))],
+        ["revenue_cents", c.sum(c.map(revenue_of, orders))],
+        ["categories", categories]
+    ])
+}
+
+drink input_path = env.get("THIRSTY_REPORT_INPUT", "src/utf/examples/data_report/orders.json")
+drink report = build_report(fs.read_file(input_path, 1048576))
+pour json.stringify(report)

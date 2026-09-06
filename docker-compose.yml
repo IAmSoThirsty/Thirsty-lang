@@ -96,8 +96,8 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
-        cp /app/src/utf/examples/hello.thirsty /app/dist/hello.thirsty &&
-        thirsty build /app/dist/hello.thirsty --target js
+        cp /app/src/utf/examples/compiler_scalar.thirsty /app/dist/compiler_scalar.thirsty &&
+        thirsty build /app/dist/compiler_scalar.thirsty --target js
 
   # Formatter: Code formatting
   fmt:

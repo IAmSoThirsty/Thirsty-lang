@@ -83,12 +83,12 @@ def test_format_literals():
     assert fexpr(StringLiteral(span=N, value='a"\n\t\\')).startswith('"')
     assert fexpr(BoolLiteral(span=N, value=True)) == "true"
     assert fexpr(BoolLiteral(span=N, value=False)) == "false"
-    assert fexpr(NoneLiteral(span=N)) == "empty"
+    assert fexpr(NoneLiteral(span=N)) == "none"
     assert fexpr(ErrorLiteral(span=N, value="oops")) == "error(oops)"
     assert "quenched" in fexpr(
         QuenchedLiteral(span=N, type_param="Int", value=IntLiteral(span=N, value=1))
     )
-    assert "empty" in fexpr(QuenchedLiteral(span=N, type_param=None, value=None))
+    assert "none" in fexpr(QuenchedLiteral(span=N, type_param=None, value=None))
     assert fexpr(ident("x")) == "x"
 
 
@@ -115,8 +115,8 @@ def test_format_call_member_array():
 
 def test_format_pipe_guard():
     p = PipeExpr(span=N, left=ident("a"), right=ident("b"))
-    assert fexpr(p) == "a |> b"
-    assert fexpr(p, prec=5) == "(a |> b)"
+    assert fexpr(p) == "a | b"
+    assert fexpr(p, prec=5) == "(a | b)"
     g = GuardExpr(span=N, expr=ident("x"), condition=ident("c"))
     assert "thirst x quench c" == fexpr(g)
 
@@ -155,7 +155,7 @@ def test_format_variable_and_funcs():
         init_expr=IntLiteral(span=N, value=1),
         is_mut=True,
     )
-    assert "mut drink x: int = 1" in F.format_stmt(v)
+    assert "drink mut x: int = 1" in F.format_stmt(v)
     fn = FunctionDecl(
         span=N,
         name="f",
@@ -164,7 +164,7 @@ def test_format_variable_and_funcs():
         body=block(ReturnStmt(span=N, value=ident("a"))),
     )
     out = F.format_stmt(fn)
-    assert "glass f(a: int, b): int {" in out
+    assert "glass f(a: int, b) -> int {" in out
 
 
 def test_format_class():
@@ -181,7 +181,7 @@ def test_format_if_chain():
     mid = IfStmt(span=N, condition=ident("b"), then_block=block(), else_block=inner)
     outer = IfStmt(span=N, condition=ident("a"), then_block=block(), else_block=mid)
     out = F.format_stmt(outer)
-    assert "thirsty a {" in out and "hydrated" in out
+    assert "thirsty (a) {" in out and "hydrated" in out
     # plain else block branch
     plain = IfStmt(span=N, condition=ident("a"), then_block=block(), else_block=block())
     assert "hydrated {" in F.format_stmt(plain)
@@ -192,10 +192,10 @@ def test_format_if_chain():
 
 
 def test_format_loops():
-    assert "refill c {" in F.format_stmt(
+    assert "refill (c) {" in F.format_stmt(
         WhileStmt(span=N, condition=ident("c"), body=block())
     )
-    assert "refill i in xs {" in F.format_stmt(
+    assert "refill (i in xs) {" in F.format_stmt(
         ForStmt(span=N, variable=ident("i"), iterable=ident("xs"), body=block())
     )
 
@@ -203,7 +203,7 @@ def test_format_loops():
 def test_format_simple_stmts():
     assert F.format_stmt(ReturnStmt(span=N, value=None)).strip() == "return"
     assert "pour x" in F.format_stmt(PourStmt(span=N, value=ident("x")))
-    assert "sip -> y" in F.format_stmt(SipStmt(span=N, target=ident("y")))
+    assert "sip y" in F.format_stmt(SipStmt(span=N, target=ident("y")))
     assert F.format_stmt(SipStmt(span=N, target=None)).strip() == "sip"
     assert "a = b" in F.format_stmt(
         AssignStmt(span=N, target=ident("a"), value=ident("b"))
@@ -224,7 +224,7 @@ def test_format_blocks_and_handlers():
     assert "shield {" in F.format_stmt(sec)
     sp = SpillageStmt(span=N, body=block(), handlers=[("ValueError", block())])
     out = F.format_stmt(sp)
-    assert "spillage {" in out and "spillage ValueError {" in out
+    assert "spillage {" in out and "error (ValueError) {" in out
     cl = CleanupStmt(span=N, body=block(), finalizer=block())
     assert "cleanup {" in F.format_stmt(cl) and "finally {" in F.format_stmt(cl)
 
@@ -249,17 +249,17 @@ def test_format_governed_and_morph():
 
 
 def test_format_decls():
-    assert "defend d: pol = a, b" in F.format_stmt(
-        DefendStrat(span=N, name="d", policy="pol", actions=["a", "b"])
+    assert "defend d(pol) { a; b }" in F.format_stmt(
+        DefendStrat(span=N, name="d", policy="pol", actions=[ident("a"), ident("b")])
     )
-    assert "enum E = A, B" in F.format_stmt(
+    assert "enum E { A, B }" in F.format_stmt(
         EnumDecl(span=N, name="E", variants=["A", "B"])
     )
-    assert "struct S(a: int, b)" in F.format_stmt(
+    assert "struct S { a: int; b }" in F.format_stmt(
         StructDecl(span=N, name="S", fields=[("a", "int"), ("b", None)])
     )
-    assert "interface I(f, g)" in F.format_stmt(
-        InterfaceDecl(span=N, name="I", methods=["f", "g"])
+    assert "interface I { f(); g() }" in F.format_stmt(
+        InterfaceDecl(span=N, name="I", methods=[("f", [], None), ("g", [], None)])
     )
 
 

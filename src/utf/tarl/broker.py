@@ -20,7 +20,9 @@ every request is denied with a proof.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from threading import RLock
 
+from utf.tarl.authority import VerifiedAuthority
 from utf.tarl.context import (
     ContextResolutionError,
     compose_context_layers,
@@ -75,23 +77,28 @@ class CapabilityBroker:
         self.runtime = runtime
         self.require_authenticated = require_authenticated
         self.path_guard = path_guard
+        self._authority_lock = RLock()
+        self._authority_epoch = 0
         self._subject = ""
         self._authenticated = False
         self._grants: tuple[str, ...] = ()
+        self._verified_authority: VerifiedAuthority | None = None
         if authority is not None:
             self.set_authority(authority)
 
     def set_authority(self, authority) -> CapabilityBroker:
-        from utf.tarl.authority import VerifiedAuthority
-
-        if isinstance(authority, VerifiedAuthority):
-            self._subject = authority.subject
-            self._authenticated = bool(authority.authenticated)
-            self._grants = tuple(authority.grants)
-        else:
-            self._subject = str(authority)
-            self._authenticated = False
-            self._grants = ()
+        with self._authority_lock:
+            if isinstance(authority, VerifiedAuthority):
+                self._verified_authority = authority
+                self._subject = authority.subject
+                self._authenticated = bool(authority.authenticated)
+                self._grants = tuple(authority.grants)
+            else:
+                self._verified_authority = None
+                self._subject = str(authority)
+                self._authenticated = False
+                self._grants = ()
+            self._authority_epoch += 1
         return self
 
     def _authority_context(self) -> dict:
@@ -164,7 +171,14 @@ class CapabilityBroker:
         abort. Fail-closed when no runtime is configured or (for a broker that
         requires authentication) the authority is not authenticated.
         """
-        if self.runtime is None:
+        runtime = self.runtime
+        required_authentication = self.require_authenticated
+        with self._authority_lock:
+            authority_epoch = self._authority_epoch
+            verified_authority = self._verified_authority
+            authenticated = self._authenticated
+            authority_context = self._authority_context()
+        if runtime is None:
             reason = (
                 "fail-closed: no policy runtime configured to authorize "
                 "this capability"
@@ -172,7 +186,16 @@ class CapabilityBroker:
             proof = self._fail_closed_proof(action, target, reason)
             return BrokerDecision(False, TarlVerdict.DENY, proof, reason)
 
-        if self.require_authenticated and not self._authenticated:
+        if verified_authority is not None and authenticated:
+            try:
+                authority_error = verified_authority.authorization_error(runtime._now())
+            except Exception:
+                authority_error = "authority revalidation failed"
+            if authority_error:
+                proof = self._fail_closed_proof(action, target, authority_error)
+                return BrokerDecision(False, TarlVerdict.DENY, proof, authority_error)
+
+        if required_authentication and not authenticated:
             reason = (
                 "fail-closed: broker requires an authenticated authority "
                 "to authorize this capability"
@@ -184,14 +207,14 @@ class CapabilityBroker:
         try:
             ctx = compose_context_layers(
                 ("caller context", context),
-                ("verified authority", self._authority_context()),
+                ("verified authority", authority_context),
                 ("capability request", request_context),
             )
         except ContextResolutionError as exc:
             reason = f"fail-closed: {exc}"
             diagnostic_context = {
                 "caller_context": context,
-                "authority_context": self._authority_context(),
+                "authority_context": authority_context,
                 "request_context": request_context,
             }
             proof = self._fail_closed_proof(
@@ -201,10 +224,10 @@ class CapabilityBroker:
                 context=diagnostic_context,
             )
             return BrokerDecision(False, TarlVerdict.DENY, proof, reason)
-        ensure_schema = getattr(self.runtime, "ensure_context_schema", None)
+        ensure_schema = getattr(runtime, "ensure_context_schema", None)
         if callable(ensure_schema):
             ensure_schema()
-        decision, proof = self.runtime.evaluate_with_proof(ctx)
+        decision, proof = runtime.evaluate_with_proof(ctx)
         if (
             decision.verdict is TarlVerdict.ALLOW
             and not positive_context_authority_admissible(proof)
@@ -226,6 +249,42 @@ class CapabilityBroker:
                 reason,
             )
         allowed = decision.verdict == TarlVerdict.ALLOW
+        if allowed:
+            # Evaluation may resolve providers and wait for durable audit. A
+            # credential revoked/expired during that work cannot authorize the
+            # subsequent effect merely because it was valid at request entry.
+            authority_error = None
+            if verified_authority is not None:
+                try:
+                    authority_error = verified_authority.authorization_error(
+                        runtime._now()
+                    )
+                except Exception as exc:
+                    authority_error = f"authority validity check failed: {exc}"
+            # Check the original binding, including change-and-restore through
+            # set_authority, after all callback-capable validation has finished.
+            with self._authority_lock:
+                binding_changed = self._authority_epoch != authority_epoch
+            if (
+                binding_changed
+                or self.runtime is not runtime
+                or self.require_authenticated != required_authentication
+            ):
+                authority_error = "authority binding changed during authorization"
+            if authority_error:
+                denied_proof = self._fail_closed_proof(
+                    action, target, authority_error, context=ctx
+                )
+                archive = getattr(runtime, "_archive", None)
+                if archive is not None:
+                    try:
+                        archive.store(denied_proof)
+                    except Exception:
+                        # Keep the denial even if its audit sink is unavailable.
+                        pass
+                return BrokerDecision(
+                    False, TarlVerdict.DENY, denied_proof, authority_error
+                )
         return BrokerDecision(
             allowed,
             decision.verdict,

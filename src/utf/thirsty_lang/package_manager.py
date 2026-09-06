@@ -1,17 +1,96 @@
-"""
-Thirsty-Lang Package Manager
-thirsty.toml files, thirsty.lock with SHA-256, and dependency management.
+"""Local dependency management with versioned, content-bound lockfiles.
+
+There is no remote registry resolver. A dependency must identify a bundled
+stdlib namespace or a project-local .thirsty source file. Lockfile v1 digests
+were hashes of labels; they are intentionally rejected as content evidence.
 """
 
 import hashlib
 import json
 import os
-import re
+import platform
+import tomllib
+from pathlib import Path
 from typing import Any
+
+LOCKFILE_VERSION = 2
+
+
+def content_integrity(content: bytes) -> str:
+    return "sha256-" + hashlib.sha256(content).hexdigest()
+
+
+def runtime_source_integrity() -> str:
+    """Hash bundled source independently of the host Python implementation."""
+    root = Path(__file__).resolve().parents[1]
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*.py")):
+        relative = path.relative_to(root).as_posix().encode("utf-8")
+        content = path.read_bytes()
+        digest.update(len(relative).to_bytes(8, "big"))
+        digest.update(relative)
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    return "sha256-" + digest.hexdigest()
+
+
+def runtime_integrity() -> str:
+    """Bind bundled Python source and the Python runtime version."""
+    content = json.dumps(
+        [
+            platform.python_implementation(),
+            platform.python_version(),
+            runtime_source_integrity(),
+        ],
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return content_integrity(content)
+
+
+def project_sources(root: Path) -> dict[str, str]:
+    """Hash local source inventory, excluding hidden/generated environments."""
+    sources = {}
+    for directory, children, files in os.walk(root, followlinks=False):
+        children[:] = sorted(
+            child
+            for child in children
+            if not child.startswith(".")
+            and child not in {"build", "dist", "__pycache__"}
+            and not (Path(directory) / child).is_symlink()
+        )
+        for filename in sorted(files):
+            path = Path(directory) / filename
+            if path.suffix != ".thirsty":
+                continue
+            resolved = path.resolve()
+            if not resolved.is_relative_to(root):
+                raise ValueError(f"Source escapes project root: {path}")
+            sources[path.relative_to(root).as_posix()] = content_integrity(
+                path.read_bytes()
+            )
+    return sources
+
+
+def _read_json_object(pairs: list[tuple[str, Any]]) -> dict:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"Duplicate lockfile key: {key}")
+        result[key] = value
+    return result
+
+
+def read_lock(path: Path) -> dict:
+    value = json.loads(
+        path.read_text(encoding="utf-8"), object_pairs_hook=_read_json_object
+    )
+    if not isinstance(value, dict):
+        raise ValueError("Lockfile must contain an object")
+    return value
 
 
 class PackageManager:
-    """Manage Thirsty-Lang packages (dependencies, manifest, lockfile)."""
+    """Manage a project manifest and content-based local dependency lock."""
 
     def __init__(self, project_root: str = "."):
         self.project_root = project_root
@@ -21,265 +100,276 @@ class PackageManager:
         self.lock: dict = {}
 
     def parse_manifest(self, path: str | None = None) -> dict:
-        """Parse a thirsty.toml manifest file."""
         if path:
             self.manifest_path = path
         if not os.path.exists(self.manifest_path):
-            return {}
-        with open(self.manifest_path) as f:
-            content = f.read()
-        self.manifest = self._parse_toml(content)
+            self.manifest = {}
+            return self.manifest
+        self.manifest = self._parse_toml(
+            Path(self.manifest_path).read_text(encoding="utf-8")
+        )
         return self.manifest
 
     def _parse_toml(self, content: str) -> dict:
-        """Simple TOML parser for thirsty.toml format."""
-        result: dict[str, Any] = {}
-        current_section = result
-
-        for line in content.split("\n"):
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-
-            # Section header: [section]
-            section_match = re.match(r"^\[([^\]]+)\]$", line)
-            if section_match:
-                section_name = section_match.group(1)
-                parts = section_name.split(".")
-                current_section = result
-                for part in parts:
-                    if part not in current_section:
-                        current_section[part] = {}
-                    current_section = current_section[part]
-                continue
-
-            # Key-value: key = value
-            kv_match = re.match(r"^([^=]+)=(.+)$", line)
-            if kv_match:
-                key = kv_match.group(1).strip()
-                raw_value = kv_match.group(2).strip()
-                value = self._parse_toml_value(raw_value)
-                current_section[key] = value
-
-        return result
+        return tomllib.loads(content)
 
     def _parse_toml_value(self, raw: str) -> object:
-        """Parse a TOML value."""
-        if raw.startswith('"') and raw.endswith('"'):
-            return raw[1:-1]
-        if raw.startswith("'") and raw.endswith("'"):
-            return raw[1:-1]
-        if raw == "true":
-            return True
-        if raw == "false":
-            return False
-        if raw == "none" or raw == "null":
-            return None
-        # Array: [1, 2, 3]
-        if raw.startswith("[") and raw.endswith("]"):
-            inner = raw[1:-1].strip()
-            if not inner:
-                return []
-            items = []
-            for item in re.split(r",\s*", inner):
-                items.append(self._parse_toml_value(item.strip()))
-            return items
-        # Inline table: {key = value}
-        if raw.startswith("{") and raw.endswith("}"):
-            inner = raw[1:-1].strip()
-            result = {}
-            for pair in re.split(r",\s*", inner):
-                if "=" in pair:
-                    k, v = pair.split("=", 1)
-                    result[k.strip()] = self._parse_toml_value(v.strip())
-            return result
-        # Number
-        try:
-            if "." in raw:
-                return float(raw)
-            return int(raw)
-        except ValueError:
-            pass
-        return raw
+        return tomllib.loads("value = " + raw)["value"]
 
     def parse_lock(self, path: str | None = None) -> dict:
-        """Parse thirsty.lock lockfile."""
         if path:
             self.lock_path = path
         if not os.path.exists(self.lock_path):
-            return {}
-        with open(self.lock_path) as f:
-            content = f.read()
-        self.lock = json.loads(content) if content.strip() else {}
+            self.lock = {}
+        else:
+            self.lock = read_lock(Path(self.lock_path))
         return self.lock
 
+    def _dependency_entry(self, name: str, spec: object, runtime: str) -> dict:
+        from utf.thirsty_lang.module_system import STDLIB_MODULES
+
+        root = Path(self.project_root).resolve()
+        module = name if name.startswith("thirst::") else "thirst::" + name
+        if (
+            module in STDLIB_MODULES
+            and isinstance(spec, str)
+            and not spec.endswith(".thirsty")
+        ):
+            return {"version": str(spec), "resolved": module, "integrity": runtime}
+        if isinstance(spec, dict) and set(spec) - {"path", "version"}:
+            raise ValueError(
+                f"Dependency '{name}' has unsupported specification fields"
+            )
+        path_spec = spec.get("path") if isinstance(spec, dict) else spec
+        if not isinstance(path_spec, str) or not path_spec.endswith(".thirsty"):
+            # The existing API also accepts a source pathname as its name.
+            path_spec = name if name.endswith(".thirsty") else None
+        if path_spec is None:
+            raise ValueError(
+                f"Unresolved dependency '{name}': use a local .thirsty path; remote registry resolution is unavailable"
+            )
+        path = (root / path_spec).resolve()
+        if not path.is_relative_to(root) or not path.is_file():
+            raise ValueError(
+                f"Dependency '{name}' must be an existing project-local source file"
+            )
+        return {
+            "version": str(spec.get("version", "*")) if isinstance(spec, dict) else "*",
+            "resolved": path.relative_to(root).as_posix(),
+            "integrity": content_integrity(path.read_bytes()),
+        }
+
     def generate_lock(self, dependencies: dict | None = None) -> dict:
-        """Generate a lockfile with SHA-256 hashes."""
         if dependencies is None:
             dependencies = self.manifest.get("dependencies", {})
-
-        lock_entries = {}
-        for name, version_spec in dependencies.items():
-            version = (
-                version_spec if isinstance(version_spec, str) else str(version_spec)
-            )
-            entry = {
-                "version": version,
-                "resolved": f"thirsty-registry://{name}@{version}",
-                "integrity": self._compute_integrity(name, version),
-            }
-            lock_entries[name] = entry
-
+        if not isinstance(dependencies, dict):
+            raise ValueError("Manifest dependencies must be a table")
+        root = Path(self.project_root).resolve()
+        runtime = runtime_integrity()
+        manifest = Path(self.manifest_path)
+        entries = {
+            name: self._dependency_entry(name, spec, runtime)
+            for name, spec in dependencies.items()
+        }
+        sources = project_sources(root)
+        for entry in entries.values():
+            if not entry["resolved"].startswith("thirst::"):
+                sources[entry["resolved"]] = entry["integrity"]
         self.lock = {
-            "lockfile_version": 1,
-            "dependencies": lock_entries,
+            "lockfile_version": LOCKFILE_VERSION,
+            "runtime_integrity": runtime,
+            "manifest_integrity": (
+                content_integrity(manifest.read_bytes()) if manifest.exists() else None
+            ),
+            "dependencies": entries,
+            "sources": sources,
         }
         return self.lock
 
     def _compute_integrity(self, name: str, version: str) -> str:
-        """Compute SHA-256 integrity hash for a dependency entry."""
-        content = f"{name}@{version}"
-        return "sha256-" + hashlib.sha256(content.encode()).hexdigest()
+        return str(
+            self._dependency_entry(name, version, runtime_integrity())["integrity"]
+        )
 
     def write_lock(self, path: str | None = None) -> bool:
-        """Write the lockfile."""
         if path:
             self.lock_path = path
         try:
-            with open(self.lock_path, "w") as f:
-                json.dump(self.lock, f, indent=2)
+            Path(self.lock_path).write_text(
+                json.dumps(self.lock, indent=2) + "\n", encoding="utf-8"
+            )
             return True
-        except Exception:
+        except OSError:
             return False
 
     def verify_integrity(self) -> list[dict]:
-        """Verify all lockfile entries match their computed hashes."""
         violations = []
-        for name, entry in self.lock.get("dependencies", {}).items():
-            expected = entry.get("integrity", "")
-            computed = self._compute_integrity(name, entry.get("version", ""))
+        root = Path(self.project_root).resolve()
+
+        def mismatch(name: str, expected: object, computed: object) -> None:
             if expected != computed:
+                violations.append(
+                    {"name": name, "expected": expected, "computed": computed}
+                )
+
+        if self.lock.get("lockfile_version") != LOCKFILE_VERSION:
+            return [
+                {
+                    "name": "lockfile_version",
+                    "expected": LOCKFILE_VERSION,
+                    "computed": self.lock.get("lockfile_version"),
+                }
+            ]
+        runtime = runtime_integrity()
+        mismatch("runtime", self.lock.get("runtime_integrity"), runtime)
+        manifest = Path(self.manifest_path)
+        mismatch(
+            "manifest",
+            self.lock.get("manifest_integrity"),
+            content_integrity(manifest.read_bytes()) if manifest.exists() else None,
+        )
+        sources = self.lock.get("sources")
+        deps = self.lock.get("dependencies")
+        if not isinstance(sources, dict) or not isinstance(deps, dict):
+            return violations + [
+                {
+                    "name": "lockfile_structure",
+                    "expected": "source/dependency tables",
+                    "computed": "invalid",
+                }
+            ]
+        for name, expected in sources.items():
+            path = (root / name).resolve()
+            if not path.is_relative_to(root) or not path.is_file():
+                mismatch(name, expected, None)
+            else:
+                mismatch(name, expected, content_integrity(path.read_bytes()))
+        for name, entry in deps.items():
+            if not isinstance(entry, dict) or not isinstance(
+                entry.get("resolved"), str
+            ):
                 violations.append(
                     {
                         "name": name,
-                        "expected": expected,
-                        "computed": computed,
+                        "expected": "resolved dependency",
+                        "computed": "invalid",
                     }
                 )
+                continue
+            target = entry["resolved"]
+            if target.startswith("thirst::"):
+                from utf.thirsty_lang.module_system import STDLIB_MODULES
+
+                computed = runtime if target in STDLIB_MODULES else None
+            else:
+                path = (root / target).resolve()
+                computed = (
+                    content_integrity(path.read_bytes())
+                    if path.is_relative_to(root) and path.is_file()
+                    else None
+                )
+                if target not in sources:
+                    violations.append(
+                        {
+                            "name": name,
+                            "expected": "locked source",
+                            "computed": "missing",
+                        }
+                    )
+            mismatch(name, entry.get("integrity"), computed)
         return violations
 
     def add_dependency(self, name: str, version_spec: str = "*") -> bool:
-        """Add a dependency to the manifest."""
-        deps = self.manifest.setdefault("dependencies", {})
-        deps[name] = version_spec
+        self._dependency_entry(name, version_spec, runtime_integrity())
+        self.manifest.setdefault("dependencies", {})[name] = version_spec
         return self._write_manifest()
 
     def remove_dependency(self, name: str) -> bool:
-        """Remove a dependency from the manifest."""
         deps = self.manifest.get("dependencies", {})
-        if name in deps:
-            del deps[name]
-            return self._write_manifest()
-        return False
+        if name not in deps:
+            return False
+        del deps[name]
+        return self._write_manifest()
 
     def _write_manifest(self) -> bool:
-        """Write the manifest back to disk."""
         try:
-            content = self._format_toml(self.manifest)
-            with open(self.manifest_path, "w") as f:
-                f.write(content)
+            Path(self.manifest_path).write_text(
+                self._format_toml(self.manifest), encoding="utf-8"
+            )
             return True
-        except Exception:
+        except (OSError, TypeError, ValueError):
             return False
 
     def _format_toml(self, data: dict, prefix: str = "") -> str:
-        """Format a dict as a TOML string."""
-        lines = []
-        for key, value in data.items():
-            if isinstance(value, dict) and key != "dependencies":
-                lines.append(f"\n[{prefix}{key}]")
-                for k2, v2 in value.items():
-                    lines.append(
-                        f"{k2} = {json.dumps(v2) if isinstance(v2, str) else v2}"
-                    )
-            elif key == "dependencies" and isinstance(value, dict):
-                lines.append("\n[dependencies]")
-                for dep_name, dep_ver in value.items():
-                    lines.append(f"{dep_name} = {json.dumps(str(dep_ver))}")
-            else:
-                lines.append(
-                    f"{key} = {json.dumps(value) if isinstance(value, str) else value}"
-                )
-        return "\n".join(lines)
+        from utf.thirsty_lang.module_system import dump_toml
+
+        if prefix:
+            raise ValueError(
+                "TOML prefix formatting is unsupported; pass a nested mapping"
+            )
+        return dump_toml(data)
 
     def audit_dependencies(self) -> list[dict]:
-        """Audit all dependencies for integrity and version issues."""
-        issues = []
-        # Parse manifest
         self.parse_manifest()
-        # Parse lockfile
         self.parse_lock()
-
+        issues = []
         manifest_deps = self.manifest.get("dependencies", {})
         lock_deps = self.lock.get("dependencies", {})
-
         for name in manifest_deps:
             if name not in lock_deps:
                 issues.append(
                     {
                         "type": "missing_lock",
                         "name": name,
-                        "message": f"Dependency '{name}' is in manifest but not in lockfile",
+                        "message": f"Dependency '{name}' is absent from lockfile",
                     }
                 )
-            else:
-                # Verify integrity
-                expected = lock_deps[name].get("integrity", "")
-                computed = self._compute_integrity(
-                    name, lock_deps[name].get("version", "")
-                )
-                if expected != computed:
-                    issues.append(
-                        {
-                            "type": "integrity_mismatch",
-                            "name": name,
-                            "message": f"Integrity mismatch for '{name}'",
-                        }
-                    )
-
         for name in lock_deps:
             if name not in manifest_deps:
                 issues.append(
                     {
                         "type": "orphan_lock",
                         "name": name,
-                        "message": f"Dependency '{name}' is in lockfile but not in manifest",
+                        "message": f"Dependency '{name}' is absent from manifest",
                     }
                 )
-
+        for violation in self.verify_integrity():
+            issues.append(
+                {
+                    "type": "integrity_mismatch",
+                    "name": violation["name"],
+                    "message": f"Content integrity mismatch for '{violation['name']}'",
+                }
+            )
         return issues
 
 
 def create_thirsty_toml(project_dir: str, name: str, version: str = "0.1.0") -> str:
-    """Create a default thirsty.toml manifest file."""
-    content = f"""[package]
-name = "{name}"
-version = "{version}"
-thirsty-version = "1.0"
-mode = "core"
+    from utf.thirsty_lang.module_system import dump_toml
 
-[dependencies]
-"""
     path = os.path.join(project_dir, "thirsty.toml")
-    with open(path, "w") as f:
-        f.write(content)
+    Path(path).write_text(
+        dump_toml(
+            {
+                "package": {
+                    "name": name,
+                    "version": version,
+                    "thirsty-version": "1.0",
+                    "mode": "core",
+                },
+                "dependencies": {},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     return path
 
 
 def create_thirsty_lock(project_dir: str) -> str:
-    """Create an empty thirsty.lock lockfile."""
-    content = json.dumps({"lockfile_version": 1, "dependencies": {}}, indent=2)
-    path = os.path.join(project_dir, "thirsty.lock")
-    with open(path, "w") as f:
-        f.write(content)
-    return path
+    manager = PackageManager(project_dir)
+    manager.parse_manifest()
+    manager.generate_lock()
+    if not manager.write_lock():
+        raise OSError("Could not write thirsty.lock")
+    return manager.lock_path

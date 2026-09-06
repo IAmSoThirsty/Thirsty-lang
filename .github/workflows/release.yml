@@ -4,34 +4,63 @@ on:
   push:
     tags:
       - "v*"
+      - "pypi-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact package version to publish from the selected ref"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   validate:
-    name: Validate tagged commit
+    name: Validate release (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.sha }}
 
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install validation dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[test,analysis]" ruff mypy
+          python -m pip install -e ".[test,analysis,docs]" ruff mypy
+          node --version
 
-      - name: Require tag and package versions to match
+      - name: Require requested and package versions to match
         shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            case "$GITHUB_REF_NAME" in
+              pypi-v*) TAG_VERSION="${GITHUB_REF_NAME#pypi-v}" ;;
+              v*) TAG_VERSION="${GITHUB_REF_NAME#v}" ;;
+              *) echo "Unsupported release tag" >&2; exit 1 ;;
+            esac
+          elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG_VERSION="$REQUESTED_VERSION"
+          else
+            echo "Expected a release tag or an explicit workflow dispatch" >&2
+            exit 1
+          fi
           PACKAGE_VERSION=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
           test "$TAG_VERSION" = "$PACKAGE_VERSION"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            test "$REQUESTED_VERSION" = "$PACKAGE_VERSION"
+          fi
 
       - name: Lint
         run: ruff check src tests
@@ -50,6 +79,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.sha }}
 
       - name: Set up Python 3.11
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
@@ -68,11 +99,57 @@ jobs:
       - name: Verify wheel contents
         run: |
           set -euo pipefail
-          python -m pip install wheel
-          unzip -l dist/*.whl | grep -E "\.py$|entry_points.txt" | head -20
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          wheel, = Path("dist").glob("*.whl")
+          with ZipFile(wheel) as archive:
+              sources = list(Path("src/utf").rglob("*.py"))
+              assert sources
+              for source in sources:
+                  assert archive.read(source.relative_to("src").as_posix()) == source.read_bytes(), source
+              assert "utf/py.typed" in archive.namelist()
+          print(f"Verified {len(sources)} source files and the typing marker in {wheel.name}")
+          PY
+
+      - name: Smoke test installed wheel
+        run: |
+          set -euo pipefail
+          python -m venv "$RUNNER_TEMP/release-smoke"
+          "$RUNNER_TEMP/release-smoke/bin/python" -m pip install dist/*.whl
+          export EXPECTED_VERSION=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/release-smoke/bin/python" -I - <<'PY'
+          import importlib
+          import importlib.metadata
+          import os
+          from pathlib import Path
+          import sys
+          modules = ["utf.thirsty_lang", "utf.thirst_of_gods", "utf.tarl", "utf.tscg", "utf.tscg_b", "utf.shadow_thirst"]
+          for name in modules:
+              module = importlib.import_module(name)
+              assert Path(module.__file__).resolve().is_relative_to(Path(sys.prefix).resolve()), name
+          assert importlib.metadata.version("thirsty-lang") == os.environ["EXPECTED_VERSION"]
+          from utf.thirsty_lang.lexer import Lexer
+          from utf.thirsty_lang.parser import Parser
+          from utf.thirsty_lang.checker import check_ast
+          from utf.thirsty_lang.interpreter import Interpreter
+          lexer = Lexer('drink values = {"numbers": [1, 2, 3]}\nvalues["numbers"][2]')
+          parser = Parser(lexer.lex())
+          program = parser.parse()
+          assert not lexer.errors and not parser.errors and not check_ast(program)
+          assert Interpreter().interpret(program) == 3
+          print("Installed version, import provenance, and language execution passed")
+          PY
+          for entry in thirsty thirst-of-gods tarl tarl-lsp tscg tscg-b shadow-thirst; do
+            "$RUNNER_TEMP/release-smoke/bin/$entry" --help > /dev/null
+            echo "$entry --help passed"
+          done
 
       - name: Verify package metadata
-        run: python -m twine check dist/*
+        run: |
+          python -m twine check dist/*
+          sha256sum dist/*
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # release/v1

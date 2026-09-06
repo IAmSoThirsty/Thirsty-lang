@@ -1,6 +1,6 @@
 # Governance Model
 
-Edition: Thirsty-Lang 0.8.6. See the
+Edition: Thirsty-Lang 0.9.0 (release preparation). See the
 [canonical Thirsty-Lang UTF 101 manual](THIRSTY_LANG_UTF_101.md) for the complete
 end-to-end reference and deployment recipes.
 
@@ -68,12 +68,12 @@ T.A.R.L. expressions are evaluated in a **sandboxed environment**:
 - Only literal values and safe operators allowed
 - Only the documented safe functions are callable; imports and mutation are
   unavailable
-- Parallel rule evaluation with adaptive ordering (most-matched rules evaluated first)
+- Deterministic first-match rule evaluation in source order
 
 ### Authoritative context representation
 
-T.A.R.L. uses one representation: a JSON object with nested objects for dotted
-policy paths. For example, this policy:
+T.A.R.L. evaluates canonical nested objects after `prepare_context()` normalizes
+dotted, nested, or equivalent mixed input. For example, this policy:
 
 ```tarl
 when user.role == "admin" => ALLOW
@@ -85,11 +85,11 @@ is evaluated with:
 {"user":{"role":"admin"}}
 ```
 
-`{"user.role":"admin"}` is rejected; a flat dotted key is not an alias for a
-nested path. Supplying both forms is also rejected, whether their values agree
-or conflict. JSON duplicate keys and collisions between caller, authority,
-source, and action layers are rejected. No representation conversion occurs
-silently.
+`{"user.role":"admin"}` normalizes to the same nested path. Supplying both
+forms is accepted only when values agree. Contradictory values, malformed paths,
+JSON duplicate keys, and conflicting caller/authority/source/action layers are
+rejected. Proofs record original and canonical context hashes and the
+`tarl.context.dotted-path-expansion` algorithm, version `1`.
 
 Missing is not false. Invalid is not false. Unresolved is not evidence. A real
 resolved value such as `{"feature":{"enabled":false}}` remains an ordinary
@@ -283,13 +283,16 @@ The `TarlRuntime` class provides:
 
 1. **LRU Caching** (128 entries) — Policies are cached by policy identity plus
    original/evaluated context binding and transformation metadata
-2. **Parallel Evaluation** — Rules evaluated concurrently via ThreadPoolExecutor
-3. **Adaptive Ordering** — Frequently-matched rules are prioritized
+2. **Parallel rule evaluation** — Decision-only evaluation may submit rules
+   concurrently; selecting the winning rule still follows source order
+3. **Adaptive submission** — Hit counts affect task submission order, never
+   policy priority. Proof and required-audit evaluation preserve source order
 4. **Policy Hotswapping** — Policies can be updated at runtime without restart
 5. **Optional durable audit** — `set_archive(TarlAuditArchive(...))` persists
-   generated proofs. Call `set_require_audit(True)` when an attached archive
-   must fail closed on write failure. With no archive attached, decisions are
-   returned but not persisted; hardened interpreter mode does not create one.
+   generated proofs. `set_require_audit(True)` denies when an archive is absent
+   or cannot persist, including `evaluate()` without a requested proof result.
+   Hardened interpreter mode alone does not create an archive. The CLI exposes
+   `--audit-db` and `--require-audit` for governed modules.
 
 ### CLI Usage
 

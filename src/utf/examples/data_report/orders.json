@@ -1,0 +1,6 @@
+[
+  {"id": "A1", "category": "hardware", "quantity": 2, "unit_cents": 1500},
+  {"id": "A2", "category": "books", "quantity": 1, "unit_cents": 2000},
+  {"id": "A3", "category": "hardware", "quantity": 3, "unit_cents": 500},
+  {"id": "A4", "category": "books", "quantity": 2, "unit_cents": 1200}
+]

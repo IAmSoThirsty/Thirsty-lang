@@ -105,9 +105,12 @@ class TestParser:
         assert functions[0].name == "add"
 
     def test_parse_if(self):
-        code = "thirsty x > 0 {\n    return 1\n} hydrated {\n    return 0\n}"
-        tokens = Lexer(code).lex()
-        ast = Parser(tokens).parse()
+        code = "thirsty (x > 0) {\n    return 1\n} hydrated {\n    return 0\n}"
+        lexer = Lexer(code)
+        parser = Parser(lexer.lex())
+        ast = parser.parse()
+        assert not lexer.errors, lexer.errors
+        assert not parser.errors, parser.errors
         if_stmts = [s for s in ast.stmts if isinstance(s, IfStmt)]
         assert len(if_stmts) >= 1
 
@@ -224,9 +227,12 @@ class TestInterpreter:
 
     def test_if_stmt(self):
         """Test if/else via parser-generated AST."""
-        code = "thirsty 1 < 2 {\n    42\n} hydrated {\n    0\n}"
-        tokens = Lexer(code).lex()
-        ast = Parser(tokens).parse()
+        code = "thirsty (1 < 2) {\n    42\n} hydrated {\n    0\n}"
+        lexer = Lexer(code)
+        parser = Parser(lexer.lex())
+        ast = parser.parse()
+        assert not lexer.errors, lexer.errors
+        assert not parser.errors, parser.errors
         result = Interpreter().interpret(ast)
         assert result == 42
 

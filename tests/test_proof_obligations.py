@@ -178,20 +178,26 @@ def test_governed_build_manifest_records_proof_requirements(
     monkeypatch,
     capsys,
 ):
+    # The browser launcher retains the interpreted source, including imports
+    # and contracts. JS/LLVM explicitly do not support this program's AST.
+    # Building a launcher still does not configure or execute governance.
     source = _write(tmp_path, "p.thirsty", PROGRAM)
     policy = _write(tmp_path, "p.tarl", POLICY)
     _run_cli(
         monkeypatch,
         "build",
         "--target",
-        "js",
+        "wasm-pyodide",
         "--allow-governance-loss",
         "--emit-manifest",
         "--policy",
         policy,
         source,
     )
-    capsys.readouterr()
+    output = capsys.readouterr()
+    assert "governance loss" in output.err.lower()
+    assert (tmp_path / "p.pyodide.html").is_file()
+    assert not (tmp_path / "proof-side-effect.txt").exists()
     manifest = json.loads(open(os.path.splitext(source)[0] + ".manifest.json").read())
     assert manifest["source_hash"].startswith("sha256:")
     assert manifest["policy_dependencies"]["hash"].startswith("sha256:")
@@ -200,6 +206,40 @@ def test_governed_build_manifest_records_proof_requirements(
     assert manifest["proof_mode"]["verification"] == "required-for-governed-effects"
     assert manifest["audit_requirement"]["required"] is True
     assert manifest["governance_loss_status"] == "explicitly_allowed"
+    assert manifest["build"]["target"] == "wasm-pyodide"
+    assert manifest["side_effects_executed"] is False
+    assert any(
+        fn["name"] == "withdraw" and fn["governed"] for fn in manifest["functions"]
+    )
+    assert any(
+        call["function"] == "write_file" for call in manifest["stdlib_sensitive_calls"]
+    )
+
+
+@pytest.mark.parametrize("target", ["js", "llvm-ir"])
+def test_governance_loss_disclosure_does_not_bypass_unsupported_backend(
+    tmp_path, monkeypatch, capsys, target
+):
+    source = _write(tmp_path, "p.thirsty", PROGRAM)
+    policy = _write(tmp_path, "p.tarl", POLICY)
+    with pytest.raises(SystemExit) as exc:
+        _run_cli(
+            monkeypatch,
+            "build",
+            "--target",
+            target,
+            "--allow-governance-loss",
+            "--emit-manifest",
+            "--policy",
+            policy,
+            source,
+        )
+    assert exc.value.code == 1
+    assert "target" in capsys.readouterr().err.lower()
+    assert not (tmp_path / "p.js").exists()
+    assert not (tmp_path / "p.ll").exists()
+    assert not (tmp_path / "p.manifest.json").exists()
+    assert not (tmp_path / "proof-side-effect.txt").exists()
 
 
 def test_denial_explanation_identifies_missing_authority_policy_context(

@@ -1,6 +1,6 @@
 # Thirsty-Lang Grammar (Tier 1)
 
-**Edition:** Thirsty-Lang v0.8.6
+**Edition:** Thirsty-Lang v0.9.0 (release preparation)
 
 **Scope:** syntax accepted by `utf.thirsty_lang.lexer.Lexer` and
 `utf.thirsty_lang.parser.Parser`
@@ -81,7 +81,7 @@ single_quoted_string = "'" { string_character | escape } "'" ;
 escape         = "\\n" | "\\t" | "\\0" | "\\\\" | "\\\"" | "\\'" ;
 ```
 
-The decoded escapes in v0.8.6 are newline (`\n`), tab (`\t`), NUL (`\0`),
+The decoded escapes in v0.9.0 are newline (`\n`), tab (`\t`), NUL (`\0`),
 backslash (`\\`), double quote (`\"`), and single quote (`\'`). `\r` and
 hex escapes such as `\x41` are not implemented escape forms. For compatibility,
 the current lexer drops the backslash from an unknown escape and retains the
@@ -111,7 +111,7 @@ module_mode    = "core" | "governed" | "strict" | "pure" ;
 
 import_stmt    = "import" string [ "as" identifier ] [ ";" ] ;
 
-type_name      = identifier ;
+type_name      = identifier [ "[" type_name { "," type_name } "]" ] ;
 parameter      = identifier [ ":" type_name ] ;
 parameters     = "(" [ parameter { "," parameter } ] ")" ;
 ```
@@ -119,14 +119,16 @@ parameters     = "(" [ parameter { "," parameter } ] ")" ;
 The module header, when present, must be first. Imports are ordinary statements
 and may occur wherever the parser accepts a statement.
 
-Type annotations currently consume exactly one identifier. The checker
-recognizes the built-in names `Int`, `Float`, `Bool`, `String`, `Void`, `Any`,
-and `Error`. Function-type, tuple-type, and bracketed generic syntax are not
-accepted in a Tier 1 annotation by the v0.8.6 parser.
+Type annotations accept an identifier with nested bracketed type arguments,
+such as `Dict[String, Reservoir[Int]]`. The checker recognizes builtin and
+declared nominal types and recursively checks collection literal elements.
+This does not implement general polymorphic functions or whole-program type
+soundness; dynamic `Any` and foreign values still require boundary validation.
 
 In `strict` mode, `drink` and `let` bindings require an initializer at runtime.
-In `pure` mode, side-effecting `pour` and `sip` operations are rejected at
-runtime.
+In `pure` mode, mediated external effects are rejected at runtime, including
+I/O, clock/randomness, and imported callbacks. Local mutable data is still
+supported; the mode is not a whole-program proof of referential transparency.
 
 ---
 
@@ -166,6 +168,7 @@ primary          = literal
                  | "this"
                  | "(" expression ")"
                  | array_literal
+                 | dict_literal
                  | lambda_expression
                  | guard_expression
                  | quenched_expression
@@ -175,6 +178,8 @@ primary          = literal
 
 literal          = integer | float | string | "true" | "false" | "none" ;
 array_literal    = "[" [ argument_list ] "]" ;
+dict_literal     = "{" [ expression ":" expression
+                  { "," expression ":" expression } [ "," ] ] "}" ;
 
 lambda_expression = "glass" parameters [ "->" type_name ] block ;
 
@@ -299,10 +304,10 @@ A `drink` or `let` initializer selects the C-style `refill` form directly, so
 its first separator is optional in the current parser. The canonical spelling
 still includes both separators: `refill (drink i = 0; i < 3; i = i + 1) { ... }`.
 
-One dispatch edge is also part of the v0.8.6 behavior: a statement beginning
-with `sanitize`, `armor`, `cascade`, or `new` bypasses the generic expression-
-statement parser. A trailing semicolon is therefore not consumed and would be
-read as an invalid empty statement; omit it on those four direct forms.
+A statement beginning with `cascade` bypasses the generic expression-statement
+parser. A trailing semicolon is therefore not consumed and would be read as an
+invalid empty statement; omit it on this direct form. The `sanitize`, `armor`,
+and `new` expression forms accept the usual optional statement semicolon.
 
 ---
 
@@ -341,7 +346,7 @@ fountain_field   = identifier [ ":" type_name ] [ "=" expression ] ;
 ```
 
 Fountain inheritance, mixin lists, and interface lists after the fountain name
-are not supported by the v0.8.6 parser. A constructor is an ordinary method
+are not supported by the v0.9.0 parser. A constructor is an ordinary method
 named `init`, written `glass init(...) { ... }`.
 
 ### 5.3 Error handling and cleanup
@@ -418,7 +423,7 @@ enum, struct, interface, symbol, module, core, and, or, not,
 true, false, none
 ```
 
-This is the complete v0.8.6 `KEYWORDS` set. Reservation does not mean that each
+This is the complete v0.9.0 `KEYWORDS` set. Reservation does not mean that each
 word starts a Tier 1 parser production. Some tokens exist for higher-tier and
 forward-compatibility work.
 

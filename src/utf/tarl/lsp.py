@@ -29,7 +29,7 @@ from importlib.metadata import PackageNotFoundError, version
 try:
     PACKAGE_VERSION = version("thirsty-lang")
 except PackageNotFoundError:  # source checkout before installation
-    PACKAGE_VERSION = "0.8.6"
+    PACKAGE_VERSION = "0.9.0"
 
 log = logging.getLogger(__name__)
 

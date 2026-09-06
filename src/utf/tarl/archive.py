@@ -124,35 +124,40 @@ class TarlAuditArchive:
         proof_json = proof.to_json()
         with self._lock:
             conn = self._connect()
-            # Link this record to the current chain head (genesis if empty).
-            head = conn.execute(
-                "SELECT entry_hash FROM proofs ORDER BY id DESC LIMIT 1"
-            ).fetchone()
-            prev_hash = head[0] if head and head[0] else _GENESIS
-            entry_hash = _entry_hash(prev_hash, proof_json)
-            cursor = conn.execute(
-                """INSERT INTO proofs
-                   (policy_hash, context_hash, verdict, rule_index,
-                    evaluated_at, expires_at, signature, proof_json,
-                    prev_hash, entry_hash)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    proof.policy_hash,
-                    proof.context_hash,
-                    proof.verdict.value,
-                    proof.rule_index,
-                    proof.evaluated_at,
-                    expires_at,
-                    proof.signature or None,
-                    proof_json,
-                    prev_hash,
-                    entry_hash,
-                ),
-            )
-            conn.commit()
-            # lastrowid is the new AUTOINCREMENT id after a successful INSERT;
-            # it is only None if no row was inserted (never on this path).
-            return cursor.lastrowid or 0
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                # Hold the SQLite writer reservation while reading and extending the head.
+                head = conn.execute(
+                    "SELECT entry_hash FROM proofs ORDER BY id DESC LIMIT 1"
+                ).fetchone()
+                prev_hash = head[0] if head and head[0] else _GENESIS
+                entry_hash = _entry_hash(prev_hash, proof_json)
+                cursor = conn.execute(
+                    """INSERT INTO proofs
+                       (policy_hash, context_hash, verdict, rule_index,
+                        evaluated_at, expires_at, signature, proof_json,
+                        prev_hash, entry_hash)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        proof.policy_hash,
+                        proof.context_hash,
+                        proof.verdict.value,
+                        proof.rule_index,
+                        proof.evaluated_at,
+                        expires_at,
+                        proof.signature or None,
+                        proof_json,
+                        prev_hash,
+                        entry_hash,
+                    ),
+                )
+                conn.commit()
+                # lastrowid is the new AUTOINCREMENT id after a successful INSERT;
+                # it is only None if no row was inserted (never on this path).
+                return cursor.lastrowid or 0
+            except BaseException:
+                conn.rollback()
+                raise
 
     # ── Read ──────────────────────────────────────────────────────────────────
 

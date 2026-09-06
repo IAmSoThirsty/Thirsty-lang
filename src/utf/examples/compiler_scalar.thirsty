@@ -1,0 +1,8 @@
+module compiler_scalar: core
+
+// Supported by both the JS target and the closed-scalar LLVM target.
+glass combine(a: Int, b: Int) -> Int {
+    return a * 2 + b
+}
+
+drink main = combine(4, 3)

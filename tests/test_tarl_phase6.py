@@ -579,7 +579,7 @@ class TestTarlLanguageServer(unittest.TestCase):
         self.assertIn("hoverProvider", caps)
         self.assertIn("definitionProvider", caps)
         self.assertIn("serverInfo", result)
-        self.assertEqual(result["serverInfo"]["version"], "0.8.6")
+        self.assertEqual(result["serverInfo"]["version"], "0.9.0")
 
     # ── on_shutdown ───────────────────────────────────────────────────────────
 

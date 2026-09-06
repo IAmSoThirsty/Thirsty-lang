@@ -1,12 +1,12 @@
 [manual]
 title = "Thirsty-Lang UTF 101 (Universal Thirsty Family)"
 subtitle = "The Canonical End-to-End Reference"
-software_version = "0.8.6"
-document_revision = "2026-08-02"
+software_version = "0.9.0"
+document_revision = "2026-09-06"
 publisher = "Thirsty's Projects LLC"
 license = "Apache-2.0"
 output = "output/pdf/Thirsty-Lang-UTF-101.pdf"
-source_date_epoch = 1785686400
+source_date_epoch = 1788652800
 
 [[document]]
 path = "docs/THIRSTY_LANG_UTF_101.md"
@@ -77,3 +77,13 @@ authority = "architecture-rationale"
 path = "docs/operations/CONTINUITY_MAP.md"
 title = "Operational Continuity and Release Evidence"
 authority = "historical-evidence"
+
+[[document]]
+path = "docs/DEVELOPMENT_PLAN.md"
+title = "Priority Corrections and General Purpose Language"
+authority = "development-plan"
+
+[[document]]
+path = "docs/GENERAL_PURPOSE_LANGUAGE.md"
+title = "General Purpose Language Foundation"
+authority = "implemented-feature-reference"

@@ -162,8 +162,8 @@ class TarlRuntime:
         return current.astimezone(datetime.UTC)
 
     def set_require_audit(self, required: bool = True) -> "TarlRuntime":
-        """When True and an audit archive is attached, a failure to persist a
-        proof downgrades the decision to a fail-closed DENY (C038): execution
+        """When True, a missing archive or a failure to persist a proof
+        downgrades the decision to a fail-closed DENY (C038): execution
         cannot proceed if the required audit record could not be written."""
         self._require_audit = required
         return self
@@ -177,9 +177,11 @@ class TarlRuntime:
     ) -> tuple[TarlDecision, TarlProof]:
         """Store the proof; on a persistence failure, fail closed when audit is
         required. Returns the (possibly downgraded) ``(decision, proof)``."""
-        if self._archive is None:
+        if self._archive is None and not self._require_audit:
             return decision, proof
         try:
+            if self._archive is None:
+                raise RuntimeError("required audit archive is not configured")
             self._archive.store(proof, expires_at=decision.expires_at)
             return decision, proof
         except Exception as exc:  # disk full, DoS on the audit sink, etc.
@@ -531,6 +533,9 @@ class TarlRuntime:
         context. Sources are resolved before evaluation. Returns the
         first matching rule's verdict, or DEFAULT_DENY.
         """
+        if self._require_audit:
+            decision, _proof = self.evaluate_with_proof(context, policy_text)
+            return decision
         if policy_text is not None:
             policy = PolicyParser.parse(policy_text)
         else:

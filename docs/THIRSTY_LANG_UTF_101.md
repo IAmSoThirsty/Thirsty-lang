@@ -1,10 +1,14 @@
 # Thirsty-Lang UTF 101 (Universal Thirsty Family)
 
-- **Canonical bridge manual for Thirsty-Lang 0.8.6**
+- **Canonical bridge manual for Thirsty-Lang 0.9.0**
 - **Python:** 3.11 or later
 - **Package:** `thirsty-lang`
 - **License:** Apache-2.0
-**Release date:** 2026-08-02
+**Edition prepared:** 2026-09-06
+
+This edition describes the prepared 0.9.0 release. Publication and remote
+artifact identity require separate release verification. Sections explicitly
+labeled 0.8.6 preserve the earlier release and acceptance evidence.
 
 Thirsty-Lang is a governance-first programming language family. Its central
 execution question is not only "can this code run?" but also "should this action
@@ -27,9 +31,9 @@ find the authoritative source or test for a claim.
 |---|---|
 | **Contract** | Behavior implemented by active source and protected by deterministic tests. |
 | **Security contract** | Fail-closed behavior whose test or threat-model evidence is part of the security boundary. |
-| **Published surface** | Code, metadata, or commands included in the `thirsty-lang` 0.8.6 package. |
+| **Package surface** | Code, metadata, or commands configured for the `thirsty-lang` 0.9.0 package build. |
 | **Operational requirement** | A control that an embedding or deployment must configure; installing the package alone does not satisfy it. |
-| **Repository-local** | Material present in the repository but not included in the published package. |
+| **Repository-local** | Material present in the repository but not included in the package build. |
 | **Historical** | Evidence or behavior retained to explain a previous release. It does not override the current contract. |
 | **Pending acceptance** | Implemented and released behavior whose independent constitutional acceptance is still open in the Competence Register. |
 
@@ -62,9 +66,9 @@ The primary maintained references are:
 - [Security policy](../SECURITY.md)
 - [Operational continuity map](operations/CONTINUITY_MAP.md)
 
-### 1.3 Published boundary
+### 1.3 Package boundary
 
-The 0.8.6 wheel packages these namespaces:
+The 0.9.0 wheel configuration packages these namespaces:
 
 ```text
 utf
@@ -81,7 +85,7 @@ from utf import thirsty_lang
 `import thirsty_lang` is a compatibility shim to the same implementation.
 
 The top-level `governance/` tree and `src/psia` are **repository-local**. They
-are not included in the published 0.8.6 Python package and are not part of its
+are not included in the 0.9.0 Python package build and are not part of its
 installed runtime or security boundary. Their presence in a checkout must not
 be presented as a capability of a clean PyPI installation.
 
@@ -124,6 +128,9 @@ audit evidence until an attached archive successfully stores it.
 
 ### 3.1 Isolated installation on PowerShell
 
+The pinned commands below target 0.9.0 after publication. During release
+preparation, use the editable source installation shown below.
+
 ```powershell
 $ErrorActionPreference = "Stop"
 
@@ -132,7 +139,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\.venv\Scripts\Activate.ps1
 
 python -m pip install --upgrade pip
-python -m pip install --no-cache-dir thirsty-lang==0.8.6
+python -m pip install --no-cache-dir thirsty-lang==0.9.0
 ```
 
 On POSIX shells:
@@ -141,7 +148,7 @@ On POSIX shells:
 python3.11 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install --no-cache-dir thirsty-lang==0.8.6
+python -m pip install --no-cache-dir thirsty-lang==0.9.0
 ```
 
 Development and analysis extras are explicit:
@@ -379,7 +386,9 @@ module name: pure
 - `governed` routes governed calls and capability-bearing effects through the
   configured governance path.
 - `strict` rejects uninitialized bindings.
-- `pure` rejects `pour` and `sip` I/O.
+- `pure` rejects mediated external effects, including I/O, clock/randomness,
+  imports with effects, and calls through aliases/callbacks. Mutable local
+  containers remain supported; this is not a referential-transparency theorem.
 
 A governed parse error fails closed. Recovered statements are discarded rather
 than partially executed.
@@ -511,14 +520,15 @@ Runtime/checker types include `Int`, `Float`, `Bool`, `String`, `Void`, `Any`,
 `Error`, `Quenched`, `Reservoir`, `Task`, `Result`, `Governed`, function types,
 and internal enum/struct/interface/generic forms.
 
-Important 0.8.6 limits:
+Important 0.9.0 limits:
 
 - An unannotated function return type is `Any`.
-- A source type annotation currently consumes a single identifier; generic
-  type strings accepted by the Python type API are not a general source syntax.
+- Supported collection annotations accept nested type arguments; this is not
+  a complete polymorphic generic type system.
 - Fountain inheritance or mixin syntax is not implemented.
 - Enum variants do not carry parsed payload types.
-- Interface parsing does not implement complete typed parameter signatures.
+- Interface signatures parse, but execution and checking reject declarations
+  until interface conformance is implemented.
 - `morph` does not parse a return annotation.
 - Bare `!` is invalid; use `not`.
 - Semicolons are generally optional, except where the grammar uses them as
@@ -579,7 +589,7 @@ Governed mode wraps the functions currently declared in
 |---|---|
 | `thirst::fs` | `read_file`, `exists`, `list_dir` as `read`; `write_file`, `mkdir`, `remove` as `write` |
 | `thirst::http` | `get`, `post`, `put`, `delete` as `network` |
-| `thirst::net` | `tcp_connect`, `tcp_listen`, `udp_send` as `network` |
+| `thirst::net` | TCP/UDP connect, listen/bind, accept, send, receive, and close as `network` |
 | `thirst::env` | `get`, `all` as `read`; `set` as `write` |
 | `thirst::process` | `run`, `exit` as `execute`; `args`, `pid` as `read` |
 | `thirst::log` | `info`, `warn`, `error`, `debug` as `write` |
@@ -587,15 +597,16 @@ Governed mode wraps the functions currently declared in
 | `thirst::sqlite` | `connect`, `execute`, `close` as `write`; `query` as `read` |
 
 This table is a boundary, not a claim that every callable in all 16 namespaces
-is mediated. For example, current `time` and `crypto` functions are not listed
-in this map. A production embedding must inspect or extend the map when its
-threat model treats additional functions as sensitive.
+is mediated. The interpreter additionally wraps time reads/sleep and crypto
+randomness/UUID for effect checks. A production embedding must inspect every
+additional host adapter it exposes and route external effects through the broker.
 
 ### 8.3 Package manager scope
 
 `thirsty add`, `thirsty lock`, and `thirsty audit` manage local manifest and
-lock integrity. Version 0.8.6 records `thirsty-registry://`-style resolution
-identities and deterministic hashes; it does not download packages from a live
+lock integrity. Lockfile version 2 binds actual project source bytes, manifest
+bytes, bundled runtime source, and Python version. It resolves local source
+paths and bundled stdlib only; it does not download packages from a live
 remote dependency registry. Do not treat a generated lockfile as supply-chain
 verification of externally fetched code.
 
@@ -603,7 +614,7 @@ verification of externally fetched code.
 
 ## 9. All seven installed CLIs
 
-The following is the exact 0.8.6 command family. Use each command's `--help` for
+The following is the 0.9.0 command family. Use each command's `--help` for
 all flags and positional arguments.
 
 ### 9.1 `thirsty`
@@ -805,7 +816,8 @@ truthiness:
 
 ### 11.1 One representation
 
-TARL policy expressions use dotted **paths**. Caller context uses nested JSON.
+TARL policy expressions use dotted **paths**. `prepare_context()` normalizes
+dotted, nested, and equivalent mixed caller input into canonical nested JSON.
 
 Policy:
 
@@ -832,13 +844,13 @@ tarl.context.nested-json.v1
 Normalization:
 
 ```text
-algorithm: identity
+algorithm: tarl.context.dotted-path-expansion
 version: 1
 path model: nested objects
-silent conversion: none
+conversion evidence: original/canonical hashes and algorithm identity
 ```
 
-A flat dotted key is rejected:
+A flat dotted key normalizes to the same canonical object:
 
 ```json
 {
@@ -846,7 +858,7 @@ A flat dotted key is rejected:
 }
 ```
 
-A mixed representation is also rejected, even if both values are equal:
+An equal mixed representation also normalizes to that canonical object:
 
 ```json
 {
@@ -1198,7 +1210,8 @@ and tool adapters. An adapter that performs the effect without
 
 Filesystem operations should also use a `PathGuard` configured with allowed
 roots. It resolves canonical paths before the effect so traversal and symlink
-escapes fail closed.
+escapes fail closed. Concurrent hostile filesystem mutation can race path
+checking and opening; OS confinement remains necessary for that threat model.
 
 ### 13.7 ESCALATE and quorum
 
@@ -1229,9 +1242,11 @@ js
 wasm-pyodide
 ```
 
-Version 0.8.6 build targets do not carry the governed Python runtime into the
-output. A governed module therefore refuses to build to these targets unless
-the user explicitly acknowledges the loss:
+Build targets do not preserve the configured governance boundary. JS and LLVM
+omit the Python interpreter; Pyodide retrieves an interpreter without embedding
+the source deployment's policy, authority, clock, or audit configuration. A
+governed module therefore refuses to build to these targets unless the user
+explicitly acknowledges the loss:
 
 ```bash
 thirsty build governed_app.thirsty \
@@ -1248,13 +1263,28 @@ does not provide the source runtime's governed-execution guarantee.
 
 Additional target limits:
 
-- `llvm-ir` is emitted directly.
+- `llvm-ir` emits a constant entrypoint for the `closed-scalar-i32/v1` profile.
+  It evaluates bounded closed scalar expressions and local function calls at
+  build time, checks signed-i32 intermediates, and rejects dynamic input,
+  division, effects, and statement control flow. The Int `main` binding becomes
+  the process return value, subject to OS exit-code conventions. Functions are
+  not exported as a callable LLVM ABI.
 - `llvm-obj`, `llvm-exe`, `llvm-asm`, and `llvm-jit` require appropriate LLVM
   or Clang tools such as `llc`, `clang`, or `lli`.
-- JavaScript emission covers a practical subset rather than every interpreter
-  behavior.
-- wasm-pyodide emits an HTML/Pyodide wrapper that retrieves its runtime and
-  package from external distribution sources.
+- JavaScript supports scalar/array expressions, directly declared functions,
+  declarations, assignments, and returns. Unsupported statements and host calls
+  fail before emission. Sequence repetition has a 1,000,000-element/code-unit
+  limit; generated `main` display is not full Python value formatting.
+- All targets reject uninitialized strict-mode declarations before emission.
+- `wasm-pyodide` emits an HTML/Pyodide wrapper that retrieves an exact package
+  version and checks the expected bundled `utf` Python-source fingerprint before
+  importing the language. Different source is rejected even at the same version.
+  The fingerprint excludes the browser Python ABI and native dependencies.
+  Local bootstrap tests do not establish successful browser installation.
+
+`src/utf/examples/compiler_scalar.thirsty` is the supported build example used
+by the Compose `build-js` service. The interpreter greeting example uses `pour`,
+which the JS backend explicitly rejects.
 
 Never infer policy enforcement from a build manifest that explicitly records
 governance loss.
@@ -1294,13 +1324,29 @@ Shadow Thirst evaluates mutations with six analyzers:
 A critical analyzer failure yields `REJECT`. Only noncritical failures yield
 `FLAGGED`. A clean analysis yields `PROMOTE`.
 
-Canonical convergence uses structural AST comparison, optional Z3 reasoning,
-and seeded execute-and-compare where the program surface is safe to evaluate.
-It abstains conservatively when effects prevent sound comparison.
+Canonical convergence uses scope-aware structural comparison, optional Z3
+reasoning with explicit Int-input assumptions, and bounded scalar sampling.
+Free names retain identity; unsupported closure/import binding forms keep exact
+names. Sampling permits no host calls and enforces source/AST/depth/step/value
+limits. Failed input vectors cause abstention rather than being discarded.
+
+The separate admission engine is version 0.2.0 with v2 convergence methods. It
+reports PROVEN, OBSERVED, VIOLATED, UNKNOWN, or INAPPLICABLE evidence and an
+ELIGIBLE, FLAGGED, or REJECTED decision. Under its default policy, sampled
+agreement or a symbolic result requiring unverified input assumptions cannot
+establish eligibility. An absent invariant is INAPPLICABLE. These records never
+authorize execution or modification of canonical state.
+
+Default record verification rejects superseded engines/proof methods. Python
+`record.verify(key, historical=True)` can verify historical hash/signature
+integrity, explicitly without current semantic assurance. Verification does not
+independently replay the recorded analysis.
 
 ```bash
 shadow-thirst check mutation.thirsty
 shadow-thirst visualize mutation.thirsty
+shadow-thirst admit mutation.thirsty --record admission.json
+shadow-thirst verify-admission admission.json
 ```
 
 ### 15.3 TSCG
@@ -1445,10 +1491,10 @@ After:
 {"user":{"role":"admin"}}
 ```
 
-Do not implement silent flat-to-nested conversion. Reject mixed forms. If an
-external boundary performs an explicit migration, record the original and
-canonical hashes, algorithm ID, version, and conflict status before using its
-output as authority.
+Use the shared `prepare_context()` implementation at every boundary. Equivalent
+forms normalize; contradictions fail closed. Record original and canonical
+hashes, algorithm ID, version, and conflict status before using normalized
+output as authority. Do not add a competing normalizer in an adapter.
 
 ### 17.3 Revalidate every policy family
 
@@ -1516,8 +1562,9 @@ Use nested JSON:
 {"user":{"role":"admin"}}
 ```
 
-A flat key named `user.role` is a representation error, not an alternate
-spelling.
+A flat key named `user.role` is accepted by the shared normalizer. If a run
+denies, inspect missing fields, conflicts, malformed paths, schema requirements,
+and the exact policy. A contradictory nested value must not select a winner.
 
 ### Missing data makes an inequality or `not` expression deny
 
@@ -1589,7 +1636,7 @@ the emitted manifest.
 Install the analysis extra:
 
 ```bash
-python -m pip install "thirsty-lang[analysis]==0.8.6"
+python -m pip install "thirsty-lang[analysis]==0.9.0"
 ```
 
 ### LLVM object, executable, assembly, or JIT build fails
@@ -1600,12 +1647,14 @@ Install the required `llc`, `clang`, or `lli` tools and confirm they are on
 ### `--locked` refuses to run
 
 Generate or update the project lockfile with `thirsty lock`, then run
-`thirsty audit`. Remember that 0.8.6 implements local manifest/lock integrity,
-not remote package retrieval.
+`thirsty audit`. Version 0.9.0 uses content-bound lockfile v2 for local source
+and runtime integrity. Remote package retrieval remains unavailable.
 
 ### Strict or pure mode rejects an otherwise valid program
 
-Strict mode requires initialized bindings. Pure mode rejects `pour` and `sip`.
+Strict mode requires initialized bindings. Pure mode rejects mediated effects,
+including `pour`, `sip`, `print`, and effectful standard-library calls through
+aliases or callbacks.
 Select the module mode that matches the intended contract.
 
 ### A governed imported file behaves differently from a core import
@@ -1617,11 +1666,12 @@ module cache path to detach governed imports from the caller.
 ### Docker behavior does not match the published package
 
 Verify the exact versioned GHCR image and digest. Do not use the stale Docker
-Hub 0.8.1 image as evidence for 0.8.6.
+Hub 0.8.1 image as evidence for 0.9.0. Verify publication of the requested image
+separately before using it.
 
 ## 19. Glossary
 
-| Term | Meaning in Thirsty-Lang 0.8.6 |
+| Term | Meaning in Thirsty-Lang 0.9.0 |
 |---|---|
 | Authority | Identity requesting governed action; hardened authority is a verified signed claim, not a raw string. |
 | Broker | Central admission point for governed effects and external adapters. |
@@ -1737,8 +1787,8 @@ Security reports should be sent privately to
 
 ---
 
-- **Document identity:** Thirsty-Lang UTF 101 (Universal Thirsty Family) for release 0.8.6
+- **Document identity:** Thirsty-Lang UTF 101 (Universal Thirsty Family), prepared 0.9.0 edition
 - **Canonical context representation:** `tarl.context.nested-json.v1`
 - **Default governed verdict:** `DENY`
-**Published package boundary:** `utf`, `utf.*`, and compatibility package
+**Package build boundary:** `utf`, `utf.*`, and compatibility package
 `thirsty_lang`

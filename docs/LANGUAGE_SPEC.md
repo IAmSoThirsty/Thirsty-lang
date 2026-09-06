@@ -1,6 +1,6 @@
 # Thirsty-Lang Language Specification
 
-**Version:** 0.8.6
+**Version:** 0.9.0 (release preparation)
 **Copyright:** 2026 Thirsty's Projects LLC (Apache 2.0)
 
 This is the concise normative family specification. For the integrated
@@ -225,17 +225,19 @@ TarlVerdict values: ALLOW, DENY, ESCALATE. Default-DENY applies when no rule mat
 
 ### Authoritative context contract
 
-T.A.R.L. 0.8.6 has exactly one caller-context representation:
-`tarl.context.nested-json.v1`. Dotted identifiers traverse nested JSON objects:
+T.A.R.L. evaluates one canonical context representation:
+`tarl.context.nested-json.v1`. `prepare_context()` normalizes dotted, nested, and
+equivalent mixed caller inputs using `tarl.context.dotted-path-expansion`,
+version `1`. Dotted identifiers then traverse nested JSON objects:
 
 ```json
 {"user": {"role": "admin"}}
 ```
 
-A flat key such as `{"user.role": "admin"}` is not normalized. Flat dotted
-keys, duplicate JSON keys, mixed flat/nested forms (even when their values are
-equal), non-string object keys, non-finite numbers, cycles, and values outside
-the finite JSON domain fail closed.
+A flat key such as `{"user.role": "admin"}` normalizes to the object above.
+Equal mixed forms converge; contradictory values, malformed dotted paths,
+duplicate JSON keys, non-string object keys, non-finite numbers, cycles, and
+values outside the finite JSON domain fail closed.
 
 Path resolution preserves four distinct states: `RESOLVED(value)`, `MISSING`,
 `TYPE_ERROR`, and `REPRESENTATION_CONFLICT`. Only `RESOLVED(value)` may enter
