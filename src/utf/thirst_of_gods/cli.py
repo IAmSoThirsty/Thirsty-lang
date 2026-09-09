@@ -21,6 +21,7 @@ def run_file(file_path: str) -> None:
     from utf.thirst_of_gods.core import ThirstOfGodsError, interpret_gods
     from utf.thirsty_lang.checker import check_ast
     from utf.thirsty_lang.diagnostics import DiagnosticBundle
+    from utf.thirsty_lang.interpreter import GovernanceViolation
     from utf.thirsty_lang.lexer import Lexer
     from utf.thirsty_lang.parser import Parser
 
@@ -28,7 +29,7 @@ def run_file(file_path: str) -> None:
         print(f"Error: File not found: {file_path}", file=sys.stderr)
         sys.exit(1)
 
-    with open(file_path) as f:
+    with open(file_path, encoding="utf-8") as f:
         source = f.read()
 
     lexer = Lexer(source)
@@ -50,6 +51,9 @@ def run_file(file_path: str) -> None:
         result = interpret_gods(ast)
         if result is not None:
             print(result)
+    except GovernanceViolation as e:
+        print(f"governance denied: {e.name}: {e.reason}", file=sys.stderr)
+        sys.exit(2)
     except ThirstOfGodsError as e:
         print(f"Deity Contract Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -72,7 +76,7 @@ def check_file(file_path: str) -> None:
         print(f"Error: File not found: {file_path}", file=sys.stderr)
         sys.exit(1)
 
-    with open(file_path) as f:
+    with open(file_path, encoding="utf-8") as f:
         source = f.read()
 
     lexer = Lexer(source)
@@ -110,7 +114,9 @@ def check_file(file_path: str) -> None:
         sys.exit(1)
 
 
-def transpile_file(file_path: str, target: str = "thirsty") -> None:
+def transpile_file(
+    file_path: str, target: str = "thirsty", *, allow_governance_loss: bool = False
+) -> None:
     """Transpile a .thirstofgods file to Thirsty-Lang or JavaScript.
 
     Args:
@@ -126,7 +132,7 @@ def transpile_file(file_path: str, target: str = "thirsty") -> None:
         print(f"Error: File not found: {file_path}", file=sys.stderr)
         sys.exit(1)
 
-    with open(file_path) as f:
+    with open(file_path, encoding="utf-8") as f:
         source = f.read()
 
     lexer = Lexer(source)
@@ -149,15 +155,23 @@ def transpile_file(file_path: str, target: str = "thirsty") -> None:
 
         output = format_ast(ast)
         output_path = os.path.splitext(file_path)[0] + ".thirsty"
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(output)
         print(f"Transpiled to Thirsty-Lang: {output_path}")
     elif target == "js":
-        from utf.thirsty_lang.cli import _transpile_to_js
+        from utf.thirsty_lang.cli import (
+            _authorize_build_governance_loss,
+            _emit_manifest,
+            _transpile_to_js,
+        )
 
+        _authorize_build_governance_loss(target, allow_governance_loss)
         js_code = _transpile_to_js(ast)
+        _emit_manifest(
+            ast, file_path, source=source, target=target, governance_loss=True
+        )
         output_path = os.path.splitext(file_path)[0] + ".js"
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(js_code)
         print(f"Transpiled to JavaScript: {output_path}")
     else:
@@ -198,6 +212,11 @@ def main():
     transpile_parser.add_argument(
         "--target", choices=["thirsty", "js"], default="thirsty", help="Target language"
     )
+    transpile_parser.add_argument(
+        "--allow-governance-loss",
+        action="store_true",
+        help="Acknowledge unavailable host governance in JavaScript output; emits a disclosure manifest",
+    )
 
     args = parser.parse_args()
 
@@ -211,7 +230,11 @@ def main():
         elif args.command == "check":
             check_file(args.file)
         elif args.command == "transpile":
-            transpile_file(args.file, target=args.target)
+            transpile_file(
+                args.file,
+                target=args.target,
+                allow_governance_loss=args.allow_governance_loss,
+            )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)

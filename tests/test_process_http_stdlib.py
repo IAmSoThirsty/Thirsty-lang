@@ -192,6 +192,8 @@ def test_process_timeout_and_output_overflow_reap_direct_child(monkeypatch):
     with pytest.raises(subprocess.TimeoutExpired):
         process["run"]([sys.executable, "-c", "import time; time.sleep(10)"], 0.05)
     assert children[-1].poll() is not None
+    # Allow slow host startup so these cases reach their output-limit checks.
+    # The independent 50 ms deadline assertion above remains unchanged.
     with pytest.raises(ValueError, match="output exceeds"):
         process["run"](
             [
@@ -200,11 +202,11 @@ def test_process_timeout_and_output_overflow_reap_direct_child(monkeypatch):
                 "-c",
                 "import time; print('x' * 4096); time.sleep(10)",
             ],
-            2,
+            10,
             32,
         )
     assert children[-1].poll() is not None
-    assert process["run"]([sys.executable, "-c", "pass"], 2, 0) == ""
+    assert process["run"]([sys.executable, "-c", "pass"], 10, 0) == ""
 
 
 def test_process_rejects_implicit_shell_and_invalid_arguments(monkeypatch):

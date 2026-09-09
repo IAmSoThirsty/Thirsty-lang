@@ -5,9 +5,9 @@ from utf.thirsty_lang.lexer import Lexer
 from utf.thirsty_lang.parser import Parser
 
 
-def check(src, mode="core"):
+def check(src, mode="core", *, allow_ungoverned=False):
     ast = Parser(Lexer(f"module m: {mode}\n{src}").lex()).parse()
-    return [e.code for e in check_ast(ast)]
+    return [e.code for e in check_ast(ast, allow_ungoverned=allow_ungoverned)]
 
 
 # Run every declaration/statement form through the checker (covers the
@@ -68,7 +68,8 @@ def test_type_mismatch_decl():
 
 def test_governed_call_from_core():
     src = "glass g(a) requires a > 0 { return a }\n" "drink r = g(1)"
-    assert "E053" in check(src, mode="core")
+    assert "E053" not in check(src, mode="core")
+    assert "E053" in check(src, mode="core", allow_ungoverned=True)
 
 
 def test_governed_call_allowed_in_governed():

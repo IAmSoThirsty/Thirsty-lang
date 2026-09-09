@@ -190,11 +190,20 @@ def test_nested_generic_struct_fields_validate_contents():
 
 
 def test_imported_struct_field_types_use_declaration_scope(tmp_path):
+    from utf.tarl.core import PolicyParser
+    from utf.tarl.runtime import TarlRuntime
+
     (tmp_path / "record.thirsty").write_text(
         "enum Color { Red }\nstruct Paint { color: Color }\nglass make() { return new Paint(Color.Red) }",
         encoding="utf-8",
     )
-    interpreter = Interpreter()
+    interpreter = (
+        Interpreter()
+        .attach_tarl(
+            TarlRuntime(PolicyParser.parse('when action == "import" => ALLOW'))
+        )
+        .set_authority("type-test")
+    )
     interpreter.source_directory = tmp_path
     result = interpreter.interpret(
         parse(

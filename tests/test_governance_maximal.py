@@ -36,8 +36,8 @@ def _interp(src, policy_text=None, authority=None):
     return it
 
 
-def _diags(src):
-    return [d.code for d in check_ast(_prog(src))]
+def _diags(src, *, allow_ungoverned=False):
+    return [d.code for d in check_ast(_prog(src), allow_ungoverned=allow_ungoverned)]
 
 
 # ── Contracts: ensures / invariant / methods ────────────────────────────────
@@ -90,11 +90,11 @@ class TestContracts:
             "}\n"
             "drink a = new Acc()\n"
         )
-        ok = Interpreter()
+        ok = Interpreter(allow_ungoverned=True)
         ok.interpret(_prog(src + "drink r = a.add(4)\nreturn r"))
         assert ok.env.get("r") == 4
 
-        bad = Interpreter()
+        bad = Interpreter(allow_ungoverned=True)
         with pytest.raises(GovernanceViolation) as e:
             bad.interpret(_prog(src + "drink r = a.add(-1)\nreturn r"))
         assert "precondition" in e.value.reason
@@ -170,12 +170,13 @@ class TestTemporal:
 
 class TestStatic:
     def test_e053_governed_call_from_core(self):
-        codes = _diags(
+        source = (
             "module m: core\n"
             "glass priv(x) requires x > 0 { return x }\n"
             "glass use() { return priv(5) }\n"
         )
-        assert "E053" in codes
+        assert "E053" not in _diags(source)
+        assert "E053" in _diags(source, allow_ungoverned=True)
 
     def test_no_e053_in_governed_mode(self):
         codes = _diags(

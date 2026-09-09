@@ -61,14 +61,14 @@ def test_pure_blocks_all_output_call_shapes(body, capsys):
 )
 def test_pure_blocks_ambient_state(namespace, call):
     with pytest.raises(RuntimeError, match="pure"):
-        Interpreter().interpret(
+        governed('when action == "import" => ALLOW').interpret(
             parse(f'module test: pure\nimport "thirst::{namespace}" as api\n{call}')
         )
 
 
 def test_pure_allows_deterministic_library_calls():
     assert (
-        Interpreter().interpret(
+        governed('when action == "import" => ALLOW').interpret(
             parse(
                 'module test: pure\nimport "thirst::json" as api\napi.stringify([1, 2])'
             )
@@ -102,7 +102,7 @@ def test_pure_import_cannot_downgrade_mode(tmp_path, capsys):
     (tmp_path / "effect.thirsty").write_text(
         'module effect: core\nprint("forbidden")', encoding="utf-8"
     )
-    caller = Interpreter()
+    caller = governed('when action == "import" => ALLOW')
     caller.source_directory = tmp_path
     with pytest.raises(ImportError, match="pure"):
         caller.interpret(parse('module test: pure\nimport "effect.thirsty" as effect'))
@@ -134,7 +134,8 @@ def test_import_shares_full_live_restrictions(tmp_path, monkeypatch):
     assert child._verified_authority is parent._verified_authority
     assert child.path_guard is parent.path_guard
     assert child.tarl_runtime is parent.tarl_runtime
-    assert child.mode == "governed"
+    assert child.mode == "core"
+    assert child._governance_is_required()
     assert module["value"]() == 1
     parent.set_authority(None)
     assert child.authority is None
@@ -182,7 +183,7 @@ def test_import_path_guard_prevents_source_access(tmp_path, monkeypatch):
 @pytest.mark.parametrize("source", ["drink value = 1 @", "glass f( {"])
 def test_import_lexical_and_parse_errors_are_fatal(tmp_path, source):
     (tmp_path / "bad.thirsty").write_text(source, encoding="utf-8")
-    parent = Interpreter()
+    parent = governed('when action == "import" => ALLOW')
     parent.source_directory = tmp_path
     with pytest.raises(ImportError, match="Failed to import"):
         parent.interpret(parse('import "bad.thirsty" as bad'))
@@ -191,7 +192,7 @@ def test_import_lexical_and_parse_errors_are_fatal(tmp_path, source):
 def test_cyclic_import_reports_error(tmp_path):
     (tmp_path / "a.thirsty").write_text('import "b.thirsty" as b', encoding="utf-8")
     (tmp_path / "b.thirsty").write_text('import "a.thirsty" as a', encoding="utf-8")
-    parent = Interpreter()
+    parent = governed('when action == "import" => ALLOW')
     parent.source_directory = tmp_path
     with pytest.raises(ImportError, match="Cyclic file import"):
         parent._import_thirsty_file("a.thirsty")
@@ -206,7 +207,7 @@ def test_locked_context_propagates_and_supplies_executed_bytes(tmp_path):
         reads.append(path)
         return 'import "thirst::json" as json\ndrink value = 42'
 
-    parent = Interpreter().set_locked(
+    parent = governed('when action == "import" => ALLOW').set_locked(
         SimpleNamespace(read_source=read_source, verify_stdlib=namespaces.append)
     )
     parent.source_directory = tmp_path
@@ -304,8 +305,10 @@ def test_boolean_operators_short_circuit(source):
     assert isinstance(Interpreter().interpret(parse(source)), bool)
 
 
-def test_hardened_cannot_execute_core_header(capsys):
-    with pytest.raises(GovernanceViolation, match="governed mode"):
+def test_core_header_cannot_disable_hardened_requirements(capsys):
+    with pytest.raises(
+        GovernanceViolation, match=r"authenticated \(signed\) authority"
+    ):
         Interpreter().set_hardened().interpret(
             parse('module test: core\nprint("forbidden")')
         )
@@ -314,7 +317,7 @@ def test_hardened_cannot_execute_core_header(capsys):
 
 @pytest.mark.parametrize("restriction", ["hardened", "required-audit"])
 def test_new_restrictions_reach_existing_core_closures(restriction, capsys):
-    interpreter = Interpreter()
+    interpreter = Interpreter(allow_ungoverned=True)
     interpreter.interpret(parse('glass output() { print("forbidden") }'))
     if restriction == "hardened":
         interpreter.set_hardened()
@@ -322,7 +325,7 @@ def test_new_restrictions_reach_existing_core_closures(restriction, capsys):
         interpreter.attach_tarl(
             TarlRuntime(PolicyParser.parse("when true => ALLOW")).set_require_audit()
         )
-    with pytest.raises(GovernanceViolation, match="governed mode"):
+    with pytest.raises(GovernanceViolation):
         interpreter.env.get("output")()
     assert capsys.readouterr().out == ""
 
@@ -331,7 +334,7 @@ def test_required_audit_cannot_be_silently_attached_to_core(capsys):
     interpreter = Interpreter().attach_tarl(
         TarlRuntime(PolicyParser.parse("when true => ALLOW")).set_require_audit()
     )
-    with pytest.raises(GovernanceViolation, match="governed mode"):
+    with pytest.raises(GovernanceViolation):
         interpreter.interpret(parse('print("forbidden")'))
     assert capsys.readouterr().out == ""
 

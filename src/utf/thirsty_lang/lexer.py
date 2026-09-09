@@ -25,7 +25,15 @@ class Lexer:
         while not self._is_at_end():
             self.start = self.current
             self._scan_token()
-        self.tokens.append(Token(TokenType.EOF, "", self.line, self.col))
+        self.tokens.append(
+            Token(
+                TokenType.EOF,
+                "",
+                self.line,
+                self.col,
+                lexical_errors=tuple(self.errors),
+            )
+        )
         return self.tokens
 
     def _is_at_end(self) -> bool:
@@ -263,6 +271,8 @@ class Lexer:
                 self.line_start = self.current + 1
             if self._peek() == "\\":
                 self._advance()  # consume backslash
+                if self._is_at_end():
+                    break  # Report the incomplete string below, without indexing EOF.
                 esc = self._advance()
                 esc_map = {
                     "n": "\n",

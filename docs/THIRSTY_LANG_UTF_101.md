@@ -4,11 +4,18 @@
 - **Python:** 3.11 or later
 - **Package:** `thirsty-lang`
 - **License:** Apache-2.0
-**Edition prepared:** 2026-09-06
+**Edition prepared:** 2026-09-08
 
-This edition describes the prepared 0.9.0 release. Publication and remote
-artifact identity require separate release verification. Sections explicitly
-labeled 0.8.6 preserve the earlier release and acceptance evidence.
+This edition describes released 0.9.0 plus explicitly marked, unreleased
+M3.1 sequences, M3.2 type coherence, M3.3 governance/security defaults,
+M3.4 callable and iteration consistency, and the M3.5 value-identity candidate.
+The continuity map records completed 0.9.0 publication. M3.1-M3.4 have separate
+local verification records; the M3.5 local implementation's final integration
+evidence is reported in [M3_VALUE_IDENTITY_VERIFICATION.md](operations/M3_VALUE_IDENTITY_VERIFICATION.md).
+These increments are not claimed as a published package. Broader M3-M7 language
+work remains incomplete; ecological robotics and swarms remain deferred.
+Sections explicitly labeled 0.8.6 preserve earlier release and acceptance
+evidence.
 
 Thirsty-Lang is a governance-first programming language family. Its central
 execution question is not only "can this code run?" but also "should this action
@@ -57,6 +64,7 @@ The primary maintained references are:
 - [Exact grammar](GRAMMAR.md)
 - [Feature and capability matrix](FEATURES.md)
 - [Governance runtime model](governance_model.md)
+- [Governed native value context](GOVERNED_VALUE_CONTEXT.md)
 - [Feature status and Competence Register](STATUS.md)
 - [Offensive threat model](THREAT_MODEL.md)
 - [Production deployment requirement](PRODUCTION_DEPLOYMENT.md)
@@ -96,7 +104,7 @@ The shortest accurate model is:
 ```text
 source
   -> lex, parse, and check
-  -> core or governed runtime
+  -> governance-required runtime (host compatibility opt-out is explicit)
   -> contracts and capability request
   -> TARL policy evaluation
   -> ALLOW, DENY, or ESCALATE
@@ -189,10 +197,11 @@ python -m pip install -e ".[dev,analysis]"
 Do not treat an editable checkout as proof of what the PyPI artifact contains.
 Release verification uses a clean environment and the pinned published version.
 
-## 4. Fifteen-minute core path
+## 4. Fifteen-minute language path
 
-This path executes ordinary Tier 1 code. No policy or authority is required
-because the module is explicitly `core`.
+This path executes ordinary Tier 1 code under the default governance floor.
+Pure calculations require no capability grant. Output from guest code does,
+including when its source declares `core`.
 
 ### Step 1: create `hello.thirsty`
 
@@ -207,10 +216,18 @@ drink message = greet("Thirsty-Lang")
 pour message
 ```
 
-### Step 2: run it
+### Step 2: authorize output and run it
+
+Create `stdout.tarl` with this limited tutorial policy:
+
+```tarl
+policy tutorial_output
+when action == "write" and target == "stdout" => ALLOW
+when true => DENY
+```
 
 ```bash
-thirsty run hello.thirsty
+thirsty run hello.thirsty --policy stdout.tarl --authority tutorial
 ```
 
 Expected output:
@@ -246,21 +263,29 @@ times 3 {
 Run and format it:
 
 ```bash
-thirsty run counter.thirsty
+thirsty run counter.thirsty --policy stdout.tarl --authority tutorial
 thirsty fmt --check counter.thirsty
 thirsty fmt counter.thirsty
 ```
 
-### Step 4: inspect other core entry points
+### Step 4: inspect other entry points
 
 ```bash
 thirsty repl
-thirsty new sample-project --mode core
+thirsty new sample-project
 thirsty doctor
 ```
 
-The core path demonstrates syntax and runtime behavior. It does not create a
-governed-execution claim.
+The REPL and new projects default to governed execution. The scaffold performs
+a calculation; CLI presentation of its result is a trusted host operation.
+Guest `print`/`pour` still requires an output grant. The tutorial's authority is
+self-asserted and its proofs are unsigned; use the hardened profile below for
+authenticated identities and signed proofs.
+
+Trusted host compatibility execution requires `--unsafe-core` (or the Python
+embedding option `Interpreter(allow_ungoverned=True)`). The CLI discloses the
+opt-out and refuses to combine it with policy/security controls. An explicitly
+`governed` source declaration retains governance even with host opt-out.
 
 ## 5. Fifteen-minute governed path
 
@@ -382,7 +407,7 @@ module name: strict
 module name: pure
 ```
 
-- `core` is ordinary execution.
+- `core` selects ordinary language semantics; it cannot disable governance.
 - `governed` routes governed calls and capability-bearing effects through the
   configured governance path.
 - `strict` rejects uninitialized bindings.
@@ -390,8 +415,15 @@ module name: pure
   imports with effects, and calls through aliases/callbacks. Mutable local
   containers remain supported; this is not a referential-transparency theorem.
 
-A governed parse error fails closed. Recovered statements are discarded rather
-than partially executed.
+Headerless source defaults to governed execution. Unknown modes and lexical or
+parse errors fail closed through the runtime, checker, formatter, and public
+build paths. Formatting cannot turn recovered source into accepted code.
+
+Defining and calling restrictions combine across retained closures, methods,
+aliases, imports, and cascade calls. Every distinct active policy binding must
+authorize an effect or governed function entry. Imports also satisfy every
+active caller/definer lock. Lockfile import verification does not establish the
+defining source identity of arbitrary host-injected foreign callables.
 
 ### 7.2 Bindings and mutation
 
@@ -418,6 +450,29 @@ drink double = glass(x) -> Int {
 }
 ```
 
+Known function types accept replacement functions with contravariant parameter
+types and covariant return types. A collection or choice containing different
+known functions or struct/enum constructors retains each possible signature
+internally as
+`FunctionUnionType`, displayed as `CallableChoice[...]`. A call must satisfy
+every possible signature; this is not overload selection. Nominal declaration
+identity is retained. Explicit `Any`, lambda inference, and imported dynamic
+callables remain gradual; there is no new source function-type annotation.
+
+Runtime calls require the exact positional argument count for functions,
+lambdas, morphs, governed functions, methods, and fountain initializers.
+A fountain without an initializer accepts zero arguments. A leading `self`
+receiver does not count as a caller argument. Wrong arity rejects entry before
+the body, contracts, policy admission, or fountain field defaults execute.
+Argument expressions still evaluate once, in source order, before invocation.
+Struct constructors retain their existing exact field-count contract.
+
+M3.5 rejects duplicate parameter names with E010 in functions, lambdas, morphs,
+and methods. Runtime binders raise `TypeError` before parameter binding,
+contracts, or bodies, and initializers before field defaults. A duplicate
+receiver name must not let policy inspect one object while the body uses another.
+Caller argument expressions still evaluate before these invocation guards.
+
 Contracts are executable checks:
 
 ```thirsty
@@ -432,8 +487,48 @@ glass withdraw(amount) -> Int
 
 `requires` is checked before the body. `ensures` is checked after the body with
 `result` bound. `invariant` is checked at entry and exit. Method contracts are
-design-by-contract even in core mode; governed top-level calls additionally
-require policy and authority admission.
+design-by-contract even with host Core opt-out. Under the default governance
+floor, contracted methods and governed top-level calls also require policy and
+authority admission. Contracts do not supply authority themselves.
+
+#### 7.3.1 Governed native values: M3.5 candidate
+
+Governed function and contract-bearing method entry/exit contexts accept exact
+JSON values and registered native structs, fountains, and enums through the
+bounded `thirsty.native-value.v1` projection. The projector creates independent
+JSON data with runtime scope/declaration tokens and declared fields or an enum
+variant. Existing JSON argument paths remain; native fields use paths such as
+`row.fields.value`. Both explicit `self` and implicit `this` receiver state is
+included. The [governed native value contract](GOVERNED_VALUE_CONTEXT.md),
+included in this manual's reference corpus, specifies the exact profile.
+
+A governed/contract-bearing parameter named `result` denies before entry
+callbacks or the body because exit uses `result` for the actual returned value.
+Ordinary uncontracted parameters and nested fields named `result` remain valid.
+Entry admits one snapshot and rechecks live values after callback-capable checks
+and before execution. Exit takes a fresh snapshot after the body and validates
+the result even without an explicit exit predicate. Mutation during authorization
+denies; deliberate body mutation does not have to equal the entry snapshot.
+Each active policy must admit the same call values. A positive proof must bind
+the original composed policy context captured before evaluation; legitimate
+registered-source enrichment retains separate evaluated-context checks.
+Exit projection and contracts do not introduce a TARL exit-policy decision.
+
+Projection refuses unsupported foreign values, forged native markers, cycles,
+invalid layouts, and exceeded limits without conversion/traversal hooks. The
+limits are depth 32, 10,000 nodes, 1,048,576 aggregate UTF-8 string/key bytes,
+and 4,096-bit integer magnitude. Generated metadata and repeated aliases count
+toward the relevant limits. These limits do not bound complete encoded JSON,
+registered providers, body execution, or arbitrary host allocation.
+
+Snapshot checks cannot establish atomicity against concurrent host mutation,
+detect a mutation restored between checks, or bind dictionary insertion order
+and alias identity. Native tokens identify declarations locally; they do not
+prove portable source provenance. External native handoff validation, composite
+call receipts, closure provenance, a full policy namespace, global resource
+limits, and rollback remain separate work. An exit denial cannot undo effects
+already performed by the body. The Python host remains trusted; this is not
+whole-program verification or an OS sandbox.
 
 ### 7.4 Control flow
 
@@ -467,6 +562,14 @@ times 3 {
 }
 ```
 
+For-each iterables are checked in the enclosing scope before the immutable loop
+binding is introduced. `Reservoir[T]` yields `T`, `Dict[K, V]` yields `K`, and
+strings yield strings. Known noniterables produce diagnostic `E025`; dynamic
+noniterables raise a runtime `TypeError` instead of silently skipping the loop.
+Runtime iteration uses the host iteration protocol, preserving order, a single
+iterable evaluation, and per-iteration scopes. Host-provided iterators remain
+part of the trusted embedding boundary.
+
 The C-style `refill` form desugars to initialization plus a while-like loop;
 a declaration used as its counter is made mutable by the parser.
 
@@ -491,9 +594,24 @@ drink values = [10, 20, 30]
 values[1] = account.credit(values[1])
 ```
 
-Both `self` and `this` receiver conventions are supported. Lists, dictionaries,
+Source methods support explicit leading `self` and implicit `this`. Explicit
+leading `this` is a host-created AST convention only; the parser rejects the
+reserved keyword as a source parameter. A remaining method parameter named
+`this` reports E901 and fails runtime binding. A nonleading `self` remains an
+ordinary parameter, with the actual receiver separately bound and included as
+`this`. Lists, dictionaries,
 and strings support indexed reads; lists and dictionaries support assignment
 where appropriate. Bounds and invalid index types are checked.
+
+The M3.5 checker distinguishes struct/enum constructors from their instances
+using `ConstructorType`. Aliases and collection selections retain that identity;
+known aliases can also resolve nominal instance annotations. Ordinary calls and
+`new` check constructor signatures: struct fields supply parameters, while an
+enum takes one argument whose variant value is checked at runtime. Constructor
+values cannot satisfy instance annotations. Calling a known instance, including
+through `new`, reports E031. Struct field access requires an instance and enum
+variant access requires the constructor or its known alias. Fountain types and
+unknown foreign values retain their existing gradual limits.
 
 ### 7.6 Error and asynchronous structure
 
@@ -514,13 +632,24 @@ spillage {
 structured error and asynchronous vocabulary used by Tier 1 and validated more
 strictly by Thirst of Gods.
 
+Cascade awaits completion and yields the value. In M3.5 the checker uses that
+actual result type, including known returned callbacks and nested collections,
+instead of wrapping it in `Task[T]`. Invalid dynamic callees reject after the
+callee and argument expressions evaluate once; they are not evaluated again on
+the error path. Errors and caller/definer governance restrictions still
+propagate. Explicit/host `Task` descriptors remain gradual where a runtime
+task-value contract is not defined. No new async protocol or scheduler guarantee
+is supplied by this correction.
+
 ### 7.7 Types and implementation limits
 
 Runtime/checker types include `Int`, `Float`, `Bool`, `String`, `Void`, `Any`,
 `Error`, `Quenched`, `Reservoir`, `Task`, `Result`, `Governed`, function types,
-and internal enum/struct/interface/generic forms.
+and internal enum/struct/interface/generic forms. M3.5 adds distinct constructor
+descriptors and includes them in known callable choices without introducing
+source callable-annotation syntax.
 
-Important 0.9.0 limits:
+Current limits retained from 0.9.0:
 
 - An unannotated function return type is `Any`.
 - Supported collection annotations accept nested type arguments; this is not
@@ -549,7 +678,14 @@ The implementation precedence, lowest to highest, is:
 9. member access, calls, and subscripts
 
 In Tier 1, `^` and `||` require Boolean operands. The pipe tokens `|>` and bare
-`|` are both recognized. Consult the grammar for the exact parse forms.
+`|` are both recognized. With a known callable on the right, pipes and `->`
+check the left operand as one argument against every possible signature and
+infer the joined return type. M3.5 retains struct/enum constructor identity
+through aliases and known function/constructor alternatives; every possible
+signature must accept the call. Mixed callable/noncallable joins remain gradual.
+Existing
+noncallable fallbacks remain: pipes return the left operand, while `->` returns
+the right operand. Consult the grammar for the exact parse forms.
 
 ## 8. Modules, standard library, and project files
 
@@ -1245,7 +1381,7 @@ wasm-pyodide
 Build targets do not preserve the configured governance boundary. JS and LLVM
 omit the Python interpreter; Pyodide retrieves an interpreter without embedding
 the source deployment's policy, authority, clock, or audit configuration. A
-governed module therefore refuses to build to these targets unless the user
+program therefore refuses to build to these targets unless the user
 explicitly acknowledges the loss:
 
 ```bash
@@ -1257,7 +1393,10 @@ thirsty build governed_app.thirsty \
     --emit-manifest
 ```
 
-The manifest records the disclosure. `--allow-governance-loss` is not a
+The manifest is mandatory and is persisted before executable output or
+toolchain launch; `--emit-manifest` is retained for compatibility. Failed
+disclosure prevents emission. A later build failure can leave a disclosure,
+which is not evidence of successful compilation. `--allow-governance-loss` is not a
 production-preservation feature; it is an explicit statement that the target
 does not provide the source runtime's governed-execution guarantee.
 
@@ -1330,7 +1469,9 @@ Free names retain identity; unsupported closure/import binding forms keep exact
 names. Sampling permits no host calls and enforces source/AST/depth/step/value
 limits. Failed input vectors cause abstention rather than being discarded.
 
-The separate admission engine is version 0.2.0 with v2 convergence methods. It
+The separate admission engine advances from released 0.2.0 through M3.1's 0.3.0
+to 0.4.0 with v4 convergence methods in unreleased M3.2. In addition to strict
+AST modeling, Boolean and integer result sorts now remain distinct. It
 reports PROVEN, OBSERVED, VIOLATED, UNKNOWN, or INAPPLICABLE evidence and an
 ELIGIBLE, FLAGGED, or REJECTED decision. Under its default policy, sampled
 agreement or a symbolic result requiring unverified input assumptions cannot
@@ -1625,7 +1766,7 @@ This is expected unless the embedding attached `TarlAuditArchive` to the exact
 runtime. Add `set_archive(...)`; if persistence is mandatory, also add
 `set_require_audit(True)`.
 
-### A governed build refuses
+### A build refuses
 
 The selected target drops the governed runtime. Keep execution under the
 interpreter or, only when deliberate, add `--allow-governance-loss` and inspect
@@ -1656,12 +1797,16 @@ Strict mode requires initialized bindings. Pure mode rejects mediated effects,
 including `pour`, `sip`, `print`, and effectful standard-library calls through
 aliases or callbacks.
 Select the module mode that matches the intended contract.
+Imports still require policy permission in pure mode, including imports of
+deterministic libraries. The reviewed stdlib inventory has 99 exports: 43 with
+direct mediated effects and 56 without direct ambient effects. The latter can
+mutate guest data or call callbacks, whose active restrictions remain in force.
 
-### A governed imported file behaves differently from a core import
+### An imported core file requires policy
 
-Governed file imports inherit the caller's governance configuration so imported
-top-level effects and returned functions remain gated. Do not expect the core
-module cache path to detach governed imports from the caller.
+File imports inherit live caller restrictions so imported top-level effects and
+returned functions remain gated. Source semantics cannot detach a module from
+those requirements, and file execution bypasses the global module cache.
 
 ### Docker behavior does not match the published package
 

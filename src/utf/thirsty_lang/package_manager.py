@@ -344,8 +344,13 @@ class PackageManager:
         return issues
 
 
-def create_thirsty_toml(project_dir: str, name: str, version: str = "0.1.0") -> str:
+def create_thirsty_toml(
+    project_dir: str, name: str, version: str = "0.1.0", *, mode: str = "governed"
+) -> str:
+    from utf.thirsty_lang.execution import resolve_execution_mode
     from utf.thirsty_lang.module_system import dump_toml
+
+    resolve_execution_mode(mode)
 
     path = os.path.join(project_dir, "thirsty.toml")
     Path(path).write_text(
@@ -355,7 +360,7 @@ def create_thirsty_toml(project_dir: str, name: str, version: str = "0.1.0") -> 
                     "name": name,
                     "version": version,
                     "thirsty-version": "1.0",
-                    "mode": "core",
+                    "mode": mode,
                 },
                 "dependencies": {},
             }

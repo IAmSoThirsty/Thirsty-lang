@@ -172,18 +172,52 @@ for value in c.set([3, 1, 3]) { pour value }
     parser = Parser(lexer.lex())
     program = parser.parse()
     assert not lexer.errors and not parser.errors and not check_ast(program)
-    Interpreter().interpret(program)
+    # This fixture exercises guest container semantics under an intentional
+    # host-core opt-out. The real application below uses an explicit policy.
+    interpreter = Interpreter(allow_ungoverned=True)
+    try:
+        interpreter.interpret(program)
+    finally:
+        interpreter.executor.shutdown(wait=True)
     assert capsys.readouterr().out.splitlines() == ["8", "65", "AB", "3", "1"]
 
 
 def run_report(tmp_path, raw):
     path = tmp_path / "orders.json"
     path.write_text(raw, encoding="utf-8")
+    allowed = [
+        ("import", f"thirst::{namespace}")
+        for namespace in ("collections", "json", "fs", "env")
+    ] + [
+        ("read", "thirst::env.get:THIRSTY_REPORT_INPUT"),
+        ("read", f"thirst::fs.read_file:{path}"),
+        ("write", "stdout"),
+    ]
+    policy = tmp_path / "report-policy.tarl"
+    policy.write_text(
+        "\n".join(
+            f"when action == {json.dumps(action)} and target == {json.dumps(target)} => ALLOW"
+            for action, target in allowed
+        )
+        + "\nwhen true => DENY\n",
+        encoding="utf-8",
+    )
     environment = dict(
         os.environ, THIRSTY_REPORT_INPUT=str(path), PYTHONDONTWRITEBYTECODE="1"
     )
     return subprocess.run(
-        [sys.executable, "-B", "-m", "utf.thirsty_lang.cli", "run", str(EXAMPLE)],
+        [
+            sys.executable,
+            "-B",
+            "-m",
+            "utf.thirsty_lang.cli",
+            "run",
+            str(EXAMPLE),
+            "--policy",
+            str(policy),
+            "--authority",
+            "test-report-reader",
+        ],
         cwd=ROOT,
         env=environment,
         capture_output=True,

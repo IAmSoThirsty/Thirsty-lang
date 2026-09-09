@@ -28,6 +28,7 @@ from utf.thirsty_lang.ast import (
     UnaryOp,
     VariableDecl,
 )
+from utf.thirsty_lang.execution import resolve_execution_mode
 from utf.thirsty_lang.token import TokenType
 
 
@@ -68,8 +69,13 @@ def main():
     run_parser.add_argument(
         "--thirst-level",
         choices=["core", "governed"],
-        default="core",
-        help="Thirst mode",
+        default=None,
+        help="Requested semantics; governance is required by default",
+    )
+    run_parser.add_argument(
+        "--unsafe-core",
+        action="store_true",
+        help="Explicitly permit ungoverned compatibility execution; cannot be combined with security controls",
     )
     run_parser.add_argument(
         "--authority",
@@ -159,8 +165,13 @@ def main():
     repl_parser.add_argument(
         "--thirst-level",
         choices=["core", "governed"],
-        default="core",
-        help="Thirst mode",
+        default=None,
+        help="Requested semantics; governance is required by default",
+    )
+    repl_parser.add_argument(
+        "--unsafe-core",
+        action="store_true",
+        help="Explicitly permit ungoverned compatibility execution",
     )
 
     # fmt
@@ -178,7 +189,7 @@ def main():
     new_parser.add_argument(
         "--mode",
         choices=["core", "governed"],
-        default="core",
+        default="governed",
         help="Default governance mode",
     )
 
@@ -204,7 +215,7 @@ def main():
     build_parser.add_argument(
         "--allow-governance-loss",
         action="store_true",
-        help="Permit building a governed module to a target that drops the governed runtime (records the loss in the manifest)",
+        help="Acknowledge unavailable host governance in the build target; always emits a disclosure manifest",
     )
     build_parser.add_argument(
         "--policy",
@@ -345,13 +356,15 @@ def main():
         sys.exit(1)
 
 
-def _lex_parse_check(file_path: str, mode: str = "core", effect_warnings: bool = False):
+def _lex_parse_check(
+    file_path: str, mode: str | None = None, effect_warnings: bool = False
+):
     """Helper: lex, parse, and type-check a file. Returns (ast, errors, checker)."""
     from utf.thirsty_lang.checker import check_ast
     from utf.thirsty_lang.lexer import Lexer
     from utf.thirsty_lang.parser import Parser
 
-    with open(file_path) as f:
+    with open(file_path, encoding="utf-8") as f:
         source = f.read()
 
     lexer = Lexer(source)
@@ -363,7 +376,7 @@ def _lex_parse_check(file_path: str, mode: str = "core", effect_warnings: bool =
     # Check for lexer/parser errors
     errors = list(lexer.errors)
     errors.extend(parser.errors)
-    errors.extend(check_ast(ast, effect_warnings=effect_warnings))
+    errors.extend(check_ast(ast, effect_warnings=effect_warnings, mode=mode))
 
     return ast, errors, source
 
@@ -377,6 +390,39 @@ def cmd_run(args):
     from utf.thirsty_lang.module_system import LockedImports
     from utf.thirsty_lang.parser import Parser
 
+    unsafe_core = getattr(args, "unsafe_core", False)
+    security_options = (
+        "locked",
+        "policy",
+        "context_schema",
+        "authority",
+        "authority_token",
+        "authority_key",
+        "authority_key_file",
+        "sign_proofs",
+        "sign_proofs_file",
+        "hardened",
+        "audit_db",
+        "require_audit",
+    )
+    if unsafe_core and (
+        any(
+            value is not None and value is not False
+            for value in (getattr(args, name, None) for name in security_options)
+        )
+        or args.thirst_level == "governed"
+    ):
+        print(
+            "Error: --unsafe-core cannot be combined with governance or security controls",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if unsafe_core:
+        print(
+            "Warning: --unsafe-core permits ungoverned compatibility execution",
+            file=sys.stderr,
+        )
+
     locked_imports = None
     if getattr(args, "locked", False):
         if args.demo:
@@ -389,7 +435,7 @@ def cmd_run(args):
             sys.exit(1)
 
     if args.demo:
-        source = """module hello: core
+        source = """module hello: governed
 
 glass greet(name: String) {
     return "hello, " + name + "!"
@@ -397,7 +443,7 @@ glass greet(name: String) {
 
 drink main = "thirsty world"
 drink result = greet(main)
-pour result
+result
 """
         file_path = "<demo>"
     else:
@@ -421,8 +467,12 @@ pour result
             )
             if (
                 locked_imports is not None
-                or any(getattr(args, name, None) for name in restrictions)
-                or args.thirst_level != "core"
+                or any(
+                    value is not None and value is not False
+                    for value in (getattr(args, name, None) for name in restrictions)
+                )
+                or args.thirst_level is not None
+                or unsafe_core
             ):
                 print(
                     "Error: restricted runs of .thirstofgods must use the Thirsty-Lang entry point after explicit conversion",
@@ -456,14 +506,16 @@ pour result
     errors = []
     errors.extend(lexer.errors)
     errors.extend(parser.errors)
-    errors.extend(check_ast(ast))
+    errors.extend(check_ast(ast, mode=args.thirst_level, allow_ungoverned=unsafe_core))
 
     if errors:
         bundle = DiagnosticBundle(errors)
         print(bundle.format_all(), file=sys.stderr)
         sys.exit(1)
 
-    interpreter = Interpreter(opt_level=args.opt, debug_mode=args.trace)
+    interpreter = Interpreter(
+        opt_level=args.opt, debug_mode=args.trace, allow_ungoverned=unsafe_core
+    )
     if not args.demo:
         interpreter.source_directory = Path(file_path).resolve().parent
     if locked_imports is not None:
@@ -597,10 +649,12 @@ pour result
     if require_audit and not audit_path:
         print("Error: --require-audit requires --audit-db", file=sys.stderr)
         sys.exit(1)
-    if (
-        require_audit
-        and (ast.header.mode if ast.header else args.thirst_level) != "governed"
-    ):
+    _, governance_required = resolve_execution_mode(
+        ast.header.mode if ast.header else None,
+        args.thirst_level,
+        allow_ungoverned=unsafe_core,
+    )
+    if require_audit and not governance_required:
         print("Error: --require-audit requires a governed module", file=sys.stderr)
         sys.exit(1)
     archive = None
@@ -648,11 +702,30 @@ def cmd_repl(args):
 
     debug_enabled = args.trace or os.environ.get("THIRSTY_DEBUG") == "1"
 
-    print(f"Thirsty-Lang REPL (mode: {args.thirst_level}, opt={args.opt})")
+    unsafe_core = getattr(args, "unsafe_core", False)
+    if unsafe_core and args.thirst_level == "governed":
+        print(
+            "Error: --unsafe-core cannot be combined with governed execution",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    mode, governance_required = resolve_execution_mode(
+        mode=args.thirst_level, allow_ungoverned=unsafe_core
+    )
+    if unsafe_core:
+        print(
+            "Warning: --unsafe-core permits ungoverned compatibility execution",
+            file=sys.stderr,
+        )
+    print(
+        f"Thirsty-Lang REPL (mode: {mode}, governance: {'required' if governance_required else 'disabled'}, opt={args.opt})"
+    )
     print("Type 'exit' to quit, 'help' for commands, '.clear' to reset state.")
     print()
 
-    interpreter = Interpreter(opt_level=args.opt, debug_mode=debug_enabled)
+    interpreter = Interpreter(
+        opt_level=args.opt, debug_mode=debug_enabled, allow_ungoverned=unsafe_core
+    )
     source_buffer = ""
     pending = False
 
@@ -694,7 +767,9 @@ def cmd_repl(args):
             errors = []
             errors.extend(lexer.errors)
             errors.extend(parser.errors)
-            errors.extend(check_ast(ast))
+            errors.extend(
+                check_ast(ast, mode=args.thirst_level, allow_ungoverned=unsafe_core)
+            )
 
             if errors:
                 needs_more = False
@@ -754,13 +829,26 @@ def cmd_fmt(args):
             print(f"Error: File not found: {file_path}", file=sys.stderr)
             continue
 
-        with open(file_path) as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
 
         lexer = Lexer(source)
         tokens = lexer.lex()
         parser = Parser(tokens)
         ast = parser.parse()
+
+        if lexer.errors or parser.errors or ast.parse_failed:
+            from utf.thirsty_lang.diagnostics import DiagnosticBundle
+
+            print(
+                DiagnosticBundle([*lexer.errors, *parser.errors]).format_all(),
+                file=sys.stderr,
+            )
+            print(
+                f"Error: refusing to format malformed source: {file_path}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
         formatted = format(ast)
 
@@ -769,7 +857,7 @@ def cmd_fmt(args):
                 print(f"{file_path}: would reformat")
                 sys.exit(1)
         else:
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(formatted)
             print(f"Formatted: {file_path}")
 
@@ -792,7 +880,7 @@ def cmd_new(args):
 
     # Create main.thirsty
     main_path = os.path.join(project_dir, "src", "main.thirsty")
-    with open(main_path, "w") as f:
+    with open(main_path, "w", encoding="utf-8") as f:
         f.write(f"""module {args.name}: {args.mode}
 
 glass greet(name: String) {{
@@ -800,11 +888,11 @@ glass greet(name: String) {{
 }}
 
 drink main = greet("thirsty world")
-pour main
+main
 """)
 
     # Create thirsty.toml
-    create_thirsty_toml(project_dir, args.name)
+    create_thirsty_toml(project_dir, args.name, mode=args.mode)
 
     # Create thirsty.lock
     create_thirsty_lock(project_dir)
@@ -857,56 +945,62 @@ def cmd_build(args):
     target = args.target
     base = os.path.splitext(args.file)[0]
 
-    # Governance-loss guard: every current build target (JS, LLVM, Pyodide)
-    # drops the governed runtime, so a governed module cannot enforce its
-    # policy in the emitted artifact. Refuse by default; require an explicit
-    # opt-in that is recorded in the manifest.
-    governed = bool(ast.header and ast.header.mode == "governed")
-    governance_loss = False
-    if governed:
-        if not args.allow_governance_loss:
-            print(
-                f"Error: refusing to build governed module to '{target}': "
-                "this target drops the governed runtime, losing policy "
-                "enforcement. Re-run with --allow-governance-loss "
-                "(ideally with --emit-manifest) to proceed.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        governance_loss = True
-        print(
-            f"Warning: governance loss — building governed module '{args.file}'"
-            f" to '{target}' drops the governed runtime; the emitted artifact "
-            "does NOT enforce policy.",
-            file=sys.stderr,
-        )
+    governance_loss = _authorize_build_governance_loss(
+        target, getattr(args, "allow_governance_loss", False)
+    )
+
+    # Reject unsupported source before disclosure, then persist the required
+    # disclosure before producing an executable artifact or invoking a toolchain.
+    compiled_code = ""
+    if target.startswith("llvm-"):
+        compiled_code = _transpile_to_llvm_ir(ast)
+    elif target == "js":
+        compiled_code = _transpile_to_js(ast)
+    elif target != "wasm-pyodide":
+        raise ValueError(f"Unsupported build target: {target}")
+    _emit_manifest(
+        ast,
+        args.file,
+        source=source,
+        target=target,
+        governance_loss=governance_loss,
+        policy_path=getattr(args, "policy", None),
+        context_schema_path=getattr(args, "context_schema", None),
+    )
 
     if target.startswith("llvm-"):
-        output_path = _build_llvm(ast, base, target)
+        output_path = _build_llvm(ast, base, target, ir=compiled_code)
         print(f"Built: {output_path}")
 
     elif target == "js":
         # Simple JavaScript transpilation
-        js_code = _transpile_to_js(ast)
         output_path = base + ".js"
-        with open(output_path, "w") as f:
-            f.write(js_code)
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(compiled_code)
         print(f"Built: {output_path}")
 
     elif target == "wasm-pyodide":
-        output_path = _build_pyodide(source, base)
+        output_path = _build_pyodide(source, base, allow_ungoverned=governance_loss)
         print(f"Built: {output_path}")
 
-    if args.emit_manifest:
-        _emit_manifest(
-            ast,
-            args.file,
-            source=source,
-            target=target,
-            governance_loss=governance_loss,
-            policy_path=getattr(args, "policy", None),
-            context_schema_path=getattr(args, "context_schema", None),
+
+def _authorize_build_governance_loss(target: str, allowed: bool) -> bool:
+    """Public builders require host consent before emitting ungoverned targets."""
+    if not allowed:
+        print(
+            f"Error: refusing to build to '{target}': governance is required by default; "
+            "this target cannot preserve host policy/authority enforcement. "
+            "Use --allow-governance-loss to acknowledge the loss and emit a disclosure manifest.",
+            file=sys.stderr,
         )
+        sys.exit(1)
+    print(
+        f"Warning: governance loss acknowledged for '{target}'; host policy/authority "
+        "configuration is unavailable. Pyodide retains explicit governed declarations "
+        "and denies their effects without policy.",
+        file=sys.stderr,
+    )
+    return True
 
 
 def _validate_build_mode(ast) -> None:
@@ -937,7 +1031,7 @@ def _validate_build_mode(ast) -> None:
 
 
 def _transpile_to_js(ast) -> str:
-    """Simple transpilation of Thirsty-Lang AST to JavaScript."""
+    """Internal subset renderer; public builders must authorize governance loss."""
 
     if getattr(ast, "parse_failed", False):
         raise ValueError("Cannot compile a malformed program")
@@ -947,6 +1041,28 @@ def _transpile_to_js(ast) -> str:
     # Only directly declared functions have a supported callable ABI here.
     import dataclasses
 
+    from utf.thirsty_lang.ast import ModuleHeader, Program
+
+    modeled_nodes = {
+        Program,
+        ModuleHeader,
+        IntLiteral,
+        FloatLiteral,
+        StringLiteral,
+        BoolLiteral,
+        NoneLiteral,
+        Identifier,
+        ArrayLiteral,
+        BinaryOp,
+        UnaryOp,
+        CallExpr,
+        ExprStmt,
+        ReturnStmt,
+        VariableDecl,
+        AssignStmt,
+        FunctionDecl,
+        BlockStmt,
+    }
     functions = {s.name for s in ast.stmts if type(s) is FunctionDecl}
 
     visited = 0
@@ -956,6 +1072,8 @@ def _transpile_to_js(ast) -> str:
         visited += 1
         if visited > 5000 or depth > 64:
             raise ValueError("JS AST analysis budget exceeded")
+        if dataclasses.is_dataclass(node) and type(node) not in modeled_nodes:
+            raise ValueError(f"JS target does not support {type(node).__name__}")
         if isinstance(node, CallExpr) and (
             not isinstance(node.callee, Identifier) or node.callee.name not in functions
         ):
@@ -1062,16 +1180,21 @@ function __truth(v) {
   return Array.isArray(v) || typeof v === 'string' ? v.length !== 0 : Boolean(v);
 }
 function __neg(v) {
-  if (typeof v === 'boolean') return -BigInt(v);
+  if (typeof v === 'boolean') throw new TypeError('Unary minus does not accept Bool');
   if (!['number', 'bigint'].includes(typeof v)) throw new Error('Numeric operand required');
   return -v;
 }
 function __binary(op, a, b) {
-  if (op === '==' || op === '!=') return op === '==' ? __equal(a, b) : !__equal(a, b);
+  const boolA = typeof a === 'boolean', boolB = typeof b === 'boolean';
+  if (op === '==' || op === '!=') {
+    if (boolA !== boolB) throw new TypeError('Scalar equality cannot mix Bool with another type');
+    return op === '==' ? __equal(a, b) : !__equal(a, b);
+  }
+  if (boolA || boolB) throw new TypeError('Arithmetic and ordering do not accept Bool');
   if (op === '+' && typeof a === 'string' && typeof b === 'string') return a + b;
   if (op === '+' && Array.isArray(a) && Array.isArray(b)) return a.concat(b);
   if (op === '*' && (typeof a === 'string' || Array.isArray(a))) {
-    if (!['bigint', 'boolean'].includes(typeof b)) throw new Error('Sequence repeat count must be Int');
+    if (typeof b !== 'bigint') throw new Error('Sequence repeat count must be Int');
     const count = Number(b);
     if (count <= 0) return typeof a === 'string' ? '' : [];
     if (!Number.isSafeInteger(count) || count * a.length > 1000000) throw new Error('JS sequence resource limit exceeded');
@@ -1089,14 +1212,17 @@ function __binary(op, a, b) {
   if (['<','<=','>','>='].includes(op) && Array.isArray(a) && Array.isArray(b)) {
     let i = 0;
     while (i < a.length && i < b.length && __equal(a[i], b[i])) i++;
-    if (i < a.length && i < b.length) return __binary(op, a[i], b[i]);
+    if (i < a.length && i < b.length) {
+      // Native container comparison retains its existing element semantics.
+      const aa = typeof a[i] === 'boolean' ? BigInt(a[i]) : a[i];
+      const bb = typeof b[i] === 'boolean' ? BigInt(b[i]) : b[i];
+      return __binary(op, aa, bb);
+    }
     return __binary(op, BigInt(a.length), BigInt(b.length));
   }
   if (Array.isArray(a) || Array.isArray(b)) throw new Error('Array operators unsupported by JS target');
-  const numeric = x => ['number', 'bigint', 'boolean'].includes(typeof x);
+  const numeric = x => ['number', 'bigint'].includes(typeof x);
   if (!numeric(a) || !numeric(b)) throw new Error('Numeric operands required by JS target');
-  if (typeof a === 'boolean') a = BigInt(a);
-  if (typeof b === 'boolean') b = BigInt(b);
   if (op === '/' && typeof a === 'bigint' && typeof b === 'bigint') return __intDivide(a, b);
   if (op === '<') return a < b;
   if (op === '<=') return a <= b;
@@ -1254,10 +1380,16 @@ class _LLVMExpr:
                 raise ValueError(f"LLVM target has unresolved identifier {expr.name!r}")
             return self._checked(env[expr.name])
         if isinstance(expr, UnaryOp):
-            if expr.op == TokenType.MINUS and isinstance(expr.operand, IntLiteral):
+            if (
+                expr.op == TokenType.MINUS
+                and isinstance(expr.operand, IntLiteral)
+                and type(expr.operand.value) is int
+            ):
                 return self._checked(-expr.operand.value)
             value = self.evaluate(expr.operand, env)
             if expr.op == TokenType.MINUS:
+                if type(value) is bool:
+                    raise ValueError("LLVM unary minus does not accept Bool")
                 return self._checked(-value)
             if expr.op == TokenType.NOT:
                 return not value
@@ -1269,6 +1401,13 @@ class _LLVMExpr:
             if expr.op == TokenType.OR:
                 return left if left else self.evaluate(expr.right, env)
             right = self.evaluate(expr.right, env)
+            if expr.op in {TokenType.EQEQ, TokenType.NE}:
+                if (type(left) is bool) != (type(right) is bool):
+                    raise ValueError(
+                        "LLVM scalar equality cannot mix Bool with another type"
+                    )
+            elif type(left) is bool or type(right) is bool:
+                raise ValueError("LLVM arithmetic and ordering do not accept Bool")
             operations = {
                 TokenType.PLUS: lambda: left + right,
                 TokenType.MINUS: lambda: left - right,
@@ -1420,7 +1559,7 @@ def _transpile_to_llvm_ir(ast) -> str:
     )
 
 
-def _build_llvm(ast, base: str, target: str) -> str:
+def _build_llvm(ast, base: str, target: str, *, ir: str | None = None) -> str:
     """Write textual IR, then drive the toolchain for non-IR targets.
 
     ``llvm-ir`` is fully self-contained. ``llvm-asm``/``llvm-obj``/``llvm-exe``/
@@ -1430,9 +1569,10 @@ def _build_llvm(ast, base: str, target: str) -> str:
     import shutil
     import subprocess
 
-    ir = _transpile_to_llvm_ir(ast)
+    if ir is None:
+        ir = _transpile_to_llvm_ir(ast)
     ir_path = base + ".ll"
-    with open(ir_path, "w") as f:
+    with open(ir_path, "w", encoding="utf-8") as f:
         f.write(ir)
     if target == "llvm-ir":
         return ir_path
@@ -1485,7 +1625,7 @@ ast = parser.parse()
 diagnostics = [*lexer.errors, *parser.errors, *check_ast(ast)]
 if any(item.severity == "error" for item in diagnostics) or ast.parse_failed:
     raise RuntimeError("Thirsty-Lang source validation failed; execution refused")
-Interpreter().interpret(ast)
+Interpreter(allow_ungoverned=ALLOW_UNGOVERNED).interpret(ast)
 """
 
 _PYODIDE_TEMPLATE = """<!DOCTYPE html>
@@ -1501,6 +1641,7 @@ _PYODIDE_TEMPLATE = """<!DOCTYPE html>
 const SOURCE = {source_json};
 const EXPECTED_VERSION = {version_json};
 const EXPECTED_SOURCE_INTEGRITY = {integrity_json};
+const ALLOW_UNGOVERNED = {allow_ungoverned_json};
 const BOOTSTRAP = {bootstrap_json};
 async function main() {{
   const out = document.getElementById("out");
@@ -1512,6 +1653,7 @@ async function main() {{
     pyodide.globals.set("SRC", SOURCE);
     pyodide.globals.set("EXPECTED_VERSION", EXPECTED_VERSION);
     pyodide.globals.set("EXPECTED_SOURCE_INTEGRITY", EXPECTED_SOURCE_INTEGRITY);
+    pyodide.globals.set("ALLOW_UNGOVERNED", ALLOW_UNGOVERNED);
     out.textContent = "";
     pyodide.setStdout({{batched: text => {{ out.textContent += text + "\\n"; }} }});
     await pyodide.runPythonAsync(BOOTSTRAP);
@@ -1538,7 +1680,7 @@ def _html_json(value) -> str:
     )
 
 
-def _build_pyodide(source: str, base: str) -> str:
+def _build_pyodide(source: str, base: str, *, allow_ungoverned: bool = False) -> str:
     """Emit a browser launcher pinned to this package version and source tree.
 
     The downloaded wheel must reproduce the source-only fingerprint before
@@ -1560,6 +1702,7 @@ def _build_pyodide(source: str, base: str) -> str:
         source_json=_html_json(source),
         version_json=_html_json(__version__),
         integrity_json=_html_json(runtime_source_integrity()),
+        allow_ungoverned_json=_html_json(allow_ungoverned),
         bootstrap_json=_html_json(_PYODIDE_BOOTSTRAP),
     )
     out_path = base + ".pyodide.html"
@@ -1609,7 +1752,7 @@ def _emit_manifest(
         "shadow_thirst": manifest["shadow_convergence_result"],
     }
     manifest_path = os.path.splitext(file_path)[0] + ".manifest.json"
-    with open(manifest_path, "w") as f:
+    with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
     print(f"Manifest: {manifest_path}")
 
@@ -1690,7 +1833,11 @@ def cmd_govern(args):
 
     if args.report:
         print(f"Governance Report for: {args.file}")
-        print(f"  Mode: {ast.header.mode if ast.header else 'core'}")
+        mode, governance_required = resolve_execution_mode(
+            ast.header.mode if ast.header else None
+        )
+        print(f"  Mode: {mode}")
+        print(f"  Governance: {'required' if governance_required else 'disabled'}")
         print(
             f"  Functions: {sum(1 for s in ast.stmts if hasattr(s, 'name') and hasattr(s, 'params'))}"
         )
@@ -1740,7 +1887,7 @@ def cmd_govern(args):
 
         # Write policy file
         tarl_path = os.path.splitext(args.file)[0] + ".tarl"
-        with open(tarl_path, "w") as f:
+        with open(tarl_path, "w", encoding="utf-8") as f:
             f.write(tarl_policy)
         print(f"T.A.R.L. policy: {tarl_path}")
 
@@ -1948,14 +2095,14 @@ def cmd_docs(args):
      <p><a href="https://github.com/IAmSoThirsty/Thirsty-lang/blob/master/docs/THIRSTY_LANG_UTF_101.md">Canonical Thirsty-Lang UTF 101 manual</a></p>
 
     <h2>Quick Start</h2>
-    <pre><code><span class="keyword">module</span> hello: core
+    <pre><code><span class="keyword">module</span> hello: governed
 
 <span class="keyword">glass</span> <span class="type">greet</span>(name: String) {
     <span class="keyword">return</span> <span class="string">"hello, "</span> + name + <span class="string">"!"</span>
 }
 
 <span class="keyword">drink</span> main = greet(<span class="string">"thirsty world"</span>)
-<span class="keyword">pour</span> main</code></pre>
+main</code></pre>
 
     <h2>Keywords</h2>
     <p>Core: drink, pour, sip, thirsty, hydrated, thirst, quench, refill, glass, reservoir, well, of, flood, drip, evaporate, condense, fountain, return, mut, empty</p>

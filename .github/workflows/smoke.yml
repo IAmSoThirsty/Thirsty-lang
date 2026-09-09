@@ -36,9 +36,12 @@ jobs:
 
       - name: Run every shipped example through its CLI
         run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          printf 'policy examples\nwhen action == "write" and target == "stdout" => ALLOW\nwhen true => DENY\n' > "$work/stdout.tarl"
           for f in src/utf/examples/*.thirsty; do
             echo "--- thirsty run $f"
-            thirsty run "$f"
+            thirsty run "$f" --policy "$work/stdout.tarl" --authority example
           done
           echo "--- thirst-of-gods check gods.thirstofgods"
           thirst-of-gods check src/utf/examples/gods.thirstofgods

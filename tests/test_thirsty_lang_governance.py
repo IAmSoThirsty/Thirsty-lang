@@ -99,7 +99,7 @@ class TestCrossModeGuard:
         interp = _load(CORE_SRC)  # header is core
         with pytest.raises(GovernanceViolation) as exc:
             interp.env.get("withdraw")(5)
-        assert "governed mode" in exc.value.reason
+        assert "requires a policy engine and authority" in exc.value.reason
 
     def test_governance_not_swallowed_by_spillage(self):
         # A governance denial inside a spillage block must propagate, not be

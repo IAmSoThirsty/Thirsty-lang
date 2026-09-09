@@ -8,6 +8,7 @@ from utf.thirsty_lang.typesys import (
     ErrorType,
     FloatType,
     FunctionType,
+    FunctionUnionType,
     GenericType,
     GovernedType,
     InterfaceType,
@@ -86,9 +87,9 @@ def test_unify():
     f1 = FunctionType([IntType()], IntType())
     f2 = FunctionType([IntType()], IntType())
     assert isinstance(unify(f1, f2), FunctionType)
-    # function arity mismatch falls through to t1
+    # Different arities remain known alternatives; neither signature wins.
     f3 = FunctionType([IntType(), IntType()], IntType())
-    assert isinstance(unify(f1, f3), FunctionType)
+    assert isinstance(unify(f1, f3), FunctionUnionType)
     # same non-generic class returns t1
     assert isinstance(unify(BoolType(), BoolType()), BoolType)
 
@@ -113,6 +114,26 @@ def test_is_assignable():
     assert is_assignable(BoolType(), BoolType()) is True
     # Different constructors → not assignable (hits the final return False).
     assert is_assignable(BoolType(), IntType()) is False
+
+
+def test_type_variable_descriptors_preserve_their_names():
+    first = TypeVariable("T")
+    same = TypeVariable("T")
+    other = TypeVariable("U")
+    assert is_assignable(first, same)
+    assert not is_assignable(first, other)
+    assert not is_assignable(other, first)
+    assert unify(first, same) is first
+    assert isinstance(unify(first, other), AnyType)
+    assert isinstance(unify(other, first), AnyType)
+
+
+def test_function_choice_rejects_missing_or_nonfunction_signatures():
+    import pytest
+
+    for alternatives in ((), (IntType(),), (FunctionType(), AnyType())):
+        with pytest.raises(ValueError, match="known signatures"):
+            FunctionUnionType(alternatives)
 
 
 def test_type_to_string_all():

@@ -1,6 +1,9 @@
 # Thirsty-Lang — Feature Reference
 
-> Feature-oriented reference for the prepared Thirsty-Lang `0.9.0` release. See
+> Feature-oriented reference for released Thirsty-Lang `0.9.0` and the explicitly
+> marked, unreleased M3.1-M3.5 increments. M3.5 is an implementation candidate;
+> its [integration record](operations/M3_VALUE_IDENTITY_VERIFICATION.md) supplies
+> the final verification outcome. See
 > [STATUS.md](STATUS.md) for the authoritative capability-to-test map and
 > [THREAT_MODEL.md](THREAT_MODEL.md) for security acceptance status. The
 > [canonical Thirsty-Lang UTF 101 manual](THIRSTY_LANG_UTF_101.md) is the integrated
@@ -38,6 +41,11 @@ checker, a type system, and a formatter.
   (if / else-if / else).
 - **Loops:** `refill (item in iterable) { … }` (for-each),
   `refill (cond) { … }` (while). Loop bodies accumulate into mutable bindings.
+  Unreleased M3.4 infers known list elements, dictionary keys, and string
+  characters before introducing the immutable loop binding. Known noniterables
+  report E025; dynamic noniterables raise `TypeError` instead of silently skipping.
+  Native iterator order and per-iteration scopes remain; host iterators are
+  trusted and global resource limits remain open.
 - **I/O:** `pour expr` (output), `sip target` (input).
 - **Imports:** `import "path" as alias`.
 - **Errors:** `spillage { … } error { … }` (try/catch),
@@ -57,6 +65,53 @@ checker, a type system, and a formatter.
   `obj.method(args)`.
 - `new Class(args)`, function calls, pipe `|`, guard `thirst(e) quench(c)`,
   and the TSCG pipeline/combine operators.
+- **Unreleased M3.1:** strict sequence indexing and read-only slicing
+  `values[start:stop:step]` for lists, strings, tuples, and bytes. Bounds are
+  `Int` or `none`; booleans and zero steps are rejected. Strings use Unicode
+  code points, slices retain the container type, and list slices are shallow.
+  The checker and formatter preserve sequence types and statement boundaries.
+  JS/LLVM compilation and nonstructural Shadow analysis reject unsupported
+  slices explicitly. The Pyodide target uses the interpreter. See the
+  [complete sequence contract](GENERAL_PURPOSE_LANGUAGE.md).
+- **Unreleased M3.2:** Boolean arithmetic/order rejection, recursive nominal
+  generic resolution and declaration identity, dictionary index key checks,
+  and malformed declaration recovery. Unknown types remain gradual. See the
+  [type-coherence contract](GENERAL_PURPOSE_LANGUAGE.md).
+- **Unreleased M3.4:** contravariant callable parameters, covariant returns, and
+  common types that retain every arity. Internal `FunctionUnionType` retains known
+  alternatives with exact, nominal-aware deduplication; calls must satisfy
+  every alternative, including known `|` and `->` calls. Results join the
+  possible return types. This represents a selected callable, not overload
+  dispatch. Type-variable descriptors consistently match by name. Callable
+  annotation syntax, lambda inference, mixed callable/noncallable joins, and
+  complete type soundness remain outside this increment. See the
+  [callable and iteration contract](GENERAL_PURPOSE_LANGUAGE.md#callable-consistency-and-iteration-local-m34-increment)
+  and [separate verification record](operations/M3_CALLABLE_ITERATION_VERIFICATION.md).
+  M3.4's constructor-alias and cascade-result limitations are addressed by
+  the M3.5 candidate below; its historical evidence remains unchanged.
+- **Unreleased M3.5 candidate:** distinct `ConstructorType` values preserve
+  struct/enum constructor identity through aliases, collections, and callable
+  alternatives. Ordinary calls, `new`, and known pipes check every retained
+  signature; instance annotations cannot accept constructor values. Known
+  noncallable calls/`new` report E031. Instance pipe fallbacks remain unchanged.
+  Cascade infers the actual awaited result, including known returned callbacks,
+  instead of `Task[T]`; invalid dynamic callees reject after once-only operand
+  evaluation. Explicit/host Task descriptors, fountains, mixed callable/noncallable
+  joins, and unknown foreign values retain gradual limits. See the
+  [value-identity contract](GENERAL_PURPOSE_LANGUAGE.md#value-identity-local-m35-candidate).
+- **Runtime arity in M3.4:** ordinary/lambda/morph/governed functions, bound
+  methods, and fountain constructors reject missing or excess positional
+  arguments before callee bodies, contracts, or field defaults. Caller argument
+  expressions still evaluate before the check. Structs retain exact field counts;
+  default/named arguments and foreign Python signature enforcement remain open.
+- **Parameter binding in M3.5:** duplicate names report E010 across functions,
+  lambdas, morphs, and methods. Runtime binders reject them before binding,
+  contracts, or bodies; initializer guards also precede field defaults. Source
+  methods use leading `self` or implicit `this`. Leading `this` is a host-AST
+  convention only; a remaining method parameter named `this` reports E901 and
+  fails runtime binding. A nonleading `self` remains an ordinary parameter,
+  with the actual receiver separately included as `this`. These guards prevent
+  receiver substitution between policy context and body execution.
 
 ### 1.4 Built-in functions
 
@@ -71,12 +126,26 @@ and cascades; it is not a whole-program referential-transparency proof.
 
 ### 1.5 Modes
 
-A module header declares the enforcement mode:
+A module header declares semantics; the reference interpreter, CLI, and REPL
+require governance by default, including for headerless source:
 
 ```
-module myapp: core       // ordinary execution
-module myapp: governed   // governance enforcement active
+module myapp: core       // ordinary semantics; governance still required
+module myapp: governed   // explicit governance floor
+module myapp: strict     // reject uninitialized declarations
+module myapp: pure       // additionally reject mediated external effects
 ```
+
+Only a trusted host can request compatibility execution through
+`Interpreter(allow_ungoverned=True)` or the disclosed CLI `--unsafe-core` option.
+The CLI rejects conflicting security controls. An explicit governed declaration
+or active governed caller retains its restrictions. `--thirst-level core`
+alone does not disable governance. New projects default to governed source and
+metadata, with a computation-only example returned for host CLI presentation.
+
+Lexical/parser failures cannot execute as partial programs in any mode;
+formatting rejects malformed source before writing. Pure and caller/definer
+restrictions propagate through calls, callbacks, imports, aliases, and cascades.
 
 ---
 
@@ -111,13 +180,24 @@ glass withdraw(balance, amount)
 
 ### 2.2 Capability gates
 
-In `governed` mode, governed function calls and the explicitly mapped sensitive
+Under the default governance posture, governed function calls and the explicitly mapped sensitive
 operations - including import, I/O, filesystem, HTTP/network, environment,
 process, logging, testing, and SQLite operations - are routed through an
 attached **T.A.R.L. policy runtime** (`evaluate_with_proof`). A non-`ALLOW`
 verdict denies the operation before it takes effect. Do not infer that every
 standard-library function is sensitive: `module_system.py` is the authority for
-the current capability map.
+the current capability map. Every standard-library export must match either
+that effect map or an explicit no-ambient-effect classification before guest
+exposure. Import permission does not grant sensitive-operation permission.
+Pure computation needs no policy; source `pour`/`print` requests `write` to
+`stdout`, while trusted CLI result presentation is a host operation.
+
+All public JS/LLVM/Pyodide builders require `--allow-governance-loss` and persist
+the mandatory disclosure before executable output. JS/LLVM do not preserve the
+governance runtime. Pyodide retains the interpreter and explicit governed
+declarations but lacks host policy/authority configuration. Its manifest
+distinguishes requested opt-out from effective governance. These compiler
+profiles are not a complete portable execution target.
 
 ### 2.3 Cryptographic proofs
 
@@ -138,10 +218,48 @@ zoned `--now` for temporal evaluation.
 
 ### 2.5 Static parity (checker)
 
-- **E053** — calling a governed function from a `core` module.
+- **E053** — calling a governed function from explicitly ungoverned execution;
+  a Core header alone no longer causes this diagnostic.
 - **Hoisting** — top-level function/class names are pre-declared, so forward
   references and mutual recursion resolve.
 - Contract predicates are checked for resolvable names.
+
+This increment does not establish an OS sandbox, complete static effect
+discovery, or defining-source provenance for host-injected foreign callables.
+Imports honor active caller/definer locks; the broader M6 foreign-code identity
+boundary remains open. See the [development plan](DEVELOPMENT_PLAN.md) and
+[separate security-defaults verification record](operations/M3_SECURITY_DEFAULTS_VERIFICATION.md).
+
+### 2.6 Governed native values (unreleased M3.5 candidate)
+
+Governed calls project exact JSON values and registered native structs,
+fountains, and enums into owned JSON snapshots. Native envelopes use
+`thirsty.native-value.v1`, runtime scope/declaration tokens, and declared fields
+or an enum variant. Existing JSON policy paths remain; native fields use paths
+such as `row.fields.value`. Explicit `self` and implicit `this` receivers are
+included. Exit validates the result even without an explicit exit predicate;
+governed/contract-bearing parameters named `result` deny before entry callbacks
+or body execution. Ordinary uncontracted parameters and nested fields with that
+name remain valid.
+
+Live values must match the admitted snapshot after callback-capable checks and
+before handoff. Positive proofs must bind the original composed policy context
+captured before evaluation; source enrichment keeps separate evaluated-context
+checks. Exit projection and contracts do not add a TARL exit-policy gate.
+Forged native markers, invalid layouts, unsupported foreign values, cycles,
+and exceeded projection budgets deny without conversion/traversal hooks.
+Limits are depth 32, 10,000 nodes, 1,048,576 aggregate UTF-8 string/key bytes,
+and 4,096-bit integer magnitude, including generated metadata and repeated
+alias expansion where applicable.
+
+These limits do not bound the whole runtime. Snapshot hashes do not capture
+dictionary insertion order, alias identity, concurrent atomicity, or mutations
+restored between checks. Runtime tokens are not portable source provenance;
+external native adapters, composite receipts, closure identity, global budgets,
+and rollback remain separate work. Host embedding stays trusted. See
+[GOVERNED_VALUE_CONTEXT.md](GOVERNED_VALUE_CONTEXT.md) for the exact profile and
+limitations and the [M3.5 record](operations/M3_VALUE_IDENTITY_VERIFICATION.md)
+for integration evidence. Broader M3-M7 remains incomplete; robotics is deferred.
 
 ---
 
@@ -188,7 +306,9 @@ regression checks; classifies evidence as **PROVEN**, **OBSERVED**,
 **FLAGGED**, or **REJECTED** Change Admission Record. Records bind source/block
 hashes, admission policy, analysis identifiers, and evidence, and may be signed with an Ed25519
 `proof-signer` key. Strict record verification rejects malformed or unknown
-fields. The current engine is 0.2.0 with v2 convergence methods. Default
+fields. Unreleased M3.2 advances the engine to 0.4.0 with v4 convergence methods
+after fixing Boolean/integer result conflation. M3.1 used 0.3.0/v3 and released
+0.9.0 used engine 0.2.0. Default
 verification rejects superseded engine/proof methods; explicit Python
 `record.verify(key, historical=True)` checks historical integrity only and does
 not recertify the analysis. Every record keeps `execution_authorized=false` and

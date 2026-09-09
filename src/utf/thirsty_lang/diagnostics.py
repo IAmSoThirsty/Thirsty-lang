@@ -32,8 +32,10 @@ ERROR_CODES = {
     "E022": "Type mismatch: operator '{op}' requires {expected} operands, got {found}",
     "E023": "Type mismatch: return type {found} does not match declared return type {expected}",
     "E024": "Type mismatch: condition must be Bool, got {found}",
+    "E025": "Type mismatch: iteration requires an iterable, got {found}",
     # Call errors (E030-E039)
     "E030": "Call arity mismatch: {name} expects {expected} arguments but got {got}",
+    "E031": "Cannot call value of non-callable type {found}",
     # Import errors (E040-E049)
     "E040": "Module not found: '{module}'",
     "E041": "Name '{name}' not exported by module '{module}'",

@@ -97,7 +97,7 @@ services:
     command:
       - >-
         cp /app/src/utf/examples/compiler_scalar.thirsty /app/dist/compiler_scalar.thirsty &&
-        thirsty build /app/dist/compiler_scalar.thirsty --target js
+        thirsty build /app/dist/compiler_scalar.thirsty --target js --allow-governance-loss
 
   # Formatter: Code formatting
   fmt:

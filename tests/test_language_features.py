@@ -19,7 +19,8 @@ def _parse(src):
 
 
 def _run(src):
-    return Interpreter().interpret(_parse(src))
+    # Output is part of these trusted Core/strict/pure semantics fixtures.
+    return Interpreter(allow_ungoverned=True).interpret(_parse(src))
 
 
 # --- lexer ----------------------------------------------------------------

@@ -236,25 +236,26 @@
 </span><span id="interpret_gods-230"><a href="#interpret_gods-230"><span class="linenos">230</span></a>
 </span><span id="interpret_gods-231"><a href="#interpret_gods-231"><span class="linenos">231</span></a><span class="sd">    Args:</span>
 </span><span id="interpret_gods-232"><a href="#interpret_gods-232"><span class="linenos">232</span></a><span class="sd">        ast: A Thirsty-Lang Program AST.</span>
-</span><span id="interpret_gods-233"><a href="#interpret_gods-233"><span class="linenos">233</span></a><span class="sd">        mode: Thirst mode string (default &quot;gods&quot;).</span>
-</span><span id="interpret_gods-234"><a href="#interpret_gods-234"><span class="linenos">234</span></a>
-</span><span id="interpret_gods-235"><a href="#interpret_gods-235"><span class="linenos">235</span></a><span class="sd">    Returns:</span>
-</span><span id="interpret_gods-236"><a href="#interpret_gods-236"><span class="linenos">236</span></a><span class="sd">        The result of interpretation, or None if contract fails.</span>
-</span><span id="interpret_gods-237"><a href="#interpret_gods-237"><span class="linenos">237</span></a>
-</span><span id="interpret_gods-238"><a href="#interpret_gods-238"><span class="linenos">238</span></a><span class="sd">    Raises:</span>
-</span><span id="interpret_gods-239"><a href="#interpret_gods-239"><span class="linenos">239</span></a><span class="sd">        ThirstOfGodsError: If the deity contract is not satisfied.</span>
-</span><span id="interpret_gods-240"><a href="#interpret_gods-240"><span class="linenos">240</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="interpret_gods-241"><a href="#interpret_gods-241"><span class="linenos">241</span></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">utf.thirsty_lang.interpreter</span><span class="w"> </span><span class="kn">import</span> <span class="n">Interpreter</span>
-</span><span id="interpret_gods-242"><a href="#interpret_gods-242"><span class="linenos">242</span></a>
-</span><span id="interpret_gods-243"><a href="#interpret_gods-243"><span class="linenos">243</span></a>    <span class="n">contract</span> <span class="o">=</span> <span class="n">to_gods</span><span class="p">(</span><span class="n">ast</span><span class="p">)</span>
-</span><span id="interpret_gods-244"><a href="#interpret_gods-244"><span class="linenos">244</span></a>
-</span><span id="interpret_gods-245"><a href="#interpret_gods-245"><span class="linenos">245</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">contract</span><span class="o">.</span><span class="n">passed</span><span class="p">:</span>
-</span><span id="interpret_gods-246"><a href="#interpret_gods-246"><span class="linenos">246</span></a>        <span class="n">violation_msg</span> <span class="o">=</span> <span class="s2">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">contract</span><span class="o">.</span><span class="n">violations</span><span class="p">)</span>
-</span><span id="interpret_gods-247"><a href="#interpret_gods-247"><span class="linenos">247</span></a>        <span class="k">raise</span> <span class="n">ThirstOfGodsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deity contract validation failed: </span><span class="si">{</span><span class="n">violation_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="interpret_gods-248"><a href="#interpret_gods-248"><span class="linenos">248</span></a>
-</span><span id="interpret_gods-249"><a href="#interpret_gods-249"><span class="linenos">249</span></a>    <span class="n">interpreter</span> <span class="o">=</span> <span class="n">Interpreter</span><span class="p">(</span><span class="n">opt_level</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">debug_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</span><span id="interpret_gods-250"><a href="#interpret_gods-250"><span class="linenos">250</span></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">interpreter</span><span class="o">.</span><span class="n">interpret</span><span class="p">(</span><span class="n">ast</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span> <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;gods&quot;</span> <span class="k">else</span> <span class="s2">&quot;core&quot;</span><span class="p">)</span>
-</span><span id="interpret_gods-251"><a href="#interpret_gods-251"><span class="linenos">251</span></a>    <span class="k">return</span> <span class="n">result</span>
+</span><span id="interpret_gods-233"><a href="#interpret_gods-233"><span class="linenos">233</span></a><span class="sd">        mode: Requested semantics. The legacy &quot;gods&quot; value selects the governed default;</span>
+</span><span id="interpret_gods-234"><a href="#interpret_gods-234"><span class="linenos">234</span></a><span class="sd">            structural deity compliance never grants execution authority.</span>
+</span><span id="interpret_gods-235"><a href="#interpret_gods-235"><span class="linenos">235</span></a>
+</span><span id="interpret_gods-236"><a href="#interpret_gods-236"><span class="linenos">236</span></a><span class="sd">    Returns:</span>
+</span><span id="interpret_gods-237"><a href="#interpret_gods-237"><span class="linenos">237</span></a><span class="sd">        The result of interpretation, or None if contract fails.</span>
+</span><span id="interpret_gods-238"><a href="#interpret_gods-238"><span class="linenos">238</span></a>
+</span><span id="interpret_gods-239"><a href="#interpret_gods-239"><span class="linenos">239</span></a><span class="sd">    Raises:</span>
+</span><span id="interpret_gods-240"><a href="#interpret_gods-240"><span class="linenos">240</span></a><span class="sd">        ThirstOfGodsError: If the deity contract is not satisfied.</span>
+</span><span id="interpret_gods-241"><a href="#interpret_gods-241"><span class="linenos">241</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="interpret_gods-242"><a href="#interpret_gods-242"><span class="linenos">242</span></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">utf.thirsty_lang.interpreter</span><span class="w"> </span><span class="kn">import</span> <span class="n">Interpreter</span>
+</span><span id="interpret_gods-243"><a href="#interpret_gods-243"><span class="linenos">243</span></a>
+</span><span id="interpret_gods-244"><a href="#interpret_gods-244"><span class="linenos">244</span></a>    <span class="n">contract</span> <span class="o">=</span> <span class="n">to_gods</span><span class="p">(</span><span class="n">ast</span><span class="p">)</span>
+</span><span id="interpret_gods-245"><a href="#interpret_gods-245"><span class="linenos">245</span></a>
+</span><span id="interpret_gods-246"><a href="#interpret_gods-246"><span class="linenos">246</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">contract</span><span class="o">.</span><span class="n">passed</span><span class="p">:</span>
+</span><span id="interpret_gods-247"><a href="#interpret_gods-247"><span class="linenos">247</span></a>        <span class="n">violation_msg</span> <span class="o">=</span> <span class="s2">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">contract</span><span class="o">.</span><span class="n">violations</span><span class="p">)</span>
+</span><span id="interpret_gods-248"><a href="#interpret_gods-248"><span class="linenos">248</span></a>        <span class="k">raise</span> <span class="n">ThirstOfGodsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deity contract validation failed: </span><span class="si">{</span><span class="n">violation_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="interpret_gods-249"><a href="#interpret_gods-249"><span class="linenos">249</span></a>
+</span><span id="interpret_gods-250"><a href="#interpret_gods-250"><span class="linenos">250</span></a>    <span class="n">interpreter</span> <span class="o">=</span> <span class="n">Interpreter</span><span class="p">(</span><span class="n">opt_level</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">debug_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span id="interpret_gods-251"><a href="#interpret_gods-251"><span class="linenos">251</span></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">interpreter</span><span class="o">.</span><span class="n">interpret</span><span class="p">(</span><span class="n">ast</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;gods&quot;</span> <span class="k">else</span> <span class="n">mode</span><span class="p">)</span>
+</span><span id="interpret_gods-252"><a href="#interpret_gods-252"><span class="linenos">252</span></a>    <span class="k">return</span> <span class="n">result</span>
 </span></pre></div>
 
 
@@ -266,7 +267,8 @@ Thirsty-Lang interpreter and returns the result.</p>
 
 <p>Args:
     ast: A Thirsty-Lang Program AST.
-    mode: Thirst mode string (default "gods").</p>
+    mode: Requested semantics. The legacy "gods" value selects the governed default;
+        structural deity compliance never grants execution authority.</p>
 
 <p>Returns:
     The result of interpretation, or None if contract fails.</p>

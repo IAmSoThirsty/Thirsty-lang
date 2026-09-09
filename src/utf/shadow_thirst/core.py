@@ -17,6 +17,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from utf.thirsty_lang import ast as language_ast
 from utf.thirsty_lang.ast import (
     ArrayLiteral,
     AssignStmt,
@@ -97,6 +98,19 @@ def parse_block(code: str):
     return None
 
 
+_STRUCTURAL_NODE_NAMES = frozenset(
+    """IntLiteral FloatLiteral StringLiteral BoolLiteral NoneLiteral ErrorLiteral
+    QuenchedLiteral Identifier BinaryOp UnaryOp PipeExpr GuardExpr CallExpr
+    LambdaExpr Subscript SliceExpr DictLiteral NewExpr SanitizeExpr ArmorExpr
+    FloodExpr DripExpr EvaporateExpr CondenseExpr ArrayLiteral MemberAccess
+    CascadeCall SymbolExpr PipelineExpr CombineExpr ExprStmt BlockStmt
+    VariableDecl AssignStmt SymbolStmt IfStmt WhileStmt ForStmt TimesStmt
+    ReturnStmt PourStmt SipStmt ImportStmt SpillageStmt CleanupStmt ThrowStmt
+    SecurityBlock MorphDef DefendStrat FunctionDecl ClassDecl EnumDecl StructDecl
+    InterfaceDecl GovernedFunctionDecl ShadowThirstMutation""".split()
+)
+
+
 def _structural_signature(node, namemap):
     """Scope-aware signature, preserving every free and external name.
 
@@ -106,6 +120,16 @@ def _structural_signature(node, namemap):
     binding model. ``namemap`` remains an accepted compatibility argument; it
     cannot turn a caller-supplied free name into a local binding.
     """
+    # New or caller-defined AST classes may introduce binding/effect semantics.
+    # Inheritance from an accepted class is not evidence of equivalent behavior.
+    for descendant in astwalk(node):
+        kind = type(descendant)
+        if kind.__name__ not in _STRUCTURAL_NODE_NAMES or kind is not getattr(
+            language_ast, kind.__name__, None
+        ):
+            raise ValueError(
+                f"Structural equivalence does not support AST node {kind.__name__}"
+            )
     opaque_bindings = {
         "FunctionDecl",
         "GovernedFunctionDecl",
@@ -751,8 +775,16 @@ class CanonicalConvergenceAnalyzer:
             )
 
         # Layer 1 — structural equivalence (sufficient proof; cheapest).
-        s_sig = _structural_signature(s_ast, {})
-        c_sig = _structural_signature(c_ast, {})
+        try:
+            s_sig = _structural_signature(s_ast, {})
+            c_sig = _structural_signature(c_ast, {})
+        except ValueError as exc:
+            return AnalysisResult(
+                analyzer="CanonicalConvergence",
+                passed=False,
+                level=AnalysisLevel.CRITICAL,
+                message=f"Equivalence is unknown: {exc}",
+            )
         if s_sig == c_sig:
             return AnalysisResult(
                 analyzer="CanonicalConvergence",

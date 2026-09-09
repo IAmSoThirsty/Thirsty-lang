@@ -1,6 +1,6 @@
 # Governance Model
 
-Edition: Thirsty-Lang 0.9.0 (release preparation). See the
+Edition: unreleased development after Thirsty-Lang 0.9.0. See the
 [canonical Thirsty-Lang UTF 101 manual](THIRSTY_LANG_UTF_101.md) for the complete
 end-to-end reference and deployment recipes.
 
@@ -9,10 +9,14 @@ end-to-end reference and deployment recipes.
 Thirsty-Lang implements a **deny-by-default governance model** via T.A.R.L.
 (Thirsty's Active Resistance Language). Governed calls and operations in the
 explicit sensitive-capability map require authorization before execution.
+This posture is the default for the CLI, REPL, embedding interpreter, and
+Thirst of Gods execution entrypoints. Deterministic calculations do not need an
+I/O policy simply to execute.
 
 ## Core Principles
 
-1. **Deny by Default**: Without explicit authorization, all operations are denied.
+1. **Deny by Default**: Governed calls, imports, and mediated effects require an
+   explicit authorization; a missing policy or authority denies the gate.
 2. **Policy-Driven**: Authorization rules are expressed as declarative policies, not imperative code.
 3. **Staged Evaluation**: Policies support three verdicts:
    - **ALLOW** — Operation proceeds
@@ -48,7 +52,7 @@ when source == "external" and port > 1024 => DENY
 
 ### Conditions
 
-Conditions are evaluated as sandboxed expressions supporting:
+Conditions are evaluated as restricted expressions supporting:
 
 - **Comparisons**: `==`, `!=`, `<`, `>`, `<=`, `>=`
 - **Logical operators**: `and`, `or`, `not`
@@ -59,7 +63,7 @@ Conditions are evaluated as sandboxed expressions supporting:
 
 ### Safe Evaluation
 
-T.A.R.L. expressions are evaluated in a **sandboxed environment**:
+T.A.R.L. expressions use a restricted AST evaluator:
 
 - Missing identifiers and paths are a distinct `MISSING` state and terminate
   evaluation with a fail-closed verdict; they never become boolean `false`
@@ -69,6 +73,9 @@ T.A.R.L. expressions are evaluated in a **sandboxed environment**:
 - Only the documented safe functions are callable; imports and mutation are
   unavailable
 - Deterministic first-match rule evaluation in source order
+
+This evaluator is not an operating-system sandbox or a general resource limit
+for host processes.
 
 ### Authoritative context representation
 
@@ -99,6 +106,20 @@ boolean and can be compared to `false`.
 
 ### Runtime Enforcement (the interpreter, today)
 
+The source headers `core`, `strict`, and `pure` select language semantics; they
+cannot disable governance. `pure` also refuses ambient effects, including through
+aliases and cascade callbacks. Deterministic imports in a pure module still
+require import authorization. `strict` retains initialization requirements.
+Definitions preserve these restrictions when their interpreter later runs a
+less restrictive module.
+
+Ungoverned core compatibility requires the trusted host to opt in with
+`thirsty run --unsafe-core`, `thirsty repl --unsafe-core`, or
+`Interpreter(allow_ungoverned=True)`. An explicit governed declaration or request
+still requires governance. Attached policy, hardened posture, and required-audit
+controls retain their gates; the CLI rejects combining its unsafe opt-out with
+security controls.
+
 Governance is enforced at runtime for **governed functions** — functions that
 declare a precondition with `requires`:
 
@@ -115,15 +136,23 @@ default-deny decision (`Interpreter._enforce_governance`):
 1. **In-language contract predicates** — `requires`, `ensures`, and `invariant`
    expressions are evaluated in the call scope. A falsy result denies the call
    and raises `GovernanceViolation`.
-2. **Cross-mode guard** — a governed function invoked while the program is not
-   in `governed` mode is denied (the runtime counterpart of checker error
-   `E053`, "cannot call governed function from core mode").
-3. **T.A.R.L. routing** — when a `TarlRuntime` is attached
-   (`interpreter.attach_tarl(runtime)`) and an authority context is set, the
-   call is routed through the policy engine. A non-`ALLOW` verdict denies. An
+2. **Execution posture** — the default governance requirement survives semantic
+   mode changes. Checker error `E053` applies to governed calls in an explicitly
+   ungoverned compatibility context, rather than to a `core` header alone.
+3. **T.A.R.L. routing** — attach a `TarlRuntime`
+   (`interpreter.attach_tarl(runtime)`) and set an authority context to route
+   the call through the policy engine. A non-`ALLOW` verdict denies. An
    `ALLOW` advances only when an explicit or completely derived schema passed
    against the evaluated representation and that result is proof-bound; an
    unbound or incomplete-schema `ALLOW` is replaced with a fail-closed denial.
+   Each distinct active defining and calling policy must allow the action;
+   a foreign closure cannot borrow its defining interpreter's ALLOW to bypass
+   its caller's DENY. The same conjunction applies to mediated capabilities.
+   Identical runtime, authority, credential, and guard bindings share one
+   decision instead of duplicating its audit record. Distinct authorities or
+   path guards retain their independent checks. A final pass checks every
+   binding after callback-capable credential validation, before releasing the
+   call or effect.
    The same positive-authority gate applies to `CapabilityBroker`. A `TarlProof`
    certificate is recorded on `interpreter._last_proof`.
 
@@ -139,7 +168,7 @@ default-deny decision (`Interpreter._enforce_governance`):
    signature whose verifier needs only the public key. Use Ed25519 when a proof
    must attest to the signer rather than merely detect tampering by parties
    without the shared HMAC key. The `thirsty run` path emits unsigned proofs
-   unless the embedding runtime configures a signing key.
+   unless CLI signing options or the embedding runtime configure a signing key.
 
    Rule evaluation validates the whole expression surface before accepting its
    boolean result. Both operands of `and`/`or` and every predicate application
@@ -157,17 +186,19 @@ default-deny decision (`Interpreter._enforce_governance`):
    when override derivation is incomplete or invalid; it does not reuse the
    base policy's derived schema. An explicitly attached schema remains the
    caller's authoritative binding.
-4. **Default** — in `governed` mode, a governed function with no attached
+4. **Default** — a governed function with no attached
    policy engine or no authority is **denied** with a proof. A call that no
    layer explicitly allowed is denied (deny-by-default).
 
 A `GovernanceViolation` is a hard floor: `spillage` error handlers do **not**
 catch it, so governed denials cannot be swallowed by user error handling. This
-includes denials raised while importing a `.thirsty` module: imported modules
-run under the **caller's** governed runtime, so their effects are gated rather
-than executed in a detached, ungoverned interpreter. A `governed` module that
-fails to parse also fails closed — its recovered statements are discarded and
-execution is refused.
+includes denials raised while importing a `.thirsty` module. Imported modules
+retain active defining and calling restrictions, including live import locks.
+All active locks must accept an import and agree on returned source content;
+the interpreter executes that checked content without a fresh source read.
+Malformed source is refused before recovered statements execute. Import checks
+do not establish the original source identity of an arbitrary foreign closure
+supplied by the embedding host.
 
 For verification, `ProofVerifier` rejects unsigned proofs by default. Local
 inspection of unsigned proofs must opt in explicitly with
@@ -200,13 +231,21 @@ shared durable replay store and configure policy revocation; approval signatures
 over a proof digest do not make an unbounded proof fresh, current, or single-use
 by themselves.
 
-Building a `governed` module to a target that drops the governed runtime
-(`js`, `llvm-*`, `wasm-pyodide`) is refused by default; `thirsty build
---allow-governance-loss` is required to proceed and records the loss in the
-emitted manifest. When `--emit-manifest` is used, the manifest records source
-hash, optional policy hash, required capabilities, derived or attached context
-schema, authority mode, proof verification mode, audit requirement, Shadow
-Thirst status when statically visible, and governance-loss status.
+All public executable builds to `js`, `llvm-*`, or `wasm-pyodide` require
+`thirsty build --allow-governance-loss`, including headerless and `core` source.
+The targets cannot preserve host policy and authority configuration. Thirst of
+Gods JavaScript transpilation requires the same explicit acknowledgement.
+An accepted build must write its disclosure manifest before producing the
+executable artifact or invoking a native toolchain; `--emit-manifest` is not
+required to obtain that mandatory record. A manifest write failure prevents
+that build from producing an executable.
+
+The manifest records source hash, optional policy hash, statically discovered
+capabilities, context schema, semantic mode and governance posture, proof and
+audit requirements, visible Shadow Thirst status, and governance-loss status.
+It is a disclosure of bounded static analysis, not a complete dynamic effect
+inventory or proof of executable safety. Pyodide still preserves explicit
+governed source declarations and denies their effects without a policy.
 
 ### Static proof-obligation reporting
 
@@ -259,8 +298,7 @@ conditions for the same static obligation set.
 From the CLI:
 
 ```bash
-thirsty run program.thirsty --thirst-level governed \
-    --authority admin --policy access.tarl
+thirsty run program.thirsty --authority admin --policy access.tarl
 ```
 
 `--authority` injects the authority tag into the governance context; `--policy`
@@ -271,7 +309,10 @@ routing produced one) and exits non-zero.
 ### Extended governance surfaces
 
 The governed interpreter routes shipped filesystem, network, process, and
-other sensitive stdlib effects through `CapabilityBroker`. External adapters
+other sensitive stdlib effects through `CapabilityBroker`. Every shipped
+stdlib export has an explicit sensitive or non-ambient classification;
+unknown, missing, or non-callable exports fail import validation. An import
+ALLOW does not grant the imported function's sensitive capability. External adapters
 must call that same broker before acting; deployments remain responsible for
 preserving the path when they add new adapters.
 
@@ -292,7 +333,7 @@ The `TarlRuntime` class provides:
    generated proofs. `set_require_audit(True)` denies when an archive is absent
    or cannot persist, including `evaluate()` without a requested proof result.
    Hardened interpreter mode alone does not create an archive. The CLI exposes
-   `--audit-db` and `--require-audit` for governed modules.
+   `--audit-db` and `--require-audit` under the default governance posture.
 
 ### CLI Usage
 

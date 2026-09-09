@@ -40,11 +40,11 @@ from utf.tarl.keystore import ROLE_PROOF_SIGNER, KeyFile
 from utf.thirsty_lang.ast import CallExpr
 
 RECORD_FORMAT = "shadow-thirst-change-admission/v1"
-ENGINE_VERSION = "0.2.0"
-_HISTORICAL_ENGINE_VERSIONS = {"0.1.0"}
+ENGINE_VERSION = "0.4.0"
+_HISTORICAL_ENGINE_VERSIONS = {"0.1.0", "0.2.0", "0.3.0"}
 _CURRENT_PROOF_METHODS = {
-    "alpha-renamed-ast-equivalence/v2",
-    "z3-symbolic-equivalence/v2",
+    "alpha-renamed-ast-equivalence/v4",
+    "z3-symbolic-equivalence/v4",
 }
 
 
@@ -551,15 +551,27 @@ def _convergence_evidence(module: ShadowModule) -> EvidenceItem:
             summary="Equivalence is unknown because one or both blocks did not parse",
             required_for_eligibility=True,
         )
-    if _structural_signature(module.shadow_ast, {}) == _structural_signature(
-        module.canonical_ast, {}
-    ):
+    try:
+        structurally_equal = _structural_signature(
+            module.shadow_ast, {}
+        ) == _structural_signature(module.canonical_ast, {})
+    except ValueError as exc:
+        return EvidenceItem(
+            code="ST-E002",
+            analyzer="CanonicalConvergence",
+            status=EvidenceStatus.UNKNOWN,
+            severity="CRITICAL",
+            method="ast-unsupported",
+            summary=str(exc),
+            required_for_eligibility=True,
+        )
+    if structurally_equal:
         return EvidenceItem(
             code="ST-E003",
             analyzer="CanonicalConvergence",
             status=EvidenceStatus.PROVEN,
             severity="INFO",
-            method="alpha-renamed-ast-equivalence/v2",
+            method="alpha-renamed-ast-equivalence/v4",
             summary="Structural equivalence is a sufficient proof for this pair",
             required_for_eligibility=True,
         )
@@ -571,7 +583,7 @@ def _convergence_evidence(module: ShadowModule) -> EvidenceItem:
             analyzer="CanonicalConvergence",
             status=EvidenceStatus.PROVEN,
             severity="INFO",
-            method="z3-symbolic-equivalence/v2",
+            method="z3-symbolic-equivalence/v4",
             summary=symbolic.detail,
             required_for_eligibility=True,
         )
@@ -581,7 +593,7 @@ def _convergence_evidence(module: ShadowModule) -> EvidenceItem:
             analyzer="CanonicalConvergence",
             status=EvidenceStatus.VIOLATED,
             severity="CRITICAL",
-            method="z3-symbolic-counterexample/v2",
+            method="z3-symbolic-counterexample/v4",
             summary=symbolic.detail,
             details={"counterexample": symbolic.counterexample or {}},
             required_for_eligibility=True,
@@ -594,7 +606,7 @@ def _convergence_evidence(module: ShadowModule) -> EvidenceItem:
             analyzer="CanonicalConvergence",
             status=EvidenceStatus.OBSERVED,
             severity="WARNING",
-            method="bounded-seeded-execute-and-compare/v2",
+            method="bounded-seeded-execute-and-compare/v4",
             summary=sampled.detail,
             details={
                 "symbolic_layer": symbolic.status,
@@ -608,7 +620,7 @@ def _convergence_evidence(module: ShadowModule) -> EvidenceItem:
             analyzer="CanonicalConvergence",
             status=EvidenceStatus.VIOLATED,
             severity="CRITICAL",
-            method="bounded-seeded-divergence-witness/v2",
+            method="bounded-seeded-divergence-witness/v4",
             summary=sampled.detail,
             details={"counterexample": sampled.counterexample or {}},
             required_for_eligibility=True,

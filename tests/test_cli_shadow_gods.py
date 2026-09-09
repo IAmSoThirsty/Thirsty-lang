@@ -98,9 +98,10 @@ def test_shadow_parse_error(monkeypatch, tmp_path):
 
 def test_gods_run(monkeypatch, capsys):
     _argv(monkeypatch, "thirst-of-gods", "run", GODS_EXAMPLE)
-    gods_cli.main()
-    # Either prints a result or nothing; must not error.
-    capsys.readouterr()
+    with pytest.raises(SystemExit) as error:
+        gods_cli.main()
+    assert error.value.code == 2
+    assert "ok: test" not in capsys.readouterr().out
 
 
 def test_gods_check_pass(monkeypatch, capsys):
@@ -121,7 +122,15 @@ def test_gods_transpile_thirsty(monkeypatch, tmp_path, capsys):
 def test_gods_transpile_js(monkeypatch, tmp_path, capsys):
     src = tmp_path / "g.thirstofgods"
     src.write_text(open(GODS_EXAMPLE).read())
-    _argv(monkeypatch, "thirst-of-gods", "transpile", str(src), "--target", "js")
+    _argv(
+        monkeypatch,
+        "thirst-of-gods",
+        "transpile",
+        str(src),
+        "--target",
+        "js",
+        "--allow-governance-loss",
+    )
     with pytest.raises(SystemExit) as exc:
         gods_cli.main()
     assert exc.value.code == 1
@@ -252,5 +261,7 @@ def test_gods_main_exception_handler(monkeypatch):
 
 def test_gods_run_delegate(monkeypatch, capsys):
     # The `run` delegation entry point used by the main Thirsty CLI.
-    gods_cli.run(GODS_EXAMPLE)
-    capsys.readouterr()
+    with pytest.raises(SystemExit) as error:
+        gods_cli.run(GODS_EXAMPLE)
+    assert error.value.code == 2
+    assert "ok: test" not in capsys.readouterr().out

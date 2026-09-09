@@ -2,12 +2,17 @@
 
 ## Supported Versions
 
-Thirsty-Lang is currently in alpha (v0.8.6). Security updates are applied to
+Thirsty-Lang is currently in alpha (released baseline v0.9.0). Security updates are applied to
 the latest release only.
 
+The governance-default corrections described below belong to the unreleased
+working tree after 0.9.0. They must not be assumed to exist in an older installed
+package or container.
+
 Versions through 0.8.5 must not be used for load-bearing authorization with
-dotted context paths. Upgrade to 0.8.6 for fail-closed missing, malformed, and
-conflicting context handling. The repaired release also fails closed on hidden
+dotted context paths. The 0.8.6 repair introduced fail-closed missing, malformed,
+and conflicting context handling; use a currently supported release. That repair
+also fails closed on hidden
 invalid boolean/quantifier values, empty quantifier collections, non-finite
 numeric results, stale per-policy derived schemas, and inadmissible quorum
 proofs. Quorum promotion additionally requires the exact request context,
@@ -24,8 +29,8 @@ directives are rejected, expiry can never grant `ALLOW`, and proof authority is
 
 | Version           | Supported          |
 | ----------------- | ------------------ |
-| 0.8.6             | :white_check_mark: |
-| 0.8.5 and earlier | :x:                |
+| 0.9.0             | :white_check_mark: |
+| 0.8.x and earlier | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -95,14 +100,45 @@ The adversary model and challenge catalog are maintained in
 ## Default DENY
 
 Thirsty-Lang's core security principle is **default DENY at every governance
-gate**. A governed action cannot advance through the capability broker without
-the policy, context, authority, and proof required by that gate. The symbolic
+gate**. Current CLI, REPL, embedding interpreter, and Thirst of Gods execution
+entrypoints require governance by default. Headerless source and `core`,
+`strict`, or `pure` semantic headers cannot opt out. Imports, sensitive effects,
+and governed function calls require the policy, context, authority, and proof
+needed by their gate; deterministic calculations remain available.
+
+Ungoverned compatibility requires an explicit trusted-host `--unsafe-core` or
+`allow_ungoverned=True` opt-out. The CLI rejects combining that opt-out with
+security controls. Explicit governed declarations or requests and attached
+policy/hardened/required-audit controls retain their governance requirement.
+Pure restrictions survive callback escape and interpreter reuse, including
+cascade execution. Pure modules still need import authorization.
+
+Calling and defining policies must both allow a governed call or mediated
+effect. Identical policy/authority/guard bindings avoid duplicate audit entries;
+distinct credentials and path guards remain independent. Live credential
+callbacks are followed by a final binding check before execution. Every shipped
+stdlib export has an explicit ambient-effect classification; an unknown,
+missing, or non-callable export rejects import rather than bypassing mediation.
+
+Executable compiler targets that cannot carry the host policy configuration
+require `--allow-governance-loss`, regardless of the source semantic header.
+An accepted build writes a disclosure manifest before executable output or
+native toolchain invocation. A disclosure records the loss; it does not restore
+runtime governance or prove the output safe.
+
+The symbolic
 and binary tiers provide analysis or integrity services; they should not be
 mistaken for independent authorization gates.
 
+These controls do not establish an OS sandbox, global memory/time/resource
+containment, or complete source provenance for arbitrary foreign code supplied
+by an embedding host. Import locks constrain checked imports; they do not by
+themselves authenticate the original defining source of an injected closure.
+
 ## Security Best Practices
 
-- Always run untrusted code in governed mode
+- Keep the default governance posture and configure the policy and authority
+  required by the program's effects; source mode names do not grant authority
 - Review T.A.R.L. policies before deployment
 - Verify Shadow Thirst promotion results
 - Attach a durable audit archive, enable required persistence, checkpoint it,

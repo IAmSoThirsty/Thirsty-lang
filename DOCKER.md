@@ -1,15 +1,18 @@
 # Thirsty-Lang Docker Guide
 
-## Current Published Image
+## Preserved 0.8.6 Image Evidence
 
-The authoritative container for Thirsty-Lang 0.8.6 is:
+This section preserves the previously verified Thirsty-Lang 0.8.6 image. It is
+historical release evidence, not evidence that the unreleased development
+changes below are available from a registry. Build the current working tree
+locally to exercise its governance-default behavior.
 
 ```text
 ghcr.io/iamsothirsty/thirsty-lang:0.8.6
 ```
 
-It is a multi-architecture image for `linux/amd64` and `linux/arm64`. The
-published manifest is anchored by this digest:
+The recorded multi-architecture image covers `linux/amd64` and `linux/arm64`.
+Its recorded manifest digest is:
 
 ```text
 sha256:6f3f516b8e979437dd414373afe581716b8c890dc4758b8675cbbcad9b94b13c
@@ -18,12 +21,11 @@ sha256:6f3f516b8e979437dd414373afe581716b8c890dc4758b8675cbbcad9b94b13c
 The v0.8.6 Docker workflow completed successfully in GitHub Actions run
 `30756676576`.
 
-> Docker Hub is not a current distribution channel. Its `latest` and `0.8.1`
-> tags are historical and unmaintained. Do not use
-> `thirstyoftp/thirsty-lang` when validating or deploying 0.8.6.
+The preserved release record did not verify Docker Hub as a distribution
+channel. It does not establish the present contents of any mutable `latest` tag.
 
-Prefer the immutable version tag for normal use. For the strongest artifact
-pin, use the manifest digest:
+To reproduce that historical artifact, use its manifest digest rather than
+assuming a tag still identifies the same bytes:
 
 ```bash
 docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.6
@@ -32,17 +34,24 @@ docker pull ghcr.io/iamsothirsty/thirsty-lang@sha256:6f3f516b8e979437dd414373afe
 
 ## Quick Start
 
+Build the current source as a local development image. These examples do not
+publish an image or verify a remote release:
+
+```bash
+docker build -t thirsty-lang:dev .
+```
+
 ### Verify the CLI and run the demo
 
 ```bash
-docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 --version
-docker run --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 run --demo
+docker run --rm thirsty-lang:dev --version
+docker run --rm thirsty-lang:dev run --demo
 ```
 
 ### Start an interactive REPL
 
 ```bash
-docker run -it --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 repl
+docker run -it --rm thirsty-lang:dev repl
 ```
 
 ### Run a script from the current directory
@@ -50,18 +59,23 @@ docker run -it --rm ghcr.io/iamsothirsty/thirsty-lang:0.8.6 repl
 macOS/Linux:
 
 ```bash
-docker run --rm -v "$(pwd):/work" \
-  ghcr.io/iamsothirsty/thirsty-lang:0.8.6 \
+docker run --rm -v "$(pwd):/work:ro" \
+  thirsty-lang:dev \
   run /work/myfile.thirsty
 ```
 
 PowerShell:
 
 ```powershell
-docker run --rm -v "${PWD}:/work" `
-  ghcr.io/iamsothirsty/thirsty-lang:0.8.6 `
+docker run --rm -v "${PWD}:/work:ro" `
+  thirsty-lang:dev `
   run /work/myfile.thirsty
 ```
+
+Programs with imports or mediated effects also need the policy and authority
+shown in the governance example below. A `core` source header cannot disable
+the default gate. The CLI's own prompt, diagnostics, and final result display
+do not grant the program permission to use `print`, `pour`, or `sip`.
 
 ## Local Development
 
@@ -99,7 +113,7 @@ docker compose run --rm doctor
 | `repl` | Interactive Thirsty-Lang REPL |
 | `test` | Full Python test suite |
 | `thirsty` | Execute the `thirsty` CLI |
-| `build-js` | Compile a Thirsty-Lang source file to JavaScript |
+| `build-js` | Compile the scalar fixture with explicit governance-loss acknowledgement and a mandatory disclosure manifest |
 | `dev` | Development shell with mounted source |
 | `doctor` | Project health check |
 | `fmt` | Source formatter |
@@ -123,7 +137,7 @@ The runtime image is based on `python:3.11-slim`, runs as the non-root
 `thirsty` user with UID 1000, and uses the `thirsty` CLI as its entrypoint.
 It includes all seven installed command-line entry points:
 
-- `thirsty` - core and governed runtime, build, proof, audit, and tooling
+- `thirsty` - governance-default runtime, explicit core compatibility, build, proof, and tooling
 - `thirst-of-gods` - divine contract validation
 - `tarl` - policy evaluation, proof verification, and audit tools
 - `shadow-thirst` - mutation and invariant analysis
@@ -133,18 +147,44 @@ It includes all seven installed command-line entry points:
 
 ## Governance Example
 
-Mount the program, policy, and context schema into the container and invoke the
-governed runtime explicitly:
+Mount the program, policy, and context schema into the container. The current
+runtime requires governance by default:
 
 ```bash
-docker run --rm -v "$(pwd):/work" \
-  ghcr.io/iamsothirsty/thirsty-lang:0.8.6 \
+docker run --rm -v "$(pwd):/work:ro" \
+  thirsty-lang:dev \
   run /work/program.thirsty \
-  --thirst-level governed \
   --policy /work/policy.tarl \
   --context-schema /work/context.schema.json \
   --authority myapp
 ```
+
+`core`, `strict`, and `pure` headers choose language semantics, not authority.
+Pure effects remain prohibited through aliases and cascade callbacks, and
+definitions retain their restrictions after interpreter reuse. Calling and
+defining policies must both permit governed calls and mediated effects; live
+credential revalidation cannot replace a binding after it has been checked.
+Every shipped stdlib export has an explicit effect classification, and import
+permission alone does not allow its sensitive operations.
+
+An intentionally ungoverned compatibility run must opt out explicitly:
+
+```bash
+docker run --rm -v "$(pwd):/work:ro" thirsty-lang:dev \
+  run /work/compatibility.thirsty --unsafe-core
+```
+
+That opt-out cannot be combined with the CLI's policy, authority, lock, hardened,
+or audit controls. An explicit governed source declaration retains its gate.
+Embedding hosts use `Interpreter(allow_ungoverned=True)` for the corresponding
+explicit compatibility choice.
+
+Public executable builds require `--allow-governance-loss` even for headerless
+or `core` source. The build writes its mandatory disclosure manifest before the
+executable artifact or native toolchain invocation. Compose's `build-js` service
+selects this disclosed loss explicitly; the manifest is not a runtime policy
+gate. Containers and language mediation alone do not prove complete resource
+containment or source provenance for arbitrary foreign closures.
 
 For a load-bearing deployment, also follow the context, proof, key,
 freshness, replay, and revocation requirements documented in `README.md`,
@@ -158,7 +198,7 @@ The Docker workflow is defined in `.github/workflows/docker.yml` and supports:
 - `docker-v*` tags for a Docker-only publication; and
 - manual workflow dispatch for an explicitly supplied version.
 
-Every published workflow build targets `linux/amd64` and `linux/arm64`. The
+The configured workflow targets `linux/amd64` and `linux/arm64`. The
 Dockerfile runs the test suite before constructing the runtime stage. The
 workflow then pulls the GHCR image and runs both `--version` and `run --demo`.
 
@@ -179,10 +219,9 @@ git push tp refs/tags/docker-v<version>
 Do not publish from an unverified working tree. Complete the checklist in
 `SHIPPING.md` before creating either tag.
 
-Docker Hub publication is conditional on repository secrets. It is not part of
-the verified 0.8.6 distribution and should remain undocumented as a current
-consumer endpoint until its versioned and `latest` tags are rebuilt and
-independently verified.
+Docker Hub publication is conditional on repository secrets. The preserved
+0.8.6 record does not verify that channel. Current publication and artifact
+identity require separate release verification.
 
 ## Local Helper Scripts
 
@@ -219,13 +258,14 @@ Docker objects before using it on a machine with other active image work.
 
 ### Image not found
 
-Confirm the GHCR path and explicit version:
+For the current development examples, build the local tag first:
 
 ```bash
-docker pull ghcr.io/iamsothirsty/thirsty-lang:0.8.6
+docker build -t thirsty-lang:dev .
 ```
 
-Do not substitute the stale Docker Hub image.
+For a released image, use the version and digest established by that release's
+verification record.
 
 ### Build fails while running tests
 
@@ -242,11 +282,11 @@ The runtime image intentionally runs as `thirsty:1000`. Ensure the mounted
 directory permits access by that UID, or use the development service appropriate
 for your host.
 
-### Confirm the published architectures
+### Reinspect the historical image architectures
 
 ```bash
 docker buildx imagetools inspect ghcr.io/iamsothirsty/thirsty-lang:0.8.6
 ```
 
-The manifest must list both `linux/amd64` and `linux/arm64` before it is
-described as the current multi-architecture release.
+This command concerns the historical tag. A current release needs its own
+verified manifest and runtime checks; this guide does not claim they have run.

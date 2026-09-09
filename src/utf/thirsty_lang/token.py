@@ -1,5 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
+
+from utf.thirsty_lang.diagnostics import Diagnostic
 
 
 class TokenType(Enum):
@@ -229,6 +231,9 @@ class Token:
     lexeme: str
     line: int = 1
     col: int = 1
+    # EOF retains lexical failures even when callers copy the token list.
+    # Keep the original four positional constructor arguments unchanged.
+    lexical_errors: tuple[Diagnostic, ...] = field(default=(), kw_only=True)
 
     def __repr__(self):
         return f"Token({self.type.name}, '{self.lexeme}', L{self.line}:{self.col})"

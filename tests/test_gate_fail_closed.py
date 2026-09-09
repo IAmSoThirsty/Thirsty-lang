@@ -3,7 +3,7 @@ Denial tests for the fail-closed capability gate and proof-carrying decisions.
 
 Governed mode never implies authority: a gated capability (write / read /
 import) or governed function is DENIED unless a TARL policy engine + authority
-are wired AND return ALLOW. Core mode is unaffected. Every governed boundary
+are wired AND return ALLOW. Host opt-out is explicit. Every governed boundary
 decision — capability gate, contract ALLOW, contract DENY — carries a proof.
 """
 
@@ -22,8 +22,10 @@ from utf.thirsty_lang.lexer import Lexer
 from utf.thirsty_lang.parser import Parser
 
 
-def _run(src, mode="governed", policy_text=None, authority=None):
-    interp = Interpreter()
+def _run(
+    src, mode="governed", policy_text=None, authority=None, *, allow_ungoverned=False
+):
+    interp = Interpreter(allow_ungoverned=allow_ungoverned)
     if policy_text is not None:
         interp.attach_tarl(TarlRuntime(PolicyParser.parse(policy_text)))
     if authority is not None:
@@ -55,9 +57,11 @@ def test_gated_capability_denied_without_policy(src, action):
     assert proof.signature == ""
 
 
-def test_core_mode_capability_unaffected(capsys):
-    # Core (ungoverned) mode is the default posture; no gating.
-    _run('pour "hi"\n', mode="core")
+def test_core_mode_requires_explicit_host_opt_out(capsys):
+    with pytest.raises(GovernanceViolation):
+        _run('pour "hi"\n', mode="core")
+    assert capsys.readouterr().out == ""
+    _run('pour "hi"\n', mode="core", allow_ungoverned=True)
     assert "hi" in capsys.readouterr().out
 
 

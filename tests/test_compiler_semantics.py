@@ -89,7 +89,7 @@ def run_js(source):
         "'𐀀' < '\ue000'",
         "9007199254740993 == 9007199254740992.0",
         "9007199254740993 + 0.0",
-        "(1 < 2) + 2",
+        "(1 < 2) and 2",
         "1 / 3",
         f"{1 << 2000} / {1 << 2000}",
         f"1 / {1 << 1075}",
@@ -166,7 +166,7 @@ def test_js_rejects_unsupported_constructs_before_emission(source):
         ("0 or 4", 4),
         ("-2147483648", -2147483648),
         ("2147483647", 2147483647),
-        ("1 + (3 >= 2)", 2),
+        ("(3 >= 2) and 2", 2),
         ("0 and (1 % 0)", 0),
     ],
 )
@@ -241,13 +241,14 @@ def test_compose_compiler_example_builds_and_executes(tmp_path):
     source = root / "src/utf/examples/compiler_scalar.thirsty"
     compose = (root / "docker-compose.yml").read_text(encoding="utf-8")
     assert "/app/src/utf/examples/compiler_scalar.thirsty" in compose
+    assert "--allow-governance-loss" in compose
     staged = tmp_path / source.name
     staged.write_bytes(source.read_bytes())
     cli.cmd_build(
         SimpleNamespace(
             file=str(staged),
             target="js",
-            allow_governance_loss=False,
+            allow_governance_loss=True,
             emit_manifest=False,
         )
     )
@@ -303,6 +304,7 @@ def test_pyodide_bootstrap_checks_identity_before_language_execution(
     )
     values = {
         "SRC": "pour 'would execute'",
+        "ALLOW_UNGOVERNED": False,
         "EXPECTED_VERSION": cli.__version__,
         "EXPECTED_SOURCE_INTEGRITY": (
             "wrong" if fault == "source" else runtime_source_integrity()

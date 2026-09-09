@@ -1,11 +1,113 @@
 # Operational Continuity Map
 
 Workstream: **Proof-Carrying Effects Language + TARL Security Corrections**
-Updated: 2026-09-06
+Updated: 2026-09-08
 Branch: `codex/function-expansion-pack`
 Workspace: `thirsty_lang_exploration_0754`
 
 ---
+
+## 2026-09-08 M3.5 constructor and governed value identity
+
+- Continued priority language corrections with robotics deferred. Constructor
+  descriptors preserve nominal identity through aliases and callable choices;
+  calls, member access, `new`, and pipes distinguish constructors from values.
+- Cascade checking follows its actual result, and a dynamic noncallable
+  cascade fails after one evaluation of the callee and arguments.
+- Governed boundaries project bounded JSON/native values, include receivers,
+  detect callback changes to the admitted context, and bind positive policy
+  proofs to the exact submitted context. Unsupported values deny with a
+  diagnostic certificate; successful projection is not a portable code signature.
+- Native metadata keys and the governed parameter name `result` are reserved.
+  Ordinary uncontracted computation keeps its existing value representations.
+- The manual builder corrects page headings, landscape furniture, and headings
+  separated from wide tables. Current verification and limitations are recorded
+  in [M3_VALUE_IDENTITY_VERIFICATION.md](M3_VALUE_IDENTITY_VERIFICATION.md).
+- Base HEAD and 0.9.0 metadata remain unchanged. Cumulative M3.1-M3.5 work is
+  local and unreleased; earlier records retain their historical test evidence.
+  No rename, remote action, or cross-project material is part of this increment.
+  General-purpose milestones M3-M7 and independent acceptance remain open.
+
+## 2026-09-08 M3.4 callable and iteration consistency
+
+- Continued the authorized general-purpose language plan after M3.3, keeping
+  governance first, security as default, and robotics deferred.
+- Known callable alternatives retain every signature and nominal identity;
+  assignment uses parameter contravariance and return covariance. Calls and
+  both pipe families check every possible signature. Explicit Any remains
+  gradual; this does not establish whole-language type soundness.
+- For-each inference checks the iterable in its enclosing scope, preserves
+  collection element/key types, and rejects known noniterables. Runtime uses
+  native iteration and reports dynamic noniterables instead of skipping them.
+- Runtime exact arity guards reject callable entry before body, contract,
+  policy, or fountain default evaluation. Argument expressions retain their
+  existing single evaluation and source order.
+- Current evidence and remaining issues are recorded in
+  [M3_CALLABLE_ITERATION_VERIFICATION.md](M3_CALLABLE_ITERATION_VERIFICATION.md).
+  Earlier M3.1-M3.3 verification records remain historical.
+- Base HEAD remains `b09bbfc3dda4654cca2e9872423460667eed9498`, metadata 0.9.0,
+  branch `codex/function-expansion-pack`. Cumulative work remains unreleased;
+  no remote publication or cross-project material is part of this increment.
+
+## 2026-09-08 M3.3 governance and security defaults
+
+- User authorized continuing the language vision with governance first and
+  security as default. The existing Thirsty-Lang name remains appropriate;
+  no repository rename or cross-project import is needed.
+- Default execution now requires governance across the interpreter, CLI,
+  REPL, scaffold, and Gods runtime. Source modes select semantics and cannot
+  opt out. Trusted host compatibility requires an explicit option/disclosure.
+- Defining/calling restrictions and import locks combine across callbacks,
+  retained functions, methods, aliases, and cascade. Credential callbacks
+  cannot silently replace an already-authorized binding before release.
+- Lexical/parser failures survive token transport and reject execution,
+  checking, formatting, and public builds. Stdlib exports are exhaustively
+  classified; all public build targets require a persisted loss disclosure.
+- Final local evidence and remaining issues are recorded separately in
+  [M3_SECURITY_DEFAULTS_VERIFICATION.md](M3_SECURITY_DEFAULTS_VERIFICATION.md).
+  Earlier increment records remain historical and are not current validation.
+- Base commit and 0.9.0 metadata remain unchanged; this work is unreleased.
+  No remote publication or broad GitHub investigation occurred. Broader M3-M7
+  work and independent acceptance remain open; robotics remains deferred.
+
+## 2026-09-07 M3.2 Boolean and type coherence
+
+- User authorized proceeding with the next M3 correction increment. The current
+  checkout still starts from `b09bbfc3dda4654cca2e9872423460667eed9498`, metadata
+  0.9.0, with M3.1 and M3.2 local/unreleased work preserved together.
+- Scope: scalar Boolean arithmetic/comparison rules; nested nominal generic
+  identity, forward signatures, dictionary key checks; connected malformed
+  declaration parser and cascade checker repairs. Runtime declaration order
+  and native container/dictionary equality remain unchanged.
+- A real Z3 defect could treat `return true` and `return 1` as equivalent.
+  Engine 0.4.0/v4 corrects it and requires reanalysis of older assurance claims.
+  Historical records retain explicit integrity-only verification.
+- Current results and remaining issues:
+  [M3_TYPE_COHERENCE_VERIFICATION.md](M3_TYPE_COHERENCE_VERIFICATION.md).
+  Previous M3.1 evidence below is preserved as historical evidence.
+- No remote publication, workflow, tag, or merge operation is part of this
+  increment. No cross-project material was introduced. Robotics stays deferred.
+
+## 2026-09-06 M3.1 sequence increment after the 0.9.0 release
+
+- Current base: `b09bbfc3dda4654cca2e9872423460667eed9498` on
+  `codex/function-expansion-pack`, package metadata 0.9.0. M3.1 changes are
+  local and unreleased; no new version or publication is claimed.
+- User directed continued implementation from the plan and said a broad
+  GitHub verification was unnecessary. Work remains inside this repository.
+- M3.1 implements native sequence indexing/slicing, precise known sequence
+  result types, numeric inference corrections needed by bounds, formatter
+  statement separation, and conservative compiler/proof boundaries.
+- Current verification and remaining issues:
+  [M3_SEQUENCE_VERIFICATION.md](M3_SEQUENCE_VERIFICATION.md). M3 as a whole
+  remains open; robotics remains deferred.
+- The earlier 0.9.0 publication completed at the base commit. The preserved
+  local receipt is `.tmp/release-0.9.0-20260906/published/release-receipt.json`:
+  release workflow `34053055171` and CI `34053057407` succeeded, and the public
+  wheel and sdist hashes matched their workflow artifacts. This is recorded
+  release evidence, not a fresh remote investigation in M3.1.
+- The verified release tag was `pypi-release-v0.9.0`. The earlier
+  `pypi-v0.9.0` tag and failed initial run remain preserved historical evidence.
 
 ## 2026-09-06 priority corrections and general-purpose foundation
 

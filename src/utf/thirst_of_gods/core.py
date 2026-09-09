@@ -229,7 +229,8 @@ def interpret_gods(ast: Program, mode: str = "gods") -> Any:
 
     Args:
         ast: A Thirsty-Lang Program AST.
-        mode: Thirst mode string (default "gods").
+        mode: Requested semantics. The legacy "gods" value selects the governed default;
+            structural deity compliance never grants execution authority.
 
     Returns:
         The result of interpretation, or None if contract fails.
@@ -246,5 +247,5 @@ def interpret_gods(ast: Program, mode: str = "gods") -> Any:
         raise ThirstOfGodsError(f"Deity contract validation failed: {violation_msg}")
 
     interpreter = Interpreter(opt_level=0, debug_mode=False)
-    result = interpreter.interpret(ast, mode=mode if mode == "gods" else "core")
+    result = interpreter.interpret(ast, mode=None if mode == "gods" else mode)
     return result

@@ -53,6 +53,7 @@ from utf.thirsty_lang.ast import (
     SecurityBlock,
     ShadowThirstMutation,
     SipStmt,
+    SliceExpr,
     SpillageStmt,
     Stmt,
     StringLiteral,
@@ -96,7 +97,9 @@ class Parser:
     def __init__(self, tokens: list[Token]):
         self.tokens = tokens
         self.current = 0
-        self.errors: list[Diagnostic] = []
+        self.errors: list[Diagnostic] = [
+            error for token in tokens for error in token.lexical_errors
+        ]
 
     def parse(self) -> Program:
         """Parse the token stream into a Program AST."""
@@ -231,11 +234,15 @@ class Parser:
         elif self._match(TokenType.PURE):
             mode = "pure"
         else:
-            self._expect(
-                TokenType.IDENTIFIER,
-                "E901",
-                detail="Expected mode (core/governed/strict/pure)",
+            self.errors.append(
+                make_error(
+                    "E901",
+                    span=self._current_span(),
+                    detail="Expected mode (core/governed/strict/pure)",
+                )
             )
+            if self._check(TokenType.IDENTIFIER):
+                self._advance()
         span = self._span(name_token)
         return ModuleHeader(name=name_token.lexeme, mode=mode, span=span)
 
@@ -782,6 +789,7 @@ class Parser:
         self._expect(TokenType.LBRACE, "E901", detail="Expected '{' for struct fields")
         fields = []
         while not self._check(TokenType.RBRACE) and not self._is_at_end():
+            position = self.current
             field_token = self._expect(
                 TokenType.IDENTIFIER, "E901", detail="Expected field name"
             )
@@ -790,6 +798,10 @@ class Parser:
                 field_type = self._parse_type_name()
             fields.append((field_token.lexeme, field_type))
             self._match(TokenType.SEMICOLON)
+            if self.current == position:
+                # _expect diagnoses without consuming. Invalid separators or
+                # field names must still make progress during recovery.
+                self._advance()
         self._expect(
             TokenType.RBRACE, "E901", detail="Expected '}' after struct fields"
         )
@@ -805,6 +817,7 @@ class Parser:
         )
         methods = []
         while not self._check(TokenType.RBRACE) and not self._is_at_end():
+            position = self.current
             method_token = self._expect(
                 TokenType.IDENTIFIER, "E901", detail="Expected method name"
             )
@@ -814,6 +827,8 @@ class Parser:
                 ret_type = self._parse_type_name()
             methods.append((method_token.lexeme, params, ret_type))
             self._match(TokenType.SEMICOLON)
+            if self.current == position:
+                self._advance()
         self._expect(
             TokenType.RBRACE, "E901", detail="Expected '}' after interface methods"
         )
@@ -937,6 +952,14 @@ class Parser:
             if op == TokenType.ASSIGN or op == TokenType.EQ:
                 self._advance()
                 right = self._parse_expr(op_prec - 1)  # right-associative
+                if isinstance(prefix, SliceExpr):
+                    self.errors.append(
+                        make_error(
+                            "E901",
+                            span=prefix.span,
+                            detail="Slice assignment is not supported",
+                        )
+                    )
                 # Assignment is parsed at expression precedence but yields a
                 # statement node (AssignStmt); the caller handles it as such.
                 return AssignStmt(  # type: ignore[return-value]
@@ -947,18 +970,7 @@ class Parser:
             elif op == TokenType.LPAREN:
                 prefix = self._parse_call_suffix(prefix)
             elif op == TokenType.LBRACKET:
-                self._advance()  # consume [
-                index = self._parse_expr()
-                close = self._expect(
-                    TokenType.RBRACKET,
-                    "E901",
-                    detail="Expected ']' after subscript index",
-                )
-                prefix = Subscript(
-                    obj=prefix,
-                    index=index,
-                    span=(prefix.span[0], prefix.span[1], close.line, close.col + 1),
-                )
+                prefix = self._parse_subscript_suffix(prefix)
             elif op == TokenType.PIPE:
                 self._advance()
                 right = self._parse_expr(op_prec)
@@ -1098,19 +1110,19 @@ class Parser:
         elif t == TokenType.LBRACE:
             return self._parse_dictionary_literal()
         elif t == TokenType.MINUS:
-            self._advance()
+            start = self._advance()
             # Unary binds tighter than every binary operator: parse only the
             # primary (with member/call suffixes), not a trailing binary chain,
             # so -2 + 3 is (-2) + 3, not -(2 + 3).
             operand = self._parse_expr(self.UNARY_PRECEDENCE)
-            return UnaryOp(operand=operand, op=TokenType.MINUS, span=self._span())
+            return UnaryOp(operand=operand, op=TokenType.MINUS, span=self._span(start))
         elif t == TokenType.NOT:
-            self._advance()
+            start = self._advance()
             # Logical `not` binds looser than comparison but tighter than
             # `and`/`or`: not a == b is not (a == b); not a and b is
             # (not a) and b. Operand grabs everything above the `and` level.
             operand = self._parse_expr(self.NOT_PRECEDENCE)
-            return UnaryOp(operand=operand, op=TokenType.NOT, span=self._span())
+            return UnaryOp(operand=operand, op=TokenType.NOT, span=self._span(start))
         elif t == TokenType.FLOOD:
             self._advance()
             target = self._parse_expr()
@@ -1229,6 +1241,34 @@ class Parser:
             TokenType.RBRACE, "E901", detail="Expected '}' after dictionary entries"
         )
         return DictLiteral(span=self._span(start), items=entries)
+
+    def _parse_subscript_suffix(self, obj: Expr) -> Expr:
+        self._advance()  # consume [
+        start = None if self._check(TokenType.COLON) else self._parse_expr()
+        if self._match(TokenType.COLON):
+            stop = (
+                None
+                if self._check(TokenType.COLON) or self._check(TokenType.RBRACKET)
+                else self._parse_expr()
+            )
+            step = None
+            if self._match(TokenType.COLON) and not self._check(TokenType.RBRACKET):
+                step = self._parse_expr()
+            close = self._expect(TokenType.RBRACKET, "E901")
+            return SliceExpr(
+                obj=obj,
+                start=start,
+                stop=stop,
+                step=step,
+                span=(obj.span[0], obj.span[1], close.line, close.col + 1),
+            )
+        close = self._expect(TokenType.RBRACKET, "E901")
+        assert start is not None
+        return Subscript(
+            obj=obj,
+            index=start,
+            span=(obj.span[0], obj.span[1], close.line, close.col + 1),
+        )
 
     def _parse_call_suffix(self, callee: Expr) -> Expr:
         self._advance()  # consume (

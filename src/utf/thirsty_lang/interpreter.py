@@ -5,9 +5,11 @@ governance enforcement, tail-call optimization, and async support.
 """
 
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from contextvars import ContextVar, copy_context
 from dataclasses import dataclass, field
 from enum import Enum
+from functools import wraps
 from pathlib import Path
 from threading import RLock
 from typing import Any
@@ -59,6 +61,7 @@ from utf.thirsty_lang.ast import (
     SecurityBlock,
     ShadowThirstMutation,
     SipStmt,
+    SliceExpr,
     SpillageStmt,
     Stmt,
     StringLiteral,
@@ -72,14 +75,63 @@ from utf.thirsty_lang.ast import (
     VariableDecl,
     WhileStmt,
 )
+from utf.thirsty_lang.execution import resolve_execution_mode
+from utf.thirsty_lang.governed_values import NativeValueRegistry
 from utf.thirsty_lang.module_system import (
     BUILTINS,
     SENSITIVE_STDLIB_CAPABILITIES,
     resolve_import,
+    validate_stdlib_exports,
 )
+from utf.thirsty_lang.sequences import get_index, get_slice, set_index
 from utf.thirsty_lang.token import TokenType
 
 _PURE_EXECUTION: ContextVar[bool] = ContextVar("thirsty_pure_execution", default=False)
+
+
+@dataclass(frozen=True)
+class _ExecutionFrame:
+    owner: Any
+    governed: bool
+    pure: bool
+    strict: bool
+
+
+_EXECUTION_FRAMES: ContextVar[tuple[_ExecutionFrame, ...]] = ContextVar(
+    "thirsty_execution_frames", default=()
+)
+
+
+def _merge_execution_frames(frames):
+    merged: dict[int, _ExecutionFrame] = {}
+    for frame in frames:
+        key = id(frame.owner)
+        previous = merged.get(key)
+        merged[key] = (
+            frame
+            if previous is None
+            else _ExecutionFrame(
+                frame.owner,
+                previous.governed or frame.governed,
+                previous.pure or frame.pure,
+                previous.strict or frame.strict,
+            )
+        )
+    return tuple(merged.values())
+
+
+@contextmanager
+def _execution_scope(frames):
+    combined = _merge_execution_frames((*_EXECUTION_FRAMES.get(), *frames))
+    token = _EXECUTION_FRAMES.set(combined)
+    pure_token = _PURE_EXECUTION.set(
+        _PURE_EXECUTION.get() or any(frame.pure for frame in combined)
+    )
+    try:
+        yield
+    finally:
+        _PURE_EXECUTION.reset(pure_token)
+        _EXECUTION_FRAMES.reset(token)
 
 
 @dataclass
@@ -96,6 +148,7 @@ class _ExecutionRestrictions:
     locked_imports: Any = None
     revision: int = 0
     lock: Any = field(default_factory=RLock, repr=False, compare=False)
+    native_values: NativeValueRegistry = field(default_factory=NativeValueRegistry)
 
 
 @dataclass
@@ -105,6 +158,7 @@ class StructInstance:
     declaration: StructDecl
     fields: dict[str, Any]
     type_environment: "Environment"
+    native_identity: Any = field(default=None, repr=False, compare=False)
 
 
 class ReturnException(Exception):
@@ -184,6 +238,9 @@ class FountainInstance:
         self.cls_decl = cls_decl
         self.fields: dict[str, Any] = {}
         self.methods: dict[str, Any] = {}
+        self.execution_frames: tuple[_ExecutionFrame, ...] = ()
+        self.interpreter: Any = None
+        self.native_identity: Any = None
         for field_spec in cls_decl.fields:
             self.fields[field_spec[0]] = None
         for method in cls_decl.methods:
@@ -204,7 +261,16 @@ class FountainInstance:
 class Interpreter:
     """Tree-walking interpreter with TCO, governance, and async support."""
 
-    def __init__(self, opt_level: int = 0, debug_mode: bool = False):
+    def __init__(
+        self,
+        opt_level: int = 0,
+        debug_mode: bool = False,
+        *,
+        allow_ungoverned: bool = False,
+    ):
+        semantic, governed = resolve_execution_mode(allow_ungoverned=allow_ungoverned)
+        self._allow_ungoverned = allow_ungoverned
+        self._execution_governed = governed
         self._restrictions = _ExecutionRestrictions()
         self.source_directory = Path.cwd()
         self._import_stack: tuple[Path, ...] = ()
@@ -212,7 +278,7 @@ class Interpreter:
         self.opt_level = opt_level
         self.debug_mode = debug_mode
         self.tco_enabled = opt_level >= 1
-        self.mode = "core"
+        self.mode = semantic
         self.executor = ThreadPoolExecutor(max_workers=4)
         self._last_span = None
         # Governance wiring (Part A): optional policy engine + authority context.
@@ -237,6 +303,72 @@ class Interpreter:
             self._inline_simple_builtins()
         if self.opt_level >= 3:
             self._precompute_constants()
+
+    def _governance_is_required(self) -> bool:
+        return (
+            not self._allow_ungoverned
+            or self._execution_governed
+            or self.mode == "governed"
+            or self.hardened
+            or self.tarl_runtime is not None
+            or any(
+                frame.owner is self and frame.governed
+                for frame in _EXECUTION_FRAMES.get()
+            )
+        )
+
+    def _execution_frame(self) -> _ExecutionFrame:
+        return _ExecutionFrame(
+            self,
+            self._governance_is_required(),
+            self.mode == "pure" or _PURE_EXECUTION.get(),
+            self.mode == "strict"
+            or any(frame.strict for frame in _EXECUTION_FRAMES.get()),
+        )
+
+    def _policy_binding_key(self):
+        authority = self.authority
+        authority_key = authority if type(authority) is str else id(authority)
+        grants = self.authority_grants
+        grants_key = (
+            grants
+            if type(grants) is tuple and all(type(item) is str for item in grants)
+            else id(grants)
+        )
+        return (
+            id(self.tarl_runtime),
+            authority_key,
+            id(self._verified_authority),
+            bool(self.authority_authenticated),
+            grants_key,
+            bool(self.hardened),
+            id(self.path_guard),
+        )
+
+    def _bind_callable(self, function, frames=None):
+        """Retain defining restrictions while adding those of every caller."""
+        captured = _merge_execution_frames(
+            (*_EXECUTION_FRAMES.get(), self._execution_frame())
+            if frames is None
+            else frames
+        )
+
+        @wraps(function)
+        def bound(*args, **kwargs):
+            with _execution_scope(captured):
+                return function(*args, **kwargs)
+
+        return bound
+
+    def _active_import_locks(self):
+        locks = []
+        seen = set()
+        for frame in (*_EXECUTION_FRAMES.get(), self._execution_frame()):
+            locked = frame.owner.locked_imports
+            if locked is not None and id(locked) not in seen:
+                seen.add(id(locked))
+                locks.append(locked)
+        return locks
 
     @property
     def tarl_runtime(self):
@@ -385,21 +517,23 @@ class Interpreter:
         return args[-1] if args else None
 
     def interpret(
-        self, ast: Program, mode: str = "core", force_mode: bool = False
+        self, ast: Program, mode: str | None = None, force_mode: bool = False
     ) -> object:
         """Interpret an entire Program AST.
 
-        ``force_mode`` keeps ``mode`` even when the program declares a different
-        one in its header — used when importing a ``.thirsty`` module under a
-        governed caller, so the imported module's own ``: core`` header cannot
-        downgrade out of the caller's governance.
+        Governance is required unless the trusted host explicitly opted out.
+        ``force_mode`` selects source semantics in place of the declared mode;
+        neither option can remove a declared or inherited governance floor.
         """
-        self.mode = mode
-        if ast.header and not force_mode:
-            self.mode = ast.header.mode
+        self.mode, self._execution_governed = resolve_execution_mode(
+            ast.header.mode if ast.header else None,
+            mode,
+            allow_ungoverned=self._allow_ungoverned,
+            force_mode=force_mode,
+        )
         if (
             self.hardened or getattr(self.tarl_runtime, "_require_audit", False)
-        ) and self.mode != "governed":
+        ) and not self._governance_is_required():
             raise GovernanceViolation(
                 "<module>",
                 "hardened or required-audit execution requires governed mode",
@@ -407,7 +541,7 @@ class Interpreter:
         # Fail-closed: a governed program the parser flagged as malformed must
         # not execute. The parser already discarded its statements; refuse the
         # whole program with a denial proof rather than running an empty body.
-        if self.mode == "governed" and getattr(ast, "parse_failed", False):
+        if self._governance_is_required() and getattr(ast, "parse_failed", False):
             from utf.tarl.spec import TarlVerdict
 
             proof = self._make_decision_proof(
@@ -436,10 +570,11 @@ class Interpreter:
         result = None
         pure_token = _PURE_EXECUTION.set(_PURE_EXECUTION.get() or self.mode == "pure")
         try:
-            for stmt in ast.stmts:
-                result = self._execute(stmt)
-                if isinstance(result, (ReturnException, SpillageException)):
-                    break
+            with _execution_scope((self._execution_frame(),)):
+                for stmt in ast.stmts:
+                    result = self._execute(stmt)
+                    if isinstance(result, (ReturnException, SpillageException)):
+                        break
         except ReturnException as e:
             result = e.value
         finally:
@@ -543,6 +678,9 @@ class Interpreter:
             if len(stmt.variants) != len(set(stmt.variants)):
                 raise TypeError(f"duplicate variant in enum '{stmt.name}'")
             enum_type = Enum(stmt.name, {variant: variant for variant in stmt.variants})  # type: ignore[misc]
+            enum_type._thirsty_native_identity = self._restrictions.native_values.register(  # type: ignore[attr-defined]
+                enum_type, "enum", stmt.name
+            )
             self.env.define(stmt.name, enum_type)
             return enum_type
         elif isinstance(stmt, StructDecl):
@@ -569,7 +707,10 @@ class Interpreter:
         return result
 
     def _execute_variable_decl(self, stmt: VariableDecl) -> object:
-        if self.mode == "strict" and stmt.init_expr is None:
+        if (
+            self.mode == "strict"
+            or any(frame.strict for frame in _EXECUTION_FRAMES.get())
+        ) and stmt.init_expr is None:
             raise RuntimeError(
                 f"'strict' module requires '{stmt.name}' to be initialized"
             )
@@ -580,6 +721,8 @@ class Interpreter:
         return None  # drink is a statement, not an expression — no value propagation
 
     def _execute_assign(self, stmt: AssignStmt) -> object:
+        if isinstance(stmt.target, SliceExpr):
+            raise NotImplementedError("slice assignment is not supported")
         value = self._evaluate(stmt.value)
         if isinstance(stmt.target, Identifier):
             self.env.set(stmt.target.name, value)
@@ -599,21 +742,7 @@ class Interpreter:
         elif isinstance(stmt.target, Subscript):
             obj = self._evaluate(stmt.target.obj)
             index = self._evaluate(stmt.target.index)
-            if isinstance(obj, list):
-                if not isinstance(index, int) or isinstance(index, bool):
-                    raise TypeError(
-                        f"reservoir index must be an Int, got "
-                        f"{type(index).__name__}"
-                    )
-                if index < -len(obj) or index >= len(obj):
-                    raise IndexError(
-                        f"index out of bounds: size is {len(obj)}, " f"got {index}"
-                    )
-                obj[index] = value
-            elif isinstance(obj, dict):
-                obj[index] = value
-            else:
-                raise TypeError(f"Cannot index-assign on {type(obj).__name__}")
+            set_index(obj, index, value)
         else:
             raise TypeError(f"invalid assignment target: {type(stmt.target).__name__}")
         return value
@@ -643,17 +772,16 @@ class Interpreter:
     def _execute_for(self, stmt: ForStmt) -> object:
         iterable = self._evaluate(stmt.iterable)
         result = None
-        if hasattr(iterable, "__iter__"):
-            for item in iterable:
-                old_env = self.env
-                self.env = self.env.enter_scope()
-                self.env.define(stmt.variable.name, item, is_mut=False)
-                try:
-                    result = self._execute(stmt.body)
-                    if isinstance(result, (ReturnException, SpillageException)):
-                        return result
-                finally:
-                    self.env = old_env
+        for item in iterable:
+            old_env = self.env
+            self.env = self.env.enter_scope()
+            self.env.define(stmt.variable.name, item, is_mut=False)
+            try:
+                result = self._execute(stmt.body)
+                if isinstance(result, (ReturnException, SpillageException)):
+                    return result
+            finally:
+                self.env = old_env
         return result
 
     def _execute_times(self, stmt: TimesStmt) -> object:
@@ -709,7 +837,7 @@ class Interpreter:
             prepare_context,
             rejected_context_binding,
         )
-        from utf.tarl.spec import TarlProof
+        from utf.tarl.spec import TarlProof, TarlVerdict
 
         policy_hash = "sha256:" + hashlib.sha256(source.encode("utf-8")).hexdigest()
         try:
@@ -718,6 +846,13 @@ class Interpreter:
             prepared = rejected_context_binding(
                 context, conflict_status=exc.conflict_status
             )
+            if verdict is TarlVerdict.ALLOW:
+                verdict = TarlVerdict.DENY
+                matched_condition = str(exc)
+                trace = [
+                    *trace,
+                    {"kind": "fail-closed", "reason": str(exc), "matched": False},
+                ]
         context_hash = prepared.canonical_context_hash or prepared.original_context_hash
         return TarlProof(
             policy_hash=policy_hash,
@@ -740,13 +875,70 @@ class Interpreter:
     def _gate_capability(
         self, action: str, target: str, *, path: str | None = None
     ) -> None:
+        """Require all defining and calling policies before a mediated effect."""
+        frames = _merge_execution_frames(
+            (*_EXECUTION_FRAMES.get(), self._execution_frame())
+        )
+        if action != "import" and (
+            _PURE_EXECUTION.get() or any(frame.pure for frame in frames)
+        ):
+            raise RuntimeError(
+                f"effect '{action}' on '{target}' is not allowed in a 'pure' module"
+            )
+        owners = []
+        representatives: dict[tuple, Interpreter] = {}
+        aliases = []
+        for frame in frames:
+            owner = frame.owner
+            if not (frame.governed or owner._governance_is_required()):
+                continue
+            # Identical policy/authority/guard bindings represent one decision,
+            # even when separate interpreters carry those bindings. Different
+            # credentials or guards must still authorize independently.
+            key = owner._policy_binding_key()
+            representative = representatives.get(key)
+            if representative is None:
+                representatives[key] = owner
+                owners.append(owner)
+            else:
+                aliases.append((owner, representative))
+        snapshots = [
+            (owner, owner._authorization_snapshot())
+            for owner in (*owners, *(alias for alias, _ in aliases))
+        ]
+        try:
+            for owner in owners:
+                owner._gate_capability_local(action, target, path=path)
+            for owner, representative in aliases:
+                owner._last_proof = representative._last_proof
+            # A later policy callback cannot revoke or replace an earlier
+            # binding and still release this compound authorization to an effect.
+            for owner, snapshot in snapshots:
+                changed = owner._changed_authorization(snapshot, action, target)
+                violation = changed or owner._hardened_precheck(action, target)
+                if violation is not None:
+                    raise violation
+            # Credential revalidation may call trusted host code. Check every
+            # original binding again after all such callbacks have returned.
+            for owner, snapshot in snapshots:
+                violation = owner._changed_authorization(snapshot, action, target)
+                if violation is not None:
+                    raise violation
+        except GovernanceViolation as denied:
+            self._last_proof = denied.proof
+            raise
+
+    def _gate_capability_local(
+        self, action: str, target: str, *, path: str | None = None
+    ) -> None:
         """Capability gate for sensitive operations (imports, I/O) in governed
         mode. Fail-closed: in governed mode a gated capability is denied unless
         a TARL policy engine + authority are attached AND return ALLOW. With no
         policy engine wired, governed mode cannot authorize the capability, so
         it is denied with a proof — governed mode never implies authority.
         Deny-by-default (no matching rule → DENY) comes from the engine itself.
-        Core (ungoverned) mode is unaffected.
+        Explicit host opt-out is handled by the compound gate above; a source
+        header cannot disable an active governance requirement.
 
         The actual policy evaluation is delegated to a
         :class:`~utf.tarl.broker.CapabilityBroker` so in-language stdlib effects
@@ -754,17 +946,6 @@ class Interpreter:
         "no adapter side doors"). ``path`` (when given) is brokered through the
         path guard so the policy sees the confined canonical filesystem target.
         """
-        if action != "import" and (self.mode == "pure" or _PURE_EXECUTION.get()):
-            raise RuntimeError(
-                f"effect '{action}' on '{target}' is not allowed in a 'pure' module"
-            )
-        if self.mode != "governed":
-            if self.hardened or getattr(self.tarl_runtime, "_require_audit", False):
-                raise GovernanceViolation(
-                    f"{action} {target}",
-                    "hardened or required-audit effects require governed mode",
-                )
-            return
         from utf.tarl.broker import CapabilityDenied
         from utf.tarl.spec import TarlVerdict
 
@@ -854,18 +1035,19 @@ class Interpreter:
         callable carries an explicit ``read``/``write``/``network``/``execute``
         action; the gate routing here only consumes that metadata.
         """
-        if not isinstance(module, dict):
+        if module_path.endswith(".thirsty"):
             return module
+        validate_stdlib_exports(module_path, module)
+        if not isinstance(module, dict):
+            raise ImportError("stdlib module must be a dictionary")
 
         policy = dict(SENSITIVE_STDLIB_CAPABILITIES.get(module_path, {}))
-        if not policy:
-            return module
 
-        wrapped = dict(module)
+        wrapped = {
+            name: self._bind_callable(function) for name, function in module.items()
+        }
         for name, action in policy.items():
-            fn = wrapped.get(name)
-            if not callable(fn):
-                continue
+            fn = module[name]
 
             # Filesystem targets carry a real path in arg 0 — broker them through
             # the path guard so traversal/symlink escapes fail closed (C042).
@@ -886,27 +1068,23 @@ class Interpreter:
                 self._gate_capability(__action, target, path=path)
                 return __fn(*args)
 
-            wrapped[name] = guarded
+            wrapped[name] = self._bind_callable(guarded)
         return wrapped
 
     def _import_thirsty_file(self, path: str) -> dict:
         """Import a ``.thirsty`` source file under the caller's governance.
 
-        The detached, core-mode interpreter that ``resolve_import`` uses for
-        file imports is a governance bypass: an imported module's top-level
-        effects run ungoverned, and the function closures it returns execute
-        ungoverned when later called from governed code. Instead, run the
-        imported source on a *child* interpreter that inherits this caller's
-        policy engine and authority and is forced into governed mode, so
+        Run source on a child interpreter sharing live caller restrictions and
+        all active execution frames. Module headers select semantics while
+        inherited governance, pure, and strict requirements remain in force, so
 
           * top-level gated effects (e.g. ``pour``) hit the capability gate
             during import, and
           * the returned function closures gate when invoked from governed code.
 
         Returns the imported module's new top-level bindings as a dict (the same
-        shape stdlib modules use). The governed path deliberately bypasses the
-        global ``ModuleCache`` to avoid leaking governed-bound closures into a
-        later core-mode import of the same path.
+        shape stdlib modules use). File execution deliberately bypasses the
+        global ``ModuleCache`` to avoid reusing closures under another binding.
         """
         from utf.thirsty_lang.lexer import Lexer
         from utf.thirsty_lang.parser import Parser
@@ -920,8 +1098,12 @@ class Interpreter:
             raise ImportError(f"Cyclic file import: {source_path}")
         if not source_path.is_file():
             raise ImportError(f"File not found: {path}")
-        if self.locked_imports is not None:
-            source = self.locked_imports.read_source(source_path)
+        locks = self._active_import_locks()
+        if locks:
+            checked_sources = [locked.read_source(source_path) for locked in locks]
+            source = checked_sources[0]
+            if any(candidate != source for candidate in checked_sources[1:]):
+                raise ImportError("active import locks disagree about source bytes")
         else:
             source = source_path.read_text(encoding="utf-8")
         lexer = Lexer(source)
@@ -933,16 +1115,16 @@ class Interpreter:
         if parser.errors:
             raise ImportError(f"Failed to import '{path}': {parser.errors[0]}")
 
-        child = Interpreter(self.opt_level, self.debug_mode)
+        child = Interpreter(
+            self.opt_level, self.debug_mode, allow_ungoverned=self._allow_ungoverned
+        )
         child._restrictions = self._restrictions
         child.source_directory = source_path.parent
         child._import_stack = (*self._import_stack, source_path)
         baseline = set(child.env.vars)  # builtins to exclude from the module
-        # Force governed mode regardless of the imported module's own header so
-        # its effects are gated by *this* caller's policy, not its declaration.
-        child.interpret(
-            ast, mode=self.mode, force_mode=self.mode in {"governed", "pure", "strict"}
-        )
+        # The active caller frame retains its restrictions while the child's
+        # declared pure/strict semantics can strengthen them.
+        child.interpret(ast, mode=self.mode)
         return {
             name: value
             for name, value in child.env.vars.items()
@@ -956,8 +1138,8 @@ class Interpreter:
                 module = self._import_thirsty_file(stmt.module_path)
             else:
                 self._gate_capability("import", stmt.module_path)
-                if self.locked_imports is not None:
-                    self.locked_imports.verify_stdlib(stmt.module_path)
+                for locked in self._active_import_locks():
+                    locked.verify_stdlib(stmt.module_path)
                 module = resolve_import(stmt.module_path)
             module = self._wrap_imported_module_capabilities(stmt.module_path, module)
             alias = stmt.alias or stmt.module_path
@@ -971,17 +1153,39 @@ class Interpreter:
         except Exception as e:
             raise ImportError(f"Failed to import '{stmt.module_path}': {e}") from e
 
-    def _make_closure(self, params, body):
+    @staticmethod
+    def _require_call_arity(name: str, expected: int, got: int) -> None:
+        if expected != got:
+            raise TypeError(f"'{name}' expects {expected} arguments, got {got}")
+
+    @staticmethod
+    def _require_parameter_bindings(name, params, *, bound_receiver=False):
+        """Reject ambiguous bindings before a callable changes its environment."""
+        seen = set()
+        for parameter, _ in params:
+            if parameter in seen:
+                raise TypeError(f"duplicate parameter '{parameter}' in '{name}'")
+            seen.add(parameter)
+        remaining = params
+        if bound_receiver and params and params[0][0] in ("self", "this"):
+            remaining = params[1:]
+        if bound_receiver and any(parameter == "this" for parameter, _ in remaining):
+            raise TypeError(
+                f"parameter 'this' conflicts with bound receiver in '{name}'"
+            )
+
+    def _make_closure(self, params, body, name="<lambda>"):
         # Capture the defining environment so the function closes over its
         # lexical scope (enclosing locals), rather than over whatever scope
         # happens to be active at call time.
         def_env = self.env
 
         def fn(*args):
+            self._require_parameter_bindings(name, params)
+            self._require_call_arity(name, len(params), len(args))
             old_env = self.env
             self.env = def_env.enter_scope()
-            for i, (pname, _) in enumerate(params):
-                val = args[i] if i < len(args) else None
+            for (pname, _), val in zip(params, args, strict=True):
                 self.env.define(pname, val, is_mut=False)
             result = None
             try:
@@ -992,18 +1196,37 @@ class Interpreter:
                 self.env = old_env
             return result
 
-        return fn
+        return self._bind_callable(fn)
 
     def _execute_function_decl(self, stmt: FunctionDecl) -> object:
-        fn = self._make_closure(stmt.params, stmt.body)
+        fn = self._make_closure(stmt.params, stmt.body, stmt.name)
         self.env.define(stmt.name, fn, is_mut=False)
         return fn
 
     def _execute_class_decl(self, stmt: ClassDecl) -> object:
         declaration_env = self.env
+        initializers = [method for method in stmt.methods if method.name == "init"]
+        native_identity = self._restrictions.native_values.register(
+            stmt, "fountain", stmt.name, tuple(field[0] for field in stmt.fields)
+        )
 
         def constructor(*args):
+            if not initializers:
+                self._require_call_arity(stmt.name, 0, len(args))
+            for method in initializers:
+                self._require_parameter_bindings(
+                    method.name, method.params, bound_receiver=True
+                )
+                expected = len(method.params)
+                if method.params and method.params[0][0] in ("self", "this"):
+                    expected -= 1
+                self._require_call_arity(stmt.name, expected, len(args))
             instance = FountainInstance(stmt, self.env)
+            instance.native_identity = native_identity
+            instance.execution_frames = _merge_execution_frames(
+                (*_EXECUTION_FRAMES.get(), self._execution_frame())
+            )
+            instance.interpreter = self
             old_env = self.env
             self.env = declaration_env.enter_scope()
             self.env.define("this", instance, is_mut=False)
@@ -1013,21 +1236,24 @@ class Interpreter:
                     default_expr = field_spec[2] if len(field_spec) > 2 else None
                     if default_expr is not None:
                         instance.fields[field_spec[0]] = self._evaluate(default_expr)
-                for method in stmt.methods:
-                    if method.name == "init":
-                        self._call_user_fn(method, list(args), this_obj=instance)
+                for method in initializers:
+                    self._call_user_fn(method, list(args), this_obj=instance)
             finally:
                 self.env = old_env
             return instance
 
-        self.env.define(stmt.name, constructor, is_mut=False)
-        return constructor
+        bound = self._bind_callable(constructor)
+        self.env.define(stmt.name, bound, is_mut=False)
+        return bound
 
     def _execute_struct_decl(self, stmt: StructDecl) -> object:
         declaration_env = self.env
         names = [name for name, _ in stmt.fields]
         if len(names) != len(set(names)):
             raise TypeError(f"duplicate field in struct '{stmt.name}'")
+        native_identity = self._restrictions.native_values.register(
+            stmt, "struct", stmt.name, tuple(names)
+        )
 
         def constructor(*args):
             if len(args) != len(stmt.fields):
@@ -1035,13 +1261,15 @@ class Interpreter:
                     f"'{stmt.name}' expects {len(stmt.fields)} fields, got {len(args)}"
                 )
             instance = StructInstance(stmt, {}, declaration_env)
+            instance.native_identity = native_identity
             for (name, _), value in zip(stmt.fields, args, strict=True):
                 self._set_struct_field(instance, name, value)
             return instance
 
         constructor._thirsty_struct_declaration = stmt  # type: ignore[attr-defined]
-        self.env.define(stmt.name, constructor, is_mut=False)
-        return constructor
+        bound = self._bind_callable(constructor)
+        self.env.define(stmt.name, bound, is_mut=False)
+        return bound
 
     def _set_struct_field(self, instance: StructInstance, name: str, value: Any):
         declared = dict(instance.declaration.fields)
@@ -1084,6 +1312,16 @@ class Interpreter:
                     for key, item in value.items()
                 )
             return False
+        # Resolve nominal declarations in the same lexical order as the
+        # checker, including an explicitly shadowed primitive type name.
+        binding = environment.get(annotation) if environment.has(annotation) else None
+        declaration = getattr(binding, "_thirsty_struct_declaration", None)
+        if isinstance(declaration, StructDecl):
+            return (
+                isinstance(value, StructInstance) and value.declaration is declaration
+            )
+        if isinstance(binding, type) and issubclass(binding, Enum):
+            return isinstance(value, binding)
         primitive_types = {
             "int": lambda v: type(v) is int,
             "float": lambda v: type(v) in (int, float),
@@ -1094,13 +1332,6 @@ class Interpreter:
         primitive = primitive_types.get(annotation.lower())
         if primitive is not None:
             return primitive(value)
-        binding = environment.get(annotation) if environment.has(annotation) else None
-        if isinstance(value, StructInstance):
-            return value.declaration is getattr(
-                binding, "_thirsty_struct_declaration", None
-            )
-        if isinstance(value, Enum):
-            return isinstance(binding, type) and isinstance(value, binding)
         return False
 
     def _execute_spillage(self, stmt: SpillageStmt) -> object:
@@ -1157,14 +1388,18 @@ class Interpreter:
                 context = copy_context()
                 future = self.executor.submit(context.run, callee, *args)
                 return future.result()
+            # Callee and arguments have already been evaluated in source order.
+            # Falling through would evaluate them a second time before failing.
+            raise TypeError(f"Cannot call non-callable: {callee}")
         return self._evaluate(stmt.expr)
 
     def _execute_morph(self, stmt: MorphDef) -> object:
         def transform(*args):
+            self._require_parameter_bindings(stmt.name, stmt.params)
+            self._require_call_arity(stmt.name, len(stmt.params), len(args))
             old_env = self.env
             self.env = self.env.enter_scope()
-            for i, (pname, _) in enumerate(stmt.params):
-                val = args[i] if i < len(args) else None
+            for (pname, _), val in zip(stmt.params, args, strict=True):
                 self.env.define(pname, val, is_mut=False)
             result = None
             try:
@@ -1175,8 +1410,9 @@ class Interpreter:
                 self.env = old_env
             return result
 
-        self.env.define(stmt.name, transform, is_mut=False)
-        return transform
+        bound = self._bind_callable(transform)
+        self.env.define(stmt.name, bound, is_mut=False)
+        return bound
 
     def _execute_shadow_thirst(self, stmt: ShadowThirstMutation) -> object:
         if stmt.canonical_block:
@@ -1337,11 +1573,12 @@ class Interpreter:
         """Define a top-level governed function with full contract enforcement."""
 
         def fn(*args):
+            self._require_parameter_bindings(stmt.name, stmt.params)
+            self._require_call_arity(stmt.name, len(stmt.params), len(args))
             old_env = self.env
             self.env = self.env.enter_scope()
             context = {}
-            for i, (pname, _) in enumerate(stmt.params):
-                val = args[i] if i < len(args) else None
+            for (pname, _), val in zip(stmt.params, args, strict=True):
                 self.env.define(pname, val, is_mut=False)
                 context[pname] = val
             try:
@@ -1349,8 +1586,9 @@ class Interpreter:
             finally:
                 self.env = old_env
 
-        self.env.define(stmt.name, fn, is_mut=False)
-        return fn
+        bound = self._bind_callable(fn)
+        self.env.define(stmt.name, bound, is_mut=False)
+        return bound
 
     def _run_governed(self, decl: GovernedFunctionDecl, context: dict, top_level: bool):
         """Enforce entry contracts, run the body, then enforce exit contracts.
@@ -1427,18 +1665,215 @@ class Interpreter:
     ):
         """Proof certificate for a design-by-contract verdict (Fix: every
         governed boundary decision carries a proof, not just policy ones)."""
+        from utf.tarl.spec import TarlVerdict
+        from utf.thirsty_lang.governed_values import (
+            GovernedValueError,
+            project_governed_context,
+        )
+
         name = getattr(decl, "name", "<anon>") if decl is not None else "<anon>"
         source = f"contract:{name}:{phase}"
+        try:
+            proof_context = project_governed_context(context)
+        except GovernedValueError as exc:
+            # This certificate binds a bounded rejection diagnostic, not a
+            # representation of an unsupported host object or its repr hooks.
+            verdict = TarlVerdict.DENY
+            proof_context = {
+                "action": name,
+                "phase": phase,
+                "context_projection_error": str(exc),
+            }
+            trace = [*trace, {"kind": "projection-rejected", "reason": str(exc)}]
         return self._make_decision_proof(
             source=source,
-            context=context,
+            context=proof_context,
             verdict=verdict,
             matched_condition=matched_condition,
             trace=trace,
         )
 
+    def _governed_context_denial(
+        self,
+        context,
+        decl,
+        phase,
+        reason,
+        *,
+        expected_hash=None,
+        observed_hash=None,
+        prior_proof=None,
+    ):
+        """Bind a failed value snapshot check to a separate DENY certificate."""
+        from utf.tarl.spec import TarlVerdict
+
+        trace = {
+            "kind": "governed-context-integrity",
+            "phase": phase,
+            "matched": False,
+            "reason": reason,
+            "expected_context_hash": expected_hash,
+            "observed_context_hash": observed_hash,
+        }
+        if prior_proof is not None:
+            trace["prior_policy_hash"] = prior_proof.policy_hash
+            trace["prior_context_hash"] = prior_proof.context_hash
+        proof = self._make_contract_proof(
+            decl, phase, context, TarlVerdict.DENY, reason, [trace]
+        )
+        self._last_proof = proof
+        return False, reason, proof
+
+    def _check_governed_context(
+        self, context, decl, phase, expected_hash, prior_proof=None
+    ):
+        """Recheck exact admitted JSON data after callback-capable checks."""
+        from utf.tarl.context import ContextResolutionError, prepare_context
+        from utf.thirsty_lang.governed_values import (
+            GovernedValueError,
+            project_governed_context,
+        )
+
+        try:
+            observed_hash = prepare_context(
+                project_governed_context(context)
+            ).original_context_hash
+        except (ContextResolutionError, GovernedValueError) as exc:
+            return self._governed_context_denial(
+                context,
+                decl,
+                phase,
+                str(exc),
+                expected_hash=expected_hash,
+                prior_proof=prior_proof,
+            )
+        if observed_hash != expected_hash:
+            return self._governed_context_denial(
+                context,
+                decl,
+                phase,
+                f"governed {phase} context changed during authorization",
+                expected_hash=expected_hash,
+                observed_hash=observed_hash,
+                prior_proof=prior_proof,
+            )
+        return None
+
     def _enforce_governance(
         self, context: dict, decl=None, phase="entry", enforce_mode_guard=True
+    ):
+        """Check local contracts and every active caller's function policy."""
+        frames = _merge_execution_frames(
+            (self._execution_frame(), *_EXECUTION_FRAMES.get())
+        )
+        owners = [self]
+        seen_bindings = {self._policy_binding_key()}
+        for frame in frames:
+            owner = frame.owner
+            if not (frame.governed or owner._governance_is_required()):
+                continue
+            key = owner._policy_binding_key()
+            if key not in seen_bindings:
+                seen_bindings.add(key)
+                owners.append(owner)
+        snapshots = [
+            (frame.owner, frame.owner._authorization_snapshot()) for frame in frames
+        ]
+        name = decl.name if decl is not None else "<call>"
+        try:
+            from utf.tarl.context import ContextResolutionError, prepare_context
+            from utf.thirsty_lang.governed_values import (
+                GovernedValueError,
+                project_governed_context,
+            )
+
+            if phase == "entry" and decl is not None and "result" in context:
+                return self._governed_context_denial(
+                    context,
+                    decl,
+                    phase,
+                    "reserved governed parameter name 'result' conflicts with the exit result binding",
+                )
+            try:
+                context_hash = prepare_context(
+                    project_governed_context(context)
+                ).original_context_hash
+            except (ContextResolutionError, GovernedValueError) as exc:
+                return self._governed_context_denial(context, decl, phase, str(exc))
+            allowed, reason, proof = self._enforce_governance_local(
+                context,
+                decl,
+                phase,
+                enforce_mode_guard,
+                expected_context_hash=context_hash,
+            )
+            if not allowed:
+                return allowed, reason, proof
+            context_denial = self._check_governed_context(
+                context, decl, phase, context_hash, proof
+            )
+            if context_denial is not None:
+                return context_denial
+            if phase != "entry":
+                return allowed, reason, proof
+            for owner in owners[1:]:
+                allowed, reason, caller_proof = owner._enforce_governance_local(
+                    context,
+                    decl,
+                    "entry",
+                    False,
+                    check_contracts=False,
+                    expected_context_hash=context_hash,
+                )
+                owner._last_proof = caller_proof
+                if caller_proof is not None:
+                    proof = caller_proof
+                if not allowed:
+                    return False, reason, proof
+                context_denial = self._check_governed_context(
+                    context, decl, phase, context_hash, proof
+                )
+                if context_denial is not None:
+                    return context_denial
+            for owner, snapshot in snapshots:
+                violation = owner._changed_authorization(snapshot, name, name)
+                violation = violation or owner._hardened_precheck(name, name)
+                if violation is not None:
+                    return False, violation.reason, violation.proof
+            for owner, snapshot in snapshots:
+                violation = owner._changed_authorization(snapshot, name, name)
+                if violation is not None:
+                    return False, violation.reason, violation.proof
+            context_denial = self._check_governed_context(
+                context, decl, phase, context_hash, proof
+            )
+            if context_denial is not None:
+                return context_denial
+            return True, reason, proof
+        except GovernanceViolation as denied:
+            return False, denied.reason, denied.proof
+        except Exception as error:
+            from utf.tarl.spec import TarlVerdict
+
+            reason = f"governance evaluation failed: {error}"
+            proof = self._make_decision_proof(
+                source="<fail-closed: governed call evaluation error>",
+                context={"action": name},
+                verdict=TarlVerdict.DENY,
+                matched_condition="",
+                trace=[{"kind": "fail-closed", "reason": reason}],
+            )
+            return False, reason, proof
+
+    def _enforce_governance_local(
+        self,
+        context: dict,
+        decl=None,
+        phase="entry",
+        enforce_mode_guard=True,
+        *,
+        check_contracts=True,
+        expected_context_hash: str,
     ):
         """Decide whether a governed call boundary is allowed.
 
@@ -1455,12 +1890,17 @@ class Interpreter:
         proof = None
         if phase == "entry":
             # Cross-mode guard (E053): top-level governed fn from core is denied.
-            if decl is not None and enforce_mode_guard and self.mode != "governed":
+            if (
+                decl is not None
+                and enforce_mode_guard
+                and not self._governance_is_required()
+            ):
                 return (False, "governed function invoked outside governed mode", None)
 
         # Design-by-contract predicates for this phase.
         trace = []
-        for expr, ann, label in self._contract_predicates(decl, phase):
+        predicates = self._contract_predicates(decl, phase) if check_contracts else ()
+        for expr, ann, label in predicates:
             ok, reason = self._eval_predicate(expr, ann, label)
             trace.append(
                 {
@@ -1476,6 +1916,11 @@ class Interpreter:
                 )
                 self._last_proof = deny
                 return (False, reason, deny)
+            context_denial = self._check_governed_context(
+                context, decl, phase, expected_context_hash, proof
+            )
+            if context_denial is not None:
+                return context_denial
         if trace:  # contract was checked and held → certify it
             proof = self._make_contract_proof(
                 decl, phase, context, TarlVerdict.ALLOW, "", trace
@@ -1485,7 +1930,7 @@ class Interpreter:
             # TARL policy routing (deny-by-default access control). A policy
             # proof supersedes the contract proof as the boundary certificate.
             if (
-                self.mode == "governed"
+                self._governance_is_required()
                 and decl is not None
                 and (self.tarl_runtime is None or self.authority is None)
             ):
@@ -1504,6 +1949,11 @@ class Interpreter:
                 from utf.tarl.context import (
                     ContextResolutionError,
                     compose_context_layers,
+                    prepare_context,
+                )
+                from utf.thirsty_lang.governed_values import (
+                    GovernedValueError,
+                    project_governed_context,
                 )
 
                 # Hardened-mode prerequisites fail closed before policy routing.
@@ -1511,14 +1961,19 @@ class Interpreter:
                 hardened_violation = self._hardened_precheck(action_name, action_name)
                 if hardened_violation is not None:
                     return (False, hardened_violation.reason, hardened_violation.proof)
+                context_denial = self._check_governed_context(
+                    context, decl, phase, expected_context_hash, proof
+                )
+                if context_denial is not None:
+                    return context_denial
                 action_context = {"action": decl.name if decl is not None else "<call>"}
                 try:
                     policy_ctx = compose_context_layers(
-                        ("function arguments", context),
+                        ("function arguments", project_governed_context(context)),
                         ("verified authority", self._authority_context()),
                         ("governed action", action_context),
                     )
-                except ContextResolutionError as exc:
+                except (ContextResolutionError, GovernedValueError) as exc:
                     deny_trace = trace + [
                         {
                             "kind": "context-layer-conflict",
@@ -1542,7 +1997,18 @@ class Interpreter:
                 )
                 if callable(ensure_schema):
                     ensure_schema()
+                context_denial = self._check_governed_context(
+                    context, decl, phase, expected_context_hash, proof
+                )
+                if context_denial is not None:
+                    return context_denial
+                policy_context_hash = prepare_context(policy_ctx).original_context_hash
                 decision, proof = self.tarl_runtime.evaluate_with_proof(policy_ctx)
+                context_denial = self._check_governed_context(
+                    context, decl, phase, expected_context_hash, proof
+                )
+                if context_denial is not None:
+                    return context_denial
                 if decision.verdict == TarlVerdict.ALLOW:
                     from utf.tarl.verifier import (
                         positive_context_authority_admissible,
@@ -1571,6 +2037,16 @@ class Interpreter:
                         )
                         self._last_proof = deny
                         return (False, reason, deny)
+                    if proof.original_context_hash != policy_context_hash:
+                        return self._governed_context_denial(
+                            context,
+                            decl,
+                            phase,
+                            "policy proof context does not bind submitted function arguments",
+                            expected_hash=policy_context_hash,
+                            observed_hash=proof.original_context_hash,
+                            prior_proof=proof,
+                        )
                 if decision.verdict != TarlVerdict.ALLOW:
                     return (
                         False,
@@ -1607,6 +2083,14 @@ class Interpreter:
     def _call_user_fn(
         self, func_decl: FunctionDecl, args: list, this_obj: object = None
     ) -> object:
+        params = list(func_decl.params)
+        self._require_parameter_bindings(
+            func_decl.name, params, bound_receiver=this_obj is not None
+        )
+        receiver_name = None
+        if this_obj is not None and params and params[0][0] in ("self", "this"):
+            receiver_name = params.pop(0)[0]
+        self._require_call_arity(func_decl.name, len(params), len(args))
         old_env = self.env
         self.env = self.env.enter_scope()
         # Bind the receiver for fountain methods. Two conventions are supported:
@@ -1616,16 +2100,12 @@ class Interpreter:
         # declares a leading self parameter, it receives the instance and is
         # not consumed from the caller's positional arguments.
         context = {}
-        params = list(func_decl.params)
         if this_obj is not None:
             self.env.define("this", this_obj, is_mut=False)
-            if params and params[0][0] in ("self", "this"):
-                recv_name = params[0][0]
-                self.env.define(recv_name, this_obj, is_mut=False)
-                context[recv_name] = this_obj
-                params = params[1:]
-        for i, (pname, _) in enumerate(params):
-            val = args[i] if i < len(args) else None
+            context[receiver_name or "this"] = this_obj
+            if receiver_name is not None:
+                self.env.define(receiver_name, this_obj, is_mut=False)
+        for (pname, _), val in zip(params, args, strict=True):
             self.env.define(pname, val, is_mut=False)
             context[pname] = val
         try:
@@ -1665,7 +2145,12 @@ class Interpreter:
         elif isinstance(expr, Identifier):
             if expr.name == "__error__":
                 raise RuntimeError("cannot execute a parser recovery placeholder")
-            return self.env.get(expr.name)
+            value = self.env.get(expr.name)
+            if getattr(value, "__self__", None) is self and getattr(
+                value, "__func__", None
+            ) in (Interpreter._builtin_print, Interpreter._builtin_pour):
+                return self._bind_callable(value)
+            return value
         elif isinstance(expr, BinaryOp):
             return self._evaluate_binary(expr)
         elif isinstance(expr, UnaryOp):
@@ -1716,26 +2201,23 @@ class Interpreter:
             return self._evaluate_combine(expr)
         elif isinstance(expr, Subscript):
             return self._evaluate_subscript(expr)
+        elif isinstance(expr, SliceExpr):
+            return self._evaluate_slice(expr)
         raise NotImplementedError(f"unsupported expression: {type(expr).__name__}")
 
     def _evaluate_subscript(self, expr: Subscript) -> object:
         """obj[index] — index a reservoir (list), dict, or string."""
         obj = self._evaluate_impl(expr.obj)
         index = self._evaluate_impl(expr.index)
-        if isinstance(obj, (list, str, tuple, bytes)):
-            if not isinstance(index, int) or isinstance(index, bool):
-                raise TypeError(
-                    f"reservoir/string index must be an Int, got "
-                    f"{type(index).__name__}"
-                )
-            if index < -len(obj) or index >= len(obj):
-                raise IndexError(
-                    f"index out of bounds: size is {len(obj)}, got {index}"
-                )
-            return obj[index]
-        if isinstance(obj, dict):
-            return obj[index]
-        raise TypeError(f"cannot index {type(obj).__name__} with '[]'")
+        return get_index(obj, index)
+
+    def _evaluate_slice(self, expr: SliceExpr) -> object:
+        """Evaluate receiver and provided bounds once, then validate and slice."""
+        obj = self._evaluate_impl(expr.obj)
+        start = self._evaluate_impl(expr.start) if expr.start is not None else None
+        stop = self._evaluate_impl(expr.stop) if expr.stop is not None else None
+        step = self._evaluate_impl(expr.step) if expr.step is not None else None
+        return get_slice(obj, start, stop, step)
 
     def _evaluate_binary(self, expr: BinaryOp) -> object:
         left = self._evaluate_impl(expr.left)
@@ -1745,6 +2227,13 @@ class Interpreter:
         if op == TokenType.OR:
             return left or self._evaluate_impl(expr.right)
         right = self._evaluate_impl(expr.right)
+        if type(left) is bool or type(right) is bool:
+            if op not in (TokenType.EQEQ, TokenType.NE) or type(left) is not type(
+                right
+            ):
+                raise TypeError(
+                    "Bool operands support only Boolean equality and logical operators"
+                )
         if op == TokenType.EQEQ:
             return left == right
         elif op == TokenType.NE:
@@ -1772,6 +2261,8 @@ class Interpreter:
     def _evaluate_unary(self, expr: UnaryOp) -> object:
         operand = self._evaluate_impl(expr.operand)
         if expr.op == TokenType.MINUS:
+            if type(operand) is bool:
+                raise TypeError("Bool operands do not support arithmetic negation")
             return -operand
         elif expr.op == TokenType.NOT:
             return not operand
@@ -1846,7 +2337,11 @@ class Interpreter:
             if method is not None:
                 # Bound method: the instance is bound as `this`, and the call
                 # arguments map to the method's declared params.
-                return lambda *a: self._call_user_fn(method, list(a), this_obj=obj)
+                owner = obj.interpreter or self
+                return owner._bind_callable(
+                    lambda *a: owner._call_user_fn(method, list(a), this_obj=obj),
+                    frames=obj.execution_frames or (owner._execution_frame(),),
+                )
             raise NameError(f"'{obj.cls_decl.name}' has no member '{name}'")
         if isinstance(obj, dict):
             return obj.get(name)

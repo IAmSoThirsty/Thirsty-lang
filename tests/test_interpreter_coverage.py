@@ -6,8 +6,9 @@ from utf.thirsty_lang.parser import Parser
 
 
 def run(src, mode="core"):
+    # This fixture exercises explicitly opted-out Core language semantics.
     ast = Parser(Lexer(f"module m: {mode}\n{src}").lex()).parse()
-    return Interpreter().interpret(ast, mode=mode)
+    return Interpreter(allow_ungoverned=True).interpret(ast, mode=mode)
 
 
 def out(capsys, src, mode="core"):

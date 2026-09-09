@@ -78,20 +78,25 @@ def test_missing_policy_or_archive_is_not_silently_accepted(
     assert exc.value.code == 1
 
 
-def test_required_audit_rejects_core_module(monkeypatch, tmp_path, capsys):
+def test_required_audit_preserves_core_semantics_with_governance(
+    monkeypatch, tmp_path, capsys
+):
     source, policy = program(tmp_path, "core")
-    with pytest.raises(SystemExit):
-        invoke(
-            monkeypatch,
-            "run",
-            source,
-            "--policy",
-            policy,
-            "--require-audit",
-            "--audit-db",
-            tmp_path / "proofs.db",
-        )
-    assert "executed" not in capsys.readouterr().out
+    db = tmp_path / "proofs.db"
+    invoke(
+        monkeypatch,
+        "run",
+        source,
+        "--policy",
+        policy,
+        "--require-audit",
+        "--audit-db",
+        db,
+    )
+    assert "executed" in capsys.readouterr().out
+    with TarlAuditArchive(str(db)) as archive:
+        assert archive.verify_chain().valid
+        assert len(archive.query()) == 1
 
 
 @pytest.mark.parametrize(

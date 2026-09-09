@@ -1,14 +1,23 @@
 # Feature Status
 
-Edition: Thirsty-Lang 0.9.0 (release preparation). The integrated navigation and reference layer is
+Edition: unreleased development after Thirsty-Lang 0.9.0. The integrated navigation and reference layer is
 [THIRSTY_LANG_UTF_101.md](THIRSTY_LANG_UTF_101.md); security acceptance details remain
 authoritative in [THREAT_MODEL.md](THREAT_MODEL.md).
 
-The corrections and general-purpose additions prepared for 0.9.0 are mapped
-in [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md); final local evidence is in
-[IMPLEMENTATION_VERIFICATION.md](operations/IMPLEMENTATION_VERIFICATION.md).
+Current corrections and general-purpose additions are mapped in
+[DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md). The preserved 0.9.0 baseline evidence
+is in [IMPLEMENTATION_VERIFICATION.md](operations/IMPLEMENTATION_VERIFICATION.md);
+the current integration record is
+[M3_TYPE_COHERENCE_VERIFICATION.md](operations/M3_TYPE_COHERENCE_VERIFICATION.md).
 Publication and remote artifact identity require separate release verification.
 This work is not an independent Competence Register acceptance result.
+
+Current execution entrypoints default to governance. A source `core` header
+selects semantics and cannot disable gates. Ungoverned compatibility requires
+an explicit host opt-out (`--unsafe-core` or `allow_ungoverned=True`); pure
+effects remain prohibited and explicit governed requirements retain their
+floor. These are interpreter and entrypoint controls, not OS isolation, global
+resource containment, or complete provenance for arbitrary host-supplied code.
 
 Every capability below is marked **Real** (implemented and enforced, with a
 test that proves it) or **Roadmap** (reserved surface, not yet enforced). The
@@ -92,7 +101,7 @@ Preserved reproduction evidence manifest SHA-256:
 | UTF-8-safe CLI output on Windows (cp1252) | Real | `src/utf/console.py` (`enable_utf8`), shared by all CLIs |
 | Every shipped example parses, type-checks, and runs clean | Real | `tests/test_examples.py` |
 | `let` (immutable binding), `for … in` keyword loop, `:=` (define mutable) | Real | `tests/test_language_features.py` |
-| `strict` (requires initialization) / `pure` (no I/O) module modes | Real | `tests/test_language_features.py` |
+| `strict` initialization and `pure` ambient-effect restrictions survive aliases, cascade callbacks, and interpreter reuse | Real, unreleased | `tests/test_security_defaults.py`; `tests/test_execution_boundaries.py` |
 | Self- and mutual recursion (correct arity, no false E030) | Real | `tests/test_language_fixes.py` |
 | `this` keyword, member assignment, fountain field default initializers | Real | `tests/test_language_fixes.py` |
 | Closures capture their lexical (defining) scope | Real | `tests/test_language_fixes.py` |
@@ -116,14 +125,18 @@ Preserved reproduction evidence manifest SHA-256:
 | Sensitive imported stdlib calls require their own capability verdict after import | Real | `tests/test_gate_fail_closed.py::test_import_allow_does_not_grant_sensitive_stdlib_calls` |
 | Denials carry a `TarlProof`; proofs are unsigned unless runtime signing is configured | Real | `tests/test_governance_maximal.py::TestCapabilityGates::test_write_denied_with_proof`; `tests/test_gate_fail_closed.py` |
 | Temporal windows govern a call (allow/deny) | Real | `tests/test_governance_maximal.py::TestTemporal` |
-| Static E053 for a governed call from `core` mode | Real | `tests/test_governance_maximal.py::TestStatic::test_e053_governed_call_from_core` |
+| Governance-first CLI, REPL, embedding, and Thirst of Gods execution; source semantic headers cannot disable gates | Real, unreleased | `tests/test_governance_entrypoint_defaults.py`; `tests/test_security_defaults.py` |
+| Explicit host core compatibility; governed requests and security controls retain their floor | Real, unreleased | `tests/test_governance_entrypoint_defaults.py`; `tests/test_security_defaults.py` |
+| Calling and defining policies both authorize governed functions and mediated effects; identical bindings avoid duplicate audits | Real, unreleased | `tests/test_security_defaults.py` |
+| Live credential callbacks cannot replace an already-checked binding before a call or effect | Real, unreleased | `tests/test_security_defaults.py`; `tests/test_execution_boundaries.py` |
 | Forward-reference / mutual-recursion hoisting | Real | `tests/test_governance_maximal.py::TestStatic::test_forward_reference_resolves` |
 | Offensive threat model and challenge catalog | Real | `docs/THREAT_MODEL.md` |
-| Imported `.thirsty` modules run under the caller's governed gate (not detached core) | Real | `tests/test_threat_model_file_imports.py` |
-| Governed module with a parse error fails closed (no statements execute) | Real | `tests/test_threat_model_parser_fail_closed.py` |
+| File and stdlib imports honor active caller/definer locks; disagreeing checked source is rejected before parsing | Real, unreleased | `tests/test_import_lock_callers.py` |
+| Malformed source fails closed before recovered statements execute | Real, unreleased | `tests/test_source_failure_provenance.py`; `tests/test_threat_model_parser_fail_closed.py` |
 | Secure-by-default proof verification (signature required unless unsigned mode is explicit; Ed25519-only / policy source options) | Real | `tests/test_threat_model_proof_strictness.py`; `tests/test_peer_review_0_8_1_tarl_regressions.py` |
-| Governed build refuses governance-dropping targets unless explicitly disclosed | Real | `tests/test_threat_model_build_outputs.py` |
+| All public executable builds require governance-loss acknowledgement and a written disclosure manifest before executable output | Real, unreleased | `tests/test_governance_entrypoint_defaults.py`; `tests/test_threat_model_build_outputs.py` |
 | Import-only policy grants no sensitive stdlib side effect | Real | `tests/test_threat_model_capability_broker.py` |
+| Every shipped stdlib callable has an explicit ambient-effect classification; unknown, missing, or non-callable exports reject import | Real, unreleased | `tests/test_stdlib_export_classification.py` |
 | Static proof-obligation manifest (`thirsty prove`) without executing side effects | Real | `tests/test_proof_obligations.py` |
 | Derived context schema from TARL policy references, fail-closed when incomplete | Real | `tests/test_proof_obligations.py`; `tests/test_threat_model_context_schema.py` |
 | Denial explanation for missing policy/context/authority/proof conditions | Real | `tests/test_proof_obligations.py` |
@@ -155,7 +168,7 @@ Preserved reproduction evidence manifest SHA-256:
 | Canonical proof signatures and complete semantic replay identity prevent alternate-encoding reuse | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_proof.py`; `tests/test_durable_state.py` |
 | Temporal directives parse strictly, expiry cannot grant ALLOW, and proof/quorum authority is capped at the earliest exclusive policy or rule cutoff | Real in released 0.8.6; independent acceptance pending | `tests/test_tarl_temporal.py`; `tests/test_tarl_proof.py`; `tests/test_threat_model_lint_quorum.py`; `tests/test_broker_unified_gate.py` |
 | Tamper-evident hash-linked audit chain (`verify_chain`) | Real | `tests/test_threat_model_audit_chain.py` |
-| Universal capability broker (FFI/native + agent/MCP tools) | Real | `tests/test_threat_model_broker.py` |
+| Capability broker API for host adapters that explicitly route their effects through it | Real | `tests/test_threat_model_broker.py` |
 | Fail-closed under evaluator error / required-audit failure | Real | `tests/test_threat_model_failclosed.py` |
 | Filesystem path confinement (traversal/symlink escape) | Real | `tests/test_threat_model_pathguard.py` |
 | Broad-ALLOW policy lint + proof-bound signed ESCALATE quorum | Real in released 0.8.6; independent acceptance pending | `tests/test_threat_model_lint_quorum.py` |

@@ -506,10 +506,16 @@ class CanonicalDocTemplate(BaseDocTemplate):
             pageTemplates=[
                 PageTemplate("cover", [cover_frame], self._draw_cover, pagesize=LETTER),
                 PageTemplate(
-                    "portrait", [portrait_frame], self._draw_page, pagesize=LETTER
+                    "portrait",
+                    [portrait_frame],
+                    onPageEnd=self._draw_page,
+                    pagesize=LETTER,
                 ),
                 PageTemplate(
-                    "landscape", [landscape_frame], self._draw_page, pagesize=land
+                    "landscape",
+                    [landscape_frame],
+                    onPageEnd=self._draw_page,
+                    pagesize=land,
                 ),
             ],
             title=f"{config.title} - v{config.software_version}",
@@ -517,6 +523,16 @@ class CanonicalDocTemplate(BaseDocTemplate):
             subject=f"{config.subtitle}; source-sha256={digest}",
             keywords=f"Thirsty-Lang,TARL,governance,security,{digest}",
         )
+
+    def beforeDocument(self) -> None:
+        # multiBuild reuses this template for every table-of-contents pass.
+        self.current_heading = "Canonical Reference"
+        super().beforeDocument()
+
+    def beforePage(self) -> None:
+        self.page_heading = self.current_heading
+        self._page_has_heading = False
+        super().beforePage()
 
     def _draw_cover(self, canv: canvas.Canvas, _doc: BaseDocTemplate) -> None:
         width, height = LETTER
@@ -583,7 +599,7 @@ class CanonicalDocTemplate(BaseDocTemplate):
         canv.restoreState()
 
     def _draw_page(self, canv: canvas.Canvas, doc: BaseDocTemplate) -> None:
-        width, height = doc.pagesize
+        width, height = doc.pageTemplate.pagesize or doc.pagesize
         canv.saveState()
         canv.setStrokeColor(LINE)
         canv.setLineWidth(0.55)
@@ -595,7 +611,7 @@ class CanonicalDocTemplate(BaseDocTemplate):
         canv.drawString(0.58 * inch, height - 0.30 * inch, "THIRSTY-LANG UTF 101")
         canv.setFont("Vera", 6.6)
         canv.setFillColor(MUTED)
-        header = self.current_heading[:82]
+        header = self.page_heading[:82]
         canv.drawRightString(width - 0.58 * inch, height - 0.30 * inch, header)
         canv.setStrokeColor(LINE)
         canv.line(0.58 * inch, 0.43 * inch, width - 0.58 * inch, 0.43 * inch)
@@ -617,6 +633,9 @@ class CanonicalDocTemplate(BaseDocTemplate):
         if not isinstance(flowable, Heading):
             return
         self.current_heading = flowable.plain_text
+        if not self._page_has_heading:
+            self.page_heading = flowable.plain_text
+            self._page_has_heading = True
         key = flowable.bookmark_key
         level = flowable.toc_level
         self.canv.bookmarkPage(key)
@@ -913,7 +932,23 @@ class MarkdownRenderer:
                 ):
                     raw_rows.append(split_table_row(lines[index]))
                     index += 1
-                flows.extend(self.render_table(raw_rows, source))
+                table_flows = self.render_table(raw_rows, source)
+                if isinstance(table_flows[0], NextPageTemplate):
+                    # A heading's keepWithNext cannot span an explicit page
+                    # break. Move immediate headings onto the wide table page.
+                    headings: list[Flowable] = []
+                    while flows and isinstance(flows[-1], Heading):
+                        headings.insert(0, flows.pop())
+                    table_flows[2:2] = headings
+                    if (
+                        len(flows) >= 2
+                        and isinstance(flows[-2], NextPageTemplate)
+                        and isinstance(flows[-1], PageBreak)
+                    ):
+                        # Adjacent wide tables need one landscape page break,
+                        # not an empty portrait page between their transitions.
+                        del flows[-2:]
+                flows.extend(table_flows)
                 continue
             list_match = re.match(r"^\s*([-+*]|\d+[.)])\s+(.+)$", line)
             if list_match:

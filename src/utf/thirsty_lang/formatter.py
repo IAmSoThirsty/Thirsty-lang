@@ -51,6 +51,7 @@ from utf.thirsty_lang.ast import (
     SecurityBlock,
     ShadowThirstMutation,
     SipStmt,
+    SliceExpr,
     SpillageStmt,
     Stmt,
     StringLiteral,
@@ -70,13 +71,37 @@ INDENT = "    "
 
 def format_program(node: Program) -> str:
     """Format an entire program."""
+    if getattr(node, "parse_failed", False):
+        raise ValueError("module failed to parse; refusing to format recovered source")
     parts = []
     if node.header:
         parts.append(format_module_header(node.header))
         parts.append("")
-    for stmt in node.stmts:
-        parts.append(format_stmt(stmt, 0))
+    parts.extend(_format_statements(node.stmts, 0))
     return "\n".join(parts)
+
+
+def _format_statements(statements: list, indent: int) -> list[str]:
+    """Keep statement boundaries when newlines alone cannot terminate an expr."""
+    parts = [format_stmt(stmt, indent) for stmt in statements]
+    for index, stmt in enumerate(statements[:-1]):
+        # '[' and '(' can continue an expression as indexing/calling; '-' can
+        # become subtraction. Only statement forms that consume a terminator
+        # may receive one (direct cascade/block forms do not).
+        if isinstance(
+            stmt,
+            (
+                VariableDecl,
+                AssignStmt,
+                ExprStmt,
+                ReturnStmt,
+                PourStmt,
+                SipStmt,
+                ThrowStmt,
+            ),
+        ) and parts[index + 1].lstrip().startswith(("[", "(", "-")):
+            parts[index] += ";"
+    return parts
 
 
 def format_module_header(node: ModuleHeader) -> str:
@@ -330,11 +355,7 @@ def format_stmt(node: Stmt, indent: int = 0) -> str:
 
 def format_block(node: BlockStmt, indent: int = 0) -> str:
     """Format a block statement."""
-    INDENT * indent
-    parts = []
-    for stmt in node.statements:
-        parts.append(format_stmt(stmt, indent))
-    return "\n".join(parts)
+    return "\n".join(_format_statements(node.statements, indent))
 
 
 def format_else_if(node: IfStmt, indent: int = 0) -> str:
@@ -373,6 +394,14 @@ def format_expr(node: Expr, precedence: int = 0) -> str:
         return f"glass({params}){ret} {{\n{body}\n}}"
     if isinstance(node, Subscript):
         return f"{format_expr(node.obj, 9)}[{format_expr(node.index, 0)}]"
+    if isinstance(node, SliceExpr):
+        bounds = [node.start, node.stop]
+        if node.step is not None:
+            bounds.append(node.step)
+        content = ":".join(
+            format_expr(bound, 0) if bound is not None else "" for bound in bounds
+        )
+        return f"{format_expr(node.obj, 9)}[{content}]"
     if isinstance(node, IntLiteral):
         return str(node.value)
 

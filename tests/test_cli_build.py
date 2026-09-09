@@ -43,9 +43,20 @@ def _build(tmp_path, target, source=SOURCE, monkeypatch=None):
 
     f = _write(tmp_path, source)
     if monkeypatch is not None:
-        monkeypatch.setattr(sys, "argv", ["thirsty", "build", "--target", target, f])
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["thirsty", "build", "--target", target, f, "--allow-governance-loss"],
+        )
     else:
-        sys.argv = ["thirsty", "build", "--target", target, f]
+        sys.argv = [
+            "thirsty",
+            "build",
+            "--target",
+            target,
+            f,
+            "--allow-governance-loss",
+        ]
     cli.main()
     return os.path.splitext(f)[0]
 
@@ -62,8 +73,10 @@ def test_llvm_ir_emits_verified_closed_computation():
 
 
 def test_llvm_ir_unary_and_compare():
-    ir = cli._transpile_to_llvm_ir(_parse("drink main = -2 + (1 < 2)"))
-    assert "ret i32 -1" in ir
+    with pytest.raises(ValueError, match="Bool"):
+        cli._transpile_to_llvm_ir(_parse("drink main = -2 + (1 < 2)"))
+    ir = cli._transpile_to_llvm_ir(_parse("drink main = (1 < 2) and -2"))
+    assert "ret i32 -2" in ir
 
 
 def test_llvm_ir_rejects_division_in_unused_functions():
@@ -168,7 +181,8 @@ def test_build_pyodide_bundle(tmp_path, monkeypatch, capsys):
     assert "loadPyodide" in html
     assert 'micropip.install("thirsty-lang==" + EXPECTED_VERSION)' in html
     assert "EXPECTED_SOURCE_INTEGRITY" in html
-    assert "Interpreter().interpret(ast)" in html
+    assert "Interpreter(allow_ungoverned=ALLOW_UNGOVERNED).interpret(ast)" in html
+    assert "const ALLOW_UNGOVERNED = true" in html
     # Source is embedded as valid JSON.
     embedded = html.split("const SOURCE = ", 1)[1].split(";\n", 1)[0]
     assert json.loads(embedded).startswith("module demo")
@@ -182,7 +196,15 @@ def test_build_emit_manifest(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["thirsty", "build", "--target", "js", "--emit-manifest", f],
+        [
+            "thirsty",
+            "build",
+            "--target",
+            "js",
+            "--emit-manifest",
+            f,
+            "--allow-governance-loss",
+        ],
     )
     cli.main()
     manifest_path = os.path.splitext(f)[0] + ".manifest.json"

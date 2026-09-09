@@ -200,6 +200,8 @@ def _sym_expr(expr, store, zvars, ctx, defined):
             if not (_z3.is_bool(a) and _z3.is_bool(b)):
                 raise _SymUnsupported("boolean operators require Boolean operands")
             return _z3.And(a, b) if op == TokenType.AND else _z3.Or(a, b)
+        if op in (TokenType.EQEQ, TokenType.NE) and _z3.is_bool(a) and _z3.is_bool(b):
+            return a == b if op == TokenType.EQEQ else a != b
         if not (_z3.is_int(a) and _z3.is_int(b)):
             raise _SymUnsupported("arithmetic/comparison requires Integer operands")
         if op == TokenType.PLUS:
@@ -268,6 +270,23 @@ def z3_equivalence(shadow_block, canonical_block) -> ConvergenceVerdict:
         return ConvergenceVerdict("unavailable", "z3-solver not installed")
     if not _bounded_ast(shadow_block) or not _bounded_ast(canonical_block):
         return ConvergenceVerdict("unsupported", "AST exceeds analysis limits")
+    modeled_nodes = {
+        BlockStmt,
+        VariableDecl,
+        AssignStmt,
+        ReturnStmt,
+        IntLiteral,
+        BoolLiteral,
+        Identifier,
+        UnaryOp,
+        BinaryOp,
+    }
+    for block in (shadow_block, canonical_block):
+        for node in _walk(block):
+            if type(node) not in modeled_nodes:
+                return ConvergenceVerdict(
+                    "unsupported", f"unmodeled AST node {type(node).__name__}"
+                )
     inputs = free_variables(shadow_block) | free_variables(canonical_block)
     try:
         ctx = _z3.Context()
@@ -288,6 +307,12 @@ def z3_equivalence(shadow_block, canonical_block) -> ConvergenceVerdict:
                 )
             solver.reset()
             solver.set(timeout=1000, rlimit=100000)
+        if not s_ret.sort().eq(c_ret.sort()):
+            return ConvergenceVerdict(
+                "diverge",
+                "Returned value types differ (Bool versus Int)",
+                counterexample=dict.fromkeys(sorted(inputs), 0),
+            )
         solver.add(s_ret != c_ret)
         result = solver.check()
         if result == _z3.unsat:

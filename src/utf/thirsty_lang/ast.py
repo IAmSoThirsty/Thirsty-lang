@@ -117,6 +117,16 @@ class Subscript(Expr):
 
 
 @dataclass
+class SliceExpr(Expr):
+    """obj[start:stop:step] — a read-only, same-type sequence slice."""
+
+    obj: Expr
+    start: Expr | None
+    stop: Expr | None
+    step: Expr | None
+
+
+@dataclass
 class DictLiteral(Expr):
     """Insertion-ordered dictionary entries, with duplicate keys rejected."""
 

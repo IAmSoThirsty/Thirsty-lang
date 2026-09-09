@@ -24,7 +24,8 @@ def _check(src):
 
 
 def _run(src, capsys):
-    Interpreter().interpret(_parse(src))
+    # Explicit host compatibility mode isolates the Core regression under test.
+    Interpreter(allow_ungoverned=True).interpret(_parse(src))
     return capsys.readouterr().out.strip()
 
 

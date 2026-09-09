@@ -247,7 +247,7 @@ def test_denial_explanation_identifies_missing_authority_policy_context(
     monkeypatch,
     capsys,
 ):
-    source = _write(tmp_path, "p.thirsty", "module m: governed\ndrink main = 1\n")
+    source = _write(tmp_path, "p.thirsty", "module m: governed\npour 1\n")
     _run_cli(monkeypatch, "explain-denial", source)
     explanation = json.loads(capsys.readouterr().out)
     categories = {item["category"] for item in explanation["missing"]}

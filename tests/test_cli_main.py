@@ -71,7 +71,7 @@ def test_run_demo(monkeypatch, capsys):
 
 
 def test_run_file(monkeypatch, tmp_path, capsys):
-    run_cli(monkeypatch, "run", write(tmp_path, "p.thirsty", PROG))
+    run_cli(monkeypatch, "run", write(tmp_path, "p.thirsty", PROG), "--unsafe-core")
     assert "hello" in capsys.readouterr().out
 
 
@@ -86,8 +86,10 @@ def test_run_prints_result(monkeypatch, tmp_path, capsys):
 
 def test_run_gods_delegation(monkeypatch, tmp_path, capsys):
     src = write(tmp_path, "g.thirstofgods", open(GODS_EXAMPLE).read())
-    run_cli(monkeypatch, "run", src)
-    capsys.readouterr()
+    with pytest.raises(SystemExit) as error:
+        run_cli(monkeypatch, "run", src)
+    assert error.value.code == 2
+    assert "ok: test" not in capsys.readouterr().out
 
 
 def test_run_file_not_found(monkeypatch):
@@ -134,10 +136,11 @@ def test_run_locked_ok(monkeypatch, tmp_path, capsys):
 
     monkeypatch.chdir(tmp_path)
     source = write(tmp_path, "p.thirsty", PROG)
+    policy = write(tmp_path, "policy.tarl", "when true => ALLOW\n")
     manager = PackageManager(str(tmp_path))
     manager.generate_lock()
     assert manager.write_lock()
-    run_cli(monkeypatch, "run", "--locked", source)
+    run_cli(monkeypatch, "run", "--locked", source, "--policy", policy)
     assert "Lockfile verified" in capsys.readouterr().out
 
 

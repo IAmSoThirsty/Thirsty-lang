@@ -8,7 +8,10 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
+from utf.tarl.core import PolicyParser
+from utf.tarl.runtime import TarlRuntime
 from utf.thirsty_lang import module_system as ms
+from utf.thirsty_lang.interpreter import GovernanceViolation, Interpreter
 from utf.thirsty_lang.package_manager import PackageManager, create_thirsty_lock
 
 
@@ -253,17 +256,44 @@ def test_lock_rejects_unknown_and_external_source(tmp_path):
         context.read_source("../other.thirsty")
 
 
-def test_locked_resolver_enforces_transitive_integrity_without_cache(
+def test_locked_resolver_does_not_grant_transitive_import_authority(
     tmp_path, monkeypatch
 ):
     monkeypatch.chdir(tmp_path)
     lock_project(tmp_path)
-    ms.ModuleCache.clear()
-    assert ms.resolve_import("main.thirsty", locked=True)["result"] == 42
-    (tmp_path / "child.thirsty").write_text("drink value = 99;", encoding="utf-8")
-    with pytest.raises(ImportError, match="integrity"):
+    monkeypatch.setattr(ms, "ModuleCache", {})
+    with pytest.raises(GovernanceViolation, match="policy engine"):
         ms.resolve_import("main.thirsty", locked=True)
-    ms.ModuleCache.clear()
+    assert "main.thirsty" not in ms.ModuleCache
+
+
+def test_locked_resolver_enforces_transitive_integrity_without_cache(
+    tmp_path, monkeypatch
+):
+    context = lock_project(tmp_path)
+    main, child = tmp_path / "main.thirsty", tmp_path / "child.thirsty"
+    policy = "\n".join(
+        f'when action == "import" and target == {json.dumps(str(path.resolve()))} => ALLOW'
+        for path in (main, child)
+    )
+    runtime = TarlRuntime(PolicyParser.parse(policy + "\nwhen true => DENY"))
+    interpreter = (
+        Interpreter()
+        .attach_tarl(runtime)
+        .set_authority("test-importer")
+        .set_locked(context)
+    )
+    interpreter.source_directory = tmp_path
+    # A previously resolved module cannot replace the currently verified bytes.
+    monkeypatch.setattr(ms, "ModuleCache", {str(child.resolve()): {"value": -1}})
+    try:
+        assert interpreter._import_thirsty_file("main.thirsty")["result"] == 42
+        child.write_text("drink value = 99;", encoding="utf-8")
+        with pytest.raises(ImportError, match="integrity"):
+            interpreter._import_thirsty_file("main.thirsty")
+    finally:
+        interpreter.executor.shutdown(wait=True)
+        runtime.shutdown()
 
 
 def test_dependency_free_lock_and_bundled_stdlib(tmp_path):

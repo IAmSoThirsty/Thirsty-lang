@@ -508,9 +508,16 @@ def extract_proof_obligations(
     diagnostics: list[Diagnostic] | None = None,
     target: str | None = None,
     governance_loss: bool = False,
+    *,
+    mode: str | None = None,
+    allow_ungoverned: bool = False,
 ) -> dict[str, Any]:
-    mode = ast.header.mode if ast.header else "core"
-    governed_module = mode == "governed"
+    from utf.thirsty_lang.execution import resolve_execution_mode
+
+    declared_mode = ast.header.mode if ast.header else None
+    mode, governed_module = resolve_execution_mode(
+        declared_mode, mode, allow_ungoverned=allow_ungoverned
+    )
     functions = _functions(ast)
     imports = _imports(ast)
     governed_names = {f["name"] for f in functions if f.get("governed") is True}
@@ -578,7 +585,7 @@ def extract_proof_obligations(
                     "detail": "derived context schema is incomplete or ambiguous",
                 }
             )
-    elif capabilities or governed_calls or governed_module:
+    elif capabilities or governed_calls:
         unresolved_gaps.append(
             {
                 "category": "policy",
@@ -592,7 +599,7 @@ def extract_proof_obligations(
             gaps=["no policy source was provided"],
         )
 
-    if capabilities or governed_calls or governed_module:
+    if capabilities or governed_calls:
         unresolved_gaps.append(
             {
                 "category": "authority",
@@ -624,6 +631,20 @@ def extract_proof_obligations(
         "file": file_path,
         "source_hash": sha256_text(source),
         "mode": mode,
+        "declared_mode": declared_mode,
+        "execution": {
+            "semantic_mode": mode,
+            "governance_required": governed_module,
+            "unsafe_opt_out": allow_ungoverned,
+        },
+        "analysis_scope": {
+            "effect_discovery": "syntactic-only",
+            "complete_effect_inventory": False,
+            "unresolved_surfaces": [
+                "callable aliases and dynamic dispatch",
+                "effects inside imported source modules",
+            ],
+        },
         "functions": functions,
         "imports": imports,
         "stdlib_sensitive_calls": sensitive_calls,
@@ -637,9 +658,7 @@ def extract_proof_obligations(
         ],
         "required_tarl_actions": required_actions,
         "authority_requirements": {
-            "authority_required": bool(
-                capabilities or governed_calls or governed_module
-            ),
+            "authority_required": bool(capabilities or governed_calls),
             "authenticated_authority_required": "hardened-runtime-only",
             "fields": [
                 {"name": name, "kinds": list(kinds), "required": True}
@@ -655,12 +674,21 @@ def extract_proof_obligations(
             "policy_hash": policy_hash,
         },
         "audit_requirement": {
-            "required": bool(capabilities or governed_calls or governed_module),
+            "required": bool(capabilities or governed_calls),
             "mode": "proof-record-required; durable archive required only when runtime demands audit",
         },
         "build": {
             "target": target,
             "governance_loss": governance_loss,
+            "unsafe_opt_out_requested": governance_loss,
+            "artifact_governance_required": (
+                resolve_execution_mode(declared_mode, allow_ungoverned=governance_loss)[
+                    1
+                ]
+                if target == "wasm-pyodide"
+                else False if target else None
+            ),
+            "host_policy_configuration_preserved": False if target else None,
             "governance_loss_status": (
                 "explicitly_allowed" if governance_loss else "not_detected"
             ),
@@ -678,7 +706,8 @@ def extract_proof_obligations(
 def denial_explanation(report: dict[str, Any]) -> dict[str, Any]:
     missing = []
     emitted_categories: set[str] = set()
-    if report["policy_dependencies"]["hash"] is None:
+    requires_policy = bool(report["required_tarl_actions"])
+    if requires_policy and report["policy_dependencies"]["hash"] is None:
         missing.append(
             {
                 "category": "policy",
@@ -687,7 +716,10 @@ def denial_explanation(report: dict[str, Any]) -> dict[str, Any]:
         )
         emitted_categories.add("policy")
     schema = report.get("context_schema") or {}
-    if schema.get("status") not in {"complete", "explicit"}:
+    if (requires_policy or schema) and schema.get("status") not in {
+        "complete",
+        "explicit",
+    }:
         missing.append(
             {
                 "category": "context",
@@ -714,6 +746,7 @@ def denial_explanation(report: dict[str, Any]) -> dict[str, Any]:
         "required_capabilities": report["required_capabilities"],
         "required_tarl_actions": report["required_tarl_actions"],
         "context_schema": report.get("context_schema"),
+        "analysis_scope": report.get("analysis_scope"),
         "side_effects_executed": False,
     }
 

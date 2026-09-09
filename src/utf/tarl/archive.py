@@ -61,9 +61,25 @@ class TarlAuditArchive:
             archive.store(proof)
 
     Or manage the lifecycle manually with :meth:`close`.
+
+    ``lock_timeout_seconds`` controls the SQLite connection's wait for a database
+    lock. It defaults to 5 seconds and accepts finite built-in ``int`` or ``float``
+    values from 0 to 300 inclusive; booleans are not accepted. This is a SQLite
+    lock wait, not a deadline for an entire archive operation.
     """
 
-    def __init__(self, db_path: str = "tarl_audit.db") -> None:
+    def __init__(
+        self, db_path: str = "tarl_audit.db", *, lock_timeout_seconds: float = 5.0
+    ) -> None:
+        if type(lock_timeout_seconds) not in (int, float):
+            raise TypeError("lock_timeout_seconds must be a built-in int or float")
+        # Check the range before converting to float so huge integers are rejected
+        # consistently without an OverflowError. NaN and infinities also fail.
+        if not 0 <= lock_timeout_seconds <= 300:
+            raise ValueError(
+                "lock_timeout_seconds must be finite and between 0 and 300"
+            )
+        self._lock_timeout_seconds = float(lock_timeout_seconds)
         self._path = db_path
         self._conn: sqlite3.Connection | None = None
         self._lock = threading.Lock()
@@ -73,7 +89,11 @@ class TarlAuditArchive:
 
     def _connect(self) -> sqlite3.Connection:
         if self._conn is None:
-            self._conn = sqlite3.connect(self._path, check_same_thread=False)
+            self._conn = sqlite3.connect(
+                self._path,
+                timeout=self._lock_timeout_seconds,
+                check_same_thread=False,
+            )
         return self._conn
 
     def _ensure_schema(self) -> None:

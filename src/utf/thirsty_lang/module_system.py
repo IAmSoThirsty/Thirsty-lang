@@ -31,6 +31,7 @@ ModuleCache: dict[str, object] = {}
 SENSITIVE_STDLIB_CAPABILITIES: dict[str, dict[str, str]] = {
     "thirst::time": {"now": "read", "epoch_ms": "read", "sleep": "execute"},
     "thirst::crypto": {"random_bytes": "read", "uuid4": "read"},
+    "thirst::path": {"absolute": "read", "relative": "read"},
     "thirst::fs": {
         "read_file": "read",
         "exists": "read",
@@ -84,6 +85,109 @@ SENSITIVE_STDLIB_CAPABILITIES: dict[str, dict[str, str]] = {
         "close": "write",
     },
 }
+
+
+# Explicit review of exports that perform no direct ambient operation. These
+# are not a claim of immutable/pure values: reservoir/JSON helpers can mutate
+# guest containers, and collection/test helpers call their provided callbacks.
+# Runtime wrappers retain execution restrictions for those callback paths.
+NO_AMBIENT_STDLIB_EXPORTS: dict[str, frozenset[str]] = {
+    "thirst::time": frozenset(),
+    "thirst::crypto": frozenset(
+        {
+            "sha256",
+            "sign",
+            "ed25519_sign",
+            "verify",
+            "ed25519_verify",
+            "public_key",
+            "hmac",
+            "hmac_sha256",
+            "verify_hmac",
+        }
+    ),
+    "thirst::reservoir": frozenset({"size", "push", "pop", "get", "flood"}),
+    "thirst::fs": frozenset(),
+    "thirst::path": frozenset({"join", "dirname", "basename", "ext"}),
+    "thirst::json": frozenset({"parse", "stringify", "get", "set"}),
+    "thirst::http": frozenset(),
+    "thirst::env": frozenset(),
+    "thirst::process": frozenset(),
+    "thirst::log": frozenset(),
+    "thirst::test": frozenset(
+        {"assert_eq", "assert_ne", "assert_true", "assert_raises"}
+    ),
+    "thirst::collections": frozenset(
+        {
+            "map",
+            "filter",
+            "reduce",
+            "sort",
+            "unique",
+            "flatten",
+            "zip",
+            "dict",
+            "keys",
+            "values",
+            "items",
+            "has",
+            "with_item",
+            "merge",
+            "tuple",
+            "set",
+            "set_union",
+            "set_intersection",
+            "set_difference",
+            "bytes",
+            "encode_utf8",
+            "decode_utf8",
+            "to_list",
+            "kind",
+            "group_by",
+            "sum",
+        }
+    ),
+    "thirst::net": frozenset(),
+    "thirst::sqlite": frozenset(),
+    "thirst::yaml": frozenset({"parse", "dump"}),
+    "thirst::toml": frozenset({"parse", "dump"}),
+}
+
+
+def validate_stdlib_exports(module_path: str, module: object) -> None:
+    """Refuse stdlib exports that lack an explicit, consistent classification.
+
+    Validate resolved and cached dictionaries before guest exposure. File module
+    exports follow source execution restrictions instead of this stdlib ledger.
+    """
+    if (
+        module_path not in STDLIB_MODULES
+        or module_path not in NO_AMBIENT_STDLIB_EXPORTS
+    ):
+        raise ImportError(f"Unreviewed standard-library namespace: {module_path}")
+    effects = SENSITIVE_STDLIB_CAPABILITIES.get(module_path, {})
+    no_ambient = NO_AMBIENT_STDLIB_EXPORTS[module_path]
+    if (
+        not isinstance(effects, dict)
+        or not isinstance(no_ambient, frozenset)
+        or any(type(name) is not str for name in (*effects, *no_ambient))
+        or any(
+            type(action) is not str
+            or action not in {"read", "write", "network", "execute"}
+            for action in effects.values()
+        )
+        or set(effects) & no_ambient
+    ):
+        raise ImportError(f"Invalid standard-library classification: {module_path}")
+    if not isinstance(module, dict) or any(type(name) is not str for name in module):
+        raise ImportError(f"Invalid standard-library export dictionary: {module_path}")
+    expected = set(effects) | no_ambient
+    if set(module) != expected:
+        raise ImportError(
+            f"Unreviewed or missing standard-library exports: {module_path}"
+        )
+    if any(not callable(value) for value in module.values()):
+        raise ImportError(f"Standard-library exports must be callable: {module_path}")
 
 
 # ============================================================
@@ -642,8 +746,12 @@ def _make_test_module() -> dict:
             raise AssertionError(f"AssertionError: {v!r} is not truthy")
 
     def assert_raises(fn: Callable[..., Any], *args, **kwargs) -> None:
+        from utf.thirsty_lang.interpreter import GovernanceViolation
+
         try:
             fn(*args, **kwargs)
+        except GovernanceViolation:
+            raise
         except Exception:
             return
         raise AssertionError("Expected exception but none raised")

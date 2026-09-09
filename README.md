@@ -9,6 +9,11 @@ Robotics and swarm implementation are deferred while the language foundation
 and its verification take priority. The plan identifies implemented work,
 compatibility changes, and remaining milestones.
 
+The current working tree adds **governance by default** after the released
+0.9.0 and local M3.1/M3.2 increments. This behavior is unreleased; installing
+the published 0.9.0 package does not install these changes. Current integration
+evidence belongs in [the security-defaults record](docs/operations/M3_SECURITY_DEFAULTS_VERIFICATION.md).
+
 ```text
   source  →  verdict  →  proof  →  audit  →  governed effect
 
@@ -33,36 +38,30 @@ compatibility changes, and remaining milestones.
 
 ## What Is Thirsty-Lang?
 
-The programming language wars are not over. **Governance is just getting started.**
+Thirsty-Lang is a general-purpose language under development whose reference
+runtime makes **governance part of execution**. Pure computation works without
+a policy. Mediated effects, including imports, input/output, file access, and
+process execution, require an allowing policy decision by default. Source code
+cannot disable those checks by declaring a `core`, `strict`, or `pure` header.
 
-Thirsty-Lang is not a prettier Python syntax. It is a **defensive runtime and
-language stack** where execution, side effects, policy, proof, authority, audit,
-mutation, symbolic constraints, and build outputs are all treated as governable
-surfaces — not as afterthoughts bolted on after deployment.
-
-Every other language asks: *can this code run?*
-Thirsty-Lang asks a harder question: *should this code run, under the current
-authority, policy, and context — and can it produce cryptographic proof that it
-did so correctly?*
-
-Instead of treating governance as documentation, middleware, or operational
-policy applied after deployment, Thirsty-Lang treats **governance as part of
-the execution model itself**. Sensitive operations require policy evaluation,
-authority verification and proof generation before producing governed effects.
+The runtime records policy decisions and carries caller and defining-function
+restrictions through language calls, imports, callbacks, and cascades.
+Authenticated authority and Ed25519 proof signing are additional requirements
+when hardened execution is selected; a bare authority tag is not authenticated.
 Deployments that require durable audit persistence must attach a
 `TarlAuditArchive` and enable `set_require_audit(True)`; hardened mode alone
 does not provision an archive.
 
-The result is a language designed to make execution not only programmable, but
-**explainable, attributable, and defensible** — by construction, not by
-convention.
+These mechanisms expose inspectable authorization evidence. They do not prove
+arbitrary programs correct, provide an OS sandbox, or establish Python parity.
+The development plan keeps those limits and remaining language work explicit.
 
-The core posture is non-negotiable:
+At mediated execution boundaries:
 
 | Principle | Consequence |
 |---|---|
-| 🌊 No policy | **DENY** |
-| 🔐 No authority | **DENY** |
+| 🌊 No policy for a gated effect | **DENY** |
+| 🔐 Required authenticated authority is absent | **DENY** |
 | 🧾 No proof | No governed-execution claim |
 | ⚡ No verdict | No governed side effect |
 | ⛓️ Required audit write fails | **DENY** when an archive is attached and audit is required |
@@ -76,7 +75,7 @@ The core posture is non-negotiable:
 pip install thirsty-lang
 ```
 
-Prepared release target (install after publication):
+Recorded published release (without the newer working-tree changes):
 
 ```bash
 pip install thirsty-lang==0.9.0
@@ -97,30 +96,40 @@ The end-to-end reference is the
 edition is [`Thirsty-Lang-UTF-101.pdf`](output/pdf/Thirsty-Lang-UTF-101.pdf). It unifies
 the language tutorial, exact grammar, all seven CLIs, T.A.R.L. policy and proof
 contracts, the six-tier family, deployment, security, release evidence, and
-source/test traceability for the prepared 0.9.0 release.
+source/test traceability. Released and unreleased behavior are distinguished.
 
 ---
 
 ## Quick Start
 
 ```thirsty
-module hello: core
+module hello: governed
 
 glass greet(name) {
     return "hello, " + name + "!"
 }
 
 drink message = greet("governed world")
-pour message
+message
 ```
 
 ```bash
 thirsty run hello.thirsty
 ```
 
-The welcoming syntax is only the surface. The power appears when your program
-needs to touch something real — a file, a network call, a database write — and
-the runtime demands a proof before it lets that happen.
+The final expression returns a value for the trusted CLI to display. This host
+presentation does not grant the program a `write` capability. `pour message`
+instead requests `write` to `stdout` and needs an explicit policy, for example
+`when action == "write" and target == "stdout" => ALLOW` in a `.tarl` file
+passed with `--policy`. Imports require their own permission before a module
+is exposed; allowing an import does not allow its sensitive operations.
+
+`thirsty new project` uses the same governed computation-only pattern. Trusted
+hosts can deliberately choose compatibility execution with `--unsafe-core`,
+or `Interpreter(allow_ungoverned=True)` in Python. The CLI discloses this choice
+and rejects conflicting policy, authority, lock, signing, hardened, and audit
+options. An explicit `governed` declaration or active governed caller still
+requires governance. `--thirst-level core` alone is not an opt-out.
 
 ---
 
@@ -129,18 +138,16 @@ the runtime demands a proof before it lets that happen.
 ```mermaid
 flowchart LR
     Source[".thirsty source"] --> Parse["Parse + check"]
-    Parse --> Mode{"core or governed?"}
-    Mode -->|core| Run["ordinary runtime"]
-    Mode -->|governed| Contracts["requires / ensures / invariant"]
+    Parse --> Host["governance required by default"]
+    Host --> Compute["computation without mediated effects"]
+    Host --> Contracts["mediated effect / governed call"]
     Contracts --> Policy["T.A.R.L. policy"]
     Policy --> Verdict{"ALLOW / DENY / ESCALATE"}
-    Verdict -->|ALLOW| Effect["brokered effect"]
+    Verdict -->|ALLOW| Proof["decision proof"]
     Verdict -->|DENY| Refuse["fail closed"]
-    Verdict -->|ESCALATE| Quorum["signed quorum path"]
-    Effect --> Proof["proof record"]
-    Refuse --> Proof
-    Quorum --> Proof
-    Proof --> Audit["hash-linked audit"]
+    Verdict -->|ESCALATE| Refuse
+    Proof --> Audit["persist before effect when audit is required"]
+    Audit --> Effect["mediated effect"]
 ```
 
 ---
@@ -198,11 +205,11 @@ glass withdraw(amt) requires amt > 0 ensures result >= 0 {
 Runtime enforcement includes:
 
 - 🧪 `requires`, `ensures`, and `invariant` checks
-- 🚧 static and runtime blocking of governed calls from ordinary `core` mode
+- 🚧 static and runtime blocking of governed calls from explicitly ungoverned execution
 - 🧭 T.A.R.L. policy routing for governed calls and capability gates
 - 🧾 proof-bearing `ALLOW`, `DENY`, and `ESCALATE` decisions
 - 🛑 non-swallowable `GovernanceViolation` denials
-- 🧯 fail-closed parsing for governed modules
+- 🧯 lexical/parser failure provenance and refusal of partial programs in every mode
 - 📦 build refusal when a target would drop governance unless the loss is explicitly disclosed
 
 ---
@@ -276,7 +283,7 @@ adapters.
 
 | Current | Capability | Defensive effect |
 |---|---|---|
-| 🌊 | Default-deny governed mode | Missing policy, authority, or admissible proof refuses governed execution instead of granting it |
+| 🌊 | Governance required by default | Missing policy denies a gated effect; authenticated authority and signed proofs are additionally required when hardened |
 | 🚪 | Capability broker | External effects such as FFI/native calls and tool invocations can be mediated before execution |
 | 🧰 | Sensitive stdlib gates | File, network, process, env, database, logging, and related calls are treated as capability-bearing effects |
 | 🔐 | Signed authority claims | Hardened mode can require authenticated authority instead of trusting a raw string like `admin` |
@@ -285,7 +292,7 @@ adapters.
 | ⏱️ | Trusted clock | Temporal policy can use signed time instead of the host clock |
 | 🗺️ | Path guard | Filesystem roots can be canonicalized and confined against traversal and symlink escape |
 | 🗳️ | Policy lint and quorum | Broad `ALLOW` rules are flagged; `ESCALATE` promotion requires a verified policy/schema-bound proof plus distinct digest-bound approvals |
-| 🧯 | Parser fail-closed path | Governed parse errors discard recovered executable statements instead of running partial code |
+| 🧯 | Parser failure provenance | Lexical/parser errors cannot become executable recovered programs; format refuses malformed source before writing |
 
 The offensive challenge catalog is maintained in
 [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md). The feature matrix is maintained
@@ -334,24 +341,27 @@ behavior:
 | `spillage` / `cleanup` / `throw` | 🧯 | models structured error handling |
 | `cascade` | ⚡ | models async flow |
 | `requires` / `ensures` / `invariant` | 🧪 | turns governance into executable checks |
-| `module name: governed` | 🛡️ | moves code into the governed execution path |
+| `module name: governed` | 🛡️ | explicitly retains the governance floor, including under host compatibility opt-out |
 
 Example:
 
 ```thirsty
-module counters: core
+module counters: governed
 
 fountain Counter {
-    drink count: Int = 0
+    count: Int
 
-    glass increment() {
-        this.count = this.count + 1
-        return this.count
+    glass init(self) { self.count = 0 }
+
+    glass increment(self) {
+        self.count = self.count + 1
+        return self.count
     }
 }
 
 drink c = new Counter()
-times 3 { pour c.increment() }
+times 3 { c.increment() }
+c.count
 ```
 
 ---
@@ -364,8 +374,8 @@ Primary commands:
 thirsty --help
 thirsty run program.thirsty
 thirsty fmt program.thirsty
-thirsty build program.thirsty --target js
-thirsty build program.thirsty --target js --policy policy.tarl --emit-manifest
+thirsty build program.thirsty --target js --allow-governance-loss
+thirsty build program.thirsty --target js --allow-governance-loss --policy policy.tarl
 thirsty prove program.thirsty --policy policy.tarl --emit-manifest
 thirsty explain-denial program.thirsty --policy policy.tarl
 thirsty govern program.thirsty
@@ -410,10 +420,19 @@ Proof-oriented commands are static unless explicitly documented otherwise:
 - `thirsty explain-denial program.thirsty --policy policy.tarl` emits a
   machine-readable explanation of missing policy, context, authority, and proof
   conditions for the static obligation set.
-- `thirsty build ... --emit-manifest --policy policy.tarl` records source and
+- `thirsty build ... --allow-governance-loss --policy policy.tarl` records source and
   policy hashes, required capabilities, context schema, proof/audit
   requirements, Shadow status when statically visible, and governance-loss
   status in the build manifest.
+
+Every current public JS/LLVM/Pyodide build requires the explicit loss flag and
+persists its disclosure before writing executable output. A policy bound into
+a manifest does not configure enforcement in that artifact. Pyodide retains the
+interpreter and explicit governed declarations, but has no host policy/authority
+wiring; such declarations still deny effects. A manifest left by a later
+toolchain failure is not evidence of a successful build. Static reports identify
+declared semantics, effective governance, and limits of effect discovery;
+dynamic calls and imported-module bodies are not a complete static inventory.
 
 Explicit context schemas can be attached with `--context-schema schema.json`.
 The compact schema shape is:

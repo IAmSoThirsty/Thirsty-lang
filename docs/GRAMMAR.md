@@ -1,6 +1,6 @@
 # Thirsty-Lang Grammar (Tier 1)
 
-**Edition:** Thirsty-Lang v0.9.0 (release preparation)
+**Edition:** Thirsty-Lang v0.9.0 plus unreleased M3.1-M3.2 increments
 
 **Scope:** syntax accepted by `utf.thirsty_lang.lexer.Lexer` and
 `utf.thirsty_lang.parser.Parser`
@@ -125,6 +125,14 @@ declared nominal types and recursively checks collection literal elements.
 This does not implement general polymorphic functions or whole-program type
 soundness; dynamic `Any` and foreign values still require boundary validation.
 
+M3.2 resolves nominal names recursively inside generic arguments, distinguishes
+declarations with identical names in different scopes, and diagnoses malformed
+or excess generic arguments. Top-level nominal descriptors are registered
+before function signatures are checked; this does not reorder runtime
+initialization. Struct fields use newlines or semicolons, not commas. Invalid
+struct/interface declarations produce diagnostics and make parser progress
+instead of looping on an unexpected token.
+
 In `strict` mode, `drink` and `let` bindings require an initializer at runtime.
 In `pure` mode, mediated external effects are rejected at runtime, including
 I/O, clock/randomness, and imported callbacks. Local mutable data is still
@@ -159,7 +167,8 @@ numeric_unary    = "-" numeric_unary | postfix ;
 postfix          = primary
                    { call_suffix | subscript_suffix | member_suffix } ;
 call_suffix      = "(" [ argument_list ] ")" ;
-subscript_suffix = "[" expression "]" ;
+subscript_suffix = "[" ( expression | slice_bounds ) "]" ;
+slice_bounds     = [ expression ] ":" [ expression ] [ ":" [ expression ] ] ;
 member_suffix    = "." member_name ;
 argument_list    = expression { "," expression } ;
 
@@ -196,6 +205,14 @@ cascade_expression = "cascade" expression ;
 `member_name` is an identifier-shaped token; it may be a reserved word after
 the dot. Method calls use the same postfix chain as ordinary calls, for example
 `object.method(arg)[0]`.
+
+The unreleased M3.1 increment adds slices: `values[:]`, `values[1:4]`,
+`values[::2]`, and `values[::-1]`. Either or both colons may have omitted
+bounds; empty indexing `values[]` and more than two colons are invalid.
+Slices and indices bind at the same postfix precedence and can be chained.
+Slice assignment is explicitly unsupported and marks the parse as failed.
+See [GENERAL_PURPOSE_LANGUAGE.md](GENERAL_PURPOSE_LANGUAGE.md) for bound types,
+Unicode indexing, copying, evaluation order, and backend limits.
 
 There is no unary `+` operator. Logical negation is spelled `not`; a bare `!`
 is a lexer error, while `!=` is the supported inequality operator. Adjacent
@@ -293,6 +310,12 @@ Most statement forms accept, but do not require, a trailing semicolon. There is
 no automatic semicolon insertion because newlines are discarded by the lexer;
 the parser instead recognizes the end of an expression or declaration from the
 following token. Empty `;` is not a statement.
+
+A separator is also necessary when a new statement could otherwise continue
+the preceding expression, for example `drink x = [1]; [2][:]`. A newline
+does not prevent `[` from becoming a subscript, `(` from becoming a call, or
+`-` from becoming subtraction. The formatter preserves these boundaries with
+a semicolon on statement forms that accept one.
 
 Semicolons remain required in two places:
 
