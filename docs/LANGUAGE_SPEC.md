@@ -201,14 +201,17 @@ on the object, so subsequent guest writes through an alias, including `Any`,
 must satisfy it. A collection with only an inferred type receives static checking
 until it crosses an explicit runtime collection boundary. A failed write leaves
 the target intact. A typed shallow copy shares the contracts of its children.
-A collection containing `Quenched[T]` validates its wrapper and its payload.
+A collection containing `Quenched[T]` preserves the optional wrapper. Its
+payload may be absent (`none`). A present payload must satisfy `T`.
 
 Validation supports nesting to depth 64 and at most 100,000 visited values per
 operation. An interpreter and its guest imports retain up to 65,536 constrained
-objects. A guest call between two interpreters joins their object contracts.
-Closing the last connected interpreter releases the retained objects. Python
-code that directly mutates an embedded object runs inside the trusted host
-boundary. `Task`, `Result` and `Governed` lack a general guest value
+objects. A guest call between two interpreters joins their object contracts after
+checking overlapping values. Closing the last connected interpreter releases
+the retained objects. Direct Python mutation and host injection of the same
+object into independent interpreters before their first guest call are trusted
+embedding operations. Each independent interpreter can enforce only the
+contracts it has observed. `Task`, `Result` and `Governed` lack a general guest value
 representation for validating collection elements.
 
 ### Sequence operations (unreleased M3.1)

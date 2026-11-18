@@ -4,7 +4,8 @@ Bindings retain object identity. A validation transaction publishes nested
 constraints only after the entire input and the requested write succeed.
 """
 
-from collections.abc import Callable, Iterable, Iterator
+from collections import ChainMap
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from threading import RLock
@@ -116,6 +117,7 @@ class MutableContracts:
             if len(source.entries) > len(target.entries):
                 source, target = target, source
             changes: dict[int, tuple[Any, Type]] = {}
+            shared: list[tuple[Any, Type]] = []
             added = 0
             for key, (value, constraint) in source.entries.items():
                 existing = target.entries.get(key)
@@ -123,9 +125,17 @@ class MutableContracts:
                     added += 1
                 else:
                     constraint = _refine(existing[1], constraint)
+                    shared.append((value, constraint))
                 changes[key] = (value, constraint)
-            if len(target.entries) + added > _MAX_RETAINED:
+            count = len(target.entries) + added
+            if count > _MAX_RETAINED:
                 raise TypeError("mutable contract identity limit exceeded")
+            # Independent graphs could write to the same native object under
+            # different gradual contracts. Validate its present contents and
+            # discover newly reachable aliases before publishing any changes.
+            if shared:
+                combined = ChainMap(changes, target.entries)
+                changes.update(self._validate(shared, combined, count))
             target.entries.update(changes)
             for owner in tuple(source.owners):
                 owner._graph = target
@@ -152,15 +162,19 @@ class MutableContracts:
         labels: list[str] | None = None,
     ) -> None:
         with _GRAPH_LOCK:
-            self._bind(bindings, write, labels)
+            entries = self._graph.entries
+            pending = self._validate(bindings, entries, len(entries), labels)
+            if write is not None:
+                write()
+            entries.update(pending)
 
-    def _bind(
-        self,
+    @staticmethod
+    def _validate(
         bindings: Iterable[tuple[Any, Type]],
-        write: Callable[[], None] | None,
-        labels: list[str] | None,
-    ) -> None:
-        entries = self._graph.entries
+        entries: Mapping[int, tuple[Any, Type]],
+        existing_count: int,
+        labels: list[str] | None = None,
+    ) -> dict[int, tuple[Any, Type]]:
         pending: dict[int, tuple[Any, Type]] = {}
         visits = 0
         new_entries = 0
@@ -193,7 +207,7 @@ class MutableContracts:
                     return
             else:
                 new_entries += 1
-                if len(entries) + new_entries > _MAX_RETAINED:
+                if existing_count + new_entries > _MAX_RETAINED:
                     raise TypeError("mutable contract identity limit exceeded")
             pending[key] = (value, expected)
             if isinstance(expected, ReservoirType):
@@ -227,9 +241,7 @@ class MutableContracts:
                         f"field '{labels[index]}' requires {expected}: {error}"
                     ) from error
                 raise
-        if write is not None:
-            write()
-        entries.update(pending)
+        return pending
 
     def write(
         self, target: Any, key: Any, value: Any, mutation: Callable[[], None]

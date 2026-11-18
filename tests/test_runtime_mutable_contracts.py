@@ -376,3 +376,79 @@ def test_nested_optional_payloads_keep_their_individual_constraints(machine):
         run(machine, 'inner.value = "invalid"')
     with pytest.raises(TypeError, match="requires Quenched"):
         run(machine, 'vacant.value = "invalid"')
+
+
+def prepare_shared_callback(caller, definer, native, strict, gradual):
+    for machine, annotation in ((caller, strict), (definer, gradual)):
+        machine.env.define("raw", native)
+        run(machine, f"drink shared: {annotation} = raw")
+    run(definer, "glass call_me() { return 1 }")
+    caller.env.define("foreign", definer.env.get("call_me"))
+
+
+def test_join_validates_shared_values_before_publishing_contracts(machine):
+    native = [1]
+    with Interpreter(allow_ungoverned=True) as other:
+        prepare_shared_callback(
+            machine, other, native, "Reservoir[Int]", "Reservoir[Any]"
+        )
+        run(other, 'shared[0] = "bad"')
+        with pytest.raises(TypeError, match="requires Int"):
+            run(machine, "foreign()")
+        with pytest.raises(TypeError, match="requires Int"):
+            run(machine, "shared[0] = false")
+        assert native == ["bad"]
+        # The rejected join left the definer's more gradual contract intact.
+        run(other, "shared[0] = false\nshared[0] = 3")
+        assert run(machine, "foreign()") == 1
+        with pytest.raises(TypeError, match="requires Int"):
+            run(other, "shared[0] = false")
+        assert native == [3]
+
+
+def test_join_checks_dictionary_keys_and_acquires_new_nested_aliases(machine):
+    with Interpreter(allow_ungoverned=True) as other:
+        prepare_shared_callback(
+            machine, other, {}, "Dict[String, Reservoir[Int]]", "Dict[Any, Any]"
+        )
+        run(other, 'drink row: Any = [7]\nshared["row"] = row\nshared[false] = row')
+        with pytest.raises(TypeError, match="requires String"):
+            run(machine, "foreign()")
+        # The row was visited before the bad key. Its proposed Int contract
+        # must not be published until every shared entry has passed.
+        run(other, 'row[0] = "loose"\nevaporate shared\nshared["row"] = row')
+        with pytest.raises(TypeError, match="requires Int"):
+            run(machine, "foreign()")
+        run(other, "row[0] = 8")
+        assert run(machine, "foreign()") == 1
+        for source, required in (
+            ("row[0] = false", "Int"),
+            ("shared[9] = row", "String"),
+        ):
+            with pytest.raises(TypeError, match=f"requires {required}"):
+                run(other, source)
+        assert run(machine, 'shared["row"]') is other.env.get("row")
+
+
+@pytest.mark.parametrize("overlapping", [False, True])
+def test_join_traverses_only_shared_roots_with_one_validation_budget(
+    machine, monkeypatch, overlapping
+):
+    from utf.thirsty_lang import mutable_contracts
+
+    first = [1, 2, 3]
+    with Interpreter(allow_ungoverned=True) as other:
+        for owner, values in (
+            (machine, first),
+            (other, first if overlapping else [4, 5]),
+        ):
+            owner.env.define("raw", values)
+            run(owner, "drink typed: Reservoir[Int] = raw")
+        run(other, "glass call_me() { return 1 }")
+        machine.env.define("foreign", other.env.get("call_me"))
+        monkeypatch.setattr(mutable_contracts, "_MAX_VISITS", 1)
+        if overlapping:
+            with pytest.raises(TypeError, match="validation limit"):
+                run(machine, "foreign()")
+        else:
+            assert run(machine, "foreign()") == 1
