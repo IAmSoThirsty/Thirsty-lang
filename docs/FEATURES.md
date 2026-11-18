@@ -32,7 +32,8 @@ checker, a type system, and a formatter.
 | `glass f(x) requires P ensures Q invariant I { … }` | governed function (§2) |
 | `fountain C { field: T  glass init(self){…}  glass m(self,…){…} }` | class with fields, constructor, methods |
 | `enum`, `struct` | nominal enum values and typed mutable struct fields |
-| `interface`, `shield`, `sanitize`, `armor`, `detect`, `defend` | reserved; execution reports unsupported semantics |
+| `shield` | one-use signed stdout grant for a standalone governed module on the reference and Node hosts |
+| `interface`, `sanitize`, `armor`, `detect`, `defend` | reserved; execution reports unsupported semantics |
 | `symbol`, `morph` | symbolic binding / transformation forms; no implied security guarantee |
 
 ### 1.2 Statements
@@ -52,7 +53,8 @@ checker, a type system, and a formatter.
   `cleanup { … } finally { … }`, `throw expr`.
 - **Async:** `cascade expr` — schedules on a thread pool and **awaits**, yielding
   the value (not a future).
-- **Reserved security syntax:** `shield` / `sanitize` / `armor` / `detect` /
+- **Shield:** a fixed literal can be published once per run. A holder can surrender and the host can stop further dispatch. [Contract and CLI](DEFENSIVE_COMPARTMENTS.md#running-the-first-milestone)
+- **Reserved security syntax:** `sanitize` / `armor` / `detect` /
   `defend` is rejected until concrete enforcement semantics exist.
 
 ### 1.3 Expressions & operators

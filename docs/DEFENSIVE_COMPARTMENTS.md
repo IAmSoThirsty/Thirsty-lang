@@ -1,12 +1,12 @@
 # Defensive execution with `shield`
 
-**Design proposal for `codex/language-development`, based on `70de2d5`.** A person responsible for an AI-assisted system should be able to stop a runaway task even when its code keeps running. A second assistant helping someone else should retain its own capacity and permissions. The unit of containment in this design is one run and its descendants.
+**Local development on `codex/language-development`.** The first milestone implements a one-use stdout grant, voluntary surrender and a host stop at the dispatch boundary. The later milestones below extend protection to the worker process and additional effects. The unit of authority is one host-owned run and its descendants.
 
 ## Where the language stands
 
 The reference interpreter already mediates sensitive operations through TARL. Importing a module grants no permission to use its sensitive operations. Caller and defining policies both constrain a call. The hardened configuration can verify signed, expiring authority and the host can require durable audit. The interpreter also has cooperative step, time and call-depth limits. [Security model](../SECURITY.md#default-deny) · [Execution limits and their boundaries](EXECUTION_CONTROL.md)
 
-The installed governed Node host verifies compiled bytes and checks `write stdout`, including presentation of `main`. Its subject is a host-supplied label. Signed identity, durable audit and OS containment are separate work for this host. The parser recognizes `shield`, but the checker rejects it today. The following contract would give that spelling its first executable meaning. [Installed Node evidence](operations/LANGUAGE_DEVELOPMENT_QUALIFICATION_20261118.md#governed-node-host-follow-up) · [Current reserved syntax](FEATURES.md#12-statements)
+The ordinary governed Node host accepts a host-supplied subject label. The stdout shield uses a separate private channel to the same host-side TARL policy mechanism and requires a verified Ed25519 identity for publication. The Node artifact must match its adjacent source and the host-selected policy before execution. [Earlier Node qualification](operations/LANGUAGE_DEVELOPMENT_QUALIFICATION_20261118.md#governed-node-host-follow-up) · [Language features](FEATURES.md#12-statements)
 
 ## The first program
 
@@ -19,7 +19,23 @@ shield {
 }
 ```
 
-This is proposed semantics using the existing block grammar. The host binds the verified module and block location to a grant for this run. The compiler records the block's possible effects. Its effective permissions are the intersection of that set and the host grant. Without a matching grant, local computation is available and external effects are denied. A build target must reject a shield it cannot enforce, including when a compatibility build would otherwise allow governance loss.
+The first profile accepts a governed module containing exactly one top-level `shield`. Its block supports up to 64 statements: immutable integer locals with bounded addition and subtraction, `pour` of a fixed public string, and standalone `surrender()`. Each UTF-8 record including its newline must fit in 1,024 bytes. Calls, imports, nested blocks, external state and dynamic output are outside this profile. Local computation can finish with an empty grant. Builds that would lose governance reject the shield before emitting output.
+
+### Running the first milestone
+
+```sh
+thirsty build report_status.thirsty --target js --policy stdout.tarl
+thirsty run report_status.thirsty --policy stdout.tarl --authority-token worker.json --authority-key-file issuer.pub.json
+thirsty run-js report_status.js --policy stdout.tarl --authority-token worker.json --authority-key-file issuer.pub.json
+```
+
+Use a host-selected policy such as `when authority_authenticated == true and action == "write" and target == "stdout" => ALLOW` followed by `when true => DENY`. The build manifest lists the possible effects and `build.shield.grants`. The issuer must review the source, block location, intended subject and exact output before signing a finite-expiry claim for an allowed scope with `AuthorityIssuer.issue`. Each scope binds the normalized source digest, one-based line and column, and the digest of the exact UTF-8 record. The host supplies the trusted issuer public key independently of the guest.
+
+Each CLI invocation starts a fresh host run. The signed credential establishes eligibility. The supervisor owns the one-use allowance for that run. For concurrent workers, create one `ShieldRun(source, site, verified_authority, binary_sink)` and pass it or a derived handle to each worker. On the reference host attach the TARL runtime, bind the same verified authority, then call `interpreter.interpret_shield(source, handle)`. On Node call `js_host.run_shield(artifact, policy_text, handle)`. A successful first publication produces exact bytes once. A denied publication exits the CLI with status 2. Surrender itself succeeds and subsequent dispatches through the surrendered lineage are denied.
+
+An embedding host can call `stop()` from another thread. Its return acknowledges closure of admission for all handles sharing that run. Inspect `outcome` for `unused`, `in_flight`, `published` or `unknown`. A sink reporting a partial write or failure leaves the allowance spent. A new invocation can use a still-valid credential to open a new run. Durable cross-run replay protection, process-tree termination and an external operator control service belong to later milestones. [Dual-host regression tests](../tests/test_shield_hosts.py) · [Installed CLI verification](../scripts/verify_installed_shield.py)
+
+The issuer can also withdraw its key from the live verifier with `revoke_key(key_id)`. When that call returns, a pending write using the withdrawn key can finish only if the supervisor had already admitted it. Revocation can return while that write is still in the sink. Re-registering a key requires a freshly verified credential for a new shield run.
 
 ### Authority follows the work
 
@@ -71,7 +87,7 @@ Measure the cost to the defender, the work an untrusted run can complete, and ho
 
 ## Delivery order
 
-1. Implement the one-use stdout shield in the reference host and installed Node runner. Start with fixed public literals, authenticated host grants, a shared budget, effect bounds, voluntary surrender and the stop/dispatch race. Keep file, network and process operations outside this first profile.
+1. **Implemented locally.** The reference and Node hosts support the one-use stdout shield, fixed public literals, authenticated host grants, a shared budget, effect bounds, voluntary surrender and stop at dispatch. The first profile admits no file, network or process operations.
 2. Qualify independent operator stop, restart invalidation, required audit under failure and OS worker isolation on Windows and Linux. Test two tenants under pressure and publish per-platform evidence.
 3. Add labeled inputs and recipient-specific release, then the bounded peer-report channel and one read-only file adapter for the existing data-report workload. Use policy comparison to produce a runnable witness if changing a rule widens who can receive data. Each added adapter needs its own bounds, cancellation behavior and outcome tests.
 4. Qualify draft and promotion grants against a disposable source store before allowing a maintenance agent to propose changes to a protected codebase.

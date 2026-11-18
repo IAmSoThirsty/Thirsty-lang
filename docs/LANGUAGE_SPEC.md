@@ -443,7 +443,10 @@ It exposes `action`, `target`, `authority`, `authority_subject`,
 `authority_authenticated` and `authority_grants`. The asserted subject has
 `authority_authenticated = false` and an empty grants list. Build diagnostics reject
 composition, time windows, external sources, duplicate conditions and unknown fields.
-The compatibility builds for JS, LLVM and Pyodide require
+The separate [stdout shield profile](DEFENSIVE_COMPARTMENTS.md#running-the-first-milestone)
+accepts a verified expiring subject and a source/site/record grant. All
+handles for a run share one publication. Only a policy-bound JS build may
+emit a shield artifact. Compatibility builds for other programs on JS, LLVM and Pyodide require
 `--allow-governance-loss` and persist the disclosure before executable output.
 Manifests distinguish requested
 opt-out and effective artifact governance. A manifest alone does not prove

@@ -80,7 +80,7 @@ def _condition_key(condition: str) -> str:
     return repr(tree)
 
 
-def _parse_policy(policy_text: str) -> TarlPolicy:
+def parse_js_policy(policy_text: str) -> TarlPolicy:
     if type(policy_text) is not str:
         raise ValueError("a TARL policy string is required")
     # Proofs bind the UTF-8 policy source. JSON can also encode lone surrogates.
@@ -128,7 +128,7 @@ def _parse_policy(policy_text: str) -> TarlPolicy:
 
 def validate_js_policy(policy_text: str) -> None:
     """Validate the single-policy, fixed-context profile used by the Node host."""
-    _parse_policy(policy_text)
+    parse_js_policy(policy_text)
 
 
 def _serve(stdin: BinaryIO, stdout: BinaryIO, stderr: TextIO) -> int:
@@ -151,7 +151,7 @@ def _serve(stdin: BinaryIO, stdout: BinaryIO, stderr: TextIO) -> int:
             if type(request["text"]) is not str:
                 raise ValueError("write requires text")
             output = request["text"].encode("utf-8") + b"\n"
-        policy = _parse_policy(request["policy"])
+        policy = parse_js_policy(request["policy"])
     except (ValueError, RecursionError, SafeExpr.ParseError):
         print("Invalid governed stdout broker setup", file=stderr)
         return 1

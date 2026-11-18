@@ -228,6 +228,19 @@ class Checker:
         except (TypeError, ValueError) as error:
             self.errors.append(make_error("E901", span=ast.span, detail=str(error)))
             return self.errors
+        from utf.thirsty_lang.shield_profile import (
+            ShieldProfileError,
+            checked_body,
+            module_shield,
+        )
+
+        shield = module_shield(ast)
+        if shield is not None:
+            try:
+                checked_body(shield)
+            except ShieldProfileError as error:
+                self.errors.append(Diagnostic("E901", str(error), error.span, "error"))
+            return self.errors
         # Register mode
         if ast.header:
             # Register module name
@@ -429,9 +442,14 @@ class Checker:
         elif isinstance(stmt, CascadeCall):
             self._check_expr(stmt)
         elif isinstance(stmt, SecurityBlock):
+            reason = (
+                "stdout shield must be the only top-level statement in an explicitly governed module"
+                if stmt.block_type == "shield"
+                else f"security block '{stmt.block_type}' has no enforcement implementation"
+            )
             self._unsupported(
                 stmt,
-                f"security block '{stmt.block_type}' has no enforcement implementation",
+                reason,
             )
             self._check_block(stmt.body)
         elif isinstance(stmt, SpillageStmt):

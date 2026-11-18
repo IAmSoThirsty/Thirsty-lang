@@ -43,6 +43,14 @@ def launch_verified(artifact: Path, expected: str, authority: str) -> int:
     """Execute the compared bytes. Node never reopens a replaceable script path."""
     if not authority.strip():
         raise ValueError("Governance denied: a nonempty host authority is required")
+    node, code, env = _verified_node(artifact, expected)
+    env.update(THIRSTY_JS_PYTHON=sys.executable, THIRSTY_JS_AUTHORITY=authority)
+    return subprocess.run(
+        [node, "--input-type=commonjs", "-"], input=code, env=env, check=False
+    ).returncode
+
+
+def _verified_node(artifact: Path, expected: str) -> tuple[str, bytes, dict[str, str]]:
     code = expected.encode("utf-8")
     with artifact.open("rb") as stream:
         if stream.read(len(code) + 1) != code:
@@ -61,14 +69,58 @@ def launch_verified(artifact: Path, expected: str, authority: str) -> int:
                 break
     if node is None:
         raise ValueError("Node.js is required to execute a governed JavaScript build")
-    env = dict(
-        os.environ, THIRSTY_JS_PYTHON=sys.executable, THIRSTY_JS_AUTHORITY=authority
-    )
+    env = dict(os.environ)
     # A project-local JS preload must not run ahead of the verified program.
     env.pop("NODE_OPTIONS", None)
-    return subprocess.run(
-        [node, "--input-type=commonjs", "-"], input=code, env=env, check=False
-    ).returncode
+    return node, code, env
+
+
+def run_shield(artifact: Path, policy_text: str, run) -> int:
+    """Verify an installed Node artifact and use the embedding host's live grant."""
+    from utf.thirsty_lang.cli import _compile_governed_js, _lex_parse_check
+    from utf.thirsty_lang.shield_profile import module_shield
+
+    if artifact.suffix != ".js":
+        raise ValueError("expected a compiled .js artifact")
+    ast, errors, source = _lex_parse_check(str(artifact.with_suffix(".thirsty")))
+    block = module_shield(ast)
+    if errors or block is None:
+        raise ValueError("expected a checked governed stdout shield module")
+    expected = _compile_governed_js(ast, source, policy_text)
+    return _launch_shield(artifact, expected, source, block.span[:2], policy_text, run)
+
+
+def _launch_shield(
+    artifact: Path, expected: str, source: str, site: tuple[int, int], policy: str, run
+) -> int:
+    from utf.tarl.broker import CapabilityBroker, CapabilityDenied
+    from utf.tarl.runtime import TarlRuntime
+    from utf.thirsty_lang.js_policy import parse_js_policy
+    from utf.thirsty_lang.shield import ShieldDenied
+    from utf.thirsty_lang.shield_node import invoke_node
+
+    if not run.matches(source, site):
+        raise ShieldDenied("shield source or site does not match the run")
+    node, code, env = _verified_node(artifact, expected)
+    runtime = TarlRuntime(parse_js_policy(policy))
+    try:
+        if not runtime.ensure_context_schema():
+            raise ValueError("invalid shield policy schema")
+        broker = CapabilityBroker(
+            runtime, authority=run.authority, require_authenticated=True
+        )
+
+        def authorize():
+            try:
+                broker.require("write", "stdout")
+            except CapabilityDenied as denial:
+                raise ShieldDenied(
+                    f"write stdout ({denial.decision.verdict.value})"
+                ) from denial
+
+        return invoke_node(node, code, run, authorize, env)
+    finally:
+        runtime.shutdown()
 
 
 _NODE_HOST = r"""

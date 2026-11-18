@@ -1398,10 +1398,13 @@ thirsty run-js governed_app.js --policy policy.tarl --authority reader
 ```
 
 The adjacent source and selected policy must reproduce the compiled artifact.
-The host-asserted subject carries no signed identity or grants. Use the reference
-interpreter when signed authority, durable proofs, imports or other capabilities
-are required. Compatibility builds of JS, LLVM and Pyodide require explicit
-`--allow-governance-loss`.
+The ordinary Node profile uses a host-asserted subject. A governed module
+containing a single `shield` block has a signed, one-use stdout profile on both
+hosts. Build it with a policy and run it with `--authority-token` and
+`--authority-key-file`. Its manifest lists the source, block and record grant
+scopes. The holder can call `surrender()` and the embedding host can stop
+further dispatch. Use the reference interpreter for durable proofs or imports.
+Compatibility builds require explicit `--allow-governance-loss` and reject shields.
 
 The manifest is mandatory and is persisted before executable output or
 toolchain launch; `--emit-manifest` is retained for compatibility. Failed

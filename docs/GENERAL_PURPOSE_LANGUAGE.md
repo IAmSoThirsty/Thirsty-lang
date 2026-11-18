@@ -616,7 +616,8 @@ to attach/open/write the required archive denies execution. Audits record
 authorization decisions, not external-world completion. Retain a trusted
 external chain checkpoint to detect historical truncation/rewrite.
 
-`shield`, `detect`, `defend`, `sanitize`, `armor`, and `interface` are rejected
+`shield` has a [one-use stdout profile](DEFENSIVE_COMPARTMENTS.md) for a standalone governed module on the reference and Node hosts.
+`detect`, `defend`, `sanitize`, `armor`, and `interface` are rejected
 until their actual semantics exist. Their names do not provide protection.
 
 The interpreter is the reference target. JS supports checked scalar/array

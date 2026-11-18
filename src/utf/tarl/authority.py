@@ -28,8 +28,11 @@ from __future__ import annotations
 
 import datetime
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
+from threading import Lock
+from weakref import WeakValueDictionary
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
@@ -255,6 +258,24 @@ class AuthorityVerificationResult:
     reason: str = ""
 
 
+@dataclass(frozen=True, eq=False)
+class _IssuerRegistration:
+    """A particular registration; removing and restoring a key creates a new one."""
+
+    key: Ed25519PublicKey
+    material: bytes
+
+
+@dataclass(frozen=True)
+class _VerifiedCredential:
+    verifier: AuthorityVerifier
+    claim: AuthorityClaim
+    registration: _IssuerRegistration
+
+    def __call__(self, now: datetime.datetime) -> str | None:
+        return self.verifier._validation_error(self.claim, now, self.registration)
+
+
 class AuthorityVerifier:
     """Verifies :class:`AuthorityClaim` credentials against trusted issuer keys.
 
@@ -262,8 +283,50 @@ class AuthorityVerifier:
     symmetric MAC (forgeable by any holder) is never sufficient.
     """
 
+    # A public VerifiedAuthority also serves legacy trusted embedders. Shields
+    # accept only the exact object returned after signature verification.
+    _issued: WeakValueDictionary[int, VerifiedAuthority] = WeakValueDictionary()
+    _issued_lock = Lock()
+
+    @classmethod
+    def is_verified(cls, authority: object) -> bool:
+        if not isinstance(authority, VerifiedAuthority):
+            return False
+        with cls._issued_lock:
+            return cls._issued.get(id(authority)) is authority
+
     def __init__(self) -> None:
-        self._keys: dict[str, Ed25519PublicKey] = {}
+        self._keys: dict[str, _IssuerRegistration] = {}
+        self._keys_lock = Lock()
+
+    @classmethod
+    @contextmanager
+    def admission_guard(
+        cls, authority: VerifiedAuthority | None
+    ) -> Iterator[str | None]:
+        """Order a short adapter handoff with issuer changes and sample expiry.
+
+        A successful guard yields None. The caller performs only the slot
+        transfer inside it. Policy evaluation and sink I/O run outside it.
+        """
+        if authority is None or not cls.is_verified(authority):
+            yield "unverified authority"
+            return
+        binding = authority._revalidate
+        if not isinstance(binding, _VerifiedCredential):
+            yield "authority has no verified issuer registration"
+            return
+        verifier = binding.verifier
+        claim = binding.claim
+        with verifier._keys_lock:
+            if verifier._keys.get(claim.key_id) is not binding.registration:
+                yield "issuer registration revoked or replaced"
+            else:
+                yield _window_error(
+                    claim.issued_at,
+                    claim.expires_at,
+                    datetime.datetime.now(datetime.UTC),
+                )
 
     def add_ed25519_key(
         self, key_id: str, public_key: bytes | Ed25519PublicKey
@@ -272,7 +335,13 @@ class AuthorityVerifier:
             key = public_key
         else:
             key = Ed25519PublicKey.from_public_bytes(public_key)
-        self._keys[key_id] = key
+        material = key.public_bytes(
+            serialization.Encoding.Raw, serialization.PublicFormat.Raw
+        )
+        with self._keys_lock:
+            existing = self._keys.get(key_id)
+            if existing is None or existing.material != material:
+                self._keys[key_id] = _IssuerRegistration(key, material)
         return self
 
     def verify(
@@ -290,29 +359,39 @@ class AuthorityVerifier:
             return AuthorityVerificationResult(
                 None, False, f"malformed authority claim: {exc}"
             )
-        reason = self._validation_error(snapshot, now)
+        with self._keys_lock:
+            registration = self._keys.get(snapshot.key_id)
+        if registration is None:
+            return AuthorityVerificationResult(
+                None, False, f"unknown issuer key_id {snapshot.key_id!r}"
+            )
+        binding = _VerifiedCredential(self, snapshot, registration)
+        reason = binding(now)
         if reason:
             return AuthorityVerificationResult(None, False, reason)
-        return AuthorityVerificationResult(
-            VerifiedAuthority(
-                subject=snapshot.subject,
-                grants=tuple(snapshot.grants),
-                authenticated=True,
-                issued_at=snapshot.issued_at,
-                expires_at=snapshot.expires_at,
-                key_id=snapshot.key_id,
-                _revalidate=lambda current: self._validation_error(snapshot, current),
-            ),
-            True,
-            "ok",
+        authority = VerifiedAuthority(
+            subject=snapshot.subject,
+            grants=tuple(snapshot.grants),
+            authenticated=True,
+            issued_at=snapshot.issued_at,
+            expires_at=snapshot.expires_at,
+            key_id=snapshot.key_id,
+            _revalidate=binding,
         )
+        with self._issued_lock:
+            self._issued[id(authority)] = authority
+        return AuthorityVerificationResult(authority, True, "ok")
 
     def revoke_key(self, key_id: str) -> None:
         """Revoke an issuer in this verifier, including credentials already bound."""
-        self._keys.pop(key_id, None)
+        with self._keys_lock:
+            self._keys.pop(key_id, None)
 
     def _validation_error(
-        self, claim: AuthorityClaim, now: datetime.datetime
+        self,
+        claim: AuthorityClaim,
+        now: datetime.datetime,
+        registration: _IssuerRegistration,
     ) -> str | None:
         try:
             claim.validate()
@@ -327,15 +406,15 @@ class AuthorityVerifier:
         alg, _, sig_hex = claim.signature.partition(":")
         if alg != "ed25519" or not sig_hex:
             return "authority claim is unsigned or not Ed25519"
-        key = self._keys.get(claim.key_id)
-        if key is None:
-            return f"unknown issuer key_id {claim.key_id!r}"
         try:
-            key.verify(bytes.fromhex(sig_hex), claim.signing_bytes())
+            registration.key.verify(bytes.fromhex(sig_hex), claim.signing_bytes())
         except (ValueError, InvalidSignature):
             return "authority signature is invalid"
         if not claim.issued_at:
             return "authority claim is missing issue time"
+        with self._keys_lock:
+            if self._keys.get(claim.key_id) is not registration:
+                return "issuer registration revoked or replaced"
         return _window_error(claim.issued_at, claim.expires_at, now)
 
 

@@ -462,9 +462,9 @@ this register before their milestone can close.
 These are language-specific proposals unless explicitly marked implemented.
 They need concrete syntax/semantics and tests before being advertised as features.
 
-The [defensive compartment design](DEFENSIVE_COMPARTMENTS.md) specifies the first
-`shield` workload, authority and resource limits, operator stop and cross-host
-acceptance tests.
+The first [stdout shield milestone](DEFENSIVE_COMPARTMENTS.md#running-the-first-milestone)
+is implemented locally on the reference and Node hosts. The next milestone covers
+external operator control, restart behavior, required audit under failure and OS isolation.
 
 1. **Effect types and capability attenuation.** Build on implemented runtime
    gates and pure-call propagation. A function declares read/write/network/execute

@@ -32,6 +32,7 @@ from utf.thirsty_lang.ast import (
     VariableDecl,
 )
 from utf.thirsty_lang.execution import ExecutionLimits, resolve_execution_mode
+from utf.thirsty_lang.shield_profile import checked_body, module_shield, public_record
 from utf.thirsty_lang.token import TokenType
 
 
@@ -270,7 +271,17 @@ def main():
         "--policy", required=True, help="Host-selected policy used for this build"
     )
     js_runner.add_argument(
-        "--authority", required=True, help="Host-asserted authority subject"
+        "--authority",
+        help="Host-asserted subject for ordinary Node runs, or expected signed shield subject",
+    )
+    js_runner.add_argument(
+        "--authority-token", metavar="FILE", help="Signed shield authority claim"
+    )
+    js_runner.add_argument(
+        "--authority-key-file",
+        action="append",
+        metavar="FILE",
+        help="Trusted shield issuer public key file",
     )
 
     # prove
@@ -426,6 +437,57 @@ def _lex_parse_check(
     return ast, errors, source
 
 
+def _read_signed_authority(args):
+    """Verify the host-selected token against its trusted issuer keys."""
+    token_path = getattr(args, "authority_token", None)
+    if token_path:
+        from utf.tarl.authority import AuthorityClaim, AuthorityVerifier
+
+        if not os.path.isfile(token_path):
+            print(f"Error: authority token not found: {token_path}", file=sys.stderr)
+            sys.exit(1)
+        verifier = AuthorityVerifier()
+        for spec in getattr(args, "authority_key", None) or []:
+            kid, _, hexkey = spec.partition(":")
+            try:
+                verifier.add_ed25519_key(kid, bytes.fromhex(hexkey))
+            except ValueError as e:
+                print(f"Error: invalid --authority-key {spec!r}: {e}", file=sys.stderr)
+                sys.exit(1)
+        for key_path in getattr(args, "authority_key_file", None) or []:
+            from utf.tarl import keystore
+
+            try:
+                kf = keystore.load(key_path)
+                if kf.role != keystore.ROLE_AUTHORITY_ISSUER:
+                    raise ValueError("expected an authority-issuer key")
+                verifier.add_ed25519_key(kf.key_id, kf.public_bytes())
+            except (OSError, ValueError) as e:
+                print(
+                    f"Error: invalid --authority-key-file {key_path!r}: {e}",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+        with open(token_path, encoding="utf-8") as tf:
+            claim = AuthorityClaim.from_json(tf.read())
+        auth_result = verifier.verify(claim)
+        if not auth_result.valid:
+            print(
+                f"Error: authority token rejected: {auth_result.reason}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        return auth_result.authority
+    return None
+
+
+def _check_shield_subject(subject, signed):
+    from utf.thirsty_lang.shield import ShieldDenied
+
+    if subject is not None and (signed is None or subject != signed.subject):
+        raise ShieldDenied("shield requires a matching signed subject")
+
+
 def cmd_run(args):
     """Execute a .thirsty file."""
     with ExitStack() as resources:
@@ -439,6 +501,7 @@ def _cmd_run(args, resources):
     from utf.thirsty_lang.lexer import Lexer
     from utf.thirsty_lang.module_system import LockedImports
     from utf.thirsty_lang.parser import Parser
+    from utf.thirsty_lang.shield import ShieldDenied, ShieldRun
 
     unsafe_core = getattr(args, "unsafe_core", False)
     execution_limits = _execution_limits(args)
@@ -578,7 +641,10 @@ result
         interpreter.source_directory = Path(file_path).resolve().parent
     if locked_imports is not None:
         interpreter.set_locked(locked_imports)
-        print("Lockfile verified. Content integrity checks enabled.")
+        print(
+            "Lockfile verified. Content integrity checks enabled.",
+            file=sys.stderr if module_shield(ast) is not None else sys.stdout,
+        )
 
     # Governance wiring: bind the authority tag into the governance context,
     # and route governed calls through a TARL policy engine when --policy
@@ -628,47 +694,9 @@ result
         print("Error: --context-schema requires --policy", file=sys.stderr)
         sys.exit(1)
 
-    # Authenticated authority provenance: verify a signed claim against trusted
-    # issuer keys and bind the authenticated identity (overriding any bare tag).
-    token_path = getattr(args, "authority_token", None)
-    if token_path:
-        from utf.tarl.authority import AuthorityClaim, AuthorityVerifier
-
-        if not os.path.isfile(token_path):
-            print(f"Error: authority token not found: {token_path}", file=sys.stderr)
-            sys.exit(1)
-        verifier = AuthorityVerifier()
-        for spec in getattr(args, "authority_key", None) or []:
-            kid, _, hexkey = spec.partition(":")
-            try:
-                verifier.add_ed25519_key(kid, bytes.fromhex(hexkey))
-            except ValueError as e:
-                print(f"Error: invalid --authority-key {spec!r}: {e}", file=sys.stderr)
-                sys.exit(1)
-        for key_path in getattr(args, "authority_key_file", None) or []:
-            from utf.tarl import keystore
-
-            try:
-                kf = keystore.load(key_path)
-                if kf.role != keystore.ROLE_AUTHORITY_ISSUER:
-                    raise ValueError("expected an authority-issuer key")
-                verifier.add_ed25519_key(kf.key_id, kf.public_bytes())
-            except (OSError, ValueError) as e:
-                print(
-                    f"Error: invalid --authority-key-file {key_path!r}: {e}",
-                    file=sys.stderr,
-                )
-                sys.exit(1)
-        with open(token_path, encoding="utf-8") as tf:
-            claim = AuthorityClaim.from_json(tf.read())
-        auth_result = verifier.verify(claim)
-        if not auth_result.valid:
-            print(
-                f"Error: authority token rejected: {auth_result.reason}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        interpreter.set_verified_authority(auth_result.authority)
+    signed = _read_signed_authority(args)
+    if signed is not None:
+        interpreter.set_verified_authority(signed)
 
     # Proof signing: give the runtime an Ed25519 key so decision proofs are
     # non-repudiable (required by hardened mode).
@@ -729,9 +757,18 @@ result
         runtime.set_archive(archive).set_require_audit(require_audit)
 
     try:
+        shield = module_shield(ast)
+        if shield is not None:
+            _check_shield_subject(authority, signed)
+            with ShieldRun(source, shield.span[:2], signed, sys.stdout.buffer) as run:
+                interpreter.interpret_shield(source, run, mode=args.thirst_level)
+            return
         result = interpreter.interpret(ast, mode=args.thirst_level)
         if result is not None:
             print(result)
+    except ShieldDenied as e:
+        print(f"Governance denied: {e}", file=sys.stderr)
+        sys.exit(2)
     except GovernanceViolation as e:
         print(f"governance denied: {e.name}: {e.reason}", file=sys.stderr)
         if e.proof is not None:
@@ -1032,6 +1069,10 @@ def cmd_build(args):
     base = os.path.splitext(args.file)[0]
 
     opt_out = getattr(args, "allow_governance_loss", False)
+    if module_shield(ast) is not None and (target != "js" or opt_out):
+        raise ValueError(
+            "a shield requires a policy-bound host that enforces its one-use grant"
+        )
     policy_path = getattr(args, "policy", None)
     policy_text = None
     if target == "js" and not opt_out:
@@ -1094,7 +1135,8 @@ def cmd_build(args):
 
 def cmd_run_js(args):
     """Verify the source/policy binding before executing a compiled Node artifact."""
-    from utf.thirsty_lang.js_host import launch_verified
+    from utf.thirsty_lang.js_host import _launch_shield, launch_verified
+    from utf.thirsty_lang.shield import ShieldDenied, ShieldRun
 
     artifact = Path(args.file)
     if artifact.suffix != ".js":
@@ -1103,7 +1145,27 @@ def cmd_run_js(args):
     ast, text = _checked_build_source(source)
     policy = Path(args.policy).read_text(encoding="utf-8")
     expected = _compile_governed_js(ast, text, policy)
-    status = launch_verified(artifact, expected, args.authority)
+    block = module_shield(ast)
+    if block is not None:
+        signed = _read_signed_authority(args)
+        try:
+            _check_shield_subject(args.authority, signed)
+            with ShieldRun(text, block.span[:2], signed, sys.stdout.buffer) as run:
+                status = _launch_shield(
+                    artifact, expected, text, block.span[:2], policy, run
+                )
+        except ShieldDenied as error:
+            print(f"Governance denied: {error}", file=sys.stderr)
+            sys.exit(2)
+    else:
+        if getattr(args, "authority_token", None) or getattr(
+            args, "authority_key_file", None
+        ):
+            raise ValueError("signed Node credentials require a shield module")
+        if not args.authority:
+            print("Governance denied: run-js requires --authority", file=sys.stderr)
+            sys.exit(2)
+        status = launch_verified(artifact, expected, args.authority)
     if status:
         sys.exit(status)
 
@@ -1184,6 +1246,11 @@ def _transpile_to_js(ast, *, policy: str | None = None) -> str:
     if getattr(ast, "parse_failed", False):
         raise ValueError("Cannot compile a malformed program")
     _validate_build_mode(ast)
+    block = module_shield(ast)
+    if block is not None:
+        if policy is None:
+            raise ValueError("a shield requires a policy-bound Node host")
+        return _shield_javascript(checked_body(block), policy)
     lines = ["// Generated by Thirsty-Lang compiler", _JS_PRIMITIVES, ""]
 
     # Only directly declared functions have a supported callable ABI here.
@@ -1452,6 +1519,30 @@ function __binary(op, a, b) {
   throw new Error('Unsupported operator');
 }
 """
+
+
+def _shield_javascript(body: BlockStmt, policy: str) -> str:
+    import hashlib
+
+    from utf.thirsty_lang.js_policy import validate_js_policy
+    from utf.thirsty_lang.shield_node import JS_CHANNEL
+
+    validate_js_policy(policy)
+    digest = hashlib.sha256(policy.encode("utf-8")).hexdigest()
+    lines = [
+        f"// Shield stdout v1 policy SHA-256: {digest}",
+        _JS_PRIMITIVES,
+        JS_CHANNEL,
+    ]
+    for stmt in body.statements:
+        if isinstance(stmt, VariableDecl):
+            _js_stmt(stmt, lines)
+        elif isinstance(stmt, PourStmt):
+            text = json.dumps(public_record(stmt))
+            lines.extend([f"__shield('check', {text});", f"__shield('write', {text});"])
+        else:
+            lines.append("__shield('surrender');")
+    return "\n".join(lines)
 
 
 def _js_name(name: str) -> str:
@@ -1988,6 +2079,31 @@ def _emit_manifest(
             supported_effects=[{"action": "write", "target": "stdout"}],
             main_output_requires_stdout_permission=True,
         )
+        block = module_shield(ast)
+        if block is not None:
+            from utf.thirsty_lang.shield import stdout_grant
+
+            site = block.span[:2]
+            grants = sorted(
+                {
+                    stdout_grant(source, site, public_record(stmt))
+                    for stmt in checked_body(block).statements
+                    if isinstance(stmt, PourStmt)
+                }
+            )
+            manifest["build"].update(
+                host="node-shield/v1",
+                authority="signed-expiring-subject",
+                supported_effects=(
+                    [{"action": "write", "target": "stdout"}] if grants else []
+                ),
+                main_output_requires_stdout_permission=False,
+                shield={
+                    "site": list(site),
+                    "grants": grants,
+                    "max_publications_per_run": 1,
+                },
+            )
     # Backward-compatible policy envelope retained for existing consumers.
     manifest["governance_policy"] = {
         "tarl": {

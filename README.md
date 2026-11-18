@@ -434,6 +434,8 @@ Proof-oriented commands are static unless explicitly documented otherwise:
 For the governed JavaScript subset, build with a TARL policy and launch through
 `thirsty run-js` with the same policy and a host authority. Node executes the
 compiled program. The installed TARL broker authorizes each write to stdout.
+On the development branch, a standalone [stdout shield](docs/DEFENSIVE_COMPARTMENTS.md#running-the-first-milestone)
+supports a single signed publication across workers, voluntary surrender and host stop.
 The compatibility JS, LLVM and Pyodide builds require explicit governance-loss
 acknowledgment and persist their disclosure before executable output. Static reports identify
 declared semantics, effective governance, and limits of effect discovery;

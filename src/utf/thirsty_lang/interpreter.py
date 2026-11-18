@@ -584,16 +584,39 @@ class Interpreter:
         ``force_mode`` selects source semantics in place of the declared mode;
         neither option can remove a declared or inherited governance floor.
         """
+        return self._interpret_bound(ast, mode, force_mode, None)
+
+    def interpret_shield(self, source: str, run, *, mode: str | None = None):
+        """Run the exact source/site bound to a host-owned ShieldRun."""
+        from utf.thirsty_lang.lexer import Lexer
+        from utf.thirsty_lang.parser import Parser
+        from utf.thirsty_lang.shield import ShieldDenied
+        from utf.thirsty_lang.shield_profile import module_shield
+
+        source = source.replace("\r\n", "\n").replace("\r", "\n")
+        lexer = Lexer(source)
+        parser = Parser(lexer.lex())
+        ast = parser.parse()
+        block = module_shield(ast)
+        if lexer.errors or parser.errors or block is None:
+            raise ValueError("expected a complete governed stdout shield module")
+        if not run.matches(source, block.span[:2]):
+            raise ShieldDenied("shield source or site does not match the run")
+        return self._interpret_bound(ast, mode, False, run)
+
+    def _interpret_bound(self, ast, mode, force_mode, run):
         nested = any(frame.owner is self for frame in _EXECUTION_FRAMES.get())
         with self._execution_domain.enter():
             previous_mode = self.mode, self._execution_governed
             try:
-                return self._interpret_program(ast, mode, force_mode)
+                return self._interpret_program(ast, mode, force_mode, run)
             finally:
                 if nested:
                     self.mode, self._execution_governed = previous_mode
 
-    def _interpret_program(self, ast, mode, force_mode):
+    def _interpret_program(self, ast, mode, force_mode, run):
+        from utf.thirsty_lang.shield_profile import module_shield
+
         self.mode, self._execution_governed = resolve_execution_mode(
             ast.header.mode if ast.header else None,
             mode,
@@ -643,6 +666,10 @@ class Interpreter:
                 _execution_scope((self._execution_frame(),)),
                 self._restrictions.mutable_contracts.active(),
             ):
+                block = module_shield(ast)
+                if block is not None:
+                    self._execute_stdout_shield(block, run)
+                    return None
                 for stmt in ast.stmts:
                     result = self._execute(stmt)
                     if isinstance(result, (ReturnException, SpillageException)):
@@ -1494,6 +1521,37 @@ class Interpreter:
     def _execute_throw(self, stmt: ThrowStmt) -> object:
         value = self._evaluate(stmt.value)
         raise SpillageException(value)
+
+    def _execute_stdout_shield(self, block: SecurityBlock, run) -> None:
+        from utf.thirsty_lang.shield import ShieldDenied
+        from utf.thirsty_lang.shield_profile import checked_body, public_record
+
+        body = checked_body(block)
+
+        def authorize():
+            if self._verified_authority is not run.authority:
+                raise ShieldDenied("shield holder does not match interpreter authority")
+            self._gate_capability("write", "stdout")
+
+        previous = self.env
+        self.env = previous.enter_scope()
+        try:
+            for stmt in body.statements:
+                if isinstance(stmt, VariableDecl):
+                    self._execute(stmt)
+                    continue
+                self._execution_domain.checkpoint(step=True)
+                if isinstance(stmt, PourStmt):
+                    if run is None:
+                        raise ShieldDenied("shield stdout requires a signed grant")
+                    run.check(public_record(stmt), authorize)
+                    run.dispatch(self._evaluate(stmt.value), authorize)
+                elif run is not None:
+                    # The shared profile admits only the holder's surrender() here.
+                    run.surrender()
+                self._execution_domain.checkpoint()
+        finally:
+            self.env = previous
 
     def _execute_security_block(self, stmt: SecurityBlock) -> object:
         raise NotImplementedError(
