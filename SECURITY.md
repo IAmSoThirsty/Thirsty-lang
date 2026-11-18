@@ -128,6 +128,12 @@ callbacks are followed by a final binding check before execution. Every shipped
 stdlib export has an explicit ambient-effect classification; an unknown,
 missing, or non-callable export rejects import rather than bypassing mediation.
 
+The governed Node launcher compares the adjacent source and host-selected policy
+with the executable bytes before starting Node. Each stdout effect runs through
+the installed TARL broker. The Node profile trusts the local host, its installed
+tools and the caller that supplies the authority label. Signed claims and
+durable audit require the reference interpreter.
+
 Executable compiler targets that cannot carry the host policy configuration
 require `--allow-governance-loss`, regardless of the source semantic header.
 An accepted build writes a disclosure manifest before executable output or

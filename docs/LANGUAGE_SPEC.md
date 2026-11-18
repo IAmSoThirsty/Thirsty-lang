@@ -414,6 +414,8 @@ Broader M3-M7 implementation remains open and ecological robotics is deferred.
 | `thirsty run <file>` | Execute with governance required by default |
 | `thirsty run <file> --unsafe-core` | Explicit, disclosed trusted-host compatibility opt-out; stronger restrictions remain active |
 | `thirsty repl` | Start REPL with governance required by default |
+| `thirsty build <file> --target js --policy <policy>` | Compile the supported governed Node subset with a bound TARL policy |
+| `thirsty run-js <file.js> --policy <policy> --authority <subject>` | Verify the compiled artifact and run it through the installed Node host |
 | `thirsty build <file> --target js --allow-governance-loss` | Build the supported JS subset with mandatory loss disclosure |
 | `thirsty prove <file> --policy <policy>` | Emit static proof obligations without executing effects |
 | `thirsty explain-denial <file> --policy <policy>` | Explain unmet static governance obligations |
@@ -427,13 +429,23 @@ Broader M3-M7 implementation remains open and ecological robotics is deferred.
 | `thirsty lsp` | Start the TARL language server |
 | `thirsty docs` | Generate documentation |
 
-Public JS/LLVM/Pyodide builders must refuse absent explicit
-`--allow-governance-loss`. Supported-source preflight precedes disclosure;
-the mandatory manifest must persist before executable artifacts or toolchain
-launch. Binding policy data into a manifest does not supply artifact runtime
-enforcement. JS/LLVM omit that enforcement. Pyodide retains the interpreter but
-lacks host policy/authority wiring; its requested compatibility opt-out cannot
-disable an explicit governed declaration. Manifests distinguish requested
+Governed Node execution requires the adjacent `.thirsty` source, the installed language
+package, Node.js, the host-selected policy and a host-asserted subject. The launcher
+recompiles with that policy, compares the complete artifact and passes the verified
+bytes to Node. The canonical TARL broker authorizes source `pour` and the CLI display
+of `main` as `write` to `stdout`. Only an explicit ALLOW permits output. A policy can
+restrict `authority` or `authority_subject`; these bare subjects are unauthenticated.
+The host accepts scalar and flat typed reservoir annotations, including indexed reads
+and checked writes through aliases. Unsupported effects, source constructs and policy
+features fail closed. The policy profile accepts one optional `policy NAME` header and
+ordered `when ... => ALLOW|DENY|ESCALATE` rules with a complete derived TARL schema.
+It exposes `action`, `target`, `authority`, `authority_subject`,
+`authority_authenticated` and `authority_grants`. The asserted subject has
+`authority_authenticated = false` and an empty grants list. Build diagnostics reject
+composition, time windows, external sources, duplicate conditions and unknown fields.
+The compatibility builds for JS, LLVM and Pyodide require
+`--allow-governance-loss` and persist the disclosure before executable output.
+Manifests distinguish requested
 opt-out and effective artifact governance. A manifest alone does not prove
 successful artifact production.
 

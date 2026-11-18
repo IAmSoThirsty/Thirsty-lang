@@ -380,8 +380,8 @@ Primary commands:
 thirsty --help
 thirsty run program.thirsty
 thirsty fmt program.thirsty
-thirsty build program.thirsty --target js --allow-governance-loss
-thirsty build program.thirsty --target js --allow-governance-loss --policy policy.tarl
+thirsty build program.thirsty --target js --policy policy.tarl
+thirsty run-js program.js --policy policy.tarl --authority reader
 thirsty prove program.thirsty --policy policy.tarl --emit-manifest
 thirsty explain-denial program.thirsty --policy policy.tarl
 thirsty govern program.thirsty
@@ -431,12 +431,11 @@ Proof-oriented commands are static unless explicitly documented otherwise:
   requirements, Shadow status when statically visible, and governance-loss
   status in the build manifest.
 
-Every current public JS/LLVM/Pyodide build requires the explicit loss flag and
-persists its disclosure before writing executable output. A policy bound into
-a manifest does not configure enforcement in that artifact. Pyodide retains the
-interpreter and explicit governed declarations, but has no host policy/authority
-wiring; such declarations still deny effects. A manifest left by a later
-toolchain failure is not evidence of a successful build. Static reports identify
+For the governed JavaScript subset, build with a TARL policy and launch through
+`thirsty run-js` with the same policy and a host authority. Node executes the
+compiled program. The installed TARL broker authorizes each write to stdout.
+The compatibility JS, LLVM and Pyodide builds require explicit governance-loss
+acknowledgment and persist their disclosure before executable output. Static reports identify
 declared semantics, effective governance, and limits of effect discovery;
 dynamic calls and imported-module bodies are not a complete static inventory.
 

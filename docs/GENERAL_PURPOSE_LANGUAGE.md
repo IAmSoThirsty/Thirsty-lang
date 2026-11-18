@@ -632,12 +632,14 @@ JS and LLVM explicitly reject slice expressions before emitting an artifact
 or manifest. The interpreter and its Pyodide execution path support slices;
 the browser must load the matching source described below.
 The supported build example is `src/utf/examples/compiler_scalar.thirsty`.
-Every public JS/LLVM/Pyodide build requires `--allow-governance-loss`, even for
-headerless or Core source, and automatically writes a disclosure manifest before
-executable output or toolchain launch. Unsupported source is rejected before
-those writes. Binding a policy hash in a manifest does not install that policy
-into the artifact. Private subset emitters are internal rendering APIs, not a
-public execution-authorization boundary.
+Use `thirsty build app.thirsty --target js --policy policy.tarl`, then
+`thirsty run-js app.js --policy policy.tarl --authority reader`. The installed host
+compares the source and policy against the artifact before launching Node. Each
+output uses the TARL broker under the host-provided subject. Declared flat reservoir
+types survive aliases, calls and returns. Numeric list indices follow the reference
+negative-index and bounds rules. Other container annotations and unmodeled effects are
+rejected at build time. The compatibility JS, LLVM and Pyodide targets require the
+explicit loss flag and store the disclosure before executable output.
 
 Pyodide retains the reference interpreter but has no configured host policy or
 authority. Its explicit build opt-out can permit compatibility execution for

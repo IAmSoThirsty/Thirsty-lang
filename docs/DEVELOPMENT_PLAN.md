@@ -317,13 +317,12 @@ active caller/definer policies, pure restrictions, and lock checks retain their
 floor. Embedded foreign Python values remain trusted host inputs; their source
 identity is not established merely because a lockfile exists.
 
-Every public JS/LLVM/Pyodide build requires `--allow-governance-loss` and persists
-a disclosure manifest before executable artifacts or toolchain execution.
-Unsupported compiler input fails before either output. Pyodide retains the
-interpreter and explicit governed declarations, while lacking host policy and
-authority configuration; its effective enforcement and requested opt-out are
-recorded separately. A manifest remaining after a later build failure does not
-certify build success.
+The initial standalone JavaScript, LLVM and Pyodide builds require an explicit
+governance-loss disclosure. The local Node host adds a policy-bound JavaScript
+path for scalar and flat reservoir programs. Its acceptance corpus exercises a
+valid alias write, static rejection, dynamic rejection and a denied output.
+The next portable collection increment covers nested dictionaries and the
+imports, JSON and bounded reads used in the data-report application.
 
 Connected corrections preserve lexical/parser failure provenance, refuse
 malformed format inputs before writing, and use UTF-8 for source tooling.

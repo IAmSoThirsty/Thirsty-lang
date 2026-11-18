@@ -192,12 +192,10 @@ exposure. Import permission does not grant sensitive-operation permission.
 Pure computation needs no policy; source `pour`/`print` requests `write` to
 `stdout`, while trusted CLI result presentation is a host operation.
 
-All public JS/LLVM/Pyodide builders require `--allow-governance-loss` and persist
-the mandatory disclosure before executable output. JS/LLVM do not preserve the
-governance runtime. Pyodide retains the interpreter and explicit governed
-declarations but lacks host policy/authority configuration. Its manifest
-distinguishes requested opt-out from effective governance. These compiler
-profiles are not a complete portable execution target.
+The governed Node host supports checked list aliases and brokers stdout against
+the bound TARL policy and a host-supplied subject. The installed launcher verifies
+the source, policy and generated JavaScript before execution. The compatibility
+JS, LLVM and Pyodide targets require an explicit governance-loss disclosure.
 
 ### 2.3 Cryptographic proofs
 

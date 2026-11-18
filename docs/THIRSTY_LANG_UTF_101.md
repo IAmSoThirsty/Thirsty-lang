@@ -1387,20 +1387,21 @@ js
 wasm-pyodide
 ```
 
-Build targets do not preserve the configured governance boundary. JS and LLVM
-omit the Python interpreter; Pyodide retrieves an interpreter without embedding
-the source deployment's policy, authority, clock, or audit configuration. A
-program therefore refuses to build to these targets unless the user
-explicitly acknowledges the loss:
+The governed JavaScript profile runs checked guest code on Node and delegates
+stdout to the installed TARL capability broker. Put the policy under host control.
+For example, grant `when action == "write" and target == "stdout" and authority == "reader" => ALLOW`
+and use `when true => DENY` as the fallback.
 
 ```bash
-thirsty build governed_app.thirsty \
-    --target js \
-    --allow-governance-loss \
-    --policy policy.tarl \
-    --context-schema context-schema.json \
-    --emit-manifest
+thirsty build governed_app.thirsty --target js --policy policy.tarl
+thirsty run-js governed_app.js --policy policy.tarl --authority reader
 ```
+
+The adjacent source and selected policy must reproduce the compiled artifact.
+The host-asserted subject carries no signed identity or grants. Use the reference
+interpreter when signed authority, durable proofs, imports or other capabilities
+are required. Compatibility builds of JS, LLVM and Pyodide require explicit
+`--allow-governance-loss`.
 
 The manifest is mandatory and is persisted before executable output or
 toolchain launch; `--emit-manifest` is retained for compatibility. Failed
@@ -1777,9 +1778,9 @@ runtime. Add `set_archive(...)`; if persistence is mandatory, also add
 
 ### A build refuses
 
-The selected target drops the governed runtime. Keep execution under the
-interpreter or, only when deliberate, add `--allow-governance-loss` and inspect
-the emitted manifest.
+For the governed Node target, supply `--policy` and resolve the source or
+policy diagnostic. Launch the resulting artifact with `thirsty run-js`.
+Other targets that drop governance require the explicit compatibility flag.
 
 ### TARL analysis reports that Z3 is unavailable
 

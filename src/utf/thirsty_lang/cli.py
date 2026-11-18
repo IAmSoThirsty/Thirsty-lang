@@ -24,8 +24,10 @@ from utf.thirsty_lang.ast import (
     Identifier,
     IntLiteral,
     NoneLiteral,
+    PourStmt,
     ReturnStmt,
     StringLiteral,
+    Subscript,
     UnaryOp,
     VariableDecl,
 )
@@ -260,6 +262,17 @@ def main():
     )
     build_parser.add_argument("file", nargs="?", help="Entry point .thirsty file")
 
+    js_runner = subparsers.add_parser("run-js", help="Run a policy-bound Node.js build")
+    js_runner.add_argument(
+        "file", help="Compiled .js artifact with its adjacent .thirsty source"
+    )
+    js_runner.add_argument(
+        "--policy", required=True, help="Host-selected policy used for this build"
+    )
+    js_runner.add_argument(
+        "--authority", required=True, help="Host-asserted authority subject"
+    )
+
     # prove
     prove_parser = subparsers.add_parser(
         "prove", help="Emit static proof-obligation report without executing effects"
@@ -361,6 +374,8 @@ def main():
             cmd_new(args)
         elif args.command == "build":
             cmd_build(args)
+        elif args.command == "run-js":
+            cmd_run_js(args)
         elif args.command == "prove":
             cmd_prove(args)
         elif args.command == "explain-denial":
@@ -994,8 +1009,6 @@ main
 
 def cmd_build(args):
     """Build a .thirsty project."""
-    from utf.thirsty_lang.lexer import Lexer
-    from utf.thirsty_lang.parser import Parser
 
     if not args.file:
         # Try to find main.thirsty
@@ -1013,31 +1026,31 @@ def cmd_build(args):
         print(f"Error: File not found: {args.file}", file=sys.stderr)
         sys.exit(1)
 
-    with open(args.file, encoding="utf-8") as f:
-        source = f.read()
-
-    lexer = Lexer(source)
-    tokens = lexer.lex()
-
-    parser = Parser(tokens)
-    ast = parser.parse()
-
-    from utf.thirsty_lang.checker import check_ast
-    from utf.thirsty_lang.diagnostics import DiagnosticBundle
-
-    diagnostics = [*lexer.errors, *parser.errors, *check_ast(ast)]
-    if diagnostics or getattr(ast, "parse_failed", False):
-        print(DiagnosticBundle(diagnostics).format_all(), file=sys.stderr)
-        sys.exit(1)
-
-    _validate_build_mode(ast)
+    ast, source = _checked_build_source(args.file)
 
     target = args.target
     base = os.path.splitext(args.file)[0]
 
-    governance_loss = _authorize_build_governance_loss(
-        target, getattr(args, "allow_governance_loss", False)
-    )
+    opt_out = getattr(args, "allow_governance_loss", False)
+    policy_path = getattr(args, "policy", None)
+    policy_text = None
+    if target == "js" and not opt_out:
+        if policy_path is None:
+            print(
+                "Error: governance is required by default; supply --policy for the Node host",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if Path(args.file).suffix != ".thirsty":
+            raise ValueError("Governed JS requires a .thirsty source file")
+        if getattr(args, "context_schema", None) is not None:
+            raise ValueError(
+                "Governed JS requires a schema derived from the bound policy"
+            )
+        policy_text = _read_optional_policy(policy_path)
+        governance_loss = False
+    else:
+        governance_loss = _authorize_build_governance_loss(target, opt_out)
 
     # Reject unsupported source before disclosure, then persist the required
     # disclosure before producing an executable artifact or invoking a toolchain.
@@ -1045,7 +1058,11 @@ def cmd_build(args):
     if target.startswith("llvm-"):
         compiled_code = _transpile_to_llvm_ir(ast)
     elif target == "js":
-        compiled_code = _transpile_to_js(ast)
+        compiled_code = (
+            _compile_governed_js(ast, source, policy_text)
+            if policy_text is not None
+            else _transpile_to_js(ast)
+        )
     elif target != "wasm-pyodide":
         raise ValueError(f"Unsupported build target: {target}")
     _emit_manifest(
@@ -1054,7 +1071,9 @@ def cmd_build(args):
         source=source,
         target=target,
         governance_loss=governance_loss,
-        policy_path=getattr(args, "policy", None),
+        policy_path=policy_path,
+        policy_text=policy_text,
+        guarded_js=target == "js" and not governance_loss,
         context_schema_path=getattr(args, "context_schema", None),
     )
 
@@ -1065,13 +1084,51 @@ def cmd_build(args):
     elif target == "js":
         # Simple JavaScript transpilation
         output_path = base + ".js"
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(compiled_code)
+        Path(output_path).write_bytes(compiled_code.encode("utf-8"))
         print(f"Built: {output_path}")
 
     elif target == "wasm-pyodide":
         output_path = _build_pyodide(source, base, allow_ungoverned=governance_loss)
         print(f"Built: {output_path}")
+
+
+def cmd_run_js(args):
+    """Verify the source/policy binding before executing a compiled Node artifact."""
+    from utf.thirsty_lang.js_host import launch_verified
+
+    artifact = Path(args.file)
+    if artifact.suffix != ".js":
+        raise ValueError("run-js requires a compiled .js artifact")
+    source = artifact.with_suffix(".thirsty")
+    ast, text = _checked_build_source(source)
+    policy = Path(args.policy).read_text(encoding="utf-8")
+    expected = _compile_governed_js(ast, text, policy)
+    status = launch_verified(artifact, expected, args.authority)
+    if status:
+        sys.exit(status)
+
+
+def _compile_governed_js(ast, source: str, policy: str) -> str:
+    import hashlib
+
+    digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
+    return f"// Thirsty-Lang source SHA-256: {digest}\n" + _transpile_to_js(
+        ast, policy=policy
+    )
+
+
+def _checked_build_source(path):
+    ast, diagnostics, source = _lex_parse_check(str(path))
+    if diagnostics or ast.parse_failed:
+        locations = source.splitlines()
+        for item in diagnostics:
+            line, column = item.span[:2]
+            print(f"{path}:{line}:{column}: {item.format(locations)}", file=sys.stderr)
+        if not diagnostics:
+            print(f"{path}: malformed program", file=sys.stderr)
+        sys.exit(1)
+    _validate_build_mode(ast)
+    return ast, source
 
 
 def _authorize_build_governance_loss(target: str, allowed: bool) -> bool:
@@ -1120,8 +1177,9 @@ def _validate_build_mode(ast) -> None:
             pending.extend(node)
 
 
-def _transpile_to_js(ast) -> str:
-    """Internal subset renderer; public builders must authorize governance loss."""
+def _transpile_to_js(ast, *, policy: str | None = None) -> str:
+    """Render the checked language subset for governed Node or the legacy standalone target."""
+    from utf.thirsty_lang.js_host import bind_expression, host_prelude, list_contract
 
     if getattr(ast, "parse_failed", False):
         raise ValueError("Cannot compile a malformed program")
@@ -1153,6 +1211,10 @@ def _transpile_to_js(ast) -> str:
         FunctionDecl,
         BlockStmt,
     }
+    guarded = policy is not None
+    if policy is not None:
+        modeled_nodes.update({PourStmt, Subscript})
+        lines.extend([host_prelude(policy), "function __executeGuest() {"])
     functions = {s.name for s in ast.stmts if type(s) is FunctionDecl}
 
     visited = 0
@@ -1203,6 +1265,15 @@ def _transpile_to_js(ast) -> str:
                 main_expr = stmt.init_expr
             break
 
+    def bindings(statements):
+        return {
+            s.name: list_contract(s.var_type)
+            for s in statements
+            if isinstance(s, VariableDecl)
+        }
+
+    globals_ = bindings(ast.stmts) if guarded else None
+    pure = bool(ast.header and ast.header.mode == "pure")
     # Generate main execution
     for stmt in ast.stmts:
         if type(stmt) is FunctionDecl:
@@ -1215,19 +1286,64 @@ def _transpile_to_js(ast) -> str:
             lines.append(
                 f"  if (arguments.length !== {len(stmt.params)}) throw new Error('Argument count mismatch');"
             )
-            _js_stmt_body(stmt.body, lines, indent=1)
-            lines.append("  return null;")
+            local = None
+            result_contract = None
+            if globals_ is not None:
+                local = dict(globals_)
+                for name, annotation in stmt.params:
+                    element = list_contract(annotation)
+                    local[name] = element
+                    if element is not None:
+                        param = _js_name(name)
+                        lines.append(
+                            f"  {param} = {bind_expression(param, element, stmt.span)};"
+                        )
+                body = (
+                    stmt.body.statements
+                    if isinstance(stmt.body, BlockStmt)
+                    else [stmt.body]
+                )
+                local.update(bindings(body))
+                result_contract = list_contract(stmt.return_type)
+            _js_stmt_body(
+                stmt.body,
+                lines,
+                indent=1,
+                contracts=local,
+                result=result_contract,
+                pure=pure,
+            )
+            lines.append(
+                f"  return {bind_expression('null', result_contract, stmt.span)};"
+            )
             lines.append("};")
             lines.append("")
         else:
             if isinstance(stmt, ReturnStmt):
                 raise ValueError("JS target rejects top-level return")
-            _js_stmt(stmt, lines, indent=0)
+            _js_stmt(stmt, lines, indent=0, contracts=globals_, pure=pure)
             lines.append("")
 
-    if main_expr:
+    if guarded:
+        if main_expr:
+            lines.append(f"return {_js_name('main')};")
+        lines.extend(
+            ["}", "try {", "  __broker('bind');", "  const value = __executeGuest();"]
+        )
+        if main_expr:
+            lines.extend(
+                ["  __broker('check-write');", "  __broker('write', __display(value));"]
+            )
+        lines.extend(
+            [
+                "} catch (error) {",
+                "  console.error(error.message);",
+                "  process.exitCode = error.status === 2 ? 2 : 1;",
+                "}",
+            ]
+        )
+    elif main_expr:
         lines.append(f"console.log(__display({_js_name('main')}));")
-
     return "\n".join(lines)
 
 
@@ -1362,6 +1478,11 @@ def _js_expression(expr) -> str:
         return _js_name(expr.name)
     elif isinstance(expr, ArrayLiteral):
         return "[" + ", ".join(_js_expression(e) for e in expr.elements) + "]"
+    elif isinstance(expr, Subscript):
+        loc = f"{expr.span[0]}:{expr.span[1]}"
+        return (
+            f"__get({_js_expression(expr.obj)}, {_js_expression(expr.index)}, '{loc}')"
+        )
     elif isinstance(expr, BinaryOp):
         op_map = {
             TokenType.PLUS: "+",
@@ -1402,34 +1523,55 @@ def _js_expression(expr) -> str:
     raise ValueError(f"JS target does not support expression {type(expr).__name__}")
 
 
-def _js_stmt(stmt, lines, indent=0):
+def _js_stmt(stmt, lines, indent=0, *, contracts=None, result=None, pure=False):
     """Convert a Thirsty-Lang statement to JS."""
+    from utf.thirsty_lang.js_host import bind_expression
+
     prefix = "  " * indent
 
     if isinstance(stmt, ExprStmt):
         lines.append(f"{prefix}{_js_expression(stmt.expr)};")
     elif isinstance(stmt, ReturnStmt):
         val = _js_expression(stmt.value) if stmt.value else "null"
-        lines.append(f"{prefix}return {val};")
+        lines.append(f"{prefix}return {bind_expression(val, result, stmt.span)};")
     elif isinstance(stmt, VariableDecl):
         value = _js_expression(stmt.init_expr) if stmt.init_expr is not None else "null"
+        if contracts is not None and stmt.init_expr is not None:
+            value = bind_expression(value, contracts.get(stmt.name), stmt.span)
         kind = "let" if stmt.is_mut else "const"
         lines.append(f"{prefix}{kind} {_js_name(stmt.name)} = {value};")
     elif isinstance(stmt, AssignStmt) and isinstance(stmt.target, Identifier):
+        value = _js_expression(stmt.value)
+        if contracts is not None:
+            value = bind_expression(value, contracts.get(stmt.target.name), stmt.span)
+        lines.append(f"{prefix}{_js_name(stmt.target.name)} = {value};")
+    elif (
+        contracts is not None
+        and isinstance(stmt, AssignStmt)
+        and isinstance(stmt.target, Subscript)
+    ):
+        target = stmt.target
         lines.append(
-            f"{prefix}{_js_name(stmt.target.name)} = {_js_expression(stmt.value)};"
+            f"{prefix}__set({_js_expression(stmt.value)}, {_js_expression(target.obj)}, {_js_expression(target.index)}, '{stmt.span[0]}:{stmt.span[1]}');"
+        )
+    elif contracts is not None and isinstance(stmt, PourStmt):
+        if pure:
+            raise ValueError("I/O ('pour') is not allowed in a 'pure' module")
+        lines.append(f"{prefix}__broker('check-write');")
+        lines.append(
+            f"{prefix}__broker('write', __display({_js_expression(stmt.value)}));"
         )
     else:
         raise ValueError(f"JS target does not support statement {type(stmt).__name__}")
 
 
-def _js_stmt_body(stmt, lines, indent=0):
+def _js_stmt_body(stmt, lines, indent=0, **context):
     """Convert a block statement body to JS."""
     if isinstance(stmt, BlockStmt):
         for s in stmt.statements:
-            _js_stmt(s, lines, indent=indent)
+            _js_stmt(s, lines, indent=indent, **context)
     else:
-        _js_stmt(stmt, lines, indent=indent)
+        _js_stmt(stmt, lines, indent=indent, **context)
 
 
 class _LLVMExpr:
@@ -1819,11 +1961,14 @@ def _emit_manifest(
     governance_loss=False,
     policy_path: str | None = None,
     context_schema_path: str | None = None,
+    policy_text: str | None = None,
+    guarded_js: bool = False,
 ):
     """Emit governance manifest."""
     from utf.thirsty_lang.proof_obligations import extract_proof_obligations
 
-    policy_text = _read_optional_policy(policy_path)
+    if policy_text is None:
+        policy_text = _read_optional_policy(policy_path)
     manifest = extract_proof_obligations(
         ast,
         source,
@@ -1834,6 +1979,15 @@ def _emit_manifest(
         target=target,
         governance_loss=governance_loss,
     )
+    if guarded_js:
+        manifest["build"].update(
+            artifact_governance_required=True,
+            host_policy_configuration_preserved=True,
+            host="node-tarl/v1",
+            authority="host-asserted-subject",
+            supported_effects=[{"action": "write", "target": "stdout"}],
+            main_output_requires_stdout_permission=True,
+        )
     # Backward-compatible policy envelope retained for existing consumers.
     manifest["governance_policy"] = {
         "tarl": {
