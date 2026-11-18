@@ -54,7 +54,7 @@ python -I docs/operations/fixtures/portable-collections/verify_reference.py
 - The original expansion checkout has 24 modified tracked and 34 untracked files, with an empty staging area. All 33 active code, documentation and test files match the saved checkpoint after normalizing text line endings and comparing the PDF byte for byte. The other 25 untracked files are the existing orchestration receipts and two release-alignment reports. The existing index lock remains in that checkout.
 - The Edition XXII lexical check found 71 tokens and 58 unique tokens in the task prompt. The authentic dictionary data was unavailable, so dictionary verification remains unverified. This did not affect the language tests.
 
-## Next general-purpose increment
+## Portable backend baseline at a22cf5f
 
 The [portable collection fixtures](fixtures/portable-collections/) are three standalone pure modules. Run `python -I docs/operations/fixtures/portable-collections/verify_reference.py` with the installed candidate to check the reference outcomes. On the installed reference interpreter the valid write produced `main = 2`, and both names referred to the same list. The statically invalid write produced `E021` at line 4, column 1. A write through `Any` passed the checker and raised `TypeError` at runtime with the original list still `[1]` and the alias intact. `thirsty build --target js <fixture>` reported the same `E021` for the statically invalid module. For the other two it refused to build because the JavaScript host cannot enforce the default policy and authority. All three attempts produced zero JavaScript files.
 
@@ -63,3 +63,36 @@ The [portable collection fixtures](fixtures/portable-collections/) are three sta
 3. Extend the corpus to a nested dictionary and then to the data-report workload. Record individual support for typed alias mutation, imports, JSON, bounded reads, denied effects and cleanup as each becomes available. Require the installed entry point on each platform to pass every case before claiming support for that workload.
 
 The current work concerns the reference interpreter and package. Result, Task and Governed still lack general native guest representations for typed collection elements. Unknown annotation names and untyped foreign values retain their documented gradual behavior.
+
+## Governed Node host follow-up
+
+Local implementation commit `c97e67bbab3dccdf95055a5055b4668f63826c3b` on `codex/language-development` has tree `f79efe57067e1ae873d70816d2fccddd92344e0e`. The V0.9.0 release reference is `b09bbfc3dda4654cca2e9872423460667eed9498`. The commands below use the local development wheel and a host-selected TARL policy.
+
+```text
+thirsty build app.thirsty --target js --policy reader.tarl
+thirsty run-js app.js --policy reader.tarl --authority reader
+```
+
+The installed launcher checks the artifact against the adjacent source and the selected policy, then sends the verified bytes to Node. Guest computation and indexed mutation run in JavaScript. Guest `pour` and host presentation of `main` require permission for `write stdout`. The installed Python helper uses the same TARL capability broker as the reference interpreter. The launcher supplies a host-selected subject with no identity proof or grants. A policy that requires an authenticated subject denies that caller. Signed authority, durable audit, filesystem access and network access are outside this Node profile.
+
+| Installed compiler case | Expected and observed behavior |
+| --- | --- |
+| Valid typed list alias | Built successfully. The reader received `2` and exit 0. |
+| Statically invalid list write | Build exited 1 with `E021` at line 4, column 1. No JavaScript or manifest was created. |
+| Invalid write through `Any` | Built successfully. Execution exited 1 at line 4, column 1 with `requires Int` and empty stdout. A separate Node test inspected the original list and alias after the failed write. |
+| Explicit guest output | The reader policy allowed the designated subject to print. The same compiled file and policy denied the visitor with exit 2 and empty stdout. |
+| Missing or inconsistent bindings | Missing policy or authority failed. Changing either the selected policy or the executable bytes after compilation prevented launch. |
+
+An additional installed Windows check ran `pour 1 / 0`. With output denied, the command returned 2, wrote nothing to stdout and reported `Governance denied: write stdout (DENY)` on stderr. When output was allowed it reached expression evaluation and reported `Division by zero` with exit 1.
+
+Windows used Python 3.11.9 and Ubuntu used Python 3.12.3. Both used Node v25.9.0. The installed host verifier, installed language smoke test (including the data-report application and TSCG-B) and `pip check` passed on both. Mypy passed on 62 source files on each platform. Ruff passed, Black checked 173 files, and each platform reproduced the UTF 101 PDF SHA-256 `b6b632b3b527b06d8fa41859f36809d05559683480e291bb9bc08b474b42daa4`.
+
+The first Windows full suite had three failures (5,531 passed, one platform skip, 93.00% coverage). One concurrent SQLite proof-archive write reached the configured lock timeout. Two data-report subprocesses exceeded 15 seconds. All three passed individually with the original limits. On the Windows full rerun, 5,532 passed, 22 subtests passed, one POSIX-only case was skipped and coverage reached 93.00%. The concurrent archive and end-to-end data-report tests again expired at their original limits. Both passed together in a focused run immediately afterward (19.85s). The next diagnostic is to time lock acquisition, commit and cold CLI startup on the Windows test volume under idle and competing I/O.
+
+On Ubuntu, two disk-backed full runs had seven and three failures respectively. The archive lock timed out on both. Six standalone Node Boolean cases exceeded 10 seconds on the first run, and two malformed-declaration subprocesses exceeded five seconds on the second. The archive test passed on tmpfs, including all 48 writes and verification of the audit chain. A full run with tmpfs scratch passed all except three Node startup timeouts (5,531 passed).
+
+With both the test scratch directory and a byte-identical copy of Node on tmpfs, the full Ubuntu suite passed 5,534 tests and 22 subtests, with one Windows-only skip and 92.89% coverage. The Node executable SHA-256 was `7fd113446e9171a28885227b3c275ff965b2fd1f45ccf1fb3a1c20308f34e627`. All full suites used the original test timeouts, SQLite settings and 90% coverage requirement. Installed-wheel checks on both platforms used ordinary disk storage.
+
+The installed regression command is `python -I scripts/verify_installed_js_host.py --work-dir <external-scratch-directory>`. Local qualification used the same wheel on both platforms. The wheel SHA-256 is `2d6cc6e72a4133cb0a0b884ff49f43a89c7cf77c408dbcc6749d6088deb3d2ab`. The sdist SHA-256 is `4abb6a5cc8f756d7d107becda5b7d1b03fd9cf5f3e596ea8c131af301c72cae1`. Both retain 0.9.0 package metadata for local candidate testing.
+
+The next portable workload is a nested dictionary. The data-report application also needs imports, JSON and policy-controlled file reads on the Node target.
