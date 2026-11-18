@@ -1,0 +1,5 @@
+module sample: pure
+drink rows: Reservoir[Int] = [1]
+drink alias = rows
+alias[0] = "text"
+drink main = rows[0]

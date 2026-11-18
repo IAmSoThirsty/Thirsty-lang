@@ -1,6 +1,6 @@
 # Priority corrections and General Purpose Language
 
-Updated 2026-09-13. Thirsty-Lang 0.9.0 was published and its artifact identity
+Updated 2026-11-18. Thirsty-Lang 0.9.0 was published and its artifact identity
 verified. M3.1 sequence semantics has its own completed local verification in
 [M3_SEQUENCE_VERIFICATION.md](operations/M3_SEQUENCE_VERIFICATION.md).
 The recorded M3.2 Boolean/type-coherence increment built on then-uncommitted
@@ -26,13 +26,20 @@ control work follows that commit and remains unreleased. Its contract is
 [EXECUTION_CONTROL.md](EXECUTION_CONTROL.md), with separate integration evidence
 in [M4_EXECUTION_CONTROL_VERIFICATION.md](operations/M4_EXECUTION_CONTROL_VERIFICATION.md).
 
+The November development candidate enforces typed mutable values across guest aliases,
+adds the TSCG-B text-frame module, and includes the data-report application in the
+wheel. The [qualification record](operations/LANGUAGE_DEVELOPMENT_QUALIFICATION_20261118.md)
+tracks the installed checks and the next portable-backend acceptance cases.
+
 ## Authority, order, and completion evidence
 
 The user authorized implementation after a read-only repository investigation
 and full-suite baseline. The user then directed that robotics and swarm features
 stay on the back-burner until priority fixes and the general-purpose language
-are implemented. Work is confined to this repository. No other personal project
-has supplied code, models, dependencies, or evidence.
+are implemented. Implementation is local to this repository. In November the owner authorized a
+wire-compatibility comparison with the ThirstForged Conclave. Its installed
+codec and representation adapter supplied comparison results. Thirsty-Lang
+continues to use its own codec.
 
 The order is: correct unsound behavior, deliver a useful general-purpose
 foundation, verify it, then expand language coverage. Robotics is deferred.
@@ -494,7 +501,7 @@ They need concrete syntax/semantics and tests before being advertised as feature
 |---|---|---|
 | File path check/open races against a concurrent hostile filesystem writer | Requires separate follow-up work | Implement descriptor/handle-relative no-follow opens per OS; deterministic race fixtures; state the OS-specific boundary before a confinement claim. |
 | Runtime loops, arbitrary allocations, thread pools, DNS/total HTTP elapsed time, and subprocess descendants lack one global execution budget | Requires separate follow-up work | M4 cancellation/resource-accounting API, bounded adapters, process-isolated hostile workload tests. HTTP/process/network/Shadow limits are local, not whole-runtime containment. |
-| Mutable aliases can bypass annotation checks after construction or assignment | Requires separate follow-up work | M3 ownership/aliasing specification and runtime validation boundaries; mutation/effect tests across nested containers, closures, and callbacks. Pure restricts mediated external effects and does not prove referential transparency. |
+| Guest writes through aliases of annotated native collections | Fixed for supported reference-interpreter writes in the November candidate | The runtime checks annotated elements, keys and values before mutation, including across guest calls and optional wrappers. Direct host mutation is a trusted embedding operation. Portable targets still need conformance tests. |
 | General static typing is incomplete for dynamic Any and foreign values | Requires separate follow-up work | M3 inference and runtime boundary validation; no claim of whole-program type soundness. |
 | Loop variables lost known element/key types and noniterables silently skipped execution | Fixed now in M3.4 | Known iterable descriptors retain element/key identity; E025 rejects known noniterables and native iteration raises for dynamic invalid values. Unknown Any and host iterators retain the documented dynamic/trusted boundary. |
 | Unknown annotation names retain static Any fallback | Requires separate follow-up work | Define compatibility and diagnostics for unresolved names, forward declarations, and dynamic imports; do not silently treat the current fallback as checked type evidence. |

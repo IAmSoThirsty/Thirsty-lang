@@ -130,7 +130,7 @@ def load_manifest(path: Path) -> ManualConfig:
 
 
 def source_manifest(config: ManualConfig) -> tuple[str, list[tuple[str, str]]]:
-    """Return aggregate digest and per-file digests in stable path order."""
+    """Hash text inputs in path order with CRLF represented as LF."""
 
     paths = {config.manifest_path, Path(__file__).resolve()}
     paths.update(document.path for document in config.documents)
@@ -138,12 +138,12 @@ def source_manifest(config: ManualConfig) -> tuple[str, list[tuple[str, str]]]:
     aggregate = hashlib.sha256()
     for path in sorted(paths, key=lambda item: item.relative_to(ROOT).as_posix()):
         rel = path.relative_to(ROOT).as_posix()
-        raw = path.read_bytes()
-        digest = hashlib.sha256(raw).hexdigest()
+        source_bytes = path.read_bytes().replace(b"\r\n", b"\n")
+        digest = hashlib.sha256(source_bytes).hexdigest()
         entries.append((rel, digest))
         aggregate.update(rel.encode("utf-8"))
         aggregate.update(b"\0")
-        aggregate.update(raw)
+        aggregate.update(source_bytes)
         aggregate.update(b"\0")
     return aggregate.hexdigest(), entries
 
@@ -1212,10 +1212,11 @@ def colophon_story(
     flows.append(
         Paragraph(
             f'Aggregate source SHA-256: <font name="Courier">{digest}</font>. '
-            "The aggregate hashes each repository-relative path, a NUL separator, "
-            "its exact bytes, and a final NUL in sorted path order. It includes the "
-            "composition manifest and PDF builder, but not the generated PDF, avoiding "
-            "a self-referential checksum.",
+            "Each file hash uses LF for CRLF line endings and preserves every other "
+            "byte. In sorted path order, the aggregate hashes each UTF-8 "
+            "repository-relative path, a NUL separator, the same normalized file "
+            "bytes, and a final NUL. Inputs include the manuscript documents, "
+            "composition manifest, and PDF builder.",
             styles["Body"],
         )
     )

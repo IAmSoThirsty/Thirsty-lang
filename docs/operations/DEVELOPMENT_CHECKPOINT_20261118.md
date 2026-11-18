@@ -23,3 +23,5 @@ The two November release-alignment reports are local operational history. The un
 4. **Exercise the language as an application author.** Use the existing `src/utf/examples/data_report/` program as the first acceptance fixture. Run it from the installed CLI with a fixed input and expected output, then add cases for malformed input and a denied file operation. Extend the application corpus one workload at a time as described under M7 in the [development roadmap](../DEVELOPMENT_PLAN.md). Choose the next language feature from a concrete program that cannot yet be expressed or run reliably.
 
 Execution quotas beyond M4.1, portable backend conformance, broader standard-library coverage, and package distribution each have separate acceptance criteria in M4–M7 of the roadmap. The immediate engineering deliverable is a tested mutable-value contract on the reference interpreter. A release version or publication decision follows candidate qualification.
+
+The [November qualification record](LANGUAGE_DEVELOPMENT_QUALIFICATION_20261118.md) tracks completion, the installed application checks and the portable-backend fixtures.

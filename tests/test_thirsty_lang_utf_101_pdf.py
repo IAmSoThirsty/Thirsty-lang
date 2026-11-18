@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import subprocess
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -372,6 +374,41 @@ def test_manifest_is_complete_and_repository_confined():
     digest, entries = source_manifest(config)
     assert len(digest) == 64
     assert all(len(file_digest) == 64 for _path, file_digest in entries)
+
+
+def test_source_manifest_normalizes_only_crlf(tmp_path, monkeypatch):
+    import build_thirsty_lang_utf_101 as builder
+
+    config = load_manifest(MANIFEST)
+    sources = {
+        "builder.py": b"# builder\n# EOF",
+        "composition.toml": b'[manual]\ntitle = "Test"\n',
+        "manuscript.md": "Café  \nstandalone\rCR\t".encode(),
+    }
+    monkeypatch.setattr(builder, "ROOT", tmp_path)
+    monkeypatch.setattr(builder, "__file__", str(tmp_path / "builder.py"))
+    config = replace(
+        config,
+        manifest_path=tmp_path / "composition.toml",
+        documents=(replace(config.documents[0], path=tmp_path / "manuscript.md"),),
+    )
+    expected_entries = []
+    aggregate = hashlib.sha256()
+    for name, content in sorted(sources.items()):
+        expected_entries.append((name, hashlib.sha256(content).hexdigest()))
+        aggregate.update(name.encode("utf-8") + b"\0" + content + b"\0")
+    expected = aggregate.hexdigest(), expected_entries
+    for newline in (b"\n", b"\r\n"):
+        for name, content in sources.items():
+            (tmp_path / name).write_bytes(content.replace(b"\n", newline))
+        assert source_manifest(config) == expected
+
+    # A trailing newline changes the manuscript even when the rest uses CRLF.
+    manuscript = tmp_path / "manuscript.md"
+    manuscript.write_bytes(manuscript.read_bytes() + b"\n")
+    digest, entries = source_manifest(config)
+    assert digest != expected[0]
+    assert dict(entries)["manuscript.md"] != dict(expected_entries)["manuscript.md"]
 
 
 def test_canonical_pdf_matches_current_sources():
