@@ -40,7 +40,7 @@ def runner():
 def test_reviewed_inventory_covers_the_shipped_registry():
     assert set(NO_AMBIENT_STDLIB_EXPORTS) == set(STDLIB_MODULES)
     assert set(SENSITIVE_STDLIB_CAPABILITIES) <= set(STDLIB_MODULES)
-    assert sum(map(len, NO_AMBIENT_STDLIB_EXPORTS.values())) == 56
+    assert sum(map(len, NO_AMBIENT_STDLIB_EXPORTS.values())) == 58
     assert sum(map(len, SENSITIVE_STDLIB_CAPABILITIES.values())) == 43
     assert all(
         isinstance(names, frozenset) for names in NO_AMBIENT_STDLIB_EXPORTS.values()
@@ -182,3 +182,15 @@ def test_exported_collection_callback_keeps_defining_restrictions(runner, capsys
     finally:
         foreign.executor.shutdown(wait=True)
     assert capsys.readouterr().out == ""
+
+
+def test_tscgb_guest_round_trip_with_import_only(runner):
+    runner.interpret(
+        parse(
+            'import "thirst::tscgb" as frames\n'
+            'drink wire = frames.encode("  water λ  ")\n'
+            "drink message = frames.decode(wire)"
+        )
+    )
+    assert type(runner.env.get("wire")) is bytes
+    assert runner.env.get("message") == "  water λ  "

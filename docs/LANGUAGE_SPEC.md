@@ -178,6 +178,39 @@ thirsty (x > 0) {
 - `Bool` — Boolean values
 - `NoneType` — Null type
 
+### Writable collections and value choices (development branch)
+
+A new list or dictionary literal takes its type from its destination when all
+elements fit. For example, `drink xs: Reservoir[Float] = [1]` accepts an
+integer through scalar widening. Once a writable collection has a known type,
+assignment, argument passing, returns and field defaults preserve its key and
+element types. A `Reservoir[Int]` alias cannot be passed to a parameter of
+type `Reservoir[Float]` because that function could write a fractional value.
+A slice copies the outer list. Its nested lists and dictionaries remain shared.
+
+When an expression can select among known types, a read, write, call or
+iteration must support every possible value. Straight-line reads of a fresh, fully literal
+collection retain the type at a constant key or index. Calls, control flow, and
+writes that can change the slot type discard that information. For example, assigning a loop element
+of `[1, "two"]` to `Int` produces diagnostic `E021`. An incompatible return
+produces `E023`. An explicit `Any` permits a dynamic boundary.
+
+At runtime, binding a native list or dictionary to an explicit collection
+annotation checks its current contents. The interpreter records the contract
+on the object, so subsequent guest writes through an alias, including `Any`,
+must satisfy it. A collection with only an inferred type receives static checking
+until it crosses an explicit runtime collection boundary. A failed write leaves
+the target intact. A typed shallow copy shares the contracts of its children.
+A collection containing `Quenched[T]` validates its wrapper and its payload.
+
+Validation supports nesting to depth 64 and at most 100,000 visited values per
+operation. An interpreter and its guest imports retain up to 65,536 constrained
+objects. A guest call between two interpreters joins their object contracts.
+Closing the last connected interpreter releases the retained objects. Python
+code that directly mutates an embedded object runs inside the trusted host
+boundary. `Task`, `Result` and `Governed` lack a general guest value
+representation for validating collection elements.
+
 ### Sequence operations (unreleased M3.1)
 
 `value[index]` reads a native list, string, tuple, or bytes value using an
@@ -626,10 +659,26 @@ Binary frame protocol for TSCG expressions.
 
 ### Frame Format
 
-- Magic bytes: `TSGB` (4 bytes)
-- CRC32 integrity check (4 bytes)
-- SHA-256 payload verification (32 bytes)
-- Automatic resynchronization for multi-frame transport
+A version 1 frame starts with `TSGB`, followed by a one-byte version, one-byte
+flags and a two-byte big-endian payload length. The trailer contains CRC32 of
+the header and payload, then SHA-256 of those bytes and the stored CRC32.
+
+The development standard library exposes the single-frame UTF-8 text profile:
+
+```thirsty
+import "thirst::tscgb" as frames
+drink wire = frames.encode("hello")
+drink text = frames.decode(wire)
+```
+
+Encoding preserves whitespace and accepts at most 65,535 UTF-8 bytes.
+Decoding requires exactly one frame, zero flags, valid checksums and strict
+UTF-8. It accepts native bytes or a list of integer octets such as the
+`data` field returned by `thirst::net`. A stream reader must assemble a
+complete frame before calling `decode`. The import uses the ordinary import policy. Both operations run in
+memory. The Python frame API also supports flagged frames and the stream
+decoder accepts concatenated frames.
+
 
 ---
 

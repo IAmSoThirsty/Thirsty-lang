@@ -16,6 +16,7 @@ VERSION = 1
 HEADER_SIZE = 8  # magic(4) + version(1) + flags(1) + payload_length(2)
 CRC32_SIZE = 4
 SHA256_SIZE = 32
+MAX_PAYLOAD_SIZE = 0xFFFF
 MIN_FRAME_SIZE = HEADER_SIZE + CRC32_SIZE + SHA256_SIZE  # 44 bytes
 
 # Flag bits
@@ -37,14 +38,13 @@ def symbol_for_opcode(opcode: int) -> str | None:
 
 
 def encode_text_to_opcodes(text: str) -> list[int]:
-    """Encode text into reversible base-23 opcodes."""
+    """Encode each UTF-8 byte as two base-23 digits, including leading zeros."""
     data = text.encode("utf-8")
     opcodes = []
     for byte in data:
         hi = byte // 23
         lo = byte % 23
-        if hi > 0:
-            opcodes.append(hi)
+        opcodes.append(hi)
         opcodes.append(lo)
     return opcodes
 
@@ -83,7 +83,13 @@ def pack_text(text: str, flags: int = FLAG_NONE) -> bytes:
     - crc32: 4 bytes big-endian
     - sha256: 32 bytes
     """
+    if not isinstance(text, str):
+        raise TypeError("TSCG-B text must be a string")
+    if len(text) > MAX_PAYLOAD_SIZE:
+        raise ValueError("TSCG-B payload exceeds 65535 bytes")
     text_bytes = text.encode("utf-8")
+    if len(text_bytes) > MAX_PAYLOAD_SIZE:
+        raise ValueError("TSCG-B payload exceeds 65535 bytes")
 
     # Build header
     header = struct.pack("!4sBBH", MAGIC, VERSION, flags, len(text_bytes))
@@ -101,7 +107,9 @@ def pack_text(text: str, flags: int = FLAG_NONE) -> bytes:
     return header + payload + crc32_bytes + sha256_val
 
 
-def unpack_frame(data: bytes, verify: bool = True) -> dict[str, Any]:
+def unpack_frame(
+    data: bytes, verify: bool = True, *, exact_text: bool = False
+) -> dict[str, Any]:
     """
     Unpack a TSCG-B binary frame.
 
@@ -130,6 +138,8 @@ def unpack_frame(data: bytes, verify: bool = True) -> dict[str, Any]:
             f"got {len(data)}"
         )
 
+    if exact_text and len(data) != payload_end + CRC32_SIZE + SHA256_SIZE:
+        raise ValueError("Expected exactly one TSCG-B frame")
     payload = data[payload_start:payload_end]
 
     # Extract CRC32
@@ -161,7 +171,7 @@ def unpack_frame(data: bytes, verify: bool = True) -> dict[str, Any]:
                 f"stored {stored_sha256.hex()}"
             )
 
-    text = payload.decode("utf-8", errors="replace")
+    text = payload.decode("utf-8", errors="strict" if exact_text else "replace")
 
     return {
         "magic": magic,
@@ -175,6 +185,28 @@ def unpack_frame(data: bytes, verify: bool = True) -> dict[str, Any]:
         "crc32_hex": f"{stored_crc32:#010x}",
         "sha256_hex": stored_sha256.hex(),
     }
+
+
+def encode_text(text: str) -> bytes:
+    """Encode one unflagged UTF-8 text frame."""
+    return pack_text(text)
+
+
+def decode_text(data: bytes | list[int]) -> str:
+    """Verify exactly one unflagged UTF-8 text frame."""
+    if type(data) not in (bytes, list):
+        raise TypeError("TSCG-B frame must be bytes or a list of octets")
+    if len(data) > MIN_FRAME_SIZE + MAX_PAYLOAD_SIZE:
+        raise ValueError("TSCG-B text frame exceeds the maximum length")
+    if isinstance(data, list):
+        if any(type(octet) is not int or not 0 <= octet <= 255 for octet in data):
+            raise ValueError("TSCG-B octets must be integers from 0 to 255")
+        data = bytes(data)
+    frame = unpack_frame(data, exact_text=True)
+    if frame["flags"] != FLAG_NONE:
+        raise ValueError("TSCG-B text frames require zero flags")
+    text: str = frame["text"]
+    return text
 
 
 class StreamDecoder:
@@ -197,62 +229,36 @@ class StreamDecoder:
         self.buffer.extend(data)
         frames = []
 
-        while True:
-            frame = self._try_decode()
-            if frame is None:
+        while self.buffer:
+            start = self.buffer.find(MAGIC)
+            if start < 0:
+                # A chunk can end in the first one to three bytes of the magic.
+                keep = next(
+                    (n for n in (3, 2, 1) if self.buffer.endswith(MAGIC[:n])), 0
+                )
+                del self.buffer[: len(self.buffer) - keep]
                 break
+            del self.buffer[:start]
+            if len(self.buffer) < HEADER_SIZE:
+                break
+            if self.buffer[4] != VERSION:
+                del self.buffer[:1]
+                continue
+            size = MIN_FRAME_SIZE + int.from_bytes(self.buffer[6:8], "big")
+            if len(self.buffer) < size:
+                break
+            try:
+                frame = unpack_frame(bytes(self.buffer[:size]))
+            except ValueError:
+                del self.buffer[:1]
+                continue
+            del self.buffer[:size]
             frames.append(frame)
             self.frames_decoded += 1
-
         return frames
-
-    def _try_decode(self) -> dict[str, Any] | None:
-        """Try to decode one frame from the buffer. Returns None if insufficient data."""
-        if len(self.buffer) < MIN_FRAME_SIZE:
-            return None
-
-        # Find magic bytes
-        magic_idx = self.buffer.find(MAGIC)
-        if magic_idx == -1:
-            # No magic found — discard buffer to prevent unbounded growth
-            if len(self.buffer) > 65536:
-                self.buffer.clear()
-            return None
-
-        if magic_idx > 0:
-            # Discard bytes before magic (resynchronization)
-            self.buffer = self.buffer[magic_idx:]
-
-        # Need at least header to get payload_length
-        if len(self.buffer) < HEADER_SIZE:
-            return None
-
-        try:
-            _, _, _, payload_length = struct.unpack(
-                "!4sBBH", bytes(self.buffer[:HEADER_SIZE])
-            )
-        except struct.error:
-            # Corrupt header — resync by skipping first byte
-            self.buffer = self.buffer[1:]
-            return None
-
-        frame_size = HEADER_SIZE + payload_length + CRC32_SIZE + SHA256_SIZE
-
-        if len(self.buffer) < frame_size:
-            return None
-
-        frame_data = bytes(self.buffer[:frame_size])
-        self.buffer = self.buffer[frame_size:]
-
-        try:
-            return unpack_frame(frame_data)
-        except (ValueError, struct.error):
-            # Corrupt frame — try next position
-            return None
 
     def flush(self) -> list[dict[str, Any]]:
         """Flush any remaining frames. Returns empty list (incomplete frames discarded)."""
-        list(self.buffer)
         self.buffer.clear()
         return []
 

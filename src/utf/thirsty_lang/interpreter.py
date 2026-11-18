@@ -87,8 +87,14 @@ from utf.thirsty_lang.module_system import (
     resolve_import,
     validate_stdlib_exports,
 )
+from utf.thirsty_lang.mutable_contracts import (
+    MutableContracts,
+    checked_removal,
+    checked_setitem,
+)
 from utf.thirsty_lang.sequences import get_index, get_slice, set_index
 from utf.thirsty_lang.token import TokenType
+from utf.thirsty_lang.typesys import EnumType, StructType, Type, type_from_name
 
 _PURE_EXECUTION: ContextVar[bool] = ContextVar("thirsty_pure_execution", default=False)
 
@@ -153,6 +159,7 @@ class _ExecutionRestrictions:
     revision: int = 0
     lock: Any = field(default_factory=RLock, repr=False, compare=False)
     native_values: NativeValueRegistry = field(default_factory=NativeValueRegistry)
+    mutable_contracts: MutableContracts = field(default_factory=MutableContracts)
 
 
 @dataclass
@@ -202,8 +209,10 @@ class Environment:
         self.parent = parent
         self.vars: dict[str, object] = {}
         self.mutable: dict[str, bool] = {}
+        self.contracts: dict[str, tuple[MutableContracts, Type]] = {}
 
     def define(self, name: str, value: object, is_mut: bool = False):
+        self.contracts.pop(name, None)
         self.vars[name] = value
         self.mutable[name] = is_mut
 
@@ -218,6 +227,9 @@ class Environment:
         if name in self.vars:
             if not self.mutable.get(name, False):
                 raise TypeError(f"Cannot assign to immutable variable: '{name}'")
+            if name in self.contracts:
+                registry, expected = self.contracts[name]
+                registry.bind(((value, expected),))
             self.vars[name] = value
             return
         if self.parent:
@@ -258,6 +270,13 @@ class FountainInstance:
 
     def set_field(self, name: str, value: object):
         if name in self.fields:
+            if self.interpreter is not None:
+                annotation = next(
+                    spec[1] for spec in self.cls_decl.fields if spec[0] == name
+                )
+                self.interpreter._accept_container(
+                    value, annotation, self.declaration_env
+                )
             self.fields[name] = value
         else:
             raise NameError(f"Undefined field: '{name}'")
@@ -326,6 +345,7 @@ class Interpreter:
     def close(self):
         """Close the idle interpreter/import graph, preserving borrowed TARL."""
         self._execution_domain.close()
+        self._restrictions.mutable_contracts.clear()
 
     def __enter__(self):
         with self._execution_domain.enter():
@@ -388,7 +408,10 @@ class Interpreter:
             with self._execution_domain.enter(call=True), ExitStack() as claims:
                 for frame in captured:
                     claims.enter_context(frame.owner._execution_domain.enter())
-                with _execution_scope(captured):
+                with (
+                    _execution_scope(captured),
+                    self._restrictions.mutable_contracts.active(),
+                ):
                     return function(*args, **kwargs)
 
         return bound
@@ -616,7 +639,10 @@ class Interpreter:
         result = None
         pure_token = _PURE_EXECUTION.set(_PURE_EXECUTION.get() or self.mode == "pure")
         try:
-            with _execution_scope((self._execution_frame(),)):
+            with (
+                _execution_scope((self._execution_frame(),)),
+                self._restrictions.mutable_contracts.active(),
+            ):
                 for stmt in ast.stmts:
                     result = self._execute(stmt)
                     if isinstance(result, (ReturnException, SpillageException)):
@@ -770,7 +796,15 @@ class Interpreter:
         value = None
         if stmt.init_expr:
             value = self._evaluate(stmt.init_expr)
+        expected = self._container_type(stmt.var_type, self.env)
+        if expected is not None and stmt.init_expr is not None:
+            self._restrictions.mutable_contracts.bind(((value, expected),))
         self.env.define(stmt.name, value, is_mut=stmt.is_mut)
+        if expected is not None and stmt.is_mut:
+            self.env.contracts[stmt.name] = (
+                self._restrictions.mutable_contracts,
+                expected,
+            )
         return None  # drink is a statement, not an expression — no value propagation
 
     def _execute_assign(self, stmt: AssignStmt) -> object:
@@ -786,7 +820,7 @@ class Interpreter:
             elif isinstance(obj, StructInstance):
                 self._set_struct_field(obj, stmt.target.member, value)
             elif isinstance(obj, dict):
-                obj[stmt.target.member] = value
+                checked_setitem(obj, stmt.target.member, value)
             else:
                 raise TypeError(
                     f"Cannot assign member '{stmt.target.member}' on "
@@ -1233,7 +1267,58 @@ class Interpreter:
                 f"parameter 'this' conflicts with bound receiver in '{name}'"
             )
 
-    def _make_closure(self, params, body, name="<lambda>"):
+    @staticmethod
+    def _container_type(
+        annotation: str | None, environment: Environment
+    ) -> Type | None:
+        if not annotation or "[" not in annotation:
+            return None
+        if annotation.partition("[")[0].strip().lower() not in (
+            "reservoir",
+            "dict",
+            "quenched",
+        ):
+            return None
+        if len(annotation) > 4096 or annotation.count("[") > 64:
+            raise TypeError("mutable contract annotation limit exceeded")
+
+        def resolve(name: str) -> Type | None:
+            binding = environment.get(name) if environment.has(name) else None
+            declaration = getattr(binding, "_thirsty_struct_declaration", None)
+            if isinstance(declaration, StructDecl):
+                return StructType(declaration.name, declaration_id=declaration)
+            if isinstance(binding, type) and issubclass(binding, Enum):
+                return EnumType(binding.__name__, declaration_id=binding)
+            return type_from_name(name.capitalize())
+
+        return type_from_name(annotation, resolve)
+
+    def _accept_container(self, value, annotation, environment):
+        expected = self._container_type(annotation, environment)
+        if expected is not None:
+            self._restrictions.mutable_contracts.bind(((value, expected),))
+        return value
+
+    def _accept_arguments(self, params, args, environment, *, record_fields=False):
+        bindings = []
+        labels = []
+        for (name, annotation), value in zip(params, args, strict=True):
+            expected = self._container_type(annotation, environment)
+            if expected is not None:
+                bindings.append((value, expected))
+                labels.append(name)
+            elif (
+                record_fields
+                and annotation
+                and not self._matches_field_type(value, annotation, environment)
+            ):
+                raise TypeError(f"field '{name}' requires {annotation}")
+        if bindings:
+            self._restrictions.mutable_contracts.bind(
+                bindings, labels=labels if record_fields else None
+            )
+
+    def _make_closure(self, params, body, name="<lambda>", return_type=None):
         # Capture the defining environment so the function closes over its
         # lexical scope (enclosing locals), rather than over whatever scope
         # happens to be active at call time.
@@ -1242,6 +1327,7 @@ class Interpreter:
         def fn(*args):
             self._require_parameter_bindings(name, params)
             self._require_call_arity(name, len(params), len(args))
+            self._accept_arguments(params, args, def_env)
             old_env = self.env
             self.env = def_env.enter_scope()
             for (pname, _), val in zip(params, args, strict=True):
@@ -1253,12 +1339,12 @@ class Interpreter:
                 result = e.value
             finally:
                 self.env = old_env
-            return result
+            return self._accept_container(result, return_type, def_env)
 
         return self._bind_callable(fn)
 
     def _execute_function_decl(self, stmt: FunctionDecl) -> object:
-        fn = self._make_closure(stmt.params, stmt.body, stmt.name)
+        fn = self._make_closure(stmt.params, stmt.body, stmt.name, stmt.return_type)
         self.env.define(stmt.name, fn, is_mut=False)
         return fn
 
@@ -1294,7 +1380,7 @@ class Interpreter:
                 for field_spec in stmt.fields:
                     default_expr = field_spec[2] if len(field_spec) > 2 else None
                     if default_expr is not None:
-                        instance.fields[field_spec[0]] = self._evaluate(default_expr)
+                        instance.set_field(field_spec[0], self._evaluate(default_expr))
                 for method in initializers:
                     self._call_user_fn(method, list(args), this_obj=instance)
             finally:
@@ -1321,8 +1407,10 @@ class Interpreter:
                 )
             instance = StructInstance(stmt, {}, declaration_env)
             instance.native_identity = native_identity
-            for (name, _), value in zip(stmt.fields, args, strict=True):
-                self._set_struct_field(instance, name, value)
+            self._accept_arguments(
+                stmt.fields, args, declaration_env, record_fields=True
+            )
+            instance.fields.update(zip(names, args, strict=True))
             return instance
 
         constructor._thirsty_struct_declaration = stmt  # type: ignore[attr-defined]
@@ -1334,43 +1422,18 @@ class Interpreter:
         declared = dict(instance.declaration.fields)
         if name not in declared:
             raise NameError(f"'{instance.declaration.name}' has no field '{name}'")
-        annotation = declared[name]
-        if annotation and not self._matches_field_type(
-            value, annotation, instance.type_environment
-        ):
-            raise TypeError(f"field '{name}' requires {annotation}")
+        self._accept_arguments(
+            ((name, declared[name]),),
+            (value,),
+            instance.type_environment,
+            record_fields=True,
+        )
         instance.fields[name] = value
 
     def _matches_field_type(
         self, value: Any, annotation: str, environment: Environment
     ) -> bool:
-        """Validate supported record annotations in the declaration's lexical scope."""
-        if "[" in annotation and annotation.endswith("]"):
-            base, remainder = annotation.split("[", 1)
-            arguments = []
-            depth = 0
-            start = 0
-            for offset, char in enumerate(remainder[:-1]):
-                if char == "[":
-                    depth += 1
-                elif char == "]":
-                    depth -= 1
-                elif char == "," and depth == 0:
-                    arguments.append(remainder[start:offset].strip())
-                    start = offset + 1
-            arguments.append(remainder[start:-1].strip())
-            if base.lower() == "reservoir" and len(arguments) == 1:
-                return isinstance(value, list) and all(
-                    self._matches_field_type(item, arguments[0], environment)
-                    for item in value
-                )
-            if base.lower() == "dict" and len(arguments) == 2:
-                return isinstance(value, dict) and all(
-                    self._matches_field_type(key, arguments[0], environment)
-                    and self._matches_field_type(item, arguments[1], environment)
-                    for key, item in value.items()
-                )
-            return False
+        """Validate scalar record fields in their declaration environment."""
         # Resolve nominal declarations in the same lexical order as the
         # checker, including an explicitly shadowed primitive type name.
         binding = environment.get(annotation) if environment.has(annotation) else None
@@ -1456,6 +1519,7 @@ class Interpreter:
         def transform(*args):
             self._require_parameter_bindings(stmt.name, stmt.params)
             self._require_call_arity(stmt.name, len(stmt.params), len(args))
+            self._accept_arguments(stmt.params, args, declaration_env)
             old_env = self.env
             self.env = declaration_env.enter_scope()
             for (pname, _), val in zip(stmt.params, args, strict=True):
@@ -1635,6 +1699,7 @@ class Interpreter:
         def fn(*args):
             self._require_parameter_bindings(stmt.name, stmt.params)
             self._require_call_arity(stmt.name, len(stmt.params), len(args))
+            self._accept_arguments(stmt.params, args, declaration_env)
             old_env = self.env
             self.env = declaration_env.enter_scope()
             context = {}
@@ -1673,6 +1738,8 @@ class Interpreter:
         except ReturnException as e:
             result = e.value
 
+        # Validate the return before exit predicates can observe and mutate it.
+        self._accept_container(result, decl.return_type, self.env.parent or self.env)
         # Exit contracts: bind `result` so ensures/invariant can reference it.
         self.env.define("result", result, is_mut=False)
         exit_ctx = dict(context)
@@ -2163,6 +2230,7 @@ class Interpreter:
             if isinstance(this_obj, FountainInstance)
             else self.env
         )
+        self._accept_arguments(params, args, declaration_env)
         self.env = declaration_env.enter_scope()
         # Bind the receiver for fountain methods. Two conventions are supported:
         #   * the `this` keyword (no receiver parameter declared), and
@@ -2188,7 +2256,9 @@ class Interpreter:
                 result = self._execute(func_decl.body)
             except ReturnException as e:
                 result = e.value
-            return result
+            return self._accept_container(
+                result, func_decl.return_type, declaration_env
+            )
         finally:
             self.env = old_env
 
@@ -2239,7 +2309,9 @@ class Interpreter:
         elif isinstance(expr, UnaryOp):
             return self._evaluate_unary(expr)
         elif isinstance(expr, LambdaExpr):
-            return self._make_closure(expr.params, expr.body)
+            return self._make_closure(
+                expr.params, expr.body, return_type=expr.return_type
+            )
         elif isinstance(expr, CallExpr):
             return self._evaluate_call(expr)
         elif isinstance(expr, PipeExpr):
@@ -2392,7 +2464,7 @@ class Interpreter:
         """evaporate <target> — release a resource; empties a reservoir/map."""
         target = self._evaluate_impl(expr.target)
         if isinstance(target, (list, dict)):
-            target.clear()
+            checked_removal(target, target.clear)
         return None
 
     def _evaluate_condense(self, expr: CondenseExpr) -> object:

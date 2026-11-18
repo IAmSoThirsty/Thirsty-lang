@@ -95,6 +95,28 @@ from utf.thirsty_lang.typesys import (
     unify,
 )
 
+_SCALAR_LITERALS = (IntLiteral, FloatLiteral, StringLiteral, BoolLiteral, NoneLiteral)
+
+
+def _closed_literal(expr: Expr) -> bool:
+    """Whether a literal allocates all its collection children itself."""
+    if isinstance(expr, ArrayLiteral):
+        return all(_closed_literal(item) for item in expr.elements)
+    if isinstance(expr, DictLiteral):
+        return all(
+            isinstance(key, _SCALAR_LITERALS) and _closed_literal(value)
+            for key, value in expr.items
+        )
+    return isinstance(expr, _SCALAR_LITERALS)
+
+
+def _plain_read(expr: Expr) -> bool:
+    if isinstance(expr, Subscript):
+        return _plain_read(expr.obj) and _plain_read(expr.index)
+    if isinstance(expr, BinaryOp):
+        return _plain_read(expr.left) and _plain_read(expr.right)
+    return isinstance(expr, Identifier) or _closed_literal(expr)
+
 
 def _alternatives(value: Type) -> tuple[Type, ...]:
     return value.alternatives if isinstance(value, ValueChoiceType) else (value,)
@@ -176,17 +198,21 @@ class Checker:
         self._governed_names: set = set()  # governed function names
         self._prechecked_nominals: set[int] = set()
         self.effect_warnings = effect_warnings
+        self._literal_shapes: dict[str, Expr] = {}
 
     def enter_scope(self):
+        self._literal_shapes.clear()
         self.scope = Scope(self.scope)
 
     def exit_scope(self):
+        self._literal_shapes.clear()
         if self.scope.parent:
             self.scope = self.scope.parent
 
     def check_all(self, ast: Program) -> list[Diagnostic]:
         """Type-check an entire Program AST."""
         self.errors = []
+        self._literal_shapes.clear()
         self._prechecked_nominals = set()
         if getattr(ast, "parse_failed", False):
             self.errors.append(
@@ -321,7 +347,55 @@ class Checker:
                 name, {"type": AnyType(), "is_mut": False, "kind": "builtin"}
             )
 
+    def _literal_slot(self, expr: Expr) -> Expr | None:
+        if isinstance(expr, Identifier):
+            return self._literal_shapes.get(expr.name)
+        if isinstance(expr, (ArrayLiteral, DictLiteral)) and _closed_literal(expr):
+            return expr
+        if not isinstance(expr, Subscript) or not isinstance(
+            expr.index, _SCALAR_LITERALS
+        ):
+            return None
+        parent = self._literal_slot(expr.obj)
+        key = None if isinstance(expr.index, NoneLiteral) else expr.index.value
+        if isinstance(parent, ArrayLiteral) and type(key) is int:
+            if -len(parent.elements) <= key < len(parent.elements):
+                return parent.elements[key]
+        if isinstance(parent, DictLiteral):
+            for slot, value in parent.items:
+                if isinstance(slot, NoneLiteral) and key is None:
+                    return value
+                if (
+                    isinstance(
+                        slot, (IntLiteral, FloatLiteral, StringLiteral, BoolLiteral)
+                    )
+                    and slot.value == key
+                ):
+                    return value
+        return None
+
     def _check_stmt(self, stmt: Stmt):
+        # Calls, escaping effects, unknown writes and control-flow joins end the
+        # straight-line facts about literal positions. A same-kind scalar write
+        # at a known position preserves the slot's type.
+        if self._literal_shapes:
+            if isinstance(stmt, (ExprStmt, VariableDecl, ReturnStmt, PourStmt)):
+                read = (
+                    stmt.expr
+                    if isinstance(stmt, ExprStmt)
+                    else (
+                        stmt.init_expr if isinstance(stmt, VariableDecl) else stmt.value
+                    )
+                )
+                keep = read is not None and _plain_read(read)
+            elif isinstance(stmt, AssignStmt) and isinstance(stmt.target, Subscript):
+                keep = isinstance(stmt.value, _SCALAR_LITERALS) and type(
+                    self._literal_slot(stmt.target)
+                ) is type(stmt.value)
+            else:
+                keep = False
+            if not keep:
+                self._literal_shapes.clear()
         if isinstance(stmt, VariableDecl):
             self._check_variable_decl(stmt)
         elif isinstance(stmt, FunctionDecl):
@@ -481,6 +555,13 @@ class Checker:
                 "kind": "variable",
             }
 
+            if (
+                expected is None
+                and isinstance(stmt.init_expr, (ArrayLiteral, DictLiteral))
+                and _closed_literal(stmt.init_expr)
+            ):
+                self._literal_shapes[stmt.name] = stmt.init_expr
+
     def _check_function_decl(self, stmt: FunctionDecl):
         # Top-level names are pre-declared by the hoist pass; only declare (and
         # duplicate-check) names that weren't hoisted (e.g. class methods).
@@ -535,7 +616,8 @@ class Checker:
         """Contextual construction may widen fresh values, never shared children."""
         if isinstance(expected, ValueChoiceType):
             if not isinstance(
-                expr, (ArrayLiteral, DictLiteral, SliceExpr, CascadeCall)
+                expr,
+                (ArrayLiteral, DictLiteral, QuenchedLiteral, SliceExpr, CascadeCall),
             ):
                 return is_assignable(actual, expected)
             # A fresh collection may use any compatible construction target.
@@ -561,6 +643,10 @@ class Checker:
                     if isinstance(item, ReservoirType)
                 )
             return is_assignable(actual, expected)
+        elif isinstance(expr, QuenchedLiteral) and isinstance(expected, QuenchedType):
+            if expr.value is None or isinstance(expr.value, NoneLiteral):
+                return True
+            pairs = [(expr.value, expected.inner_type)]
         elif isinstance(expr, ArrayLiteral) and isinstance(expected, ReservoirType):
             pairs = [(element, expected.inner_type) for element in expr.elements]
         elif isinstance(expr, DictLiteral) and isinstance(expected, DictType):
@@ -607,7 +693,16 @@ class Checker:
             self.scope.declare(fname, {"type": t, "is_mut": True, "kind": "field"})
             default_expr = field_spec[2] if len(field_spec) > 2 else None
             if default_expr is not None:
-                self._check_expr(default_expr)
+                actual = self._check_expr(default_expr)
+                if ftype and not self._is_expr_assignable(default_expr, actual, t):
+                    self.errors.append(
+                        make_error(
+                            "E021",
+                            span=default_expr.span,
+                            found=type_to_string(actual),
+                            expected=type_to_string(t),
+                        )
+                    )
         for method in stmt.methods:
             params = method.params
             positional = (
@@ -862,7 +957,9 @@ class Checker:
         )
 
     def _check_subscript(self, expr: Subscript, *, assignment: bool = False) -> Type:
-        return _join_types(self._subscript_targets(expr, assignment=assignment))
+        targets = self._subscript_targets(expr, assignment=assignment)
+        slot = None if assignment else self._literal_slot(expr)
+        return self._check_expr(slot) if slot is not None else _join_types(targets)
 
     def _subscript_targets(self, expr: Subscript, *, assignment: bool) -> list[Type]:
         collection_type = self._check_expr(expr.obj)

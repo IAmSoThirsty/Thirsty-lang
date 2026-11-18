@@ -12,7 +12,13 @@ from utf.thirsty_lang.checker import Checker, check_ast
 from utf.thirsty_lang.interpreter import GovernanceViolation, Interpreter
 from utf.thirsty_lang.lexer import Lexer
 from utf.thirsty_lang.parser import Parser
-from utf.thirsty_lang.typesys import AnyType, FloatType, ReservoirType
+from utf.thirsty_lang.typesys import (
+    FloatType,
+    IntType,
+    ReservoirType,
+    StringType,
+    ValueChoiceType,
+)
 
 
 def parse(source):
@@ -243,7 +249,12 @@ def test_array_inference_visits_all_elements_and_widens():
     checker.check_all(parse('drink mixed = [1, "two"]\ndrink numeric = [1, 2.5]'))
     mixed = checker.scope.lookup("mixed")["type"]
     numeric = checker.scope.lookup("numeric")["type"]
-    assert isinstance(mixed, ReservoirType) and isinstance(mixed.inner_type, AnyType)
+    assert isinstance(mixed, ReservoirType)
+    assert isinstance(mixed.inner_type, ValueChoiceType)
+    assert {type(item) for item in mixed.inner_type.alternatives} == {
+        IntType,
+        StringType,
+    }
     assert isinstance(numeric.inner_type, FloatType)
 
 

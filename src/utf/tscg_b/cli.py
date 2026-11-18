@@ -12,7 +12,8 @@ from utf.tscg_b.core import StreamDecoder, pack_text, unpack_frame
 def cmd_encode(args: list):
     """Encode text into TSCG-B binary frame. Usage: tscg-b encode <text>"""
     if not args:
-        text = sys.stdin.read().strip()
+        stream = getattr(sys.stdin, "buffer", None)
+        text = stream.read().decode("utf-8") if stream is not None else sys.stdin.read()
     else:
         text = " ".join(args)
 
@@ -27,7 +28,7 @@ def cmd_decode(args: list):
     else:
         data = sys.stdin.buffer.read()
 
-    result = unpack_frame(data)
+    result = unpack_frame(data, exact_text=True)
     output = {
         "text": result["text"],
         "payload_length": result["payload_length"],

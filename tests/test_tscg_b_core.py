@@ -98,3 +98,60 @@ def test_stream_decoder_corrupt_frame_skipped():
     frame = bytearray(pack_text("x"))
     frame[-1] ^= 0xFF  # corrupt SHA → frame dropped
     assert dec.feed(bytes(frame)) == []
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["", "  hello\r\n", "λ🌊", "\x00\x01\x16A", "x" * 65535],
+    ids=["empty", "whitespace", "unicode", "controls", "maximum"],
+)
+def test_text_profile_and_opcode_round_trips(value):
+    assert core.decode_text(core.encode_text(value)) == value
+    assert core.decode_opcodes_to_text(core.encode_text_to_opcodes(value)) == value
+
+
+@pytest.mark.parametrize("value", ["x" * 65536, "λ" * 32768], ids=["ascii", "utf8"])
+def test_text_profile_bounds_utf8_bytes(value):
+    with pytest.raises(ValueError, match="65535"):
+        core.encode_text(value)
+
+
+def test_text_profile_requires_one_verified_unflagged_utf8_frame():
+    import hashlib
+    import zlib
+
+    header_payload = struct.pack("!4sBBH", core.MAGIC, 1, 0, 1) + b"\xff"
+    checked = header_payload + struct.pack("!I", zlib.crc32(header_payload))
+    invalid_utf8 = checked + hashlib.sha256(checked).digest()
+    good = core.encode_text("hi")
+    assert core.decode_text(list(good)) == "hi"
+    for octets in ([True], [-1], [256], [1.0], [0] * 65580):
+        with pytest.raises(ValueError):
+            core.decode_text(octets)
+    for frame in (good + good, good + b"x", good[:-1], pack_text("hi", flags=1)):
+        with pytest.raises(ValueError):
+            core.decode_text(frame)
+    for index in (-1, -33):
+        damaged = bytearray(good)
+        damaged[index] ^= 1
+        with pytest.raises(ValueError):
+            core.decode_text(bytes(damaged))
+    with pytest.raises(UnicodeDecodeError):
+        core.decode_text(invalid_utf8)
+    with pytest.raises(TypeError):
+        core.encode_text(b"text")
+    with pytest.raises(TypeError):
+        core.decode_text("text")
+
+
+def test_stream_resumes_after_damaged_frame_and_split_magic():
+    good = pack_text("next")
+    damaged = bytearray(pack_text("lost"))
+    damaged[-1] ^= 1
+    stream = StreamDecoder()
+    assert stream.feed(b"x" * 70000 + good[:3]) == []
+    assert stream.buffered_bytes == 3
+    assert [f["text"] for f in stream.feed(good[3:] + damaged + good)] == [
+        "next",
+        "next",
+    ]

@@ -20,6 +20,7 @@ from utf.thirsty_lang.typesys import (
     StructType,
     TaskType,
     TypeVariable,
+    ValueChoiceType,
     VoidType,
     is_assignable,
     type_from_name,
@@ -78,7 +79,9 @@ def test_unify():
     assert isinstance(unify(IntType(), IntType()), IntType)
     assert isinstance(unify(IntType(), FloatType()), FloatType)
     assert isinstance(unify(FloatType(), IntType()), FloatType)
-    assert isinstance(unify(IntType(), StringType()), AnyType)
+    mixed = unify(IntType(), StringType())
+    assert isinstance(mixed, ValueChoiceType)
+    assert {type(item) for item in mixed.alternatives} == {IntType, StringType}
     # generics
     q = unify(QuenchedType(IntType()), QuenchedType(IntType()))
     assert isinstance(q, QuenchedType)
@@ -124,8 +127,8 @@ def test_type_variable_descriptors_preserve_their_names():
     assert not is_assignable(first, other)
     assert not is_assignable(other, first)
     assert unify(first, same) is first
-    assert isinstance(unify(first, other), AnyType)
-    assert isinstance(unify(other, first), AnyType)
+    assert unify(first, other) == ValueChoiceType((first, other))
+    assert unify(other, first) == ValueChoiceType((other, first))
 
 
 def test_function_choice_rejects_missing_or_nonfunction_signatures():

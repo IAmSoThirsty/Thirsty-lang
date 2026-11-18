@@ -1,6 +1,6 @@
 """
 Thirsty-Lang Module System
-Import resolution, 16 stdlib namespaces, and 16 global builtins.
+Import resolution, 17 stdlib namespaces, and 16 global builtins.
 """
 
 import hashlib
@@ -13,6 +13,12 @@ import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
+
+from utf.thirsty_lang.mutable_contracts import (
+    checked_removal,
+    checked_setitem,
+    checked_write,
+)
 
 # Module cache: store resolved modules by import path
 ModuleCache: dict[str, object] = {}
@@ -150,6 +156,7 @@ NO_AMBIENT_STDLIB_EXPORTS: dict[str, frozenset[str]] = {
     "thirst::net": frozenset(),
     "thirst::sqlite": frozenset(),
     "thirst::yaml": frozenset({"parse", "dump"}),
+    "thirst::tscgb": frozenset({"encode", "decode"}),
     "thirst::toml": frozenset({"parse", "dump"}),
 }
 
@@ -439,7 +446,7 @@ def _make_json_module() -> dict:
         return d.get(k, default)
 
     def set(d: dict, k: str, v: object) -> dict:
-        d[k] = v
+        checked_setitem(d, k, v)
         return d
 
     return {
@@ -1555,6 +1562,13 @@ def dump_toml(data: dict) -> str:
     return result
 
 
+def _make_tscgb_module() -> dict:
+    """thirst::tscgb — Verified, single-frame UTF-8 encoding and decoding."""
+    from utf.tscg_b.core import decode_text, encode_text
+
+    return {"encode": encode_text, "decode": decode_text}
+
+
 def _make_toml_module() -> dict:
     """thirst::toml — Standard TOML parsing and strict serialization."""
     import tomllib
@@ -1583,6 +1597,7 @@ STDLIB_MODULES = {
     "thirst::sqlite": _make_sqlite_module,
     "thirst::yaml": _make_yaml_module,
     "thirst::toml": _make_toml_module,
+    "thirst::tscgb": _make_tscgb_module,
 }
 
 
@@ -1594,7 +1609,7 @@ STDLIB_MODULES = {
 def _list_push(values: list, value: object) -> int:
     if not isinstance(values, list):
         raise TypeError("push requires a list")
-    values.append(value)
+    checked_write(values, None, value, lambda: values.append(value))
     return len(values)
 
 
@@ -1607,6 +1622,10 @@ def _list_pop(values: list) -> object:
 def _list_flood(values: list, value: object) -> list:
     _list_push(values, value)
     return values
+
+
+def _evaporate_value(wrapper):
+    return checked_removal(wrapper, lambda: wrapper.pop("value", None))
 
 
 def _unsupported_builtin(*args: object) -> object:
@@ -1628,7 +1647,7 @@ BUILTINS: dict[str, Callable[..., Any]] = {
     "get": lambda x, i: x[i],
     "flood": _list_flood,
     "condense": lambda q: q.get("value"),
-    "evaporate": lambda q: q.pop("value", None),
+    "evaporate": _evaporate_value,
     "strain": _unsupported_builtin,
     "transmute": _unsupported_builtin,
     "distill": _unsupported_builtin,

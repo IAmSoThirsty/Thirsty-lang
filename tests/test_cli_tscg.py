@@ -178,3 +178,12 @@ def test_tscgb_encode_stdin(monkeypatch):
     _argv(monkeypatch, "tscg-b", "encode")
     tscgb_cli.main()
     assert out.buffer.getvalue()
+
+
+def test_tscgb_piped_text_preserves_utf8_and_line_endings(monkeypatch):
+    raw = "  λ\r\n".encode()
+    out = _FakeStdout()
+    monkeypatch.setattr("sys.stdin", _FakeStdin(raw))
+    monkeypatch.setattr("sys.stdout", out)
+    tscgb_cli.cmd_encode([])
+    assert out.buffer.getvalue() == pack_text(raw.decode())

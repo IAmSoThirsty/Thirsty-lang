@@ -420,3 +420,21 @@ def test_same_type_aliases_keep_shared_writable_container_behavior(
         f"alias[{index}] = 7\noriginal[{index}]"
     )
     assert run(source) == 7
+
+
+def test_typed_fountain_default_checks_every_value_and_preserves_fresh_widening():
+    prefix = "drink ints: Reservoir[Int] = [1]\n"
+    template = "fountain Box { items: Reservoir[Float] = %s }"
+    assert check(prefix + template % "[1]") == []
+    assert_mismatch(prefix + template % "ints")
+    assert_mismatch(prefix + template % "(ints or [1.5])")
+
+
+def test_quenched_literal_checks_payload_but_shared_wrapper_keeps_its_writable_type():
+    assert check("drink target: Quenched[Float] = quenched(1)") == []
+    assert check("drink target: Quenched[Int] = quenched()") == []
+    assert_mismatch('drink target: Reservoir[Quenched[Int]] = [quenched("bad")]')
+    assert_mismatch(
+        "drink shared: Quenched[Int] = quenched(1)\n"
+        "drink widened: Quenched[Float] = shared"
+    )

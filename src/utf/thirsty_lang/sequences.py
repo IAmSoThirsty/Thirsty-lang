@@ -18,6 +18,8 @@ immutable container type; a full slice may reuse the original object.
 
 from typing import TypeAlias, cast
 
+from utf.thirsty_lang.mutable_contracts import checked_setitem
+
 SequenceValue: TypeAlias = list[object] | str | tuple[object, ...] | bytes
 
 __all__ = ["get_index", "set_index", "get_slice"]
@@ -74,11 +76,12 @@ def set_index(obj: object, index: object, value: object) -> None:
     Strings, tuples, and bytes do not support indexed assignment.
     """
     if type(obj) is dict:
-        cast(dict[object, object], obj)[index] = value
+        checked_setitem(obj, index, value)
         return
     if type(obj) is list:
         sequence = cast(list[object], obj)
-        sequence[_index(index, len(sequence))] = value
+        position = _index(index, len(sequence))
+        checked_setitem(sequence, position, value)
         return
     raise TypeError(
         "cannot index-assign: only native lists and dictionaries are mutable"

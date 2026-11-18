@@ -108,7 +108,7 @@ def test_mixed_mutable_and_scalar_choices_do_not_become_gradual_any(selection):
 
 def test_unannotated_heterogeneous_scalar_collection_preserves_known_alternatives():
     checker, _, errors = inspect_source(
-        'drink mixed = [1, "two"]\ndrink value = mixed[0]'
+        'drink mixed = [1, "two"]\ndrink index = 0\ndrink value = mixed[index]'
     )
     assert errors == []
     value_type = checker.scope.lookup("value")["type"]
@@ -119,7 +119,29 @@ def test_unannotated_heterogeneous_scalar_collection_preserves_known_alternative
 
 
 def test_known_heterogeneous_scalar_choice_cannot_claim_a_single_alternative():
-    assert_rejected('drink mixed = [1, "two"]\ndrink value: Int = mixed[0]')
+    assert_rejected(
+        'drink mixed = [1, "two"]\ndrink index = 0\ndrink value: Int = mixed[index]'
+    )
+    assert_rejected('drink mixed = [1, "two"]\ndrink value: Int = mixed[1]')
+    assert (
+        run_checked('drink mixed = [1, "two"]\ndrink value: Int = mixed[0]\nvalue') == 1
+    )
+
+
+@pytest.mark.parametrize(
+    "effect",
+    [
+        'mixed[0] = "now text"',
+        'drink alias = mixed\nalias[0] = "now text"',
+        "change(mixed)",
+        'thirsty (true) { mixed[0] = "now text" }',
+    ],
+)
+def test_literal_position_is_invalidated_after_an_unknown_or_changed_write(effect):
+    assert_rejected(
+        'glass change(items) { items[0] = "now text" }\n'
+        'drink mixed = [1, "two"]\n' + effect + "\ndrink value: Int = mixed[0]"
+    )
 
 
 def test_shallow_slice_may_widen_copied_scalar_slots():

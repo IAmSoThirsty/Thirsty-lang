@@ -451,7 +451,7 @@ def unify(t1: Type, t2: Type) -> Type:
         if isinstance(t1, GenericType) and isinstance(t2, GenericType):
             if t1.base_type != t2.base_type or len(t1.type_args) != len(t2.type_args):
                 return ValueChoiceType((t1, t2))
-            if t1.base_type in ("Reservoir", "Dict"):
+            if t1.base_type in ("Reservoir", "Dict", "Quenched"):
                 return t1 if _same_type(t1, t2) else ValueChoiceType((t1, t2))
             args = [
                 unify(left, right)
@@ -505,7 +505,7 @@ def is_assignable(source: Type, target: Type) -> bool:
                 and all(
                     is_assignable(left, right)
                     and (
-                        source.base_type not in ("Reservoir", "Dict")
+                        source.base_type not in ("Reservoir", "Dict", "Quenched")
                         or is_assignable(right, left)
                     )
                     for left, right in zip(

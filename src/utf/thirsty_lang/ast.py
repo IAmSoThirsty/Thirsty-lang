@@ -181,7 +181,7 @@ class CondenseExpr(Expr):
 class ArrayLiteral(Expr):
     """[e1, e2, ...] reservoir/array literal — evaluates to a list."""
 
-    elements: list
+    elements: list[Expr]
 
 
 @dataclass

@@ -58,7 +58,7 @@ def test_loop_element_types_follow_the_iterable(iterable, element_type, wrong_ty
     assert [error.code for error in errors] == ["E021"]
 
 
-@pytest.mark.parametrize("iterable", ["[]", "{}", '[1, "two"]'])
+@pytest.mark.parametrize("iterable", ["[]", "{}"])
 def test_unknown_element_types_remain_dynamic(iterable):
     assert (
         check_ast(parsed(f"refill (item in {iterable}) {{ drink value: Int = item }}"))
@@ -414,3 +414,8 @@ def test_spillage_does_not_swallow_loop_governance_denial(make_interpreter, caps
     assert interpreter.env.get("handled") is False
     assert interpreter.env is environment
     assert capsys.readouterr().out == ""
+
+
+def test_known_mixed_loop_elements_must_all_fit_the_target():
+    program = parsed('refill (item in [1, "two"]) { drink value: Int = item }')
+    assert [error.code for error in check_ast(program)] == ["E021"]

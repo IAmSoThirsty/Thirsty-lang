@@ -705,7 +705,7 @@ import "thirst::json" as json
 import "thirst::fs" as fs
 ```
 
-The standard library currently registers 16 namespaces:
+The standard library development branch registers 17 namespaces:
 
 ```text
 thirst::time          thirst::crypto       thirst::reservoir
@@ -713,7 +713,7 @@ thirst::fs            thirst::path         thirst::json
 thirst::http          thirst::env          thirst::process
 thirst::log           thirst::test         thirst::collections
 thirst::net           thirst::sqlite       thirst::yaml
-thirst::toml
+thirst::toml          thirst::tscgb
 ```
 
 Global built-ins are:
@@ -741,7 +741,7 @@ Governed mode wraps the functions currently declared in
 | `thirst::test` | `describe`, `it` as `write` |
 | `thirst::sqlite` | `connect`, `execute`, `close` as `write`; `query` as `read` |
 
-This table is a boundary, not a claim that every callable in all 16 namespaces
+This table is a boundary, not a claim that every callable in all 17 namespaces
 is mediated. The interpreter additionally wraps time reads/sleep and crypto
 randomness/UUID for effect checks. A production embedding must inspect every
 additional host adapter it exposes and route external effects through the broker.
@@ -1807,8 +1807,8 @@ including `pour`, `sip`, `print`, and effectful standard-library calls through
 aliases or callbacks.
 Select the module mode that matches the intended contract.
 Imports still require policy permission in pure mode, including imports of
-deterministic libraries. The reviewed stdlib inventory has 99 exports: 43 with
-direct mediated effects and 56 without direct ambient effects. The latter can
+deterministic libraries. The reviewed stdlib inventory has 101 exports: 43 with
+direct mediated effects and 58 without direct ambient effects. The latter can
 mutate guest data or call callbacks, whose active restrictions remain in force.
 
 ### An imported core file requires policy

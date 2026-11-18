@@ -182,7 +182,7 @@ for value in c.set([3, 1, 3]) { pour value }
     assert capsys.readouterr().out.splitlines() == ["8", "65", "AB", "3", "1"]
 
 
-def run_report(tmp_path, raw):
+def run_report(tmp_path, raw, *, allow_file=True):
     path = tmp_path / "orders.json"
     path.write_text(raw, encoding="utf-8")
     allowed = [
@@ -190,9 +190,10 @@ def run_report(tmp_path, raw):
         for namespace in ("collections", "json", "fs", "env")
     ] + [
         ("read", "thirst::env.get:THIRSTY_REPORT_INPUT"),
-        ("read", f"thirst::fs.read_file:{path}"),
         ("write", "stdout"),
     ]
+    if allow_file:
+        allowed.append(("read", f"thirst::fs.read_file:{path}"))
     policy = tmp_path / "report-policy.tarl"
     policy.write_text(
         "\n".join(
@@ -305,3 +306,10 @@ def test_file_read_budget_is_bytes_and_utf8_is_explicit(tmp_path):
     path.write_bytes(b"\xff")
     with pytest.raises(UnicodeDecodeError):
         fs["read_file"](str(path), 1)
+
+
+def test_data_application_denied_input_read_produces_no_report(tmp_path):
+    result = run_report(tmp_path, "[]", allow_file=False)
+    assert result.returncode == 2
+    assert "governance denied" in result.stderr.lower()
+    assert result.stdout == ""

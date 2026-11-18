@@ -352,14 +352,15 @@ def test_any_keys_preserve_native_dictionary_equality_and_replacement():
     ) == {"size": 1, "value": "integer"}
 
 
-def test_any_key_expression_preserves_the_gradual_dictionary_boundary():
-    assert (
-        run(
-            'drink data: Dict[String, Int] = {"one": 1}\n'
-            "drink key: Any = 2\ndata[key] = 3\ndata[key]"
-        )
-        == 3
-    )
+def test_any_key_is_checked_at_the_typed_dictionary_write():
+    setup = 'drink data: Dict[String, Int] = {"one": 1}\n'
+    program = parsed(setup + "drink key: Any = 2\ndata[key] = 3")
+    assert check_ast(program) == []
+    with Interpreter() as interpreter:
+        with pytest.raises(TypeError, match="String"):
+            interpreter.interpret(program)
+        assert interpreter.env.get("data") == {"one": 1}
+    assert run(setup + 'drink key: Any = "two"\ndata[key] = 3\ndata[key]') == 3
 
 
 def test_unchecked_dictionary_access_retains_native_bool_integer_key_semantics():

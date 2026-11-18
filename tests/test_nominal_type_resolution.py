@@ -19,6 +19,7 @@ from utf.thirsty_lang.typesys import (
     StringType,
     StructType,
     TaskType,
+    ValueChoiceType,
     is_assignable,
     type_from_name,
     type_to_string,
@@ -182,19 +183,37 @@ def wrappers():
     ]
 
 
+def assert_both_choices(joined, first, second):
+    assert isinstance(joined, ValueChoiceType)
+    assert len(joined.alternatives) == 2
+    assert joined.alternatives[0] is first
+    assert joined.alternatives[1] is second
+
+
 @pytest.mark.parametrize("wrapper", wrappers())
 def test_every_generic_argument_checks_assignability_and_unifies(wrapper):
     integer = wrapper(IntType())
     floating = wrapper(FloatType())
     string = wrapper(StringType())
-    assert is_assignable(integer, floating)
+    writable = isinstance(integer, (ReservoirType, DictType, QuenchedType))
+    assert is_assignable(integer, floating) is (not writable)
     assert not is_assignable(floating, integer)
     assert not is_assignable(integer, string)
     assert not is_assignable(string, integer)
-    assert unify(integer, floating) == floating
-    assert unify(floating, integer) == floating
-    assert unify(integer, string) == wrapper(AnyType())
-    assert unify(string, integer) == wrapper(AnyType())
+    if writable:
+        for left, right in [
+            (integer, floating),
+            (floating, integer),
+            (integer, string),
+            (string, integer),
+        ]:
+            assert_both_choices(unify(left, right), left, right)
+    else:
+        assert unify(integer, floating) == floating
+        assert unify(floating, integer) == floating
+        joined = wrapper(ValueChoiceType((IntType(), StringType())))
+        assert unify(integer, string) == joined
+        assert unify(string, integer) == joined
 
 
 @pytest.mark.parametrize("wrapper", wrappers())
@@ -203,7 +222,11 @@ def test_nominal_identity_stays_visible_inside_every_generic_argument(wrapper):
     right = StructType("Record", {"count": IntType()}, declaration_id=object())
     assert is_assignable(wrapper(left), wrapper(left))
     assert not is_assignable(wrapper(left), wrapper(right))
-    assert unify(wrapper(left), wrapper(right)) == wrapper(AnyType())
+    first, second = wrapper(left), wrapper(right)
+    if isinstance(first, (ReservoirType, DictType, QuenchedType)):
+        assert_both_choices(unify(first, second), first, second)
+    else:
+        assert unify(first, second) == wrapper(ValueChoiceType((left, right)))
 
 
 @pytest.mark.parametrize(
@@ -219,8 +242,8 @@ def test_nominal_identity_stays_visible_inside_every_generic_argument(wrapper):
 def test_generic_base_constructor_and_arity_must_agree(left, right):
     assert not is_assignable(left, right)
     assert not is_assignable(right, left)
-    assert isinstance(unify(left, right), AnyType)
-    assert isinstance(unify(right, left), AnyType)
+    assert_both_choices(unify(left, right), left, right)
+    assert_both_choices(unify(right, left), right, left)
 
 
 @pytest.mark.parametrize("nominal", [EnumType, StructType, InterfaceType])
@@ -236,8 +259,8 @@ def test_same_name_different_declarations_do_not_match(nominal):
     for value in (other, unidentified):
         assert not is_assignable(first, value)
         assert not is_assignable(value, first)
-        assert isinstance(unify(first, value), AnyType)
-        assert isinstance(unify(value, first), AnyType)
+        assert_both_choices(unify(first, value), first, value)
+        assert_both_choices(unify(value, first), value, first)
     assert is_assignable(unidentified, nominal("Repeated"))
     assert unify(unidentified, nominal("Repeated")) is unidentified
     assert not is_assignable(unidentified, nominal("Different"))
@@ -257,10 +280,9 @@ def test_recursive_struct_arguments_compare_identity_without_recursing_fields():
     assert unify(ReservoirType(left), ReservoirType(same)).inner_type is left
     assert not is_assignable(left, other)
     assert not is_assignable(ReservoirType(left), ReservoirType(other))
-    assert isinstance(unify(left, other), AnyType)
-    assert isinstance(
-        unify(ReservoirType(left), ReservoirType(other)).inner_type, AnyType
-    )
+    assert_both_choices(unify(left, other), left, other)
+    first, second = ReservoirType(left), ReservoirType(other)
+    assert_both_choices(unify(first, second), first, second)
 
 
 def test_declaration_identity_comparison_does_not_invoke_host_equality():
@@ -275,4 +297,4 @@ def test_declaration_identity_comparison_does_not_invoke_host_equality():
     assert is_assignable(left, same)
     assert not is_assignable(left, other)
     assert unify(left, same) is left
-    assert isinstance(unify(left, other), AnyType)
+    assert_both_choices(unify(left, other), left, other)
