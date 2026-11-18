@@ -218,6 +218,44 @@ class FunctionUnionType(Type):
         )
 
 
+@dataclass(eq=False)
+class ValueChoiceType(Type):
+    """One value selected from known alternatives, without erasing alias types.
+
+    Whole mutable container descriptors remain alternatives: joining two lists
+    does not make their existing writable element types interchangeable.
+    """
+
+    alternatives: tuple[Type, ...]
+
+    def __post_init__(self):
+        if not self.alternatives or not all(
+            isinstance(item, Type) for item in self.alternatives
+        ):
+            raise ValueError("value alternatives must contain type descriptors")
+        unique: list[Type] = []
+        for value in self.alternatives:
+            items = (
+                value.alternatives
+                if isinstance(value, (ValueChoiceType, FunctionUnionType))
+                else (value,)
+            )
+            for item in items:
+                if not any(_same_type(item, existing) for existing in unique):
+                    unique.append(item)
+        self.alternatives = tuple(unique)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, ValueChoiceType)
+            and len(self.alternatives) == len(other.alternatives)
+            and all(
+                any(_same_type(left, right) for right in other.alternatives)
+                for left in self.alternatives
+            )
+        )
+
+
 # === Type String Map ===
 
 TYPE_NAME_MAP: "dict[str, type[Type]]" = {
@@ -396,14 +434,25 @@ def unify(t1: Type, t2: Type) -> Type:
         right = t2.alternatives if isinstance(t2, FunctionUnionType) else (t2,)
         joined = FunctionUnionType((*left, *right))
         return joined.alternatives[0] if len(joined.alternatives) == 1 else joined
+    if isinstance(t1, ValueChoiceType) or isinstance(t2, ValueChoiceType):
+        joined_values = ValueChoiceType((t1, t2))
+        return (
+            joined_values.alternatives[0]
+            if len(joined_values.alternatives) == 1
+            else joined_values
+        )
     if type(t1) is type(t2):
         if isinstance(t1, (EnumType, StructType, InterfaceType)) and isinstance(
             t2, (EnumType, StructType, InterfaceType)
         ):
-            return t1 if _same_nominal_declaration(t1, t2) else AnyType()
+            return (
+                t1 if _same_nominal_declaration(t1, t2) else ValueChoiceType((t1, t2))
+            )
         if isinstance(t1, GenericType) and isinstance(t2, GenericType):
             if t1.base_type != t2.base_type or len(t1.type_args) != len(t2.type_args):
-                return AnyType()
+                return ValueChoiceType((t1, t2))
+            if t1.base_type in ("Reservoir", "Dict"):
+                return t1 if _same_type(t1, t2) else ValueChoiceType((t1, t2))
             args = [
                 unify(left, right)
                 for left, right in zip(t1.type_args, t2.type_args, strict=True)
@@ -412,15 +461,16 @@ def unify(t1: Type, t2: Type) -> Type:
                 return GenericType(t1.base_type, args)
             return _generic_type(t1.base_type, args)
         if isinstance(t1, TypeVariable) and isinstance(t2, TypeVariable):
-            return t1 if t1.name == t2.name else AnyType()
+            return t1 if t1.name == t2.name else ValueChoiceType((t1, t2))
         return t1
     # Widening
     if isinstance(t1, IntType) and isinstance(t2, FloatType):
         return FloatType()
     if isinstance(t1, FloatType) and isinstance(t2, IntType):
         return FloatType()
-    # Fall through to Any
-    return AnyType()
+    # Heterogeneous known values retain their alternatives. Only a gradual Any
+    # input above can erase known constraints at this boundary.
+    return ValueChoiceType((t1, t2))
 
 
 def is_assignable(source: Type, target: Type) -> bool:
@@ -429,9 +479,9 @@ def is_assignable(source: Type, target: Type) -> bool:
         return True
     if isinstance(source, AnyType):
         return True
-    if isinstance(source, FunctionUnionType):
+    if isinstance(source, (FunctionUnionType, ValueChoiceType)):
         return all(is_assignable(item, target) for item in source.alternatives)
-    if isinstance(target, FunctionUnionType):
+    if isinstance(target, (FunctionUnionType, ValueChoiceType)):
         return any(is_assignable(source, item) for item in target.alternatives)
     if isinstance(source, ConstructorType):
         if isinstance(target, ConstructorType):
@@ -454,6 +504,10 @@ def is_assignable(source: Type, target: Type) -> bool:
                 and len(source.type_args) == len(target.type_args)
                 and all(
                     is_assignable(left, right)
+                    and (
+                        source.base_type not in ("Reservoir", "Dict")
+                        or is_assignable(right, left)
+                    )
                     for left, right in zip(
                         source.type_args, target.type_args, strict=True
                     )
@@ -524,6 +578,9 @@ def type_to_string(t: Type) -> str:
     elif isinstance(t, FunctionUnionType):
         variants = sorted(type_to_string(item) for item in t.alternatives)
         return "CallableChoice[" + " | ".join(variants) + "]"
+    elif isinstance(t, ValueChoiceType):
+        variants = sorted(type_to_string(item) for item in t.alternatives)
+        return "ValueChoice[" + " | ".join(variants) + "]"
     elif isinstance(t, GenericType):
         args = ", ".join(type_to_string(a) for a in t.type_args)
         return f"{t.base_type}[{args}]"

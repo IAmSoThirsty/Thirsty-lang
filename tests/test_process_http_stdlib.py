@@ -2,6 +2,7 @@
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -139,6 +140,41 @@ def test_http_argument_budgets_and_transport_timeout(monkeypatch):
     monkeypatch.setattr(urllib.request.OpenerDirector, "open", timeout)
     with pytest.raises(TimeoutError):
         http["get"]("http://127.0.0.1")
+
+
+@pytest.mark.parametrize(
+    ("platform", "expected_flags"),
+    [("linux", 0), ("darwin", 0), ("win32", 0x12345678)],
+)
+def test_process_creation_flags_are_platform_guarded(
+    monkeypatch, platform, expected_flags
+):
+    class LaunchCaptured(Exception):
+        pass
+
+    launches = []
+
+    def windows_only_attribute(name):
+        if name != "CREATE_NO_WINDOW":
+            raise AttributeError(name)
+        assert platform == "win32", "Windows-only subprocess attribute resolved"
+        return 0x12345678
+
+    def launch(command, **kwargs):
+        launches.append((command, kwargs["creationflags"]))
+        # Stop before platform-specific pipe handling or launching a real child.
+        raise LaunchCaptured
+
+    with monkeypatch.context() as patch:
+        patch.setattr(shutil, "which", lambda executable: executable)
+        patch.setattr(subprocess, "Popen", launch)
+        patch.delattr(subprocess, "CREATE_NO_WINDOW", raising=False)
+        patch.setattr(subprocess, "__getattr__", windows_only_attribute, raising=False)
+        patch.setattr(sys, "platform", platform)
+        with pytest.raises(LaunchCaptured):
+            ms.STDLIB_MODULES["thirst::process"]()["run"](["python", "-V"])
+
+    assert launches == [(["python", "-V"], expected_flags)]
 
 
 def test_process_argv_is_literal_and_output_is_real():

@@ -56,6 +56,12 @@ These mechanisms expose inspectable authorization evidence. They do not prove
 arbitrary programs correct, provide an OS sandbox, or establish Python parity.
 The development plan keeps those limits and remaining language work explicit.
 
+The unreleased M4.1 runtime adds finite cooperative execution limits, explicit
+interpreter/import ownership, cancellation, and idle scheduler teardown. It also
+repairs lexical scope in governed functions and methods. See
+[execution control](docs/EXECUTION_CONTROL.md) for the supported contract and
+the remaining allocation, blocking-adapter, and process-isolation work.
+
 At mediated execution boundaries:
 
 | Principle | Consequence |

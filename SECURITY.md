@@ -9,6 +9,14 @@ The governance-default corrections described below belong to the unreleased
 working tree after 0.9.0. They must not be assumed to exist in an older installed
 package or container.
 
+The unreleased M4.1 interpreter enforces exclusive logical execution and finite
+cooperative steps/deadline/call depth across joined callers, definers, and file
+imports. Stops cannot be caught by guest spillage or bypassed through cleanup.
+Governed contracts resolve lexical defining scopes instead of caller shadows.
+[Execution control](docs/EXECUTION_CONTROL.md) specifies cancellation and lifetime
+behavior. These checkpoints cannot preempt blocking Python, cap single native
+allocations, stop descendants, or replace OS isolation; those remain open work.
+
 Versions through 0.8.5 must not be used for load-bearing authorization with
 dotted context paths. The 0.8.6 repair introduced fail-closed missing, malformed,
 and conflicting context handling; use a currently supported release. That repair

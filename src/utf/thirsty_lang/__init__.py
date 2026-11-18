@@ -64,6 +64,13 @@ from utf.thirsty_lang.diagnostics import (
     DiagnosticSeverity,
     format_diagnostic,
 )
+from utf.thirsty_lang.execution import (
+    ExecutionBusyError,
+    ExecutionClosedError,
+    ExecutionError,
+    ExecutionLimits,
+    ExecutionStopped,
+)
 from utf.thirsty_lang.formatter import format
 from utf.thirsty_lang.interpreter import Environment, Interpreter
 from utf.thirsty_lang.lexer import Lexer
@@ -97,6 +104,7 @@ from utf.thirsty_lang.typesys import (
     TaskType,
     Type,
     TypeVariable,
+    ValueChoiceType,
     VoidType,
     is_assignable,
     type_to_string,
@@ -194,6 +202,7 @@ __all__ = [
     "TypeVariable",
     "FunctionType",
     "FunctionUnionType",
+    "ValueChoiceType",
     "ConstructorType",
     "is_assignable",
     "type_to_string",
@@ -201,6 +210,11 @@ __all__ = [
     "Checker",
     "check_ast",
     "Interpreter",
+    "ExecutionLimits",
+    "ExecutionError",
+    "ExecutionBusyError",
+    "ExecutionClosedError",
+    "ExecutionStopped",
     "Environment",
     "Diagnostic",
     "DiagnosticBundle",

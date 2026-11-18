@@ -60,6 +60,63 @@ def test_pdf_table_parser_preserves_pipe_operators_in_code_spans():
     ]
 
 
+@pytest.mark.parametrize("line_count", [2, 35])
+def test_code_language_label_stays_with_first_code_segment(line_count, tmp_path: Path):
+    from pypdf import PdfReader
+    from reportlab.platypus import BaseDocTemplate, Flowable, Frame, PageTemplate
+
+    class LeadingContent(Flowable):
+        def wrap(self, available_width, available_height):
+            # Leave 14 points: the language label fits, but its first code
+            # segment cannot also fit unless both move to the following page.
+            return available_width, 86
+
+        def draw(self):
+            self.canv.drawString(0, 0, "Leading content")
+
+    register_fonts()
+    renderer = MarkdownRenderer(make_styles())
+    lines = [f"line-{number:03d}" for number in range(line_count)]
+    source = "```thirsty\n" + "\n".join(lines) + "\n```"
+    output = tmp_path / "code-label-boundary.pdf"
+    frame = Frame(
+        50,
+        50,
+        300,
+        100,
+        leftPadding=0,
+        rightPadding=0,
+        topPadding=0,
+        bottomPadding=0,
+    )
+    document = BaseDocTemplate(
+        str(output),
+        pagesize=(400, 200),
+        pageTemplates=[PageTemplate("boundary", [frame])],
+    )
+    document.build([LeadingContent(), *renderer.render_markdown(source, MANIFEST)])
+    texts = [page.extract_text() for page in PdfReader(output).pages]
+    label_pages = [index for index, text in enumerate(texts) if "THIRSTY" in text]
+    first_code_page = next(
+        index for index, text in enumerate(texts) if lines[0] in text
+    )
+    assert label_pages == [first_code_page]
+    assert "Leading content" in texts[0]
+    assert first_code_page == 1
+    rendered_lines = [
+        line.strip()
+        for text in texts
+        for line in text.splitlines()
+        if line.strip().startswith("line-")
+    ]
+    assert rendered_lines == lines
+    code_pages = [index for index, text in enumerate(texts) if "line-" in text]
+    if line_count == 2:
+        assert len(code_pages) == 1
+    else:
+        assert len(code_pages) > 1
+
+
 def test_pdf_toc_rebuild_does_not_reuse_final_section_header(tmp_path: Path):
     from pypdf import PdfReader
     from reportlab.platypus import NextPageTemplate, PageBreak, Paragraph
@@ -302,10 +359,12 @@ def test_manifest_is_complete_and_repository_confined():
     }
     assert config.title == "Thirsty-Lang UTF 101 (Universal Thirsty Family)"
     assert (
-        config.subtitle == "The Canonical End-to-End Reference - unreleased M3.1-M3.5"
+        config.subtitle
+        == "The Canonical End-to-End Reference - unreleased M3.1-M3.5 and M4.1"
     )
     assert "docs/THIRSTY_LANG_UTF_101.md" in paths
     assert "docs/LANGUAGE_SPEC.md" in paths
+    assert "docs/EXECUTION_CONTROL.md" in paths
     assert "docs/GRAMMAR.md" in paths
     assert "docs/THREAT_MODEL.md" in paths
     assert "docs/STATUS.md" in paths

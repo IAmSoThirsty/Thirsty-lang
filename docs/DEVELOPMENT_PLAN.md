@@ -1,10 +1,10 @@
 # Priority corrections and General Purpose Language
 
-Updated 2026-09-08. Thirsty-Lang 0.9.0 was published and its artifact identity
+Updated 2026-09-13. Thirsty-Lang 0.9.0 was published and its artifact identity
 verified. M3.1 sequence semantics has its own completed local verification in
 [M3_SEQUENCE_VERIFICATION.md](operations/M3_SEQUENCE_VERIFICATION.md).
-The local M3.2 Boolean/type-coherence increment builds on that uncommitted
-work; it has no new package version or publication claim. Consult its separate
+The recorded M3.2 Boolean/type-coherence increment built on then-uncommitted
+work; it had no new package version or publication claim. Consult its separate
 integration results in
 [M3_TYPE_COHERENCE_VERIFICATION.md](operations/M3_TYPE_COHERENCE_VERIFICATION.md).
 Earlier release or M3.1 totals do not validate M3.2.
@@ -18,6 +18,13 @@ and bounded native governed-call contexts. Its
 final integration evidence; focused implementation checks do not close that gate.
 These implementations are not new releases, and earlier verification totals
 do not validate later increments.
+
+Cumulative M3.1-M3.5 was subsequently committed and pushed as
+`e888a847b079048ba29b78a39b8e5ddfebed86ce`; its historical verification
+records retain their original pre-delivery wording. The current M4.1 execution
+control work follows that commit and remains unreleased. Its contract is
+[EXECUTION_CONTROL.md](EXECUTION_CONTROL.md), with separate integration evidence
+in [M4_EXECUTION_CONTROL_VERIFICATION.md](operations/M4_EXECUTION_CONTROL_VERIFICATION.md).
 
 ## Authority, order, and completion evidence
 
@@ -127,6 +134,40 @@ verification record determines whether integration passed.
 
 ## General Purpose Language
 
+### Execution corrections in M4.1
+
+Deterministic review exposed shared-environment corruption in competing escaped
+calls, starvation at five outstanding cascades on a four-worker pool, and caller
+shadowing of governed preconditions through inconsistent lexical scoping. These
+are priority security/correctness repairs, so M4 execution work starts alongside
+the still-open M3 language features.
+
+The interpreter now claims one logical execution across every joined caller and
+definer domain, shares file-import ownership and its scheduler, and admits only
+same-thread reentry or explicit cascade thread transfer. Nested awaited cascades
+execute on the active worker. Governed functions, morphs, and methods retain
+their defining environment. Caller restrictions remain conjunctive with definer
+restrictions; lexical lookup does not select a weaker authority.
+
+Finite step, cooperative deadline, and call-depth limits apply by default and
+combine using the tightest joined host limits, including work already spent.
+Cancellation and resource stops latch until the outer run unwinds; guest
+handlers and finalizers cannot resume execution after that stop. Idle close
+shuts down the import graph's scheduler; borrowed TARL runtimes remain host-owned.
+CLI-created resources are released on setup failures and runtime exits.
+
+The CLI review also revealed successful REPL input being replayed. Checked
+history is now used for static context only; runtime receives each submission
+once. Runtime failure requires `.clear` before continuing because partial state
+and effects cannot be reconstructed as a successful static history.
+
+These controls do not implement process isolation, allocation/output quotas,
+frontend budgets, total adapter deadlines, or process-tree/stdlib-handle teardown.
+Direct host `resolve_import` caching also lacks an explicit lifetime handle;
+the next repair path is an owned module-loading API with cache eviction and
+escaped-closure tests. Python embedding and its private APIs remain trusted.
+M3-M7 and independent acceptance remain open; robotics remains deferred.
+
 The executable API and migration reference is
 [GENERAL_PURPOSE_LANGUAGE.md](GENERAL_PURPOSE_LANGUAGE.md).
 
@@ -159,7 +200,7 @@ its semantics, tests, and docs are delivered together.
 
 ### Completed local increment: M3.1 sequence semantics
 
-The uncommitted implementation adds one indexing/slicing contract across the
+The M3.1 implementation adds one indexing/slicing contract across the
 parser, formatter, checker, and reference interpreter. Exact native lists,
 strings, tuples, and bytes support sequence reads with non-boolean `Int`
 indices, negative offsets, and strict bounds errors. Slices retain container

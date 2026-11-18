@@ -1,6 +1,6 @@
 # Thirsty-Lang Language Specification
 
-**Version:** released 0.9.0 plus unreleased M3.1-M3.5 increments
+**Version:** released 0.9.0 plus unreleased M3.1-M3.5 and M4.1 increments
 **Copyright:** 2026 Thirsty's Projects LLC (Apache 2.0)
 
 This is the concise normative family specification. For the integrated
@@ -220,6 +220,17 @@ widening. Dynamic `Any` retains runtime/native-key behavior. An annotation is
 retained for later assignment checks even without an initializer; core-mode
 initialization still produces `none`, with no definite-assignment guarantee.
 Unknown annotation names remain a gradual limitation.
+
+### Execution ownership and limits (unreleased M4.1)
+
+The [execution-control contract](EXECUTION_CONTROL.md) defines shared logical
+ownership, finite host limits, explicit cascade thread transfer, cancellation,
+and idle close. Default limits are 1,000,000 steps, a cooperative 30 seconds,
+and 64 bound callable entries. A resource stop is outside guest exception
+handling and prevents further guest cleanup. Previously completed mutations and
+effects are not rolled back. Governed functions, morphs, and fountain methods
+capture their lexical declaration environment; caller policy restrictions
+remain active even though caller local variables do not replace free names.
 
 ### Callable and iteration contracts (unreleased M3.4)
 

@@ -246,6 +246,5 @@ def interpret_gods(ast: Program, mode: str = "gods") -> Any:
         violation_msg = "; ".join(contract.violations)
         raise ThirstOfGodsError(f"Deity contract validation failed: {violation_msg}")
 
-    interpreter = Interpreter(opt_level=0, debug_mode=False)
-    result = interpreter.interpret(ast, mode=None if mode == "gods" else mode)
-    return result
+    with Interpreter(opt_level=0, debug_mode=False) as interpreter:
+        return interpreter.interpret(ast, mode=None if mode == "gods" else mode)

@@ -4,14 +4,18 @@
 - **Python:** 3.11 or later
 - **Package:** `thirsty-lang`
 - **License:** Apache-2.0
-**Edition prepared:** 2026-09-08
+**Edition prepared:** 2026-09-13
 
 This edition describes released 0.9.0 plus explicitly marked, unreleased
 M3.1 sequences, M3.2 type coherence, M3.3 governance/security defaults,
-M3.4 callable and iteration consistency, and the M3.5 value-identity candidate.
+M3.4 callable and iteration consistency, M3.5 value identity, and M4.1 execution
+ownership, cooperative limits, cancellation, and lexical-scope repairs.
 The continuity map records completed 0.9.0 publication. M3.1-M3.4 have separate
 local verification records; the M3.5 local implementation's final integration
 evidence is reported in [M3_VALUE_IDENTITY_VERIFICATION.md](operations/M3_VALUE_IDENTITY_VERIFICATION.md).
+M3.1-M3.5 was subsequently committed and pushed as `e888a84`. Current M4.1
+integration evidence is separate in
+[M4_EXECUTION_CONTROL_VERIFICATION.md](operations/M4_EXECUTION_CONTROL_VERIFICATION.md).
 These increments are not claimed as a published package. Broader M3-M7 language
 work remains incomplete; ecological robotics and swarms remain deferred.
 Sections explicitly labeled 0.8.6 preserve earlier release and acceptance
@@ -65,6 +69,7 @@ The primary maintained references are:
 - [Feature and capability matrix](FEATURES.md)
 - [Governance runtime model](governance_model.md)
 - [Governed native value context](GOVERNED_VALUE_CONTEXT.md)
+- [Execution ownership, limits, and cancellation](EXECUTION_CONTROL.md)
 - [Feature status and Competence Register](STATUS.md)
 - [Offensive threat model](THREAT_MODEL.md)
 - [Production deployment requirement](PRODUCTION_DEPLOYMENT.md)
@@ -639,7 +644,11 @@ callee and argument expressions evaluate once; they are not evaluated again on
 the error path. Errors and caller/definer governance restrictions still
 propagate. Explicit/host `Task` descriptors remain gradual where a runtime
 task-value contract is not defined. No new async protocol or scheduler guarantee
-is supplied by this correction.
+is supplied by the M3.5 correction. M4.1 adds explicit single-run ownership and
+thread transfer: the first cascade uses a worker, nested cascades execute there,
+and all share the caller's finite limits. Cancellation and execution stops bypass
+guest spillage and prohibit further guest finalizers. Host cleanup must occur
+after the run unwinds. See [EXECUTION_CONTROL.md](EXECUTION_CONTROL.md).
 
 ### 7.7 Types and implementation limits
 

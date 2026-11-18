@@ -1,11 +1,26 @@
 # Operational Continuity Map
 
 Workstream: **Proof-Carrying Effects Language + TARL Security Corrections**
-Updated: 2026-09-08
+Updated: 2026-09-13
 Branch: `codex/function-expansion-pack`
 Workspace: `thirsty_lang_exploration_0754`
 
 ---
+
+## 2026-09-13 M4.1 execution control
+
+- M3.1-M3.5 delivery was committed and pushed as
+  `e888a847b079048ba29b78a39b8e5ddfebed86ce`; a fresh read-only check confirmed
+  matching GitHub/local HEAD and a clean tree before this increment.
+- Reproduced concurrent environment corruption, nested-cascade starvation,
+  caller-shadowed governance contracts, and repeated successful REPL input.
+- Implemented logical ownership, explicit worker transfer, lexical scopes,
+  finite cooperative limits and cancellation, shared import scheduler lifetime,
+  and CLI setup/exit ownership. Full integration evidence belongs to
+  [M4_EXECUTION_CONTROL_VERIFICATION.md](M4_EXECUTION_CONTROL_VERIFICATION.md).
+- This is unreleased development after the M3.5 commit. Metadata remains 0.9.0;
+  no new release, rename, or cross-project material is part of this work.
+  M3-M7, global resource containment, and independent acceptance remain open.
 
 ## 2026-09-08 M3.5 constructor and governed value identity
 

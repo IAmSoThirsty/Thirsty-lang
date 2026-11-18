@@ -87,12 +87,24 @@ from utf.thirsty_lang.typesys import (
     StructType,
     TaskType,
     Type,
+    ValueChoiceType,
     VoidType,
     is_assignable,
     type_from_name,
     type_to_string,
     unify,
 )
+
+
+def _alternatives(value: Type) -> tuple[Type, ...]:
+    return value.alternatives if isinstance(value, ValueChoiceType) else (value,)
+
+
+def _join_types(values: list[Type]) -> Type:
+    result = values[0] if values else AnyType()
+    for value in values[1:]:
+        result = unify(result, value)
+    return result
 
 
 def _edit_distance(s1: str, s2: str) -> int:
@@ -412,7 +424,7 @@ class Checker:
             if isinstance(value_type, (EnumType, StructType)) and info:
                 if info.get("kind") not in ("enum", "struct"):
                     raise ValueError(f"'{leaf}' names an instance, not a nominal type")
-            if isinstance(value_type, FunctionUnionType) and any(
+            if isinstance(value_type, (FunctionUnionType, ValueChoiceType)) and any(
                 isinstance(item, ConstructorType) for item in value_type.alternatives
             ):
                 raise ValueError(f"'{leaf}' does not identify one nominal type")
@@ -453,8 +465,7 @@ class Checker:
         if stmt.init_expr:
             expr_type = self._check_expr(stmt.init_expr)
             if expected is not None:
-                self._check_collection_literal(stmt.init_expr, expected)
-                if not is_assignable(expr_type, expected):
+                if not self._is_expr_assignable(stmt.init_expr, expr_type, expected):
                     self.errors.append(
                         make_error(
                             "E021",
@@ -520,22 +531,55 @@ class Checker:
             "kind": "function",
         }
 
-    def _check_collection_literal(self, expr: Expr, expected: Type):
-        """A heterogeneous literal must not hide a known invalid element behind Any."""
+    def _is_expr_assignable(self, expr: Expr, actual: Type, expected: Type) -> bool:
+        """Contextual construction may widen fresh values, never shared children."""
+        if isinstance(expected, ValueChoiceType):
+            if not isinstance(
+                expr, (ArrayLiteral, DictLiteral, SliceExpr, CascadeCall)
+            ):
+                return is_assignable(actual, expected)
+            # A fresh collection may use any compatible construction target.
+            # Failed alternatives must not leak speculative diagnostics.
+            for alternative in expected.alternatives:
+                before = len(self.errors)
+                if self._is_expr_assignable(expr, actual, alternative):
+                    return True
+                del self.errors[before:]
+            return False
         pairs: list[tuple[Expr, Type]] = []
         if isinstance(expr, SliceExpr) and isinstance(expected, ReservoirType):
-            # A slice preserves its source element type; do not erase known
-            # literal mismatches through Reservoir[Any]. No bound is executed
-            # during checking, so all source literal elements are checked.
-            self._check_collection_literal(expr.obj, expected)
+            # Slices copy their outer list only. A scalar element can widen,
+            # but a child list/dict remains shared and must stay invariant.
+            # Literal sources still check every element, without running bounds.
+            source = self._check_expr(expr.obj)
+            if isinstance(expr.obj, (ArrayLiteral, SliceExpr)):
+                return self._is_expr_assignable(expr.obj, source, expected)
+            if all(isinstance(item, ReservoirType) for item in _alternatives(source)):
+                return all(
+                    is_assignable(item.inner_type, expected.inner_type)
+                    for item in _alternatives(source)
+                    if isinstance(item, ReservoirType)
+                )
+            return is_assignable(actual, expected)
         elif isinstance(expr, ArrayLiteral) and isinstance(expected, ReservoirType):
             pairs = [(element, expected.inner_type) for element in expr.elements]
         elif isinstance(expr, DictLiteral) and isinstance(expected, DictType):
             pairs = [(key, expected.key_type) for key, _ in expr.items]
             pairs += [(value, expected.value_type) for _, value in expr.items]
+        elif isinstance(expr, CascadeCall):
+            return self._is_expr_assignable(expr.expr, actual, expected)
+        elif isinstance(expr, BinaryOp) and expr.op in (TokenType.AND, TokenType.OR):
+            return all(
+                self._is_expr_assignable(operand, self._check_expr(operand), expected)
+                for operand in (expr.left, expr.right)
+            )
+        else:
+            return is_assignable(actual, expected)
+        valid = True
         for element, element_expected in pairs:
             element_actual = self._check_expr(element)
-            if not is_assignable(element_actual, element_expected):
+            if not self._is_expr_assignable(element, element_actual, element_expected):
+                valid = False
                 self.errors.append(
                     make_error(
                         "E021",
@@ -544,7 +588,7 @@ class Checker:
                         expected=type_to_string(element_expected),
                     )
                 )
-            self._check_collection_literal(element, element_expected)
+        return valid
 
     def _check_class_decl(self, stmt: ClassDecl):
         already_hoisted = (
@@ -603,6 +647,18 @@ class Checker:
 
     def _check_for_stmt(self, stmt: ForStmt):
         iterable_type = self._check_expr(stmt.iterable)
+        element_type = _join_types(
+            [self._iterated_type(item, stmt) for item in _alternatives(iterable_type)]
+        )
+        self.enter_scope()
+        self.scope.declare(
+            stmt.variable.name,
+            {"type": element_type, "is_mut": False, "kind": "loop_var"},
+        )
+        self._check_block(stmt.body)
+        self.exit_scope()
+
+    def _iterated_type(self, iterable_type: Type, stmt: ForStmt) -> Type:
         element_type: Type = AnyType()
         if isinstance(iterable_type, ReservoirType):
             element_type = iterable_type.inner_type
@@ -616,13 +672,7 @@ class Checker:
                     "E025", span=stmt.iterable.span, found=type_to_string(iterable_type)
                 )
             )
-        self.enter_scope()
-        self.scope.declare(
-            stmt.variable.name,
-            {"type": element_type, "is_mut": False, "kind": "loop_var"},
-        )
-        self._check_block(stmt.body)
-        self.exit_scope()
+        return element_type
 
     def _check_times_stmt(self, stmt: TimesStmt):
         # The count is evaluated to an int at runtime; just resolve the
@@ -642,14 +692,12 @@ class Checker:
     def _check_return_stmt(self, stmt: ReturnStmt):
         if stmt.value:
             val_type = self._check_expr(stmt.value)
-            if self.current_function_return_type:
-                self._check_collection_literal(
-                    stmt.value, self.current_function_return_type
-                )
             if self.current_function_return_type and not isinstance(
                 self.current_function_return_type, VoidType
             ):
-                if not is_assignable(val_type, self.current_function_return_type):
+                if not self._is_expr_assignable(
+                    stmt.value, val_type, self.current_function_return_type
+                ):
                     self.errors.append(
                         make_error(
                             "E023",
@@ -674,6 +722,7 @@ class Checker:
     def _check_assign_stmt(self, stmt: AssignStmt):
         actual = self._check_expr(stmt.value)
         expected: Type = AnyType()
+        expected_types: list[Type] | None = None
         if isinstance(stmt.target, Identifier):
             name = stmt.target.name
             info = self.scope.lookup(name)
@@ -698,19 +747,25 @@ class Checker:
             self._check_expr(stmt.target)
             return
         elif isinstance(stmt.target, Subscript):
-            expected = self._check_subscript(stmt.target, assignment=True)
+            expected_types = self._subscript_targets(stmt.target, assignment=True)
+        elif isinstance(stmt.target, MemberAccess):
+            object_type = self._check_expr(stmt.target.obj)
+            expected_types = [
+                self._check_member_type(item, stmt.target, assignment=True)
+                for item in _alternatives(object_type)
+            ]
         else:
             expected = self._check_expr(stmt.target)
-        self._check_collection_literal(stmt.value, expected)
-        if not is_assignable(actual, expected):
-            self.errors.append(
-                make_error(
-                    "E021",
-                    span=stmt.span,
-                    found=type_to_string(actual),
-                    expected=type_to_string(expected),
+        for target_type in expected_types if expected_types is not None else [expected]:
+            if not self._is_expr_assignable(stmt.value, actual, target_type):
+                self.errors.append(
+                    make_error(
+                        "E021",
+                        span=stmt.span,
+                        found=type_to_string(actual),
+                        expected=type_to_string(target_type),
+                    )
                 )
-            )
 
     def _check_symbol_stmt(self, stmt: SymbolStmt):
         if not self.scope.declare(
@@ -807,11 +862,28 @@ class Checker:
         )
 
     def _check_subscript(self, expr: Subscript, *, assignment: bool = False) -> Type:
+        return _join_types(self._subscript_targets(expr, assignment=assignment))
+
+    def _subscript_targets(self, expr: Subscript, *, assignment: bool) -> list[Type]:
         collection_type = self._check_expr(expr.obj)
         index_type = self._check_expr(expr.index)
+        return [
+            self._subscript_type(item, index_type, expr, assignment=assignment)
+            for item in _alternatives(collection_type)
+        ]
+
+    def _subscript_type(
+        self,
+        collection_type: Type,
+        index_type: Type,
+        expr: Subscript,
+        *,
+        assignment: bool,
+    ) -> Type:
         if isinstance(collection_type, DictType):
-            self._check_collection_literal(expr.index, collection_type.key_type)
-            if not is_assignable(index_type, collection_type.key_type):
+            if not self._is_expr_assignable(
+                expr.index, index_type, collection_type.key_type
+            ):
                 self.errors.append(
                     make_error(
                         "E021",
@@ -836,6 +908,13 @@ class Checker:
 
     def _check_call_signature(self, callee_type, args, arg_types, call, callee) -> Type:
         """Validate one invocation against every possible known callable."""
+        if isinstance(callee_type, ValueChoiceType):
+            return _join_types(
+                [
+                    self._check_call_signature(item, args, arg_types, call, callee)
+                    for item in callee_type.alternatives
+                ]
+            )
         signatures: tuple[FunctionType, ...]
         if isinstance(callee_type, FunctionType):
             signatures = (callee_type,)
@@ -871,8 +950,7 @@ class Checker:
             for arg, actual, expected_type in zip(
                 args, arg_types, signature.param_types, strict=False
             ):
-                self._check_collection_literal(arg, expected_type)
-                if not is_assignable(actual, expected_type):
+                if not self._is_expr_assignable(arg, actual, expected_type):
                     self.errors.append(
                         make_error(
                             "E021",
@@ -884,15 +962,29 @@ class Checker:
             result = unify(result, signature.return_type)
         return result
 
-    def _check_member_type(self, object_type: Type, expr: MemberAccess) -> Type:
+    def _check_member_type(
+        self, object_type: Type, expr: MemberAccess, *, assignment: bool = False
+    ) -> Type:
         """Member access respects constructor/instance identity through choices."""
-        if isinstance(object_type, (AnyType, DictType, TaskType)):
+        if isinstance(object_type, (AnyType, TaskType)):
             return AnyType()
+        if isinstance(object_type, DictType):
+            if not is_assignable(StringType(), object_type.key_type):
+                self._unsupported(
+                    expr, "Dictionary member access requires a String key"
+                )
+            # Native dictionary members use .get(), so absence yields none.
+            return (
+                object_type.value_type
+                if assignment
+                else unify(object_type.value_type, VoidType())
+            )
         if isinstance(object_type, ErrorType):
             return object_type
-        if isinstance(object_type, FunctionUnionType):
+        if isinstance(object_type, (FunctionUnionType, ValueChoiceType)):
             members = [
-                self._check_member_type(item, expr) for item in object_type.alternatives
+                self._check_member_type(item, expr, assignment=assignment)
+                for item in object_type.alternatives
             ]
             if any(isinstance(item, ErrorType) for item in members):
                 return ErrorType()
@@ -923,6 +1015,80 @@ class Checker:
                 expr, f"Type {type_to_string(object_type)} does not expose members"
             )
         return ErrorType()
+
+    def _check_binary_types(
+        self, expr: BinaryOp, left_type: Type, right_type: Type
+    ) -> Type:
+        numeric_operands = isinstance(left_type, (IntType, FloatType)) and isinstance(
+            right_type, (IntType, FloatType)
+        )
+        boolean_operand = isinstance(left_type, BoolType) or isinstance(
+            right_type, BoolType
+        )
+        if boolean_operand and expr.op not in (TokenType.AND, TokenType.OR):
+            boolean_equality = expr.op in (TokenType.EQEQ, TokenType.NE) and all(
+                isinstance(operand, (BoolType, AnyType, ErrorType))
+                for operand in (left_type, right_type)
+            )
+            if not boolean_equality:
+                self._unsupported(
+                    expr,
+                    "Bool operands support only Boolean equality and logical operators",
+                )
+                return ErrorType()
+        # Comparison ops return Bool
+        if expr.op in (
+            TokenType.EQEQ,
+            TokenType.NE,
+            TokenType.LT,
+            TokenType.GT,
+            TokenType.LE,
+            TokenType.GE,
+        ):
+            if (
+                not isinstance(left_type, type(right_type))
+                and not numeric_operands
+                and not isinstance(left_type, AnyType)
+                and not isinstance(right_type, AnyType)
+            ):
+                self.errors.append(
+                    make_error(
+                        "E022",
+                        span=expr.span,
+                        op=expr.op.name,
+                        expected=type_to_string(left_type),
+                        found=type_to_string(right_type),
+                    )
+                )
+            return BoolType()
+        # Concatenation allocates fresh outer slots; nested references stay shared.
+        if (
+            expr.op == TokenType.PLUS
+            and isinstance(left_type, ReservoirType)
+            and isinstance(right_type, ReservoirType)
+        ):
+            return ReservoirType(unify(left_type.inner_type, right_type.inner_type))
+        # Arithmetic ops
+        if (
+            not is_assignable(right_type, left_type)
+            and not numeric_operands
+            and not isinstance(left_type, AnyType)
+            and not isinstance(right_type, AnyType)
+        ):
+            self.errors.append(
+                make_error(
+                    "E022",
+                    span=expr.span,
+                    op=expr.op.name,
+                    expected=type_to_string(left_type),
+                    found=type_to_string(right_type),
+                )
+            )
+        if expr.op == TokenType.SLASH and numeric_operands:
+            return FloatType()
+        if isinstance(left_type, FloatType) or isinstance(right_type, FloatType):
+            return FloatType()
+        return left_type
 
     def _check_expr(self, expr: Expr) -> Type:
         """Type-check an expression and return its Type."""
@@ -982,72 +1148,15 @@ class Checker:
         elif isinstance(expr, BinaryOp):
             left_type = self._check_expr(expr.left)
             right_type = self._check_expr(expr.right)
-            numeric_operands = isinstance(
-                left_type, (IntType, FloatType)
-            ) and isinstance(right_type, (IntType, FloatType))
-            boolean_operand = isinstance(left_type, BoolType) or isinstance(
-                right_type, BoolType
-            )
-            if boolean_operand and expr.op not in (TokenType.AND, TokenType.OR):
-                boolean_equality = expr.op in (TokenType.EQEQ, TokenType.NE) and all(
-                    isinstance(operand, (BoolType, AnyType, ErrorType))
-                    for operand in (left_type, right_type)
-                )
-                if not boolean_equality:
-                    self._unsupported(
-                        expr,
-                        "Bool operands support only Boolean equality and logical operators",
-                    )
-                    return ErrorType()
-            # Comparison ops return Bool
-            if expr.op in (
-                TokenType.EQEQ,
-                TokenType.NE,
-                TokenType.LT,
-                TokenType.GT,
-                TokenType.LE,
-                TokenType.GE,
-            ):
-                if (
-                    not isinstance(left_type, type(right_type))
-                    and not numeric_operands
-                    and not isinstance(left_type, AnyType)
-                    and not isinstance(right_type, AnyType)
-                ):
-                    self.errors.append(
-                        make_error(
-                            "E022",
-                            span=expr.span,
-                            op=expr.op.name,
-                            expected=type_to_string(left_type),
-                            found=type_to_string(right_type),
-                        )
-                    )
-                return BoolType()
-            # Short-circuit operators return one of their operands.
             if expr.op in (TokenType.AND, TokenType.OR):
                 return unify(left_type, right_type)
-            # Arithmetic ops
-            if (
-                not is_assignable(right_type, left_type)
-                and not numeric_operands
-                and not isinstance(left_type, AnyType)
-                and not isinstance(right_type, AnyType)
-            ):
-                self.errors.append(
-                    make_error(
-                        "E022",
-                        span=expr.span,
-                        op=expr.op.name,
-                        expected=type_to_string(left_type),
-                        found=type_to_string(right_type),
-                    )
-                )
-            if expr.op == TokenType.SLASH and numeric_operands:
-                return FloatType()
-            if isinstance(left_type, FloatType) or isinstance(right_type, FloatType):
-                return FloatType()
-            return left_type
+            return _join_types(
+                [
+                    self._check_binary_types(expr, left, right)
+                    for left in _alternatives(left_type)
+                    for right in _alternatives(right_type)
+                ]
+            )
         elif isinstance(expr, LambdaExpr):
             self.enter_scope()
             for pname, ptype in expr.params:
@@ -1063,8 +1172,9 @@ class Checker:
             operand_type = self._check_expr(expr.operand)
             if expr.op == TokenType.NOT:
                 return BoolType()
-            if expr.op == TokenType.MINUS and not isinstance(
-                operand_type, (IntType, FloatType, AnyType, ErrorType)
+            if expr.op == TokenType.MINUS and not all(
+                isinstance(item, (IntType, FloatType, AnyType, ErrorType))
+                for item in _alternatives(operand_type)
             ):
                 self._unsupported(expr, "Arithmetic negation requires Int or Float")
                 return ErrorType()
@@ -1087,14 +1197,23 @@ class Checker:
         elif isinstance(expr, PipeExpr):
             left_type = self._check_expr(expr.left)
             right_type = self._check_expr(expr.right)
-            if isinstance(
-                right_type, (FunctionType, ConstructorType, FunctionUnionType)
-            ):
-                return self._check_call_signature(
-                    right_type, [expr.left], [left_type], expr, expr.right
-                )
-            return (
-                AnyType() if isinstance(right_type, (AnyType, TaskType)) else left_type
+            return _join_types(
+                [
+                    (
+                        self._check_call_signature(
+                            item, [expr.left], [left_type], expr, expr.right
+                        )
+                        if isinstance(
+                            item, (FunctionType, ConstructorType, FunctionUnionType)
+                        )
+                        else (
+                            AnyType()
+                            if isinstance(item, (AnyType, TaskType))
+                            else left_type
+                        )
+                    )
+                    for item in _alternatives(right_type)
+                ]
             )
         elif isinstance(expr, GuardExpr):
             cond_type = self._check_expr(expr.condition)
@@ -1108,19 +1227,39 @@ class Checker:
                         found=type_to_string(cond_type),
                     )
                 )
-            return self._check_expr(expr.expr)
+            return unify(self._check_expr(expr.expr), VoidType())
         elif isinstance(expr, FloodExpr):
-            self._check_expr(expr.target)
-            return ReservoirType(AnyType())
+            return _join_types(
+                [
+                    item if isinstance(item, ReservoirType) else ReservoirType(item)
+                    for item in _alternatives(self._check_expr(expr.target))
+                ]
+            )
         elif isinstance(expr, DripExpr):
-            self._check_expr(expr.target)
-            return AnyType()
+            return _join_types(
+                [
+                    (
+                        unify(item.inner_type, VoidType())
+                        if isinstance(item, ReservoirType)
+                        else item if isinstance(item, AnyType) else VoidType()
+                    )
+                    for item in _alternatives(self._check_expr(expr.target))
+                ]
+            )
         elif isinstance(expr, EvaporateExpr):
             self._check_expr(expr.target)
             return VoidType()
         elif isinstance(expr, CondenseExpr):
-            self._check_expr(expr.target)
-            return ReservoirType(AnyType())
+            return _join_types(
+                [
+                    (
+                        unify(item.value_type, VoidType())
+                        if isinstance(item, DictType)
+                        else item if isinstance(item, AnyType) else VoidType()
+                    )
+                    for item in _alternatives(self._check_expr(expr.target))
+                ]
+            )
         elif isinstance(expr, ArrayLiteral):
             element_types = [self._check_expr(element) for element in expr.elements]
             elem = element_types[0] if element_types else AnyType()
@@ -1165,8 +1304,9 @@ class Checker:
                         bound_type, (IntType, VoidType, AnyType, ErrorType)
                     ):
                         self._unsupported(bound, "Slice bound must be an Int or none")
-            if isinstance(
-                collection_type, (ReservoirType, StringType, AnyType, ErrorType)
+            if all(
+                isinstance(item, (ReservoirType, StringType, AnyType, ErrorType))
+                for item in _alternatives(collection_type)
             ):
                 return collection_type
             self._unsupported(
@@ -1204,15 +1344,20 @@ class Checker:
         elif isinstance(expr, PipelineExpr):
             left_type = self._check_expr(expr.left)
             right_type = self._check_expr(expr.right)
-            if isinstance(
-                right_type, (FunctionType, ConstructorType, FunctionUnionType)
-            ):
-                return self._check_call_signature(
-                    right_type, [expr.left], [left_type], expr, expr.right
-                )
-            # Declared Task values retain their gradual host boundary; cascade
-            # itself is inferred as its awaited value rather than Task[T].
-            return AnyType() if isinstance(right_type, TaskType) else right_type
+            return _join_types(
+                [
+                    (
+                        self._check_call_signature(
+                            item, [expr.left], [left_type], expr, expr.right
+                        )
+                        if isinstance(
+                            item, (FunctionType, ConstructorType, FunctionUnionType)
+                        )
+                        else AnyType() if isinstance(item, TaskType) else item
+                    )
+                    for item in _alternatives(right_type)
+                ]
+            )
         elif isinstance(expr, CombineExpr):
             lt = self._check_expr(expr.left)
             rt = self._check_expr(expr.right)

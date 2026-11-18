@@ -294,6 +294,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         textColor=DEEP_BLUE,
         spaceBefore=3,
         spaceAfter=2,
+        keepWithNext=True,
     )
     styles["Code"] = ParagraphStyle(
         "Code",

@@ -1,11 +1,12 @@
 # General Purpose Language
 
 Thirsty-Lang 0.9.0 was published and its artifact identity verified on
-2026-09-06, as recorded in the local release receipt. Updated 2026-09-08, this
+2026-09-06, as recorded in the local release receipt. Updated 2026-09-13, this
 reference includes local M3.1 sequence, M3.2 Boolean/type-coherence, M3.3
 governance/security-defaults, M3.4 callable/iteration work, and the M3.5
 constructor/cascade and governed native-value candidate. These
-post-release changes remain uncommitted and unreleased; they do not describe
+post-release M3.1-M3.5 changes were committed as `e888a84` and remain unreleased;
+the current M4.1 execution controls follow them. These changes do not describe
 the published 0.9.0 package.
 See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for recorded release evidence,
 correction dependencies, and remaining milestones. Python compatibility is not
@@ -19,6 +20,41 @@ test totals do not validate newer changes. M3.4 has its own
 [callable and iteration verification record](operations/M3_CALLABLE_ITERATION_VERIFICATION.md).
 The M3.5 candidate's final integration evidence is reported separately in
 [M3_VALUE_IDENTITY_VERIFICATION.md](operations/M3_VALUE_IDENTITY_VERIFICATION.md).
+
+## Execution control: M4.1
+
+Every interpreter has finite default limits: 1,000,000 execution steps, a
+30-second cooperative deadline, and 64 nested bound callable entries. Host
+`ExecutionLimits` values or CLI `--max-steps`, `--timeout-seconds`, and
+`--max-call-depth` configure positive finite limits. Source mode and
+`--unsafe-core` cannot disable them. Calls, imports, callbacks, and cascades
+share prior work and the tightest joined caller/definer limits until the outer
+run finishes. A new host submission starts a fresh run.
+
+One logical run owns its interpreter/import graph. Competing host calls fail
+before changing scopes or modes. Same-thread reentry works, while nested
+`interpret` restores the enclosing mode. Cascade transfers ownership to a
+worker and returns its awaited result; nested cascades run on that worker to
+avoid pool starvation. Governed functions, morphs, and fountain methods resolve
+free names from their defining environments, including contract predicates.
+
+`Interpreter.cancel()` signals the active run. After its existing call or
+future finishes, `close()` releases the idle graph's scheduler. Closing active
+work raises `ExecutionBusyError`; the host must cancel and await it first.
+`with Interpreter(...) as interpreter:` owns this lifecycle. Borrowed TARL
+runtimes and external handles have their own lifecycle.
+
+REPL submissions execute once and retain checked declarations for subsequent
+static checking. `.clear` resets that history and environment. Runtime failure
+requires `.clear` before further execution; already performed effects are not
+rolled back. Accepted source modes remain active across submissions.
+
+See [EXECUTION_CONTROL.md](EXECUTION_CONTROL.md) for exact counter, cancellation,
+scope, lifecycle, and compatibility contracts. Steps and time checkpoints do
+not preempt blocking Python or bound a single allocation. Frontend and memory
+budgets, total adapter cancellation, owned host module caches, process isolation,
+and complete target portability remain unfinished. Current integration evidence
+belongs to [the M4.1 record](operations/M4_EXECUTION_CONTROL_VERIFICATION.md).
 
 ## Governance First Language, Security Default
 
@@ -339,8 +375,9 @@ governance denials propagate.
 
 Host-provided iterators remain trusted Python inputs, including code inside
 `__iter__`, `__next__`, or `__getitem__`. This increment adds neither guest
-generator syntax nor iteration budgets. Global resource accounting, cancellation,
-and hostile-host isolation remain M4 work.
+generator syntax nor iteration budgets. M4.1 subsequently adds shared cooperative
+step/deadline/call limits and cancellation; global memory/output accounting,
+host-iterator preemption, and hostile-host isolation remain open.
 
 ## Value identity: local M3.5 candidate
 

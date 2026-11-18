@@ -4,9 +4,8 @@ Evaluates Thirsty-Lang AST programs with full environment scoping,
 governance enforcement, tail-call optimization, and async support.
 """
 
-from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
-from contextvars import ContextVar, copy_context
+from contextlib import ExitStack, contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import wraps
@@ -75,7 +74,12 @@ from utf.thirsty_lang.ast import (
     VariableDecl,
     WhileStmt,
 )
-from utf.thirsty_lang.execution import resolve_execution_mode
+from utf.thirsty_lang.execution import (
+    ExecutionDomain,
+    ExecutionError,
+    ExecutionLimits,
+    resolve_execution_mode,
+)
 from utf.thirsty_lang.governed_values import NativeValueRegistry
 from utf.thirsty_lang.module_system import (
     BUILTINS,
@@ -236,6 +240,7 @@ class FountainInstance:
 
     def __init__(self, cls_decl: ClassDecl, env: Environment):
         self.cls_decl = cls_decl
+        self.declaration_env = env
         self.fields: dict[str, Any] = {}
         self.methods: dict[str, Any] = {}
         self.execution_frames: tuple[_ExecutionFrame, ...] = ()
@@ -267,6 +272,7 @@ class Interpreter:
         debug_mode: bool = False,
         *,
         allow_ungoverned: bool = False,
+        execution_limits: ExecutionLimits | None = None,
     ):
         semantic, governed = resolve_execution_mode(allow_ungoverned=allow_ungoverned)
         self._allow_ungoverned = allow_ungoverned
@@ -279,7 +285,7 @@ class Interpreter:
         self.debug_mode = debug_mode
         self.tco_enabled = opt_level >= 1
         self.mode = semantic
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        self._execution_domain = ExecutionDomain(execution_limits)
         self._last_span = None
         # Governance wiring (Part A): optional policy engine + authority context.
         self.tarl_runtime = None
@@ -303,6 +309,30 @@ class Interpreter:
             self._inline_simple_builtins()
         if self.opt_level >= 3:
             self._precompute_constants()
+
+    @property
+    def executor(self):
+        """The scheduler shared with file imports; prefer close() for teardown."""
+        return self._execution_domain.executor
+
+    @property
+    def execution_limits(self) -> ExecutionLimits:
+        return self._execution_domain.limits
+
+    def cancel(self) -> bool:
+        """Cooperatively stop this interpreter's active logical execution."""
+        return self._execution_domain.cancel()
+
+    def close(self):
+        """Close the idle interpreter/import graph, preserving borrowed TARL."""
+        self._execution_domain.close()
+
+    def __enter__(self):
+        with self._execution_domain.enter():
+            return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     def _governance_is_required(self) -> bool:
         return (
@@ -355,8 +385,11 @@ class Interpreter:
 
         @wraps(function)
         def bound(*args, **kwargs):
-            with _execution_scope(captured):
-                return function(*args, **kwargs)
+            with self._execution_domain.enter(call=True), ExitStack() as claims:
+                for frame in captured:
+                    claims.enter_context(frame.owner._execution_domain.enter())
+                with _execution_scope(captured):
+                    return function(*args, **kwargs)
 
         return bound
 
@@ -503,8 +536,11 @@ class Interpreter:
             "print": self._builtin_print,
             "pour": self._builtin_pour,
         }
+        self._builtin_callables = {}
         for name, func in builtins_map.items():
-            self.env.define(name, func, is_mut=False)
+            bound = self._bind_callable(func, frames=())
+            self._builtin_callables[id(bound)] = bound
+            self.env.define(name, bound, is_mut=False)
 
     def _builtin_print(self, *args):
         self._gate_capability("write", "stdout")
@@ -525,6 +561,16 @@ class Interpreter:
         ``force_mode`` selects source semantics in place of the declared mode;
         neither option can remove a declared or inherited governance floor.
         """
+        nested = any(frame.owner is self for frame in _EXECUTION_FRAMES.get())
+        with self._execution_domain.enter():
+            previous_mode = self.mode, self._execution_governed
+            try:
+                return self._interpret_program(ast, mode, force_mode)
+            finally:
+                if nested:
+                    self.mode, self._execution_governed = previous_mode
+
+    def _interpret_program(self, ast, mode, force_mode):
         self.mode, self._execution_governed = resolve_execution_mode(
             ast.header.mode if ast.header else None,
             mode,
@@ -628,6 +674,13 @@ class Interpreter:
 
     def _execute_impl(self, stmt: Stmt) -> object:
         """Execute a statement. Returns a value for expressions or None."""
+        self._execution_domain.checkpoint(step=True)
+        try:
+            return self._execute_node(stmt)
+        finally:
+            self._execution_domain.checkpoint()
+
+    def _execute_node(self, stmt: Stmt) -> object:
         if isinstance(stmt, BlockStmt):
             return self._execute_block(stmt)
         elif isinstance(stmt, ExprStmt):
@@ -809,7 +862,7 @@ class Interpreter:
         if self.mode == "pure":
             raise RuntimeError("I/O ('sip') is not allowed in a 'pure' module")
         self._gate_capability("read", "stdin")
-        value = input()
+        value = self._invoke(input)
         if isinstance(stmt.target, Identifier):
             self.env.set(stmt.target.name, value)
         return value
@@ -876,6 +929,7 @@ class Interpreter:
         self, action: str, target: str, *, path: str | None = None
     ) -> None:
         """Require all defining and calling policies before a mediated effect."""
+        self._execution_domain.checkpoint()
         frames = _merge_execution_frames(
             (*_EXECUTION_FRAMES.get(), self._execution_frame())
         )
@@ -927,6 +981,7 @@ class Interpreter:
         except GovernanceViolation as denied:
             self._last_proof = denied.proof
             raise
+        self._execution_domain.checkpoint()
 
     def _gate_capability_local(
         self, action: str, target: str, *, path: str | None = None
@@ -994,7 +1049,7 @@ class Interpreter:
                 denied.decision.reason or f"capability denied ({proof.verdict})",
                 proof,
             ) from None
-        except GovernanceViolation:
+        except (GovernanceViolation, ExecutionError):
             raise
         except Exception as exc:
             # Resource exhaustion / evaluator failure must DENY, never fail open
@@ -1100,12 +1155,14 @@ class Interpreter:
             raise ImportError(f"File not found: {path}")
         locks = self._active_import_locks()
         if locks:
-            checked_sources = [locked.read_source(source_path) for locked in locks]
+            checked_sources = [
+                self._invoke(locked.read_source, source_path) for locked in locks
+            ]
             source = checked_sources[0]
             if any(candidate != source for candidate in checked_sources[1:]):
                 raise ImportError("active import locks disagree about source bytes")
         else:
-            source = source_path.read_text(encoding="utf-8")
+            source = self._invoke(source_path.read_text, encoding="utf-8")
         lexer = Lexer(source)
         tokens = lexer.lex()
         if lexer.errors:
@@ -1118,6 +1175,8 @@ class Interpreter:
         child = Interpreter(
             self.opt_level, self.debug_mode, allow_ungoverned=self._allow_ungoverned
         )
+        child._execution_domain.close()
+        child._execution_domain = self._execution_domain
         child._restrictions = self._restrictions
         child.source_directory = source_path.parent
         child._import_stack = (*self._import_stack, source_path)
@@ -1139,13 +1198,13 @@ class Interpreter:
             else:
                 self._gate_capability("import", stmt.module_path)
                 for locked in self._active_import_locks():
-                    locked.verify_stdlib(stmt.module_path)
-                module = resolve_import(stmt.module_path)
+                    self._invoke(locked.verify_stdlib, stmt.module_path)
+                module = self._invoke(resolve_import, stmt.module_path)
             module = self._wrap_imported_module_capabilities(stmt.module_path, module)
             alias = stmt.alias or stmt.module_path
             self.env.define(alias, module, is_mut=False)
             return module
-        except GovernanceViolation:
+        except (GovernanceViolation, ExecutionError):
             # A denied effect during imported-module execution is a governance
             # decision, not an import error — it must propagate, never be
             # swallowed into a SpillageException that handlers could catch.
@@ -1221,7 +1280,7 @@ class Interpreter:
                 if method.params and method.params[0][0] in ("self", "this"):
                     expected -= 1
                 self._require_call_arity(stmt.name, expected, len(args))
-            instance = FountainInstance(stmt, self.env)
+            instance = FountainInstance(stmt, declaration_env)
             instance.native_identity = native_identity
             instance.execution_frames = _merge_execution_frames(
                 (*_EXECUTION_FRAMES.get(), self._execution_frame())
@@ -1337,7 +1396,7 @@ class Interpreter:
     def _execute_spillage(self, stmt: SpillageStmt) -> object:
         try:
             return self._execute(stmt.body)
-        except (ReturnException, GovernanceViolation):
+        except (ReturnException, GovernanceViolation, ExecutionError):
             # Control flow (return) and governance denials are not errors —
             # they must propagate, never be caught by spillage handlers.
             raise
@@ -1385,20 +1444,20 @@ class Interpreter:
             callee = self._evaluate(stmt.expr.callee)
             args = [self._evaluate(a) for a in stmt.expr.args]
             if callable(callee):
-                context = copy_context()
-                future = self.executor.submit(context.run, callee, *args)
-                return future.result()
+                return self._execution_domain.cascade(callee, *args)
             # Callee and arguments have already been evaluated in source order.
             # Falling through would evaluate them a second time before failing.
             raise TypeError(f"Cannot call non-callable: {callee}")
         return self._evaluate(stmt.expr)
 
     def _execute_morph(self, stmt: MorphDef) -> object:
+        declaration_env = self.env
+
         def transform(*args):
             self._require_parameter_bindings(stmt.name, stmt.params)
             self._require_call_arity(stmt.name, len(stmt.params), len(args))
             old_env = self.env
-            self.env = self.env.enter_scope()
+            self.env = declaration_env.enter_scope()
             for (pname, _), val in zip(stmt.params, args, strict=True):
                 self.env.define(pname, val, is_mut=False)
             result = None
@@ -1571,12 +1630,13 @@ class Interpreter:
 
     def _execute_governed_function_decl(self, stmt: GovernedFunctionDecl):
         """Define a top-level governed function with full contract enforcement."""
+        declaration_env = self.env
 
         def fn(*args):
             self._require_parameter_bindings(stmt.name, stmt.params)
             self._require_call_arity(stmt.name, len(stmt.params), len(args))
             old_env = self.env
-            self.env = self.env.enter_scope()
+            self.env = declaration_env.enter_scope()
             context = {}
             for (pname, _), val in zip(stmt.params, args, strict=True):
                 self.env.define(pname, val, is_mut=False)
@@ -1605,6 +1665,7 @@ class Interpreter:
             self._last_proof = proof
         if not allowed:
             raise GovernanceViolation(decl.name, reason, proof)
+        self._execution_domain.checkpoint()
 
         result = None
         try:
@@ -1623,6 +1684,7 @@ class Interpreter:
             self._last_proof = proof
         if not allowed:
             raise GovernanceViolation(decl.name, reason, proof)
+        self._execution_domain.checkpoint()
         return result
 
     def _eval_predicate(self, expr, annotation, label):
@@ -1631,6 +1693,8 @@ class Interpreter:
             if self._evaluate(expr):
                 return (True, "")
             return (False, f"{label} failed: {annotation or '<expr>'}")
+        except ExecutionError:
+            raise
         except Exception as exc:
             return (False, f"{label} error: {exc}")
 
@@ -1852,6 +1916,8 @@ class Interpreter:
             return True, reason, proof
         except GovernanceViolation as denied:
             return False, denied.reason, denied.proof
+        except ExecutionError:
+            raise
         except Exception as error:
             from utf.tarl.spec import TarlVerdict
 
@@ -2092,7 +2158,12 @@ class Interpreter:
             receiver_name = params.pop(0)[0]
         self._require_call_arity(func_decl.name, len(params), len(args))
         old_env = self.env
-        self.env = self.env.enter_scope()
+        declaration_env = (
+            this_obj.declaration_env
+            if isinstance(this_obj, FountainInstance)
+            else self.env
+        )
+        self.env = declaration_env.enter_scope()
         # Bind the receiver for fountain methods. Two conventions are supported:
         #   * the `this` keyword (no receiver parameter declared), and
         #   * an explicit leading `self`/`this` parameter.
@@ -2123,6 +2194,13 @@ class Interpreter:
 
     def _evaluate_impl(self, expr: Expr) -> Any:
         """Evaluate an expression and return its value."""
+        self._execution_domain.checkpoint(step=True)
+        try:
+            return self._evaluate_node(expr)
+        finally:
+            self._execution_domain.checkpoint()
+
+    def _evaluate_node(self, expr: Expr) -> Any:
         if isinstance(expr, IntLiteral):
             return expr.value
         elif isinstance(expr, FloatLiteral):
@@ -2146,6 +2224,11 @@ class Interpreter:
             if expr.name == "__error__":
                 raise RuntimeError("cannot execute a parser recovery placeholder")
             value = self.env.get(expr.name)
+            if (
+                id(value) in self._builtin_callables
+                and self._builtin_callables[id(value)] is value
+            ):
+                return self._bind_callable(value)
             if getattr(value, "__self__", None) is self and getattr(
                 value, "__func__", None
             ) in (Interpreter._builtin_print, Interpreter._builtin_pour):
@@ -2272,14 +2355,14 @@ class Interpreter:
         callee = self._evaluate_impl(expr.callee)
         args = [self._evaluate_impl(a) for a in expr.args]
         if callable(callee):
-            return callee(*args)
+            return self._invoke(callee, *args)
         raise TypeError(f"Cannot call non-callable: {callee}")
 
     def _evaluate_pipe(self, expr: PipeExpr) -> object:
         left = self._evaluate_impl(expr.left)
         right = self._evaluate_impl(expr.right)
         if callable(right):
-            return right(left)
+            return self._invoke(right, left)
         return left
 
     def _evaluate_guard(self, expr: GuardExpr) -> object:
@@ -2351,7 +2434,7 @@ class Interpreter:
         constructor = self.env.get(expr.class_name)
         args = [self._evaluate_impl(a) for a in expr.args]
         if callable(constructor):
-            return constructor(*args)
+            return self._invoke(constructor, *args)
         raise TypeError(f"Cannot instantiate non-callable: {expr.class_name}")
 
     def _evaluate_pipeline(self, expr: PipelineExpr) -> object:
@@ -2365,8 +2448,15 @@ class Interpreter:
         left = self._evaluate_impl(expr.left)
         right = self._evaluate_impl(expr.right)
         if callable(right):
-            return right(left)
+            return self._invoke(right, left)
         return right
+
+    def _invoke(self, function, *args, **kwargs):
+        self._execution_domain.checkpoint()
+        try:
+            return function(*args, **kwargs)
+        finally:
+            self._execution_domain.checkpoint()
 
     def _evaluate_combine(self, expr: CombineExpr) -> object:
         left = self._evaluate_impl(expr.left)

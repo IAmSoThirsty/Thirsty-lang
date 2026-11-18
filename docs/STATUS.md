@@ -8,7 +8,7 @@ Current corrections and general-purpose additions are mapped in
 [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md). The preserved 0.9.0 baseline evidence
 is in [IMPLEMENTATION_VERIFICATION.md](operations/IMPLEMENTATION_VERIFICATION.md);
 the current integration record is
-[M3_TYPE_COHERENCE_VERIFICATION.md](operations/M3_TYPE_COHERENCE_VERIFICATION.md).
+[M4_EXECUTION_CONTROL_VERIFICATION.md](operations/M4_EXECUTION_CONTROL_VERIFICATION.md).
 Publication and remote artifact identity require separate release verification.
 This work is not an independent Competence Register acceptance result.
 
@@ -105,6 +105,10 @@ Preserved reproduction evidence manifest SHA-256:
 | Self- and mutual recursion (correct arity, no false E030) | Real | `tests/test_language_fixes.py` |
 | `this` keyword, member assignment, fountain field default initializers | Real | `tests/test_language_fixes.py` |
 | Closures capture their lexical (defining) scope | Real | `tests/test_language_fixes.py` |
+| Governed functions, morphs, and fountain methods retain defining scope, including contracts | Real, unreleased M4.1 | `tests/test_lexical_execution_scope.py` |
+| One owned interpreter/import execution; nested awaited cascades do not starve the worker pool | Real, unreleased M4.1 | `tests/test_execution_ownership.py` |
+| Finite cooperative steps/deadline/call depth, sticky cancellation, idle scheduler close | Real, unreleased M4.1 | `tests/test_execution_limits.py`; `tests/test_execution_ownership.py` |
+| CLI resource ownership and REPL submissions executed once | Real, unreleased M4.1 | `tests/test_execution_entrypoint_lifetime.py` |
 | `\|>` pipe operator (and bare `\|`); `error (name)` binds the thrown value | Real | `tests/test_language_fixes.py` |
 | `times N { … }` repeat loop | Real | `tests/test_new_language_features.py` |
 | C-style `refill(init; cond; step)` loop (counter implicitly mutable) | Real | `tests/test_new_language_features.py` |

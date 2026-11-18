@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import traceback
+from contextlib import ExitStack
 from pathlib import Path
 
 from utf.thirsty_lang import __version__
@@ -28,8 +29,35 @@ from utf.thirsty_lang.ast import (
     UnaryOp,
     VariableDecl,
 )
-from utf.thirsty_lang.execution import resolve_execution_mode
+from utf.thirsty_lang.execution import ExecutionLimits, resolve_execution_mode
 from utf.thirsty_lang.token import TokenType
+
+
+def _add_execution_limit_options(parser):
+    parser.add_argument(
+        "--max-steps", type=int, help="Maximum cooperative execution steps"
+    )
+    parser.add_argument(
+        "--timeout-seconds",
+        type=float,
+        help="Cooperative elapsed-time limit; cannot interrupt blocking host calls",
+    )
+    parser.add_argument(
+        "--max-call-depth", type=int, help="Maximum nested native call depth"
+    )
+
+
+def _execution_limits(args):
+    options = {
+        name: value
+        for name in ("max_steps", "timeout_seconds", "max_call_depth")
+        if (value := getattr(args, name, None)) is not None
+    }
+    try:
+        return ExecutionLimits(**options)
+    except (TypeError, ValueError) as exc:
+        print(f"Error: invalid execution limits: {exc}", file=sys.stderr)
+        sys.exit(1)
 
 
 def main():
@@ -50,6 +78,7 @@ def main():
 
     # run
     run_parser = subparsers.add_parser("run", help="Run a .thirsty file")
+    _add_execution_limit_options(run_parser)
     run_parser.add_argument("file", nargs="?", help="Path to .thirsty file")
     run_parser.add_argument(
         "--trace", action="store_true", help="Enable execution tracing"
@@ -152,6 +181,7 @@ def main():
 
     # repl
     repl_parser = subparsers.add_parser("repl", help="Start interactive REPL")
+    _add_execution_limit_options(repl_parser)
     repl_parser.add_argument(
         "--trace", action="store_true", help="Show stack traces on errors"
     )
@@ -383,6 +413,11 @@ def _lex_parse_check(
 
 def cmd_run(args):
     """Execute a .thirsty file."""
+    with ExitStack() as resources:
+        return _cmd_run(args, resources)
+
+
+def _cmd_run(args, resources):
     from utf.thirsty_lang.checker import check_ast
     from utf.thirsty_lang.diagnostics import DiagnosticBundle
     from utf.thirsty_lang.interpreter import GovernanceViolation, Interpreter
@@ -391,6 +426,7 @@ def cmd_run(args):
     from utf.thirsty_lang.parser import Parser
 
     unsafe_core = getattr(args, "unsafe_core", False)
+    execution_limits = _execution_limits(args)
     security_options = (
         "locked",
         "policy",
@@ -453,6 +489,9 @@ result
             sys.exit(1)
         if file_path.endswith(".thirstofgods"):
             restrictions = (
+                "max_steps",
+                "timeout_seconds",
+                "max_call_depth",
                 "policy",
                 "context_schema",
                 "authority",
@@ -514,8 +553,12 @@ result
         sys.exit(1)
 
     interpreter = Interpreter(
-        opt_level=args.opt, debug_mode=args.trace, allow_ungoverned=unsafe_core
+        opt_level=args.opt,
+        debug_mode=args.trace,
+        allow_ungoverned=unsafe_core,
+        execution_limits=execution_limits,
     )
+    resources.callback(interpreter.close)
     if not args.demo:
         interpreter.source_directory = Path(file_path).resolve().parent
     if locked_imports is not None:
@@ -540,6 +583,7 @@ result
         with open(policy_path, encoding="utf-8") as pf:
             policy = PolicyParser.parse(pf.read())
         runtime = TarlRuntime(policy)
+        resources.callback(runtime.shutdown)
         schema_path = getattr(args, "context_schema", None)
         if schema_path:
             if not os.path.isfile(schema_path):
@@ -663,6 +707,7 @@ result
 
         try:
             archive = TarlAuditArchive(audit_path)
+            resources.callback(archive.close)
         except Exception as exc:
             print(f"Error: audit archive unavailable: {exc}", file=sys.stderr)
             sys.exit(1)
@@ -688,19 +733,23 @@ result
         if args.trace:
             traceback.print_exc()
         sys.exit(1)
-    finally:
-        if archive is not None:
-            archive.close()
 
 
 def cmd_repl(args):
     """Start an interactive REPL."""
+    with ExitStack() as resources:
+        return _cmd_repl(args, resources)
+
+
+def _cmd_repl(args, resources):
+    from utf.thirsty_lang.ast import Program, Stmt
     from utf.thirsty_lang.checker import check_ast
     from utf.thirsty_lang.interpreter import Environment, Interpreter
     from utf.thirsty_lang.lexer import Lexer
     from utf.thirsty_lang.parser import Parser
 
     debug_enabled = args.trace or os.environ.get("THIRSTY_DEBUG") == "1"
+    execution_limits = _execution_limits(args)
 
     unsafe_core = getattr(args, "unsafe_core", False)
     if unsafe_core and args.thirst_level == "governed":
@@ -724,10 +773,17 @@ def cmd_repl(args):
     print()
 
     interpreter = Interpreter(
-        opt_level=args.opt, debug_mode=debug_enabled, allow_ungoverned=unsafe_core
+        opt_level=args.opt,
+        debug_mode=debug_enabled,
+        allow_ungoverned=unsafe_core,
+        execution_limits=execution_limits,
     )
+    resources.callback(interpreter.close)
     source_buffer = ""
+    checked_statements: list[Stmt] = []
+    session_header = None
     pending = False
+    needs_reset = False
 
     while True:
         try:
@@ -746,8 +802,16 @@ def cmd_repl(args):
                 interpreter.env = Environment()
                 interpreter._register_builtins()
                 source_buffer = ""
+                checked_statements = []
+                session_header = None
                 pending = False
+                needs_reset = False
                 print("State cleared.")
+                continue
+            if needs_reset:
+                print(
+                    "Use .clear before executing more input after a failed submission."
+                )
                 continue
             if line.strip() == "" and not pending:
                 continue
@@ -760,29 +824,47 @@ def cmd_repl(args):
             parser = Parser(tokens)
             try:
                 ast = parser.parse()
-            except Exception:
-                pending = True
+            except Exception as exc:
+                print(f"Parse error: {exc}")
+                source_buffer = ""
+                pending = False
                 continue
+
+            if session_header is not None and ast.header is not None:
+                print(
+                    "A module header is already active; use .clear to start another module."
+                )
+                source_buffer = ""
+                pending = False
+                continue
+            if ast.header is None:
+                ast.header = session_header
+            checking_ast = Program(
+                [*checked_statements, *ast.stmts],
+                header=ast.header,
+                span=ast.span,
+                parse_failed=ast.parse_failed,
+            )
 
             errors = []
             errors.extend(lexer.errors)
             errors.extend(parser.errors)
             errors.extend(
-                check_ast(ast, mode=args.thirst_level, allow_ungoverned=unsafe_core)
+                check_ast(
+                    checking_ast, mode=args.thirst_level, allow_ungoverned=unsafe_core
+                )
             )
 
             if errors:
-                needs_more = False
-                for e in errors:
-                    msg = (
-                        str(e.message).lower()
-                        if hasattr(e, "message")
-                        else str(e).lower()
+                needs_more = (
+                    not lexer.errors
+                    and bool(parser.errors)
+                    and all(
+                        "eof" in str(error.message).lower()
+                        or "unexpected end" in str(error.message).lower()
+                        for error in parser.errors
                     )
-                    if "unexpected end" in msg or "eof" in msg or "expect" in msg:
-                        if not pending:
-                            needs_more = True
-                        break
+                )
                 if needs_more:
                     pending = True
                     continue
@@ -797,6 +879,9 @@ def cmd_repl(args):
                 result = interpreter.interpret(ast, mode=args.thirst_level)
                 if result is not None:
                     print(result)
+                checked_statements.extend(ast.stmts)
+                session_header = ast.header
+                source_buffer = ""
             except Exception as e:
                 print(f"Error: {e}")
                 if debug_enabled:
@@ -804,6 +889,11 @@ def cmd_repl(args):
 
                     traceback.print_exc()
                 source_buffer = ""
+                needs_reset = True
+                print(
+                    "Execution failed; partial effects or state may remain. "
+                    "Use .clear before continuing."
+                )
 
         except (EOFError, KeyboardInterrupt):
             print()
@@ -1625,7 +1715,8 @@ ast = parser.parse()
 diagnostics = [*lexer.errors, *parser.errors, *check_ast(ast)]
 if any(item.severity == "error" for item in diagnostics) or ast.parse_failed:
     raise RuntimeError("Thirsty-Lang source validation failed; execution refused")
-Interpreter(allow_ungoverned=ALLOW_UNGOVERNED).interpret(ast)
+with Interpreter(allow_ungoverned=ALLOW_UNGOVERNED) as interpreter:
+    interpreter.interpret(ast)
 """
 
 _PYODIDE_TEMPLATE = """<!DOCTYPE html>

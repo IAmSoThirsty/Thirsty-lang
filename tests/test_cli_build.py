@@ -181,7 +181,8 @@ def test_build_pyodide_bundle(tmp_path, monkeypatch, capsys):
     assert "loadPyodide" in html
     assert 'micropip.install("thirsty-lang==" + EXPECTED_VERSION)' in html
     assert "EXPECTED_SOURCE_INTEGRITY" in html
-    assert "Interpreter(allow_ungoverned=ALLOW_UNGOVERNED).interpret(ast)" in html
+    assert "with Interpreter(allow_ungoverned=ALLOW_UNGOVERNED) as interpreter:" in html
+    assert "    interpreter.interpret(ast)" in html
     assert "const ALLOW_UNGOVERNED = true" in html
     # Source is embedded as valid JSON.
     embedded = html.split("const SOURCE = ", 1)[1].split(";\n", 1)[0]
