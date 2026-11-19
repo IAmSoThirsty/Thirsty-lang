@@ -354,18 +354,16 @@ def test_adjacent_wide_tables_do_not_insert_a_blank_portrait_page(
 
 def test_manifest_is_complete_and_repository_confined():
     config = load_manifest(MANIFEST)
-    assert config.software_version == "0.9.0"
+    assert config.software_version == "0.9.1"
     assert len(config.documents) >= 14
     paths = {
         document.path.relative_to(ROOT).as_posix() for document in config.documents
     }
     assert config.title == "Thirsty-Lang UTF 101 (Universal Thirsty Family)"
-    assert (
-        config.subtitle
-        == "The Canonical End-to-End Reference - unreleased M3.1-M3.5 and M4.1"
-    )
+    assert config.subtitle == "The Canonical End-to-End Reference"
     assert "docs/THIRSTY_LANG_UTF_101.md" in paths
     assert "docs/LANGUAGE_SPEC.md" in paths
+    assert "docs/DEFENSIVE_COMPARTMENTS.md" in paths
     assert "docs/EXECUTION_CONTROL.md" in paths
     assert "docs/GRAMMAR.md" in paths
     assert "docs/THREAT_MODEL.md" in paths
@@ -436,7 +434,7 @@ def test_embedded_docs_report_the_package_version(tmp_path: Path):
         text=True,
     )
     generated = (output / "index.html").read_text(encoding="utf-8")
-    assert "v0.9.0" in generated
+    assert "v0.9.1" in generated
     assert "v1.0.0" not in generated
     assert "tarl-lsp" in generated
     assert "Documentation:" in completed.stdout

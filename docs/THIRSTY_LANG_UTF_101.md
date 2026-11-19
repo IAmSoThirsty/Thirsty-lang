@@ -1,25 +1,17 @@
 # Thirsty-Lang UTF 101 (Universal Thirsty Family)
 
-- **Canonical bridge manual for Thirsty-Lang 0.9.0**
+- **Canonical bridge manual for Thirsty-Lang 0.9.1**
 - **Python:** 3.11 or later
 - **Package:** `thirsty-lang`
 - **License:** Apache-2.0
-**Edition prepared:** 2026-09-13
+- **Edition:** 2026-11-18
 
-This edition describes released 0.9.0 plus explicitly marked, unreleased
-M3.1 sequences, M3.2 type coherence, M3.3 governance/security defaults,
-M3.4 callable and iteration consistency, M3.5 value identity, and M4.1 execution
-ownership, cooperative limits, cancellation, and lexical-scope repairs.
-The continuity map records completed 0.9.0 publication. M3.1-M3.4 have separate
-local verification records; the M3.5 local implementation's final integration
-evidence is reported in [M3_VALUE_IDENTITY_VERIFICATION.md](operations/M3_VALUE_IDENTITY_VERIFICATION.md).
-M3.1-M3.5 was subsequently committed and pushed as `e888a84`. Current M4.1
-integration evidence is separate in
-[M4_EXECUTION_CONTROL_VERIFICATION.md](operations/M4_EXECUTION_CONTROL_VERIFICATION.md).
-These increments are not claimed as a published package. Broader M3-M7 language
-work remains incomplete; ecological robotics and swarms remain deferred.
-Sections explicitly labeled 0.8.6 preserve earlier release and acceptance
-evidence.
+This edition covers governance by default, the static and mutable type contracts,
+reference execution limits, the installed Node host, TSCG-B text frames and the
+one-use signed stdout shield. It includes the shield's running example, grant
+format and stop semantics. The development plan identifies the remaining
+language and isolation work. Dated verification records preserve evidence for
+the revisions they tested.
 
 Thirsty-Lang is a governance-first programming language family. Its central
 execution question is not only "can this code run?" but also "should this action
@@ -42,7 +34,7 @@ find the authoritative source or test for a claim.
 |---|---|
 | **Contract** | Behavior implemented by active source and protected by deterministic tests. |
 | **Security contract** | Fail-closed behavior whose test or threat-model evidence is part of the security boundary. |
-| **Package surface** | Code, metadata, or commands configured for the `thirsty-lang` 0.9.0 package build. |
+| **Package surface** | Code, metadata, or commands configured for the `thirsty-lang` 0.9.1 package build. |
 | **Operational requirement** | A control that an embedding or deployment must configure; installing the package alone does not satisfy it. |
 | **Repository-local** | Material present in the repository but not included in the package build. |
 | **Historical** | Evidence or behavior retained to explain a previous release. It does not override the current contract. |
@@ -70,6 +62,7 @@ The primary maintained references are:
 - [Governance runtime model](governance_model.md)
 - [Governed native value context](GOVERNED_VALUE_CONTEXT.md)
 - [Execution ownership, limits, and cancellation](EXECUTION_CONTROL.md)
+- [Signed stdout shields and defensive execution](DEFENSIVE_COMPARTMENTS.md)
 - [Feature status and Competence Register](STATUS.md)
 - [Offensive threat model](THREAT_MODEL.md)
 - [Production deployment requirement](PRODUCTION_DEPLOYMENT.md)
@@ -81,13 +74,23 @@ The primary maintained references are:
 
 ### 1.3 Package boundary
 
-The 0.9.0 wheel configuration packages these namespaces:
+The 0.9.1 wheel configuration packages these namespaces:
 
 ```text
 utf
 utf.*
 thirsty_lang
 ```
+
+The wheel also installs the UTF 101 PDF at
+`<sys.prefix>/share/doc/thirsty-lang/Thirsty-Lang-UTF-101.pdf`. To locate it
+after installation:
+
+```bash
+python -c "import sys; from pathlib import Path; print(Path(sys.prefix) / 'share/doc/thirsty-lang/Thirsty-Lang-UTF-101.pdf')"
+```
+
+The [0.9.1 PDF download](https://github.com/IAmSoThirsty/Thirsty-lang/releases/download/pypi-v0.9.1/Thirsty-Lang-UTF-101.pdf) is available from the release page.
 
 The canonical import is:
 
@@ -98,7 +101,7 @@ from utf import thirsty_lang
 `import thirsty_lang` is a compatibility shim to the same implementation.
 
 The top-level `governance/` tree and `src/psia` are **repository-local**. They
-are not included in the 0.9.0 Python package build and are not part of its
+are not included in the 0.9.1 Python package build and are not part of its
 installed runtime or security boundary. Their presence in a checkout must not
 be presented as a capability of a clean PyPI installation.
 
@@ -141,8 +144,7 @@ audit evidence until an attached archive successfully stores it.
 
 ### 3.1 Isolated installation on PowerShell
 
-The pinned commands below target 0.9.0 after publication. During release
-preparation, use the editable source installation shown below.
+Use an isolated environment for the pinned 0.9.1 installation.
 
 ```powershell
 $ErrorActionPreference = "Stop"
@@ -152,7 +154,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\.venv\Scripts\Activate.ps1
 
 python -m pip install --upgrade pip
-python -m pip install --no-cache-dir thirsty-lang==0.9.0
+python -m pip install --no-cache-dir thirsty-lang==0.9.1
 ```
 
 On POSIX shells:
@@ -161,7 +163,7 @@ On POSIX shells:
 python3.11 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install --no-cache-dir thirsty-lang==0.9.0
+python -m pip install --no-cache-dir thirsty-lang==0.9.1
 ```
 
 Development and analysis extras are explicit:
@@ -496,7 +498,7 @@ design-by-contract even with host Core opt-out. Under the default governance
 floor, contracted methods and governed top-level calls also require policy and
 authority admission. Contracts do not supply authority themselves.
 
-#### 7.3.1 Governed native values: M3.5 candidate
+#### 7.3.1 Governed native values: M3.5
 
 Governed function and contract-bearing method entry/exit contexts accept exact
 JSON values and registered native structs, fountains, and enums through the
@@ -705,7 +707,7 @@ import "thirst::json" as json
 import "thirst::fs" as fs
 ```
 
-The standard library development branch registers 17 namespaces:
+The 0.9.1 standard library registers 17 namespaces:
 
 ```text
 thirst::time          thirst::crypto       thirst::reservoir
@@ -759,7 +761,7 @@ verification of externally fetched code.
 
 ## 9. All seven installed CLIs
 
-The following is the 0.9.0 command family. Use each command's `--help` for
+The following is the 0.9.1 command family. Use each command's `--help` for
 all flags and positional arguments.
 
 ### 9.1 `thirsty`
@@ -768,6 +770,7 @@ Subcommands:
 
 ```text
 run
+run-js
 repl
 fmt
 new
@@ -1483,7 +1486,7 @@ names. Sampling permits no host calls and enforces source/AST/depth/step/value
 limits. Failed input vectors cause abstention rather than being discarded.
 
 The separate admission engine advances from released 0.2.0 through M3.1's 0.3.0
-to 0.4.0 with v4 convergence methods in unreleased M3.2. In addition to strict
+to 0.4.0 with v4 convergence methods in M3.2. In addition to strict
 AST modeling, Boolean and integer result sorts now remain distinct. It
 reports PROVEN, OBSERVED, VIOLATED, UNKNOWN, or INAPPLICABLE evidence and an
 ELIGIBLE, FLAGGED, or REJECTED decision. Under its default policy, sampled
@@ -1549,6 +1552,8 @@ payload            N bytes, UTF-8
 CRC32              4 bytes
 SHA-256             32 bytes
 ```
+
+Guest programs can import `thirst::tscgb` for the v1 text profile. Its `encode` accepts up to 65,535 UTF-8 bytes. Its `decode` requires precisely one zero-flag frame as native bytes or a list of integer octets. The import uses the ordinary TARL import gate.
 
 The minimum frame is 44 bytes. The decoder verifies magic, version, declared
 length, CRC32, and SHA-256. `StreamDecoder` buffers partial input and can
@@ -1790,7 +1795,7 @@ Other targets that drop governance require the explicit compatibility flag.
 Install the analysis extra:
 
 ```bash
-python -m pip install "thirsty-lang[analysis]==0.9.0"
+python -m pip install "thirsty-lang[analysis]==0.9.1"
 ```
 
 ### LLVM object, executable, assembly, or JIT build fails
@@ -1801,7 +1806,7 @@ Install the required `llc`, `clang`, or `lli` tools and confirm they are on
 ### `--locked` refuses to run
 
 Generate or update the project lockfile with `thirsty lock`, then run
-`thirsty audit`. Version 0.9.0 uses content-bound lockfile v2 for local source
+`thirsty audit`. Version 0.9.1 uses content-bound lockfile v2 for local source
 and runtime integrity. Remote package retrieval remains unavailable.
 
 ### Strict or pure mode rejects an otherwise valid program
@@ -1824,12 +1829,12 @@ those requirements, and file execution bypasses the global module cache.
 ### Docker behavior does not match the published package
 
 Verify the exact versioned GHCR image and digest. Do not use the stale Docker
-Hub 0.8.1 image as evidence for 0.9.0. Verify publication of the requested image
+Hub 0.8.1 image as evidence for 0.9.1. Verify publication of the requested image
 separately before using it.
 
 ## 19. Glossary
 
-| Term | Meaning in Thirsty-Lang 0.9.0 |
+| Term | Meaning in Thirsty-Lang 0.9.1 |
 |---|---|
 | Authority | Identity requesting governed action; hardened authority is a verified signed claim, not a raw string. |
 | Broker | Central admission point for governed effects and external adapters. |
@@ -1945,7 +1950,7 @@ Security reports should be sent privately to
 
 ---
 
-- **Document identity:** Thirsty-Lang UTF 101 (Universal Thirsty Family), prepared 0.9.0 edition
+- **Document identity:** Thirsty-Lang UTF 101 (Universal Thirsty Family), 0.9.1 edition
 - **Canonical context representation:** `tarl.context.nested-json.v1`
 - **Default governed verdict:** `DENY`
 **Package build boundary:** `utf`, `utf.*`, and compatibility package

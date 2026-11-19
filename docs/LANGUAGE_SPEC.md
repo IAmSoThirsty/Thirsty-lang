@@ -1,6 +1,6 @@
 # Thirsty-Lang Language Specification
 
-**Version:** released 0.9.0 plus unreleased M3.1-M3.5 and M4.1 increments
+**Version:** Thirsty-Lang 0.9.1
 **Copyright:** 2026 Thirsty's Projects LLC (Apache 2.0)
 
 This is the concise normative family specification. For the integrated
@@ -178,7 +178,7 @@ thirsty (x > 0) {
 - `Bool` — Boolean values
 - `NoneType` — Null type
 
-### Writable collections and value choices (development branch)
+### Writable collections and value choices
 
 A new list or dictionary literal takes its type from its destination when all
 elements fit. For example, `drink xs: Reservoir[Float] = [1]` accepts an
@@ -214,7 +214,7 @@ embedding operations. Each independent interpreter can enforce only the
 contracts it has observed. `Task`, `Result` and `Governed` lack a general guest value
 representation for validating collection elements.
 
-### Sequence operations (unreleased M3.1)
+### Sequence operations (M3.1)
 
 `value[index]` reads a native list, string, tuple, or bytes value using an
 exact `Int`; booleans and coercible host objects are rejected. Negative
@@ -238,7 +238,7 @@ a runtime validation boundary. These changes do not establish complete static
 typing or compiler parity; see the
 [general-purpose reference](GENERAL_PURPOSE_LANGUAGE.md).
 
-### Scalar Boolean and annotation contracts (unreleased M3.2)
+### Scalar Boolean and annotation contracts (M3.2)
 
 `Bool` is separate from numeric arithmetic. The scalar operators `+`, `-`,
 `*`, `/`, `%`, unary `-`, and ordering comparisons reject Boolean operands.
@@ -257,7 +257,7 @@ retained for later assignment checks even without an initializer; core-mode
 initialization still produces `none`, with no definite-assignment guarantee.
 Unknown annotation names remain a gradual limitation.
 
-### Execution ownership and limits (unreleased M4.1)
+### Execution ownership and limits (M4.1)
 
 The [execution-control contract](EXECUTION_CONTROL.md) defines shared logical
 ownership, finite host limits, explicit cascade thread transfer, cancellation,
@@ -268,7 +268,7 @@ effects are not rolled back. Governed functions, morphs, and fountain methods
 capture their lexical declaration environment; caller policy restrictions
 remain active even though caller local variables do not replace free names.
 
-### Callable and iteration contracts (unreleased M3.4)
+### Callable and iteration contracts (M3.4)
 
 Known callable assignment requires equal arity, contravariant parameters, and
 covariant returns. A replacement accepts the inputs promised by its destination
@@ -312,7 +312,7 @@ lambda signature inference, and quantified generics are not introduced.
 Mixed callable/noncallable common types still fall back to `Any`.
 
 The initial M3.4 constructor and cascade pipe fallbacks are superseded by the
-M3.5 candidate's value-identity rules below. Historical M3.4 evidence remains
+M3.5's value-identity rules below. Historical M3.4 evidence remains
 scoped to its recorded source.
 
 For-each checks the iterable expression in the enclosing scope before binding
@@ -332,7 +332,7 @@ soundness. See the
 [M3.4 verification record](operations/M3_CALLABLE_ITERATION_VERIFICATION.md)
 for the increment's evidence and limitations.
 
-### Constructor and awaited-result types (unreleased M3.5 candidate)
+### Constructor and awaited-result types (M3.5)
 
 Struct and enum declaration expressions produce an internal `ConstructorType`;
 their nominal annotations describe instances. Constructor aliases retain both
@@ -364,7 +364,7 @@ expressions once even when the callee is noncallable. Explicit/host `Task`
 descriptors remain gradual in call/member/pipe contexts pending a runtime
 task-value contract. No new asynchronous language protocol is introduced.
 
-### Governed native call contexts (unreleased M3.5 candidate)
+### Governed native call contexts (M3.5)
 
 The interpreter projects governed call values into independently owned JSON
 before entry or exit predicates. Exact JSON primitives, finite floats, lists,
@@ -404,7 +404,7 @@ portable code/closure provenance, composite receipts, and a full argument/result
 namespace remain separate work. Prior body effects cannot be rolled back by
 exit denial. Host embedding remains trusted. The M3.5
 [verification record](operations/M3_VALUE_IDENTITY_VERIFICATION.md) reports
-final integration evidence for this local implementation.
+integration evidence for this implementation.
 Broader M3-M7 implementation remains open and ecological robotics is deferred.
 
 ### CLI Commands
@@ -681,7 +681,7 @@ A version 1 frame starts with `TSGB`, followed by a one-byte version, one-byte
 flags and a two-byte big-endian payload length. The trailer contains CRC32 of
 the header and payload, then SHA-256 of those bytes and the stored CRC32.
 
-The development standard library exposes the single-frame UTF-8 text profile:
+The 0.9.1 standard library exposes the single-frame UTF-8 text profile:
 
 ```thirsty
 import "thirst::tscgb" as frames

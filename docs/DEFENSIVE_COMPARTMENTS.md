@@ -1,6 +1,6 @@
 # Defensive execution with `shield`
 
-**Local development on `codex/language-development`.** The first milestone implements a one-use stdout grant, voluntary surrender and a host stop at the dispatch boundary. The later milestones below extend protection to the worker process and additional effects. The unit of authority is one host-owned run and its descendants.
+**Thirsty-Lang 0.9.1.** The first milestone implements a one-use stdout grant, voluntary surrender and a host stop at the dispatch boundary. The later milestones below extend protection to the worker process and additional effects. The unit of authority is one host-owned run and its descendants.
 
 ## Where the language stands
 
@@ -37,11 +37,15 @@ An embedding host can call `stop()` from another thread. Its return acknowledges
 
 The issuer can also withdraw its key from the live verifier with `revoke_key(key_id)`. When that call returns, a pending write using the withdrawn key can finish only if the supervisor had already admitted it. Revocation can return while that write is still in the sink. Re-registering a key requires a freshly verified credential for a new shield run.
 
+## Design for later milestones
+
+The following design extends the implemented stdout profile to other workers, effects and recovery paths.
+
 ### Authority follows the work
 
 - At compile time, compute the possible effects of supported calls and reject a known operation outside the block's declared upper bound. Dynamic calls in the initial subset require a verified effect bound. At runtime, the existing capability broker still decides each operation against the live policy, caller, defining scope and grant.
 - Bind a grant to an authenticated principal, run, operation, destination, expiry and revocation generation. Deriving a child grant can only narrow those fields and its remaining allowance. Aliases, callbacks and child tasks share the parent's remaining budget. An escaped callback retains its restrictions. A peer assistant needs an explicit grant for its own identity. Forwarding a decision receipt confers no permission.
-- Keep grant state in a trusted host supervisor shared by every worker in the run. The present Node host starts a fresh helper process for a request. A use counter stored there or in guest JavaScript could reset between writes. Route guest output through a private channel to the supervisor. Only the supervisor's adapter can publish externally. Loss of that channel closes access to effects.
+- Keep grant state in a trusted host supervisor shared by every worker in the run. The ordinary Node host starts a fresh helper process for a request. The shield host keeps the grant in the embedding supervisor. A use counter stored there or in guest JavaScript could reset between writes. Route guest output through a private channel to the supervisor. Only the supervisor's adapter can publish externally. Loss of that channel closes access to effects.
 - For `pour`, check the destination before evaluating its argument. Bound evaluation and encoding, count UTF-8 bytes including the newline, and check the allowed content, live authority and remaining quota at dispatch. Serialize reservation and release to the adapter with stop and revocation. On a normal run one of two concurrent spends of a one-use grant can succeed. If the adapter may already have emitted bytes when it fails, keep the use spent and record an unknown or partial outcome.
 
 ### Protect the data and the host
@@ -87,7 +91,7 @@ Measure the cost to the defender, the work an untrusted run can complete, and ho
 
 ## Delivery order
 
-1. **Implemented locally.** The reference and Node hosts support the one-use stdout shield, fixed public literals, authenticated host grants, a shared budget, effect bounds, voluntary surrender and stop at dispatch. The first profile admits no file, network or process operations.
+1. **Included in 0.9.1.** The reference and Node hosts support the one-use stdout shield, fixed public literals, authenticated host grants, a shared budget, effect bounds, voluntary surrender and stop at dispatch. The first profile admits no file, network or process operations.
 2. Qualify independent operator stop, restart invalidation, required audit under failure and OS worker isolation on Windows and Linux. Test two tenants under pressure and publish per-platform evidence.
 3. Add labeled inputs and recipient-specific release, then the bounded peer-report channel and one read-only file adapter for the existing data-report workload. Use policy comparison to produce a runnable witness if changing a rule widens who can receive data. Each added adapter needs its own bounds, cancellation behavior and outcome tests.
 4. Qualify draft and promotion grants against a disposable source store before allowing a maintenance agent to propose changes to a protected codebase.

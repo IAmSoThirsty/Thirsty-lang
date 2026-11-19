@@ -1,7 +1,7 @@
 [manual]
 title = "Thirsty-Lang UTF 101 (Universal Thirsty Family)"
-subtitle = "The Canonical End-to-End Reference - unreleased M3.1-M3.5 and M4.1"
-software_version = "0.9.0"
+subtitle = "The Canonical End-to-End Reference"
+software_version = "0.9.1"
 document_revision = "2026-11-18"
 publisher = "Thirsty's Projects LLC"
 license = "Apache-2.0"
@@ -42,6 +42,11 @@ authority = "security-contract"
 path = "docs/EXECUTION_CONTROL.md"
 title = "Execution Ownership, Limits, and Cancellation"
 authority = "security-contract"
+
+[[document]]
+path = "docs/DEFENSIVE_COMPARTMENTS.md"
+title = "Signed Stdout Shields and Defensive Execution"
+authority = "security-contract-and-roadmap"
 
 [[document]]
 path = "docs/PRODUCTION_DEPLOYMENT.md"

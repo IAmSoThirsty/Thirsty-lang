@@ -1,6 +1,6 @@
 # Governance Model
 
-Edition: unreleased development after Thirsty-Lang 0.9.0. See the
+Edition: Thirsty-Lang 0.9.1. See the
 [canonical Thirsty-Lang UTF 101 manual](THIRSTY_LANG_UTF_101.md) for the complete
 end-to-end reference and deployment recipes.
 

@@ -1,12 +1,9 @@
 # Governed Value Context
 
-Status: local M3.5 implementation and acceptance specification, 2026-09-08.
-This work follows the local, unreleased M3 callable and iteration increment.
-It does not describe the published 0.9.0 package. Native-value projection and
-boundary integrity checks are implemented in the current working tree.
-The [M3.5 verification record](operations/M3_VALUE_IDENTITY_VERIFICATION.md)
-reports the completed checks and their limits. Proposed requirements and
-follow-up boundaries are identified explicitly.
+Thirsty-Lang 0.9.1 implements native-value projection and integrity checks at
+governed call boundaries. This document explains the original defects, the
+implemented contract and the remaining work on portable identity.
+[M3.5 verification record](operations/M3_VALUE_IDENTITY_VERIFICATION.md)
 
 ## Problem and observed baseline
 
@@ -35,7 +32,7 @@ authority, source provenance, or successful execution verification.
 
 ## Immediate integrity correction
 
-The candidate correction establishes a representation check before entry and
+The implementation establishes a representation check before entry and
 exit predicates. It records one admitted snapshot for each boundary and checks
 the live values against that same snapshot after predicates, schema preparation,
 policy evaluation, and final credential callbacks. A representation failure or
@@ -396,8 +393,7 @@ The minimum focused matrix must cover:
 
 Focused success does not replace the full suite. Keep the baseline probe,
 focused output, complete-suite output, and final source/artifact hashes as
-separate receipts. Update this document's candidate status only to the extent
-the implemented surface and recorded results support it.
+separate receipts.
 
 The implemented boundary regressions are in
 `tests/test_governed_value_integrity.py`. The following focused commands were

@@ -2,10 +2,9 @@
 
 ## Preserved 0.8.6 Image Evidence
 
-This section preserves the previously verified Thirsty-Lang 0.8.6 image. It is
-historical release evidence, not evidence that the unreleased development
-changes below are available from a registry. Build the current working tree
-locally to exercise its governance-default behavior.
+The image and digest below identify the previously verified Thirsty-Lang 0.8.6
+container. Version 0.9.1 ships as a Python wheel and source distribution.
+To run 0.9.1 in a container, build the Dockerfile from the `pypi-v0.9.1` tag.
 
 ```text
 ghcr.io/iamsothirsty/thirsty-lang:0.8.6

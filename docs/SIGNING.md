@@ -1,10 +1,10 @@
 # Release Authentication, Attestations, and Optional Signatures
 
-Edition: Thirsty-Lang 0.9.0 release preparation (2026-09-06)
+Edition: Thirsty-Lang 0.9.1 (2026-11-18)
 
 This guide separates three mechanisms that protect different things:
 
-| Mechanism | Purpose | Configured 0.9.0 release path |
+| Mechanism | Purpose | Configured 0.9.1 release path |
 |---|---|---|
 | PyPI API token | Authenticates the upload account | Active |
 | PyPI Trusted Publishing and publish attestations | Binds an uploaded file to a supported CI identity through OIDC | Not configured |
@@ -17,7 +17,7 @@ pinned PyPA action. Authentication uses the project-scoped PyPI API token in
 the GitHub `release` environment secret named `IAMSOTHIRSTY`. The repository
 does not contain that secret.
 
-## Prepared 0.9.0 publication contract
+## 0.9.1 publication contract
 
 The release workflow is configured to enforce these gates; this description
 does not assert that publication has completed:
@@ -69,10 +69,10 @@ If an out-of-band channel is intentionally established:
 
 ```bash
 python -m build
-gpg --detach-sign --armor dist/thirsty_lang-0.9.0-py3-none-any.whl
+gpg --detach-sign --armor dist/thirsty_lang-0.9.1-py3-none-any.whl
 gpg --verify \
-  dist/thirsty_lang-0.9.0-py3-none-any.whl.asc \
-  dist/thirsty_lang-0.9.0-py3-none-any.whl
+  dist/thirsty_lang-0.9.1-py3-none-any.whl.asc \
+  dist/thirsty_lang-0.9.1-py3-none-any.whl
 ```
 
 Use a dedicated protected release key, keep its passphrase and private material

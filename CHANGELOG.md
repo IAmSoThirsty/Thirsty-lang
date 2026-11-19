@@ -5,6 +5,22 @@ All notable changes to Thirsty-Lang are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-11-18
+
+### Changes that can affect existing programs
+
+- The CLI, REPL and embedding interpreter require governance by default. Programs that previously relied on implicit I/O or imports must supply an allowing TARL policy and authority. A trusted host can select `--unsafe-core` for compatible source. An explicit governed module still requires governance.
+- The checker rejects Boolean arithmetic and incompatible writable collection annotations. Runtime checks follow typed list and dictionary aliases through guest calls and reject an invalid mutation before it changes the collection. Strict mode requires initialized bindings. Pure mode carries its effect restrictions through aliases and callbacks.
+- Reference execution uses finite cooperative step, deadline and call-depth limits. Embedders can configure these limits. Shadow semantic evidence from earlier engine versions may require reanalysis.
+
+### Language and hosts
+
+- Sequence indexing and slicing, callable variance, constructor identity and awaited cascade results now have explicit checker and interpreter contracts. The wheel includes the data-report example.
+- `thirsty build app.thirsty --target js --policy policy.tarl` and `thirsty run-js app.js --policy policy.tarl --authority reader` use the installed Node host for its supported language subset. The launcher checks the artifact against adjacent source and the host's policy. Stdout requires an allowing broker decision.
+- A standalone governed `shield` can publish one fixed UTF-8 record per host run under a matching, expiring Ed25519 credential and policy. Descendants share the allowance. A holder can surrender its lineage and the host can stop further dispatch. An ambiguous write consumes the allowance.
+- `thirst::tscgb.encode` and `decode` expose the local TSCG-B v1 text-frame codec. It verifies lengths, flags, checksums and UTF-8. Base-23 opcode encoding now uses two digits per byte. Earlier ambiguous one-digit control-byte sequences require the original input to recover.
+- The UTF 101 manual is included in the wheel under `share/doc/thirsty-lang/Thirsty-Lang-UTF-101.pdf`. [Download the 0.9.1 PDF](https://github.com/IAmSoThirsty/Thirsty-lang/releases/download/pypi-v0.9.1/Thirsty-Lang-UTF-101.pdf).
+
 ## [0.9.0] - 2026-09-06
 
 Prepared release. Publication and remote artifact identity require separate

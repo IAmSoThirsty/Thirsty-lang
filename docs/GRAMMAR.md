@@ -1,6 +1,6 @@
 # Thirsty-Lang Grammar (Tier 1)
 
-**Edition:** Thirsty-Lang v0.9.0 plus unreleased M3.1-M3.2 increments
+**Edition:** Thirsty-Lang 0.9.1
 
 **Scope:** syntax accepted by `utf.thirsty_lang.lexer.Lexer` and
 `utf.thirsty_lang.parser.Parser`
@@ -15,8 +15,9 @@ with this document.
 Several words used by higher tiers are reserved by the Tier 1 lexer. Some also
 have a Tier 1 parse form: `shield` and `detect` wrap a block; `sanitize` and
 `armor` wrap an expression; `morph` declares a callable transform; and `defend`
-records a strategy form. Their presence alone does not provide a higher-tier
-security guarantee. See the [governance model](governance_model.md).
+records a strategy form. Version 0.9.1 implements the one-use stdout profile
+for a governed module containing exactly one top-level `shield` block. See the
+[shield contract](DEFENSIVE_COMPARTMENTS.md) and [governance model](governance_model.md).
 
 ---
 
@@ -81,7 +82,7 @@ single_quoted_string = "'" { string_character | escape } "'" ;
 escape         = "\\n" | "\\t" | "\\0" | "\\\\" | "\\\"" | "\\'" ;
 ```
 
-The decoded escapes in v0.9.0 are newline (`\n`), tab (`\t`), NUL (`\0`),
+The decoded escapes in 0.9.1 are newline (`\n`), tab (`\t`), NUL (`\0`),
 backslash (`\\`), double quote (`\"`), and single quote (`\'`). `\r` and
 hex escapes such as `\x41` are not implemented escape forms. For compatibility,
 the current lexer drops the backslash from an unknown escape and retains the
@@ -206,7 +207,7 @@ cascade_expression = "cascade" expression ;
 the dot. Method calls use the same postfix chain as ordinary calls, for example
 `object.method(arg)[0]`.
 
-The unreleased M3.1 increment adds slices: `values[:]`, `values[1:4]`,
+Slices accept omitted bounds: `values[:]`, `values[1:4]`,
 `values[::2]`, and `values[::-1]`. Either or both colons may have omitted
 bounds; empty indexing `values[]` and more than two colons are invalid.
 Slices and indices bind at the same postfix precedence and can be chained.
@@ -369,7 +370,7 @@ fountain_field   = identifier [ ":" type_name ] [ "=" expression ] ;
 ```
 
 Fountain inheritance, mixin lists, and interface lists after the fountain name
-are not supported by the v0.9.0 parser. A constructor is an ordinary method
+are not supported by the 0.9.1 parser. A constructor is an ordinary method
 named `init`, written `glass init(...) { ... }`.
 
 ### 5.3 Error handling and cleanup
@@ -446,7 +447,7 @@ enum, struct, interface, symbol, module, core, and, or, not,
 true, false, none
 ```
 
-This is the complete v0.9.0 `KEYWORDS` set. Reservation does not mean that each
+This is the complete 0.9.1 `KEYWORDS` set. Reservation does not mean that each
 word starts a Tier 1 parser production. Some tokens exist for higher-tier and
 forward-compatibility work.
 

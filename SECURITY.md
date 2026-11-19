@@ -2,14 +2,11 @@
 
 ## Supported Versions
 
-Thirsty-Lang is currently in alpha (released baseline v0.9.0). Security updates are applied to
-the latest release only.
+Thirsty-Lang 0.9.1 is the supported alpha release. Security updates apply to the
+latest release. In 0.9.1 the CLI, REPL and embedding interpreter require
+governance by default. Upgrade older installations to use these controls.
 
-The governance-default corrections described below belong to the unreleased
-working tree after 0.9.0. They must not be assumed to exist in an older installed
-package or container.
-
-The unreleased M4.1 interpreter enforces exclusive logical execution and finite
+The reference interpreter enforces exclusive logical execution and finite
 cooperative steps/deadline/call depth across joined callers, definers, and file
 imports. Stops cannot be caught by guest spillage or bypassed through cleanup.
 Governed contracts resolve lexical defining scopes instead of caller shadows.
@@ -37,8 +34,8 @@ directives are rejected, expiry can never grant `ALLOW`, and proof authority is
 
 | Version           | Supported          |
 | ----------------- | ------------------ |
-| 0.9.0             | :white_check_mark: |
-| 0.8.x and earlier | :x:                |
+| 0.9.1             | :white_check_mark: |
+| 0.9.0 and earlier | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -91,8 +88,7 @@ priority attention:
   replay, revocation, time, and persistence controls
 
 The top-level `governance/` tree and `src/psia` are repository-local surfaces;
-they are not included in the published 0.8.6 Python package and are not part of
-its installed security boundary.
+the 0.9.1 Python distribution excludes them from its installed security boundary.
 
 ## Offensive Threat Model
 

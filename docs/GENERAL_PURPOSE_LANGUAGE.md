@@ -1,25 +1,12 @@
 # General Purpose Language
 
-Thirsty-Lang 0.9.0 was published and its artifact identity verified on
-2026-09-06, as recorded in the local release receipt. Updated 2026-09-13, this
-reference includes local M3.1 sequence, M3.2 Boolean/type-coherence, M3.3
-governance/security-defaults, M3.4 callable/iteration work, and the M3.5
-constructor/cascade and governed native-value candidate. These
-post-release M3.1-M3.5 changes were committed as `e888a84` and remain unreleased;
-the current M4.1 execution controls follow them. These changes do not describe
-the published 0.9.0 package.
-See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for recorded release evidence,
-correction dependencies, and remaining milestones. Python compatibility is not
-claimed. Historical M3.1 results and limitations are recorded in
-[M3_SEQUENCE_VERIFICATION.md](operations/M3_SEQUENCE_VERIFICATION.md).
-Consult the separate M3.2 integration results in
-[M3_TYPE_COHERENCE_VERIFICATION.md](operations/M3_TYPE_COHERENCE_VERIFICATION.md).
-The later security-defaults work has a separate
-[verification record](operations/M3_SECURITY_DEFAULTS_VERIFICATION.md); older
-test totals do not validate newer changes. M3.4 has its own
-[callable and iteration verification record](operations/M3_CALLABLE_ITERATION_VERIFICATION.md).
-The M3.5 candidate's final integration evidence is reported separately in
-[M3_VALUE_IDENTITY_VERIFICATION.md](operations/M3_VALUE_IDENTITY_VERIFICATION.md).
+Thirsty-Lang 0.9.1, 18 November 2026. This reference describes the language
+contracts shared by the checker and interpreter, the installed workloads and
+the subset available on the governed Node host. The reference runtime enforces
+typed mutable aliases and cooperative execution limits. Both hosts provide
+one-use signed stdout shields. [Development plan](DEVELOPMENT_PLAN.md) ·
+[Implementation qualification](operations/LANGUAGE_DEVELOPMENT_QUALIFICATION_20261118.md) ·
+[Shield contract](DEFENSIVE_COMPARTMENTS.md)
 
 ## Execution control: M4.1
 
@@ -215,7 +202,7 @@ M3.1's recorded proof-boundary repair advanced Shadow admission to engine
 that engine. Historical verification preserves integrity evidence; it does not
 independently replay the stored proof.
 
-## Boolean and type coherence: local M3.2 increment
+## Boolean and type coherence (M3.2)
 
 Scalar Boolean values no longer act as numbers in language operators.
 Arithmetic, ordering, and arithmetic negation with a `Bool` raise a type error.
@@ -279,7 +266,7 @@ separate follow-ups in the development plan. The next increment below addresses
 known callable signatures and loop element inference. Broader M3 tooling and
 robotics remain open and deferred respectively.
 
-## Callable consistency and iteration: local M3.4 increment
+## Callable consistency and iteration (M3.4)
 
 The checker retains the possible signatures when a value is selected from known
 functions, including a collection of functions. Internally, `FunctionUnionType`
@@ -323,7 +310,7 @@ fallback behavior remains: `|` returns its left value and `->` returns its
 right value after evaluating both operands. An unknown callable remains dynamic.
 
 M3.4 initially checked direct nominal constructor names and kept ambiguous
-constructor aliases and Task/cascade operands gradual. The M3.5 candidate below
+constructor aliases and Task/cascade operands gradual. The M3.5 rules below
 replaces those constructor and awaited-result limitations with explicit types.
 
 The descriptor API also compares `TypeVariable` names consistently: equal
@@ -379,7 +366,7 @@ generator syntax nor iteration budgets. M4.1 subsequently adds shared cooperativ
 step/deadline/call limits and cancellation; global memory/output accounting,
 host-iterator preemption, and hostile-host isolation remain open.
 
-## Value identity: local M3.5 candidate
+## Value identity (M3.5)
 
 Struct and enum constructor values now have an internal `ConstructorType`,
 distinct from the nominal instance descriptor. The distinction survives aliases,
@@ -460,7 +447,7 @@ denial cannot undo earlier body effects. The Python embedding host remains
 trusted; neither OS sandboxing nor whole-program verification is claimed.
 M3-M7 remain incomplete and robotics stays deferred. Consult the separate
 [M3.5 verification record](operations/M3_VALUE_IDENTITY_VERIFICATION.md) for the
-candidate's integration outcome; earlier totals do not verify it.
+increment's integration outcome; earlier totals do not verify it.
 
 ## Collection library
 

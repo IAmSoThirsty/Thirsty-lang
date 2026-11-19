@@ -1,35 +1,16 @@
 # Priority corrections and General Purpose Language
 
-Updated 2026-11-18. Thirsty-Lang 0.9.0 was published and its artifact identity
-verified. M3.1 sequence semantics has its own completed local verification in
-[M3_SEQUENCE_VERIFICATION.md](operations/M3_SEQUENCE_VERIFICATION.md).
-The recorded M3.2 Boolean/type-coherence increment built on then-uncommitted
-work; it had no new package version or publication claim. Consult its separate
-integration results in
-[M3_TYPE_COHERENCE_VERIFICATION.md](operations/M3_TYPE_COHERENCE_VERIFICATION.md).
-Earlier release or M3.1 totals do not validate M3.2.
-M3.3 governance/security defaults follows those changes and has its own
-[completed local integration record](operations/M3_SECURITY_DEFAULTS_VERIFICATION.md).
-The M3.4 callable-consistency and iteration increment has a separate
-[verification record](operations/M3_CALLABLE_ITERATION_VERIFICATION.md).
-The current M3.5 value-identity candidate adds constructor/cascade type repairs
-and bounded native governed-call contexts. Its
-[verification record](operations/M3_VALUE_IDENTITY_VERIFICATION.md) reports
-final integration evidence; focused implementation checks do not close that gate.
-These implementations are not new releases, and earlier verification totals
-do not validate later increments.
+Updated 2026-11-18 for Thirsty-Lang 0.9.1. This edition includes M3.1–M3.5
+sequence, type and governance work and M4.1 reference execution controls.
+It adds runtime checks on typed mutable aliases, the local TSCG-B v1 text-frame
+module, the packaged data-report example, the governed Node host and the
+one-use signed stdout shield. The remaining general-purpose and isolation
+milestones are listed below.
 
-Cumulative M3.1-M3.5 was subsequently committed and pushed as
-`e888a847b079048ba29b78a39b8e5ddfebed86ce`; its historical verification
-records retain their original pre-delivery wording. The current M4.1 execution
-control work follows that commit and remains unreleased. Its contract is
-[EXECUTION_CONTROL.md](EXECUTION_CONTROL.md), with separate integration evidence
-in [M4_EXECUTION_CONTROL_VERIFICATION.md](operations/M4_EXECUTION_CONTROL_VERIFICATION.md).
-
-The November development candidate enforces typed mutable values across guest aliases,
-adds the TSCG-B text-frame module, and includes the data-report application in the
-wheel. The [qualification record](operations/LANGUAGE_DEVELOPMENT_QUALIFICATION_20261118.md)
-tracks the installed checks and the next portable-backend acceptance cases.
+The [implementation qualification](operations/LANGUAGE_DEVELOPMENT_QUALIFICATION_20261118.md)
+records the installed language and Node checks. The [shield contract](DEFENSIVE_COMPARTMENTS.md)
+defines the implemented profile and its follow-up milestones. Historical
+verification records retain their original commit, package version and results.
 
 ## Authority, order, and completion evidence
 
@@ -102,9 +83,9 @@ verification record determines whether integration passed.
 | C22 | Callbacks and imported closures could retain only one side's restrictions. Carry caller and definer restrictions together through language calls, methods, aliases, callbacks, and cascades. | Multiple policy/authority bindings, revocation during compound authorization, active pure/strict restrictions, and caller/definer lock enforcement. `test_security_defaults.py`. | Implemented; consult security-defaults integration record |
 | C23 | Callable parameter covariance and erased callable choices accepted invocations that a selected function could not support. Use contravariant parameters, covariant returns, and retained alternatives checked at every known call. | Nominal-aware exact deduplication, higher-order signatures, mixed arities, argument/result joins, and pipe/pipeline calls. `test_callable_type_conformance.py`. | Implemented in M3.4; consult its separate integration record |
 | C24 | Foreach introduced its binding before resolving the iterable, erased known element types, and silently skipped dynamic noniterables. Resolve enclosing scope, retain element/key descriptors, and use native iteration with explicit errors. | Nested nominal records, shadowing, E025 spans, dynamic values, iterator sequencing, per-iteration closure scope, returns, cascades, and denials. `test_iteration_conformance.py`. | Implemented in M3.4; host iterators remain trusted |
-| C25 | Constructor values shared instance descriptors, losing callable identity through aliases and selections. Introduce `ConstructorType` and validate every retained function/constructor signature at calls, `new`, and pipes. | Nominal annotations, alias/member resolution, nested collections, E031 noncallables, and callable choices. `test_constructor_type_conformance.py`. | Implemented M3.5 candidate; consult its integration record |
-| C26 | Cascade returned its awaited value while the checker wrapped it in Task; a dynamic noncallable route evaluated operands twice. Infer the actual operand result and reject invalid calls after one evaluation. | Assignments, returns, callbacks, collections, pipes, worker errors, and governance denials. `test_cascade_type_conformance.py`. | Implemented M3.5 candidate; consult its integration record |
-| C27 | Governed calls omitted or ambiguously rebound receivers, rejected native data, or admitted mutated/invalid values under an earlier snapshot. Project registered native values, reject duplicate/receiver-conflicting parameters, recheck live values at authorization checkpoints, and bind positive proofs to the submitted original context. | Receiver/result admission, duplicate-binding rejection before defaults/contracts/body, callback mutation, reserved result parameters, bounds, native identity, and no-hook rejection. `test_governed_value_integrity.py`, `test_parameter_binding_conformance.py`. | Implemented M3.5 candidate; consult its integration record; wider ownership and handoff contracts remain open |
+| C25 | Constructor values shared instance descriptors, losing callable identity through aliases and selections. Introduce `ConstructorType` and validate every retained function/constructor signature at calls, `new`, and pipes. | Nominal annotations, alias/member resolution, nested collections, E031 noncallables, and callable choices. `test_constructor_type_conformance.py`. | Implemented in 0.9.1; consult its integration record |
+| C26 | Cascade returned its awaited value while the checker wrapped it in Task; a dynamic noncallable route evaluated operands twice. Infer the actual operand result and reject invalid calls after one evaluation. | Assignments, returns, callbacks, collections, pipes, worker errors, and governance denials. `test_cascade_type_conformance.py`. | Implemented in 0.9.1; consult its integration record |
+| C27 | Governed calls omitted or ambiguously rebound receivers, rejected native data, or admitted mutated/invalid values under an earlier snapshot. Project registered native values, reject duplicate/receiver-conflicting parameters, recheck live values at authorization checkpoints, and bind positive proofs to the submitted original context. | Receiver/result admission, duplicate-binding rejection before defaults/contracts/body, callback mutation, reserved result parameters, bounds, native identity, and no-hook rejection. `test_governed_value_integrity.py`, `test_parameter_binding_conformance.py`. | Implemented in 0.9.1; consult its integration record; wider ownership and handoff contracts remain open |
 
 ## Faults revealed while correcting the baseline
 
@@ -318,7 +299,7 @@ floor. Embedded foreign Python values remain trusted host inputs; their source
 identity is not established merely because a lockfile exists.
 
 The initial standalone JavaScript, LLVM and Pyodide builds require an explicit
-governance-loss disclosure. The local Node host adds a policy-bound JavaScript
+governance-loss disclosure. The installed Node host adds a policy-bound JavaScript
 path for scalar and flat reservoir programs. Its acceptance corpus exercises a
 valid alias write, static rejection, dynamic rejection and a denied output.
 The next portable collection increment covers nested dictionaries and the
@@ -380,7 +361,7 @@ Python code; global resource limits and cancellation remain M4. Consult the
 separate M3.4 verification record for current integration results, without
 reusing M3.1-M3.3 totals. Robotics remains deferred.
 
-### Current candidate: M3.5 value identity and governed native values
+### M3.5 value identity and governed native values
 
 `ConstructorType` separates struct/enum constructor values from their instances.
 Aliases, collection selections, and callable alternatives retain that identity;
@@ -446,7 +427,7 @@ robotics remains deferred. Final candidate evidence belongs in the separate
 |---|---|---|
 | M1: trustworthy existing behavior | C01-C15, C17, C19-C27, authority lifetime, all newly revealed regressions | Full test suite with optional analysis/docs enabled, coverage floor, Ruff/Black/mypy, no unexplained failures, artifact verification |
 | M2: usable data/application foundation | M1; collections, dictionary literals, enums/structs, binary/text conversion, real bounded network, practical application example | End-to-end .thirsty programs, malformed data controls, capability denial before effect, cleanup on failures |
-| M3: language semantics and tooling | M2; separate M3.1-M3.4 integration records and M3.5 value-identity candidate; remaining numeric domains, broader Unicode/text tooling, default/named args, optional/result values, guest iterators/generators/comprehensions, protocols/generics, diagnostics and debugger | Executable language conformance corpus; formatter/parser round trips; error-span tests; supported-feature matrix |
+| M3: language semantics and tooling | M2; separate M3.1-M3.4 integration records and M3.5 value-identity implementation; remaining numeric domains, broader Unicode/text tooling, default/named args, optional/result values, guest iterators/generators/comprehensions, protocols/generics, diagnostics and debugger | Executable language conformance corpus; formatter/parser round trips; error-span tests; supported-feature matrix |
 | M4: one complete portable execution target | M3; typed/effect-aware IR, reference semantics, resource accounting, cancellation, scheduler ownership and deterministic teardown | Interpreter/backend differential corpus; fuzzing and adversarial resource tests; documented architecture/OS matrix |
 | M5: practical standard library and interoperability | M3-M4; paths and atomic I/O, decimal/statistics/date/time, async streams, TLS/DNS, serialization schemas, constrained Python/FFI adapter | Real integration fixtures; permission and error tests; defined ownership/encoding/cancellation across every foreign boundary |
 | M6: distribution and ecosystem | M4-M5; package identity, artifact signatures, resolver constraints, transitive lock graph, isolated dependency builds, language server and documentation tooling | Reproducible clean installation, offline locked operation, malicious package tests, upgrade/rollback compatibility corpus |
@@ -463,7 +444,7 @@ These are language-specific proposals unless explicitly marked implemented.
 They need concrete syntax/semantics and tests before being advertised as features.
 
 The first [stdout shield milestone](DEFENSIVE_COMPARTMENTS.md#running-the-first-milestone)
-is implemented locally on the reference and Node hosts. The next milestone covers
+ships in 0.9.1 on the reference and Node hosts. The next milestone covers
 external operator control, restart behavior, required audit under failure and OS isolation.
 
 1. **Effect types and capability attenuation.** Build on implemented runtime
@@ -504,14 +485,14 @@ external operator control, restart behavior, required audit under failure and OS
 |---|---|---|
 | File path check/open races against a concurrent hostile filesystem writer | Requires separate follow-up work | Implement descriptor/handle-relative no-follow opens per OS; deterministic race fixtures; state the OS-specific boundary before a confinement claim. |
 | Runtime loops, arbitrary allocations, thread pools, DNS/total HTTP elapsed time, and subprocess descendants lack one global execution budget | Requires separate follow-up work | M4 cancellation/resource-accounting API, bounded adapters, process-isolated hostile workload tests. HTTP/process/network/Shadow limits are local, not whole-runtime containment. |
-| Guest writes through aliases of annotated native collections | Fixed for supported reference-interpreter writes in the November candidate | The runtime checks annotated elements, keys and values before mutation, including across guest calls and optional wrappers. Direct host mutation is a trusted embedding operation. Portable targets still need conformance tests. |
+| Guest writes through aliases of annotated native collections | Fixed for supported reference-interpreter writes in 0.9.1 | The runtime checks annotated elements, keys and values before mutation, including across guest calls and optional wrappers. Direct host mutation is a trusted embedding operation. Portable targets still need conformance tests. |
 | General static typing is incomplete for dynamic Any and foreign values | Requires separate follow-up work | M3 inference and runtime boundary validation; no claim of whole-program type soundness. |
 | Loop variables lost known element/key types and noniterables silently skipped execution | Fixed now in M3.4 | Known iterable descriptors retain element/key identity; E025 rejects known noniterables and native iteration raises for dynamic invalid values. Unknown Any and host iterators retain the documented dynamic/trusted boundary. |
 | Unknown annotation names retain static Any fallback | Requires separate follow-up work | Define compatibility and diagnostics for unresolved names, forward declarations, and dynamic imports; do not silently treat the current fallback as checked type evidence. |
 | Function parameter variance and callable common types erased incompatible possibilities | Fixed now in M3.4 | Contravariant parameters, covariant returns, exact retained alternatives, and checks against every known signature. Lambda inference, source callable annotations, mixed callable/noncallable joins, and quantified generics require separate follow-up. |
-| Constructor aliases and nominal instances shared one descriptor | Fixed in M3.5 candidate; consult its integration record | ConstructorType retains struct/enum constructor identity through aliases, selections, and calls; known instances are not callable and constructor values cannot satisfy instance annotations. Fountain typing remains gradual. |
-| Cascade returned an awaited value while the checker described Task[T] | Fixed in M3.5 candidate; consult its integration record | Actual result inference covers callbacks, aliases, collections, and pipes; noncallable operands evaluate once. A general runtime Task-value protocol remains separate work. |
-| Governed native arguments/receivers/results and callback mutation could invalidate admission | Fixed in M3.5 candidate; consult its integration record | Bounded registered projection, receiver inclusion, reserved result binding, live snapshot checkpoints, and original policy-context proof binding; final evidence is recorded separately for M3.5. |
+| Constructor aliases and nominal instances shared one descriptor | Fixed in 0.9.1; consult its integration record | ConstructorType retains struct/enum constructor identity through aliases, selections, and calls; known instances are not callable and constructor values cannot satisfy instance annotations. Fountain typing remains gradual. |
+| Cascade returned an awaited value while the checker described Task[T] | Fixed in 0.9.1; consult its integration record | Actual result inference covers callbacks, aliases, collections, and pipes; noncallable operands evaluate once. A general runtime Task-value protocol remains separate work. |
+| Governed native arguments/receivers/results and callback mutation could invalidate admission | Fixed in 0.9.1; consult its integration record | Bounded registered projection, receiver inclusion, reserved result binding, live snapshot checkpoints, and original policy-context proof binding; final evidence is recorded separately for M3.5. |
 | Snapshot hashes omit order/alias identity and mutations hidden between checkpoints | Requires separate follow-up work | Specify an execution-sensitive witness or ownership/freeze model; test concurrent mutation, mutate/restore, insertion order, and shared aliases. No atomicity or immutability claim. |
 | Native profile portability, complete call receipts, and policy namespace migration | Requires separate follow-up work | Define explicit external native adapters and authenticated declaration/code bindings, composite entry/exit receipts, and literal-key/argument/result namespace semantics; preserve current TARL paths meanwhile. |
 | Core declarations without initializers retain a static annotation while the runtime value is none | Requires separate follow-up work | Add definite-assignment analysis with branch/loop controls; preserve the documented Core behavior until an intentional compatibility change. |

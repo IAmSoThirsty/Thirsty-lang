@@ -1,16 +1,9 @@
 # Feature Status
 
-Edition: unreleased development after Thirsty-Lang 0.9.0. The integrated navigation and reference layer is
-[THIRSTY_LANG_UTF_101.md](THIRSTY_LANG_UTF_101.md); security acceptance details remain
-authoritative in [THREAT_MODEL.md](THREAT_MODEL.md).
-
-Current corrections and general-purpose additions are mapped in
-[DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md). The preserved 0.9.0 baseline evidence
-is in [IMPLEMENTATION_VERIFICATION.md](operations/IMPLEMENTATION_VERIFICATION.md);
-the current integration record is
-[M4_EXECUTION_CONTROL_VERIFICATION.md](operations/M4_EXECUTION_CONTROL_VERIFICATION.md).
-Publication and remote artifact identity require separate release verification.
-This work is not an independent Competence Register acceptance result.
+Thirsty-Lang 0.9.1. The [UTF 101 manual](THIRSTY_LANG_UTF_101.md) explains the
+installed release. The [development plan](DEVELOPMENT_PLAN.md) tracks remaining
+work. The [threat model](THREAT_MODEL.md) and the Competence Register below
+retain their independent acceptance criteria.
 
 Current execution entrypoints default to governance. A source `core` header
 selects semantics and cannot disable gates. Ungoverned compatibility requires
@@ -91,6 +84,10 @@ Preserved reproduction evidence manifest SHA-256:
 
 | Capability | Status | Test reference |
 |---|---|---|
+| The checker and reference interpreter enforce annotated writable collections across guest aliases | Real | `tests/test_mutable_type_conformance.py`; `tests/test_runtime_mutable_contracts.py` |
+| The installed governed Node host checks compiled bytes and authorizes stdout for its supported subset | Real | `tests/test_governed_js_host.py` |
+| A signed shield permits one fixed stdout record per host run, supports surrender and orders stop and issuer revocation with dispatch | Real | `tests/test_shield_hosts.py` |
+| TSCG-B v1 text frames round-trip UTF-8 and reject corrupt payloads | Real | `tests/test_tscg_b.py`; `tests/test_tscg_b_core.py` |
 | Array / reservoir literals `[1,2,3]` evaluate to a real list | Real | `tests/test_thirsty_lang.py`; `tests/test_examples.py` |
 | `flood` / `evaporate` / `new` over reservoirs and fountains | Real | `tests/test_thirsty_lang.py`; `tests/test_examples.py` |
 | Variable reassignment (`x = …`) mutates the binding | Real | `tests/test_thirsty_lang.py` |
@@ -101,14 +98,14 @@ Preserved reproduction evidence manifest SHA-256:
 | UTF-8-safe CLI output on Windows (cp1252) | Real | `src/utf/console.py` (`enable_utf8`), shared by all CLIs |
 | Every shipped example parses, type-checks, and runs clean | Real | `tests/test_examples.py` |
 | `let` (immutable binding), `for … in` keyword loop, `:=` (define mutable) | Real | `tests/test_language_features.py` |
-| `strict` initialization and `pure` ambient-effect restrictions survive aliases, cascade callbacks, and interpreter reuse | Real, unreleased | `tests/test_security_defaults.py`; `tests/test_execution_boundaries.py` |
+| `strict` initialization and `pure` ambient-effect restrictions survive aliases, cascade callbacks, and interpreter reuse | Real | `tests/test_security_defaults.py`; `tests/test_execution_boundaries.py` |
 | Self- and mutual recursion (correct arity, no false E030) | Real | `tests/test_language_fixes.py` |
 | `this` keyword, member assignment, fountain field default initializers | Real | `tests/test_language_fixes.py` |
 | Closures capture their lexical (defining) scope | Real | `tests/test_language_fixes.py` |
-| Governed functions, morphs, and fountain methods retain defining scope, including contracts | Real, unreleased M4.1 | `tests/test_lexical_execution_scope.py` |
-| One owned interpreter/import execution; nested awaited cascades do not starve the worker pool | Real, unreleased M4.1 | `tests/test_execution_ownership.py` |
-| Finite cooperative steps/deadline/call depth, sticky cancellation, idle scheduler close | Real, unreleased M4.1 | `tests/test_execution_limits.py`; `tests/test_execution_ownership.py` |
-| CLI resource ownership and REPL submissions executed once | Real, unreleased M4.1 | `tests/test_execution_entrypoint_lifetime.py` |
+| Governed functions, morphs, and fountain methods retain defining scope, including contracts | Real | `tests/test_lexical_execution_scope.py` |
+| One owned interpreter/import execution; nested awaited cascades do not starve the worker pool | Real | `tests/test_execution_ownership.py` |
+| Finite cooperative steps/deadline/call depth, sticky cancellation, idle scheduler close | Real | `tests/test_execution_limits.py`; `tests/test_execution_ownership.py` |
+| CLI resource ownership and REPL submissions executed once | Real | `tests/test_execution_entrypoint_lifetime.py` |
 | `\|>` pipe operator (and bare `\|`); `error (name)` binds the thrown value | Real | `tests/test_language_fixes.py` |
 | `times N { … }` repeat loop | Real | `tests/test_new_language_features.py` |
 | C-style `refill(init; cond; step)` loop (counter implicitly mutable) | Real | `tests/test_new_language_features.py` |
@@ -129,18 +126,18 @@ Preserved reproduction evidence manifest SHA-256:
 | Sensitive imported stdlib calls require their own capability verdict after import | Real | `tests/test_gate_fail_closed.py::test_import_allow_does_not_grant_sensitive_stdlib_calls` |
 | Denials carry a `TarlProof`; proofs are unsigned unless runtime signing is configured | Real | `tests/test_governance_maximal.py::TestCapabilityGates::test_write_denied_with_proof`; `tests/test_gate_fail_closed.py` |
 | Temporal windows govern a call (allow/deny) | Real | `tests/test_governance_maximal.py::TestTemporal` |
-| Governance-first CLI, REPL, embedding, and Thirst of Gods execution; source semantic headers cannot disable gates | Real, unreleased | `tests/test_governance_entrypoint_defaults.py`; `tests/test_security_defaults.py` |
-| Explicit host core compatibility; governed requests and security controls retain their floor | Real, unreleased | `tests/test_governance_entrypoint_defaults.py`; `tests/test_security_defaults.py` |
-| Calling and defining policies both authorize governed functions and mediated effects; identical bindings avoid duplicate audits | Real, unreleased | `tests/test_security_defaults.py` |
-| Live credential callbacks cannot replace an already-checked binding before a call or effect | Real, unreleased | `tests/test_security_defaults.py`; `tests/test_execution_boundaries.py` |
+| Governance-first CLI, REPL, embedding, and Thirst of Gods execution; source semantic headers cannot disable gates | Real | `tests/test_governance_entrypoint_defaults.py`; `tests/test_security_defaults.py` |
+| Explicit host core compatibility; governed requests and security controls retain their floor | Real | `tests/test_governance_entrypoint_defaults.py`; `tests/test_security_defaults.py` |
+| Calling and defining policies both authorize governed functions and mediated effects; identical bindings avoid duplicate audits | Real | `tests/test_security_defaults.py` |
+| Live credential callbacks cannot replace an already-checked binding before a call or effect | Real | `tests/test_security_defaults.py`; `tests/test_execution_boundaries.py` |
 | Forward-reference / mutual-recursion hoisting | Real | `tests/test_governance_maximal.py::TestStatic::test_forward_reference_resolves` |
 | Offensive threat model and challenge catalog | Real | `docs/THREAT_MODEL.md` |
-| File and stdlib imports honor active caller/definer locks; disagreeing checked source is rejected before parsing | Real, unreleased | `tests/test_import_lock_callers.py` |
-| Malformed source fails closed before recovered statements execute | Real, unreleased | `tests/test_source_failure_provenance.py`; `tests/test_threat_model_parser_fail_closed.py` |
+| File and stdlib imports honor active caller/definer locks; disagreeing checked source is rejected before parsing | Real | `tests/test_import_lock_callers.py` |
+| Malformed source fails closed before recovered statements execute | Real | `tests/test_source_failure_provenance.py`; `tests/test_threat_model_parser_fail_closed.py` |
 | Secure-by-default proof verification (signature required unless unsigned mode is explicit; Ed25519-only / policy source options) | Real | `tests/test_threat_model_proof_strictness.py`; `tests/test_peer_review_0_8_1_tarl_regressions.py` |
-| All public executable builds require governance-loss acknowledgement and a written disclosure manifest before executable output | Real, unreleased | `tests/test_governance_entrypoint_defaults.py`; `tests/test_threat_model_build_outputs.py` |
+| Executable builds that lose governance require explicit acknowledgement and a written disclosure manifest before executable output | Real | `tests/test_governance_entrypoint_defaults.py`; `tests/test_threat_model_build_outputs.py` |
 | Import-only policy grants no sensitive stdlib side effect | Real | `tests/test_threat_model_capability_broker.py` |
-| Every shipped stdlib callable has an explicit ambient-effect classification; unknown, missing, or non-callable exports reject import | Real, unreleased | `tests/test_stdlib_export_classification.py` |
+| Every shipped stdlib callable has an explicit ambient-effect classification; unknown, missing, or non-callable exports reject import | Real | `tests/test_stdlib_export_classification.py` |
 | Static proof-obligation manifest (`thirsty prove`) without executing side effects | Real | `tests/test_proof_obligations.py` |
 | Derived context schema from TARL policy references, fail-closed when incomplete | Real | `tests/test_proof_obligations.py`; `tests/test_threat_model_context_schema.py` |
 | Denial explanation for missing policy/context/authority/proof conditions | Real | `tests/test_proof_obligations.py` |

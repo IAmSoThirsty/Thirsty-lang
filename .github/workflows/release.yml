@@ -96,12 +96,15 @@ jobs:
       - name: Build package
         run: python -m build
 
-      - name: Verify wheel contents
+      - name: Verify package sources and canonical PDF
         run: |
           set -euo pipefail
           python - <<'PY'
+          import tarfile
           from pathlib import Path
           from zipfile import ZipFile
+          manual = Path("output/pdf/Thirsty-Lang-UTF-101.pdf")
+          pdf = manual.read_bytes()
           wheel, = Path("dist").glob("*.whl")
           with ZipFile(wheel) as archive:
               sources = list(Path("src/utf").rglob("*.py"))
@@ -109,7 +112,13 @@ jobs:
               for source in sources:
                   assert archive.read(source.relative_to("src").as_posix()) == source.read_bytes(), source
               assert "utf/py.typed" in archive.namelist()
-          print(f"Verified {len(sources)} source files and the typing marker in {wheel.name}")
+              member, = (n for n in archive.namelist() if n.endswith(f".data/data/share/doc/thirsty-lang/{manual.name}"))
+              assert archive.read(member) == pdf
+          sdist, = Path("dist").glob("*.tar.gz")
+          with tarfile.open(sdist) as archive:
+              member, = (m for m in archive.getmembers() if m.isfile() and m.name.endswith("/" + manual.as_posix()))
+              assert archive.extractfile(member).read() == pdf
+          print(f"Verified {len(sources)} source files, the typing marker and the PDF in both distributions")
           PY
 
       - name: Smoke test installed wheel
@@ -144,6 +153,10 @@ jobs:
           for entry in thirsty thirst-of-gods tarl tarl-lsp tscg tscg-b shadow-thirst; do
             "$RUNNER_TEMP/release-smoke/bin/$entry" --help > /dev/null
             echo "$entry --help passed"
+          done
+          cmp "$GITHUB_WORKSPACE/output/pdf/Thirsty-Lang-UTF-101.pdf" "$RUNNER_TEMP/release-smoke/share/doc/thirsty-lang/Thirsty-Lang-UTF-101.pdf"
+          for check in verify_installed_language verify_installed_js_host verify_installed_shield; do
+            "$RUNNER_TEMP/release-smoke/bin/python" -I "$GITHUB_WORKSPACE/scripts/$check.py" --work-dir "$RUNNER_TEMP"
           done
 
       - name: Verify package metadata

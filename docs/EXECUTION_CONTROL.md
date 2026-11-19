@@ -1,17 +1,10 @@
 # Execution control and lexical scope
 
-This document describes the M4.1 reference-interpreter changes in the current
-working source. They add finite cooperative execution limits, ownership of active
-interpreter state, shared import scheduling, explicit teardown, and consistent
-lexical lookup for native callables. M4.1 is an unreleased increment; the package
-version remains 0.9.0. These changes do not complete M4's portable execution and
-resource-containment requirements.
-
-Focused regressions cover the behavior described below. Full-suite, packaging,
-documentation, and artifact verification belong to the separate
-[M4 integration record](operations/M4_EXECUTION_CONTROL_VERIFICATION.md). Until
-that record contains completed evidence, focused passes do not establish full
-integration or release readiness.
+Thirsty-Lang 0.9.1 gives each reference interpreter finite cooperative
+execution limits, ownership of its active state, shared import scheduling and
+explicit teardown. Native callables resolve lexical names in their defining
+scope. Process isolation and the broader M4 portable-execution requirements
+remain development milestones. [M4.1 verification record](operations/M4_EXECUTION_CONTROL_VERIFICATION.md)
 
 ## Host API and default limits
 

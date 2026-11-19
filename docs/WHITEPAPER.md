@@ -1,6 +1,6 @@
 # Thirsty-Lang: A Governance-First Language for Accountable Execution
 
-**Version:** 0.9.0 (release preparation) · **Stack:** Universal Thirsty Family (UTF)
+**Version:** 0.9.1 · **Stack:** Universal Thirsty Family (UTF)
 **Copyright:** 2026 Thirsty's Projects LLC · **License:** Apache-2.0
 **Status of claims:** every capability below is marked *Real* (implemented and
 covered by a test) or *Roadmap / Deferred* (reserved surface, not yet enforced).
@@ -29,7 +29,7 @@ missing authority, a failed signature check, or an unavailable gate all resolve 
 
 This paper describes the language, its governance model, the T.A.R.L. policy
 engine and proof system, the offensive threat model that scopes its guarantees,
-and the foundation prepared for 0.9.0. The engineering-state and acceptance
+and the language foundation in 0.9.1. The engineering-state and acceptance
 records explicitly labeled 0.8.6 below retain their historical release scope.
 
 ---

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "thirsty-lang"
-version = "0.9.0"
+version = "0.9.1"
 description = "A governance-first programming language family"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -27,6 +27,8 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/IAmSoThirsty/Thirsty-lang"
+"Documentation" = "https://github.com/IAmSoThirsty/Thirsty-lang/blob/pypi-v0.9.1/docs/THIRSTY_LANG_UTF_101.md"
+"PDF Manual" = "https://github.com/IAmSoThirsty/Thirsty-lang/releases/download/pypi-v0.9.1/Thirsty-Lang-UTF-101.pdf"
 "Source" = "https://github.com/IAmSoThirsty/Thirsty-lang"
 "Bug Tracker" = "https://github.com/IAmSoThirsty/Thirsty-lang/issues"
 
@@ -67,6 +69,9 @@ include = ["utf.*", "utf", "thirsty_lang"]
 # Ship the PEP 561 marker so the package's inline type hints are exposed to
 # type checkers (mypy/pyright) in downstream installs.
 utf = ["py.typed", "examples/data_report/*.thirsty", "examples/data_report/*.json"]
+
+[tool.setuptools.data-files]
+"share/doc/thirsty-lang" = ["output/pdf/Thirsty-Lang-UTF-101.pdf"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

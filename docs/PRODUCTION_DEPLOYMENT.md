@@ -1,6 +1,6 @@
 # Production Deployment Requirement
 
-**Applies to:** Thirsty-Lang 0.9.0 (release preparation) · **Audience:** operators embedding the
+**Applies to:** Thirsty-Lang 0.9.1 · **Audience:** operators embedding the
 governed runtime to authorize real-world, high-risk actions.
 
 Canonical end-to-end reference: [THIRSTY_LANG_UTF_101.md](THIRSTY_LANG_UTF_101.md).

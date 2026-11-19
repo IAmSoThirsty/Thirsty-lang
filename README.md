@@ -9,10 +9,11 @@ Robotics and swarm implementation are deferred while the language foundation
 and its verification take priority. The plan identifies implemented work,
 compatibility changes, and remaining milestones.
 
-The current working tree adds **governance by default** after the released
-0.9.0 and local M3.1/M3.2 increments. This behavior is unreleased; installing
-the published 0.9.0 package does not install these changes. Current integration
-evidence belongs in [the security-defaults record](docs/operations/M3_SECURITY_DEFAULTS_VERIFICATION.md).
+**Version 0.9.1** requires governance by default. Pure calculations can run
+immediately. Programs that print, read files, or import modules need an allowing
+TARL policy and the required host authority. The reference interpreter and the
+installed Node host also support a one-use signed stdout shield.
+[Upgrade notes](https://github.com/IAmSoThirsty/Thirsty-lang/blob/pypi-v0.9.1/CHANGELOG.md#091---2026-11-18) · [Shield example](https://github.com/IAmSoThirsty/Thirsty-lang/blob/pypi-v0.9.1/docs/DEFENSIVE_COMPARTMENTS.md#the-first-program)
 
 ```text
   source  →  verdict  →  proof  →  audit  →  governed effect
@@ -56,7 +57,7 @@ These mechanisms expose inspectable authorization evidence. They do not prove
 arbitrary programs correct, provide an OS sandbox, or establish Python parity.
 The development plan keeps those limits and remaining language work explicit.
 
-The unreleased M4.1 runtime adds finite cooperative execution limits, explicit
+The 0.9.1 reference interpreter includes finite cooperative execution limits, explicit
 interpreter/import ownership, cancellation, and idle scheduler teardown. It also
 repairs lexical scope in governed functions and methods. See
 [execution control](docs/EXECUTION_CONTROL.md) for the supported contract and
@@ -81,28 +82,27 @@ At mediated execution boundaries:
 pip install thirsty-lang
 ```
 
-Recorded published release (without the newer working-tree changes):
+To install this version:
 
 ```bash
-pip install thirsty-lang==0.9.0
+python -m pip install thirsty-lang==0.9.1
 ```
 
 From source:
 
 ```bash
-git clone https://github.com/IAmSoThirsty/Thirsty-lang.git
+git clone --branch pypi-v0.9.1 https://github.com/IAmSoThirsty/Thirsty-lang.git
 cd Thirsty-lang
 pip install -e .
 ```
 
 ## Canonical Manual
 
-The end-to-end reference is the
-[`Thirsty-Lang UTF 101 (Universal Thirsty Family)`](docs/THIRSTY_LANG_UTF_101.md) manual. Its generated single-file
-edition is [`Thirsty-Lang-UTF-101.pdf`](output/pdf/Thirsty-Lang-UTF-101.pdf). It unifies
-the language tutorial, exact grammar, all seven CLIs, T.A.R.L. policy and proof
-contracts, the six-tier family, deployment, security, release evidence, and
-source/test traceability. Released and unreleased behavior are distinguished.
+Read the [0.9.1 manual online](https://github.com/IAmSoThirsty/Thirsty-lang/blob/pypi-v0.9.1/docs/THIRSTY_LANG_UTF_101.md) or [download the 0.9.1 PDF](https://github.com/IAmSoThirsty/Thirsty-lang/releases/download/pypi-v0.9.1/Thirsty-Lang-UTF-101.pdf). The wheel installs the same PDF. To print its local path from the environment where you installed the package:
+
+```bash
+python -c "import sys; from pathlib import Path; print(Path(sys.prefix) / 'share/doc/thirsty-lang/Thirsty-Lang-UTF-101.pdf')"
+```
 
 ---
 
@@ -434,7 +434,7 @@ Proof-oriented commands are static unless explicitly documented otherwise:
 For the governed JavaScript subset, build with a TARL policy and launch through
 `thirsty run-js` with the same policy and a host authority. Node executes the
 compiled program. The installed TARL broker authorizes each write to stdout.
-On the development branch, a standalone [stdout shield](docs/DEFENSIVE_COMPARTMENTS.md#running-the-first-milestone)
+In 0.9.1, a standalone [stdout shield](https://github.com/IAmSoThirsty/Thirsty-lang/blob/pypi-v0.9.1/docs/DEFENSIVE_COMPARTMENTS.md#running-the-first-milestone)
 supports a single signed publication across workers, voluntary surrender and host stop.
 The compatibility JS, LLVM and Pyodide builds require explicit governance-loss
 acknowledgment and persist their disclosure before executable output. Static reports identify

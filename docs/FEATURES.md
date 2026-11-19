@@ -1,9 +1,6 @@
 # Thirsty-Lang — Feature Reference
 
-> Feature-oriented reference for released Thirsty-Lang `0.9.0` and the explicitly
-> marked, unreleased M3.1-M3.5 increments. M3.5 is an implementation candidate;
-> its [integration record](operations/M3_VALUE_IDENTITY_VERIFICATION.md) supplies
-> the final verification outcome. See
+> Feature reference for Thirsty-Lang 0.9.1. See
 > [STATUS.md](STATUS.md) for the authoritative capability-to-test map and
 > [THREAT_MODEL.md](THREAT_MODEL.md) for security acceptance status. The
 > [canonical Thirsty-Lang UTF 101 manual](THIRSTY_LANG_UTF_101.md) is the integrated
@@ -42,7 +39,7 @@ checker, a type system, and a formatter.
   (if / else-if / else).
 - **Loops:** `refill (item in iterable) { … }` (for-each),
   `refill (cond) { … }` (while). Loop bodies accumulate into mutable bindings.
-  Unreleased M3.4 infers known list elements, dictionary keys, and string
+  M3.4 infers known list elements, dictionary keys, and string
   characters before introducing the immutable loop binding. Known noniterables
   report E025; dynamic noniterables raise `TypeError` instead of silently skipping.
   Native iterator order and per-iteration scopes remain; host iterators are
@@ -67,7 +64,7 @@ checker, a type system, and a formatter.
   `obj.method(args)`.
 - `new Class(args)`, function calls, pipe `|`, guard `thirst(e) quench(c)`,
   and the TSCG pipeline/combine operators.
-- **Unreleased M3.1:** strict sequence indexing and read-only slicing
+- **M3.1:** strict sequence indexing and read-only slicing
   `values[start:stop:step]` for lists, strings, tuples, and bytes. Bounds are
   `Int` or `none`; booleans and zero steps are rejected. Strings use Unicode
   code points, slices retain the container type, and list slices are shallow.
@@ -75,11 +72,11 @@ checker, a type system, and a formatter.
   JS/LLVM compilation and nonstructural Shadow analysis reject unsupported
   slices explicitly. The Pyodide target uses the interpreter. See the
   [complete sequence contract](GENERAL_PURPOSE_LANGUAGE.md).
-- **Unreleased M3.2:** Boolean arithmetic/order rejection, recursive nominal
+- **M3.2:** Boolean arithmetic/order rejection, recursive nominal
   generic resolution and declaration identity, dictionary index key checks,
   and malformed declaration recovery. Unknown types remain gradual. See the
   [type-coherence contract](GENERAL_PURPOSE_LANGUAGE.md).
-- **Unreleased M3.4:** contravariant callable parameters, covariant returns, and
+- **M3.4:** contravariant callable parameters, covariant returns, and
   common types that retain every arity. Internal `FunctionUnionType` retains known
   alternatives with exact, nominal-aware deduplication; calls must satisfy
   every alternative, including known `|` and `->` calls. Results join the
@@ -87,11 +84,11 @@ checker, a type system, and a formatter.
   dispatch. Type-variable descriptors consistently match by name. Callable
   annotation syntax, lambda inference, mixed callable/noncallable joins, and
   complete type soundness remain outside this increment. See the
-  [callable and iteration contract](GENERAL_PURPOSE_LANGUAGE.md#callable-consistency-and-iteration-local-m34-increment)
+  [callable and iteration contract](GENERAL_PURPOSE_LANGUAGE.md#callable-consistency-and-iteration-m34)
   and [separate verification record](operations/M3_CALLABLE_ITERATION_VERIFICATION.md).
   M3.4's constructor-alias and cascade-result limitations are addressed by
-  the M3.5 candidate below; its historical evidence remains unchanged.
-- **Unreleased M3.5 candidate:** distinct `ConstructorType` values preserve
+  the M3.5 implementation below; its historical evidence remains unchanged.
+- **M3.5 implementation:** distinct `ConstructorType` values preserve
   struct/enum constructor identity through aliases, collections, and callable
   alternatives. Ordinary calls, `new`, and known pipes check every retained
   signature; instance annotations cannot accept constructor values. Known
@@ -100,7 +97,7 @@ checker, a type system, and a formatter.
   instead of `Task[T]`; invalid dynamic callees reject after once-only operand
   evaluation. Explicit/host Task descriptors, fountains, mixed callable/noncallable
   joins, and unknown foreign values retain gradual limits. See the
-  [value-identity contract](GENERAL_PURPOSE_LANGUAGE.md#value-identity-local-m35-candidate).
+  [value-identity contract](GENERAL_PURPOSE_LANGUAGE.md#value-identity-m35).
 - **Runtime arity in M3.4:** ordinary/lambda/morph/governed functions, bound
   methods, and fountain constructors reject missing or excess positional
   arguments before callee bodies, contracts, or field defaults. Caller argument
@@ -230,7 +227,7 @@ Imports honor active caller/definer locks; the broader M6 foreign-code identity
 boundary remains open. See the [development plan](DEVELOPMENT_PLAN.md) and
 [separate security-defaults verification record](operations/M3_SECURITY_DEFAULTS_VERIFICATION.md).
 
-### 2.6 Governed native values (unreleased M3.5 candidate)
+### 2.6 Governed native values (M3.5)
 
 Governed calls project exact JSON values and registered native structs,
 fountains, and enums into owned JSON snapshots. Native envelopes use
@@ -306,7 +303,7 @@ regression checks; classifies evidence as **PROVEN**, **OBSERVED**,
 **FLAGGED**, or **REJECTED** Change Admission Record. Records bind source/block
 hashes, admission policy, analysis identifiers, and evidence, and may be signed with an Ed25519
 `proof-signer` key. Strict record verification rejects malformed or unknown
-fields. Unreleased M3.2 advances the engine to 0.4.0 with v4 convergence methods
+fields. M3.2 advances the engine to 0.4.0 with v4 convergence methods
 after fixing Boolean/integer result conflation. M3.1 used 0.3.0/v3 and released
 0.9.0 used engine 0.2.0. Default
 verification rejects superseded engine/proof methods; explicit Python
@@ -370,13 +367,13 @@ CLI: `tarl eval | parse | verify | audit | explain | test | analyze`, plus a
   `canonical` (normalized form), `checksum` (SHA-256), `validate`, `list`.
   Canonicalization + hashing for tamper-evident symbolic expressions.
 - **TSCG-B (`tscg-b`):** binary framing — `encode` / `decode` / `stream`, with
-  CRC32 + SHA-256 integrity over each frame.
+  CRC32 + SHA-256 integrity over each frame. Guest code can import `thirst::tscgb` to encode UTF-8 text and decode a single zero-flag frame.
 
 ---
 
 ## 6. Tooling & Workflow
 
-- **`thirsty` CLI:** `run`, `repl`, `fmt`, `new` (scaffold), `build`, `govern`,
+- **`thirsty` CLI:** `run`, `run-js`, `repl`, `fmt`, `new` (scaffold), `build`, `govern`,
   `add` / `audit` / `lock` (dependency integrity), `doctor`, `lsp`, `docs`.
 - **Console scripts:** `thirsty`, `thirst-of-gods`, `tarl`, `tarl-lsp`, `tscg`,
   `tscg-b`, `shadow-thirst`.

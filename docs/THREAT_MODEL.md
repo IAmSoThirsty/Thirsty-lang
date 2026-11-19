@@ -1,6 +1,6 @@
 # Thirsty-Lang Offensive Threat Model
 
-Edition: Thirsty-Lang 0.9.0 (release preparation). This catalog is included in the
+Edition: Thirsty-Lang 0.9.1. This catalog is included in the
 [canonical Thirsty-Lang UTF 101 manual](THIRSTY_LANG_UTF_101.md).
 
 ## Purpose
